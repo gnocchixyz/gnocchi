@@ -1,0 +1,16 @@
+babel
+iso8601
+lockfile
+netaddr
+oslo.config
+oslotest
+pandas
+pecan
+posix_ipc
+psycopg2
+python-swiftclient
+six
+sqlalchemy
+stevedore
+tooz
+voluptuous
