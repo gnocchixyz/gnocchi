@@ -120,13 +120,13 @@ class EntitiesController(rest.RestController):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         # TODO(jd) Use a better format than (seconds,number of metric)
-        name = str(uuid.uuid4())
-        pecan.request.storage.create_entity(name,
+        name = uuid.uuid4()
+        pecan.request.storage.create_entity(str(name),
                                             body['archives'])
         pecan.request.indexer.create_entity(name)
-        pecan.response.headers['Location'] = "/v1/entity/" + name
+        pecan.response.headers['Location'] = "/v1/entity/" + str(name)
         pecan.response.status = 201
-        return {"name": name,
+        return {"name": str(name),
                 "archives": body['archives']}
 
 

@@ -51,8 +51,8 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource_with_entities(self):
         r1 = uuid.uuid4()
-        e1 = str(uuid.uuid4())
-        e2 = str(uuid.uuid4())
+        e1 = uuid.uuid4()
+        e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
         self.index.create_resource(r1, [e1, e2])
@@ -62,15 +62,15 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource_with_non_existent_entities(self):
         r1 = uuid.uuid4()
-        e1 = str(uuid.uuid4())
+        e1 = uuid.uuid4()
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.create_resource,
                           r1, [e1])
 
     def test_delete_entity(self):
         r1 = uuid.uuid4()
-        e1 = str(uuid.uuid4())
-        e2 = str(uuid.uuid4())
+        e1 = uuid.uuid4()
+        e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
         self.index.create_resource(r1, [e1, e2])

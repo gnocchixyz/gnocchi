@@ -74,7 +74,7 @@ ResourceEntity = sqlalchemy.Table(
     sqlalchemy.Column('resource', GUID,
                       sqlalchemy.ForeignKey('resource.id',
                                             ondelete="CASCADE")),
-    sqlalchemy.Column('entity', types.Text,
+    sqlalchemy.Column('entity', GUID,
                       sqlalchemy.ForeignKey('entity.name',
                                             ondelete="CASCADE"))
 )
@@ -83,7 +83,7 @@ ResourceEntity = sqlalchemy.Table(
 class Entity(Base, models.ModelBase):
     __tablename__ = 'entity'
 
-    name = sqlalchemy.Column(types.Text, primary_key=True)
+    name = sqlalchemy.Column(GUID, primary_key=True)
 
 
 class Resource(Base, models.ModelBase):
