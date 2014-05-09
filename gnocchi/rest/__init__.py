@@ -16,6 +16,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import functools
+import uuid
 
 import iso8601
 import pecan
@@ -90,36 +91,6 @@ class EntityController(rest.RestController):
         except storage.EntityDoesNotExist as e:
             pecan.abort(400, str(e))
 
-    Entity = voluptuous.Schema({
-        voluptuous.Required('archives'):
-        voluptuous.All([voluptuous.All([int],
-                                       voluptuous.Length(min=2, max=2))],
-                       voluptuous.Length(min=1))
-    })
-
-    @vexpose(Entity, 'json')
-    def post(self, body):
-        # TODO(jd) Use policy to limit what values the user can use as
-        # 'archive'?
-        # TODO(jd) Use a better format than (seconds,number of metric)
-        try:
-            pecan.request.storage.create_entity(self.entity_name,
-                                                body['archives'])
-        except storage.EntityAlreadyExists as e:
-            pecan.abort(400, str(e))
-        try:
-            pecan.request.indexer.create_entity(self.entity_name)
-        except storage.EntityAlreadyExists as e:
-            # Cancel creation
-            try:
-                pecan.request.storage.delete_entity(self.entity_name)
-            except Exception:
-                # If it fails at this point, too bad, but ignore
-                pass
-            pecan.abort(400, str(e))
-        return {"entity": self.entity_name,
-                "archives": body['archives']}
-
     @pecan.expose()
     def delete(self):
         try:
@@ -136,6 +107,27 @@ class EntitiesController(rest.RestController):
     @pecan.expose()
     def _lookup(name, *remainder):
         return EntityController(name), remainder
+
+    Entity = voluptuous.Schema({
+        voluptuous.Required('archives'):
+        voluptuous.All([voluptuous.All([int],
+                                       voluptuous.Length(min=2, max=2))],
+                       voluptuous.Length(min=1))
+    })
+
+    @vexpose(Entity, 'json')
+    def post(self, body):
+        # TODO(jd) Use policy to limit what values the user can use as
+        # 'archive'?
+        # TODO(jd) Use a better format than (seconds,number of metric)
+        name = str(uuid.uuid4())
+        pecan.request.storage.create_entity(name,
+                                            body['archives'])
+        pecan.request.indexer.create_entity(name)
+        pecan.response.headers['Location'] = "/v1/entity/" + name
+        pecan.response.status = 201
+        return {"name": name,
+                "archives": body['archives']}
 
 
 class V1Controller(object):
