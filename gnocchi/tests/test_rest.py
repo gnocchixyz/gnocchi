@@ -178,6 +178,15 @@ class RestTest(tests.TestCase):
                          result.headers['Location'])
         self.assertEqual(resource, {"id": r1, "entities": {}})
 
+    def test_get_resource(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1})
+        self.assertEqual(201, result.status_code)
+        result = self.app.get("/v1/resource/" + r1)
+        self.assertEqual({"id": r1, "entities": {}},
+                         jsonutils.loads(result.body))
+
     def test_put_resource(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
@@ -190,8 +199,8 @@ class RestTest(tests.TestCase):
         r = jsonutils.loads(result.body)
         self.assertEqual(r['id'], r1)
         self.assertIsNotNone(r['entities']['foo'])
-        # result = self.app.get("/v1/resource/" + r1,
-        #                       params=resource)
+        result = self.app.get("/v1/resource/" + r1)
+        self.assertEqual(r, jsonutils.loads(result.body))
 
     def test_delete_resource(self):
         r1 = str(uuid.uuid4())

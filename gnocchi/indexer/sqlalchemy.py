@@ -147,8 +147,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                           sqlalchemy.exc.IntegrityError):
                 # FIXME(jd) This could also be a non existent resource!
                 raise indexer.NoSuchEntity(None)
-        return {"id": uuid,
-                'entities': entities}
+        return {"id": str(uuid),
+                'entities': dict((k, str(v))
+                                 for k, v in entities.iteritems())}
 
     def delete_resource(self, id):
         session = self.engine_facade.get_session()
@@ -162,8 +163,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Resource.id == uuid)
         r = q.first()
         if r:
-            return {"id": r.id,
-                    'entities': dict((e.name, e.entity_id)
+            return {"id": str(r.id),
+                    'entities': dict((e.name, str(e.entity_id))
                                      for e in r.entities)}
 
     def create_entity(self, id):

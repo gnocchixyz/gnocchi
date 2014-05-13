@@ -41,7 +41,8 @@ class TestIndexerDriver(tests.TestCase):
         rc = self.index.create_resource(r1)
         self.assertEqual({"id": r1, "entities": {}}, rc)
         rg = self.index.get_resource(r1)
-        self.assertEqual(rc, rg)
+        self.assertEqual(str(rc['id']), rg['id'])
+        self.assertEqual(rc['entities'], rg['entities'])
 
     def test_delete_resource(self):
         r1 = uuid.uuid4()
@@ -71,7 +72,8 @@ class TestIndexerDriver(tests.TestCase):
         self.assertEqual({"id": r1,
                           "entities": {'foo': e1, 'bar': e2}}, rc)
         r = self.index.get_resource(r1)
-        self.assertEqual(rc, r)
+        self.assertEqual({"id": str(r1),
+                          "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_resource(self):
         r1 = uuid.uuid4()
@@ -116,5 +118,5 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_resource(r1, {'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
         r = self.index.get_resource(r1)
-        self.assertEqual({"id": r1,
-                          "entities": {'bar': e2}}, r)
+        self.assertEqual({"id": str(r1),
+                          "entities": {'bar': str(e2)}}, r)

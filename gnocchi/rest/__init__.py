@@ -166,6 +166,13 @@ class ResourceController(rest.RestController):
                     v['archives']))
         return new_entities
 
+    @pecan.expose('json')
+    def get(self):
+        resource = pecan.request.indexer.get_resource(self.id)
+        if resource:
+            return resource
+        pecan.abort(404)
+
     @vexpose(Resource, 'json')
     def put(self, body):
         return pecan.request.indexer.update_resource(
