@@ -150,7 +150,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         try:
             session.flush()
         except exception.DBDuplicateEntry:
-                raise indexer.EntityAlreadyExists(id)
+            raise indexer.EntityAlreadyExists(id)
 
     def delete_entity(self, id):
         session = self.engine_facade.get_session()
