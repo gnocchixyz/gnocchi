@@ -16,7 +16,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
-import operator
 import uuid
 
 from oslo.config import cfg
@@ -68,22 +67,26 @@ class GUID(types.TypeDecorator):
         return uuid.UUID(value)
 
 
-ResourceEntity = sqlalchemy.Table(
-    'resource_entity',
-    Base.metadata,
-    sqlalchemy.Column('resource', GUID,
-                      sqlalchemy.ForeignKey('resource.id',
-                                            ondelete="CASCADE")),
-    sqlalchemy.Column('entity', GUID,
-                      sqlalchemy.ForeignKey('entity.name',
-                                            ondelete="CASCADE"))
-)
+class ResourceEntity(Base, models.ModelBase):
+    __tablename__ = 'resource_entity'
+
+    resource_id = sqlalchemy.Column(GUID,
+                                    sqlalchemy.ForeignKey('resource.id',
+                                                          ondelete="CASCADE"),
+                                    primary_key=True)
+    entity_id = sqlalchemy.Column(GUID,
+                                  sqlalchemy.ForeignKey('entity.id',
+                                                        ondelete="CASCADE"),
+                                  primary_key=True)
+    name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    resources = sqlalchemy.orm.relationship(
+        'Resource')
 
 
 class Entity(Base, models.ModelBase):
     __tablename__ = 'entity'
 
-    name = sqlalchemy.Column(GUID, primary_key=True)
+    id = sqlalchemy.Column(GUID, primary_key=True)
 
 
 class Resource(Base, models.ModelBase):
@@ -91,9 +94,7 @@ class Resource(Base, models.ModelBase):
 
     id = sqlalchemy.Column(GUID, primary_key=True)
     entities = sqlalchemy.orm.relationship(
-        'Entity',
-        backref='resources',
-        secondary=ResourceEntity)
+        ResourceEntity)
 
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
@@ -105,46 +106,48 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
-    def create_resource(self, uuid, entities=[]):
+    def create_resource(self, uuid, entities=None):
         session = self.engine_facade.get_session()
-        with session.begin():
-            # FIXME(jd) Seriously, THERE IS NOT NEED TO DO THAT. But someone
-            # sucks, either me or the ORM. Please fix that so there's no
-            # need to select before inserting FFS. What needs to be done is
-            # an INSERT in resources and then an INSERT into ResourceEntity;
-            # that last one should fails if the entity does not exist, so we
-            # just have to raise back to the caller! I offer a pack of beer
-            # to whoever fix that.
-            loaded_entities = []
-            for e in entities:
-                entity = session.query(Entity).filter(Entity.name == e).first()
-                if not entity:
-                    raise indexer.NoSuchEntity(e)
-                loaded_entities.append(entity)
-            r = Resource(id=uuid, entities=loaded_entities)
-            session.add(r)
-        return {"id": r['id'],
-                'entities': map(operator.attrgetter('name'),
-                                r['entities'])}
+        r = Resource(id=uuid)
+        session.add(r)
+        if entities is None:
+            entities = {}
+        for name, e in entities.iteritems():
+            session.add(ResourceEntity(resource_id=r.id,
+                                       entity_id=e,
+                                       name=name))
+        try:
+            session.flush()
+        except exception.DBError as e:
+            # TODO(jd) Add an exception in oslo.db to match foreign key
+            # issues
+            if isinstance(e.inner_exception,
+                          sqlalchemy.exc.IntegrityError):
+                raise indexer.NoSuchEntity(None)
+
+        return {"id": r.id,
+                'entities': entities}
 
     def get_resource(self, uuid):
         session = self.engine_facade.get_session()
-        with session.begin():
-            q = session.query(Resource).filter(Resource.id == uuid)
-            r = q.first()
-            return {"id": r['id'],
-                    'entities': map(operator.attrgetter('name'),
-                                    r['entities'])}
+        q = session.query(
+            Resource).filter(
+            Resource.id == uuid)
+        r = q.first()
+        if r:
+            return {"id": r.id,
+                    'entities': dict((e.name, e.entity_id)
+                                     for e in r.entities)}
 
-    def create_entity(self, name):
+    def create_entity(self, id):
         session = self.engine_facade.get_session()
+        session.add(Entity(id=id))
         try:
-            with session.begin():
-                session.add(Entity(name=name))
+            session.flush()
         except exception.DBDuplicateEntry:
-            raise indexer.EntityAlreadyExists(name)
+                raise indexer.EntityAlreadyExists(id)
 
-    def delete_entity(self, name):
+    def delete_entity(self, id):
         session = self.engine_facade.get_session()
-        with session.begin():
-            session.query(Entity).filter(Entity.name == name).delete()
+        session.query(Entity).filter(Entity.id == id).delete()
+        session.flush()

@@ -70,13 +70,13 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def create_resource(uuid, entities=[]):
+    def create_resource(uuid, entities=None):
         raise NotImplementedError
 
     @staticmethod
-    def create_entity(name):
+    def create_entity(id):
         raise NotImplementedError
 
     @staticmethod
-    def delete_entity(name):
+    def delete_entity(id):
         raise NotImplementedError

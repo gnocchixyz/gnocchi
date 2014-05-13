@@ -96,8 +96,6 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
     indexer_backends = [
         ('null', dict(indexer_engine='null')),
-        ('sqlite', dict(indexer_engine='sqlalchemy',
-                        db_url="sqlite://")),
         ('postgresql', dict(indexer_engine='sqlalchemy',
                             db_url=os.environ.get("GNOCCHI_TEST_PGSQL_URL"))),
     ]
