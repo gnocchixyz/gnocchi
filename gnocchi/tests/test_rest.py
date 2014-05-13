@@ -51,7 +51,7 @@ class RestTest(tests.TestCase):
         self.assertEqual("application/json", result.content_type)
         self.assertEqual(201, result.status_code)
         entity = jsonutils.loads(result.body)
-        self.assertEqual("http://localhost/v1/entity/" + entity['name'],
+        self.assertEqual("http://localhost/v1/entity/" + entity['id'],
                          result.headers['Location'])
         self.assertEqual(entity['archives'], [[5, 60], [60, 60]])
 
@@ -60,7 +60,7 @@ class RestTest(tests.TestCase):
                                     params={"archives": [(5, 60),
                                                          (60, 60)]})
         entity = jsonutils.loads(result.body)
-        result = self.app.delete("/v1/entity/" + entity['name'])
+        result = self.app.delete("/v1/entity/" + entity['id'])
         self.assertEqual(result.status_code, 204)
 
     def test_delete_entity_non_existent(self):
@@ -89,7 +89,7 @@ class RestTest(tests.TestCase):
                                                          (60, 60)]})
         entity = jsonutils.loads(result.body)
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % entity['name'],
+            "/v1/entity/%s/measures" % entity['id'],
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}])
         self.assertEqual(result.status_code, 204)
@@ -110,10 +110,10 @@ class RestTest(tests.TestCase):
         result = self.app.post_json("/v1/entity",
                                     params={"archives": [(1, 10)]})
         entity = jsonutils.loads(result.body)
-        self.app.post_json("/v1/entity/%s/measures" % entity['name'],
+        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
-        ret = self.app.get("/v1/entity/%s/measures" % entity['name'])
+        ret = self.app.get("/v1/entity/%s/measures" % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = jsonutils.loads(ret.body)
         self.assertEqual({'2013-01-01T23:23:23.000000': 1234.2},
@@ -123,12 +123,12 @@ class RestTest(tests.TestCase):
         result = self.app.post_json("/v1/entity",
                                     params={"archives": [(1, 10)]})
         entity = jsonutils.loads(result.body)
-        self.app.post_json("/v1/entity/%s/measures" % entity['name'],
+        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
         ret = self.app.get(
             "/v1/entity/%s/measures?start='2013-01-01 23:23:20"
-            % entity['name'])
+            % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = jsonutils.loads(ret.body)
         self.assertEqual({'2013-01-01T23:23:23.000000': 1234.2},
@@ -138,13 +138,13 @@ class RestTest(tests.TestCase):
         result = self.app.post_json("/v1/entity",
                                     params={"archives": [(1, 10)]})
         entity = jsonutils.loads(result.body)
-        self.app.post_json("/v1/entity/%s/measures" % entity['name'],
+        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
                                     "value": 1234.2},
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 456}])
         ret = self.app.get("/v1/entity/%s/measures"
-                           "?stop=2013-01-01 12:00:00" % entity['name'])
+                           "?stop=2013-01-01 12:00:00" % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = jsonutils.loads(ret.body)
         self.assertEqual({'2013-01-01T12:00:00.000000': 1234.2},
@@ -154,7 +154,7 @@ class RestTest(tests.TestCase):
         result = self.app.post_json("/v1/entity",
                                     params={"archives": [(5, 10)]})
         entity = jsonutils.loads(result.body)
-        self.app.post_json("/v1/entity/%s/measures" % entity['name'],
+        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
                                     "value": 123.2},
                                    {"timestamp": '2013-01-01 12:00:03',
@@ -162,7 +162,7 @@ class RestTest(tests.TestCase):
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 1234.2}])
         ret = self.app.get(
-            "/v1/entity/%s/measures?aggregation=max" % entity['name'])
+            "/v1/entity/%s/measures?aggregation=max" % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = jsonutils.loads(ret.body)
         self.assertEqual({'2013-01-01T12:00:00.000000': 12345.2},

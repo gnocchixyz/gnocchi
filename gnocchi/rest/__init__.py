@@ -54,8 +54,8 @@ class EntityController(rest.RestController):
         'measures': ['POST', 'GET']
     }
 
-    def __init__(self, entity_name):
-        self.entity_name = entity_name
+    def __init__(self, entity_id):
+        self.entity_id = entity_id
 
     Measures = voluptuous.Schema([{
         voluptuous.Required("timestamp"):
@@ -67,7 +67,7 @@ class EntityController(rest.RestController):
     def post_measures(self, body):
         try:
             pecan.request.storage.add_measures(
-                self.entity_name,
+                self.entity_id,
                 (storage.Measure(
                     m['timestamp'],
                     m['value']) for m in body))
@@ -86,7 +86,7 @@ class EntityController(rest.RestController):
             # Replace timestamp keys by their string versions
             return dict((timeutils.strtime(k), v)
                         for k, v in pecan.request.storage.get_measures(
-                            self.entity_name,
+                            self.entity_id,
                             start, stop, aggregation).iteritems())
         except storage.EntityDoesNotExist as e:
             pecan.abort(400, str(e))
@@ -94,10 +94,10 @@ class EntityController(rest.RestController):
     @pecan.expose()
     def delete(self):
         try:
-            pecan.request.storage.delete_entity(self.entity_name)
+            pecan.request.storage.delete_entity(self.entity_id)
         except storage.EntityDoesNotExist as e:
             pecan.abort(400, str(e))
-        pecan.request.indexer.delete_entity(self.entity_name)
+        pecan.request.indexer.delete_entity(self.entity_id)
         # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
         pecan.response.status = 204
 
@@ -105,8 +105,8 @@ class EntityController(rest.RestController):
 class EntitiesController(rest.RestController):
     @staticmethod
     @pecan.expose()
-    def _lookup(name, *remainder):
-        return EntityController(name), remainder
+    def _lookup(id, *remainder):
+        return EntityController(id), remainder
 
     Entity = voluptuous.Schema({
         voluptuous.Required('archives'):
@@ -120,13 +120,13 @@ class EntitiesController(rest.RestController):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         # TODO(jd) Use a better format than (seconds,number of metric)
-        name = uuid.uuid4()
-        pecan.request.storage.create_entity(str(name),
+        id = uuid.uuid4()
+        pecan.request.storage.create_entity(str(id),
                                             body['archives'])
-        pecan.request.indexer.create_entity(name)
-        pecan.response.headers['Location'] = "/v1/entity/" + str(name)
+        pecan.request.indexer.create_entity(id)
+        pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
-        return {"name": str(name),
+        return {"id": str(id),
                 "archives": body['archives']}
 
 
