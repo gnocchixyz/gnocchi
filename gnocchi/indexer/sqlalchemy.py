@@ -137,7 +137,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         q = session.query(
             Resource).filter(
-            Resource.id == uuid)
+                Resource.id == uuid)
         r = q.first()
         if r:
             return {"id": r.id,

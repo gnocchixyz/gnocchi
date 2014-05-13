@@ -181,7 +181,8 @@ class ResourcesController(rest.RestController):
             if isinstance(v, six.text_type):
                 entities[k] = v
             else:
-                entities[k] = str(EntitiesController.create_entity(v['archives']))
+                entities[k] = str(EntitiesController.create_entity(
+                    v['archives']))
         pecan.request.indexer.create_resource(_id, entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201
