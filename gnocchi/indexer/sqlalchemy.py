@@ -128,6 +128,28 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return {"id": r.id,
                 'entities': entities}
 
+    def update_resource(self, uuid, entities=None):
+        session = self.engine_facade.get_session()
+        try:
+            with session.begin():
+                session.query(ResourceEntity).filter(
+                    ResourceEntity.resource_id == uuid).delete()
+                if entities is None:
+                    entities = {}
+                for name, e in entities.iteritems():
+                    session.add(ResourceEntity(resource_id=uuid,
+                                               entity_id=e,
+                                               name=name))
+        except exception.DBError as e:
+            # TODO(jd) Add an exception in oslo.db to match foreign key
+            # issues
+            if isinstance(e.inner_exception,
+                          sqlalchemy.exc.IntegrityError):
+                # FIXME(jd) This could also be a non existent resource!
+                raise indexer.NoSuchEntity(None)
+        return {"id": uuid,
+                'entities': entities}
+
     def delete_resource(self, id):
         session = self.engine_facade.get_session()
         if session.query(Resource).filter(Resource.id == id).delete() == 0:

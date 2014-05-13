@@ -144,8 +144,33 @@ def UUID(value):
 
 
 class ResourceController(rest.RestController):
+    Resource = voluptuous.Schema({
+        voluptuous.Required("id"): UUID,
+        'entities': {six.text_type:
+                     voluptuous.Any(UUID,
+                                    EntitiesController.Entity)},
+    })
+
     def __init__(self, id):
         self.id = id
+
+    @staticmethod
+    def convert_entity_list(entities):
+        # Replace None as value for an entity by a brand a new entity
+        new_entities = {}
+        for k, v in entities.iteritems():
+            if isinstance(v, six.text_type):
+                new_entities[k] = v
+            else:
+                new_entities[k] = str(EntitiesController.create_entity(
+                    v['archives']))
+        return new_entities
+
+    @vexpose(Resource, 'json')
+    def put(self, body):
+        return pecan.request.indexer.update_resource(
+            self.id,
+            self.convert_entity_list(body['entities']))
 
     @pecan.expose()
     def delete(self):
@@ -158,31 +183,17 @@ class ResourceController(rest.RestController):
 
 
 class ResourcesController(rest.RestController):
-    Resource = voluptuous.Schema({
-        voluptuous.Required("id"): UUID,
-        'entities': {six.text_type:
-                     voluptuous.Any(UUID,
-                                    EntitiesController.Entity)},
-    })
-
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
         return ResourceController(id), remainder
 
     @staticmethod
-    @vexpose(Resource, 'json')
+    @vexpose(ResourceController.Resource, 'json')
     def post(body):
         _id = body['id']
-        original_entities = body.get('entities', {})
-        # Replace None as value for an entity by a brand a new entity
-        entities = {}
-        for k, v in original_entities.iteritems():
-            if isinstance(v, six.text_type):
-                entities[k] = v
-            else:
-                entities[k] = str(EntitiesController.create_entity(
-                    v['archives']))
+        entities = ResourceController.convert_entity_list(
+            body.get('entities', {}))
         pecan.request.indexer.create_resource(_id, entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201

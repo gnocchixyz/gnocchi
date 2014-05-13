@@ -82,6 +82,10 @@ class IndexerDriver(object):
         raise NotImplementedError
 
     @staticmethod
+    def update_resource(uuid, entities=None):
+        raise NotImplementedError
+
+    @staticmethod
     def delete_resource(uuid):
         raise NotImplementedError
 
