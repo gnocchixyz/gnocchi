@@ -38,15 +38,18 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource(self):
         r1 = uuid.uuid4()
-        rc = self.index.create_resource(r1)
-        self.assertEqual({"id": r1, "entities": {}}, rc)
+        rc = self.index.create_resource(r1, "foo", "bar")
+        self.assertEqual({"id": r1,
+                          "user_id": "foo",
+                          "project_id": "bar",
+                          "entities": {}}, rc)
         rg = self.index.get_resource(r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
 
     def test_delete_resource(self):
         r1 = uuid.uuid4()
-        self.index.create_resource(r1)
+        self.index.create_resource(r1, "foo", "bar")
         self.index.delete_resource(r1)
 
     def test_delete_resource_non_existent(self):
@@ -68,8 +71,11 @@ class TestIndexerDriver(tests.TestCase):
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
-        rc = self.index.create_resource(r1, {'foo': e1, 'bar': e2})
+        rc = self.index.create_resource(r1, "foo", "bar",
+                                        {'foo': e1, 'bar': e2})
         self.assertEqual({"id": r1,
+                          "user_id": "foo",
+                          "project_id": "bar",
                           "entities": {'foo': e1, 'bar': e2}}, rc)
         r = self.index.get_resource(r1)
         self.assertEqual({"id": str(r1),
@@ -80,7 +86,8 @@ class TestIndexerDriver(tests.TestCase):
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
-        self.index.create_resource(r1, {'foo': e1})
+        self.index.create_resource(r1, "foo", "bar",
+                                   {'foo': e1})
         self.index.create_entity(e2)
         rc = self.index.update_resource(r1, {'bar': e2})
         r = self.index.get_resource(r1)
@@ -107,7 +114,8 @@ class TestIndexerDriver(tests.TestCase):
         e1 = uuid.uuid4()
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.create_resource,
-                          r1, {'foo': e1})
+                          r1, "foo", "bar",
+                          {'foo': e1})
 
     def test_delete_entity(self):
         r1 = uuid.uuid4()
@@ -115,7 +123,8 @@ class TestIndexerDriver(tests.TestCase):
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
-        self.index.create_resource(r1, {'foo': e1, 'bar': e2})
+        self.index.create_resource(r1, "foo", "bar",
+                                   {'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
         r = self.index.get_resource(r1)
         self.assertEqual({"id": str(r1),

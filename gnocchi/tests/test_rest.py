@@ -171,7 +171,9 @@ class RestTest(tests.TestCase):
     def test_post_resource(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
-                                    params={"id": r1})
+                                    params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
         self.assertEqual(201, result.status_code)
         resource = jsonutils.loads(result.body)
         self.assertEqual("http://localhost/v1/resource/" + r1,
@@ -181,7 +183,9 @@ class RestTest(tests.TestCase):
     def test_get_resource(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
-                                    params={"id": r1})
+                                    params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
         self.assertEqual(201, result.status_code)
         result = self.app.get("/v1/resource/" + r1)
         self.assertEqual({"id": r1, "entities": {}},
@@ -190,7 +194,9 @@ class RestTest(tests.TestCase):
     def test_put_resource(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
-                                    params={"id": r1})
+                                    params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
         self.assertEqual(201, result.status_code)
         resource = jsonutils.loads(result.body)
         resource['entities']['foo'] = {'archives': [(1, 2)]}
@@ -205,7 +211,9 @@ class RestTest(tests.TestCase):
     def test_delete_resource(self):
         r1 = str(uuid.uuid4())
         self.app.post_json("/v1/resource",
-                           params={"id": r1})
+                           params={"id": r1,
+                                   "user_id": "foo",
+                                   "project_id": "bar"})
         result = self.app.delete("/v1/resource/" + r1)
         self.assertEqual(204, result.status_code)
 
@@ -237,6 +245,8 @@ class RestTest(tests.TestCase):
         entity = jsonutils.loads(result.body)
         result = self.app.post_json("/v1/resource",
                                     params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar",
                                             'entities':
                                             {"foo": entity['id']}})
         self.assertEqual(201, result.status_code)
@@ -250,6 +260,8 @@ class RestTest(tests.TestCase):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
                                     params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar",
                                             'entities':
                                             {"foo": {"archives": [(10, 20)]}}})
         self.assertEqual(201, result.status_code)

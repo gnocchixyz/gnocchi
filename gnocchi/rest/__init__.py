@@ -146,6 +146,8 @@ def UUID(value):
 class ResourceController(rest.RestController):
     Resource = voluptuous.Schema({
         voluptuous.Required("id"): UUID,
+        'user_id': six.text_type,
+        'project_id': six.text_type,
         'entities': {six.text_type:
                      voluptuous.Any(UUID,
                                     EntitiesController.Entity)},
@@ -201,7 +203,10 @@ class ResourcesController(rest.RestController):
         _id = body['id']
         entities = ResourceController.convert_entity_list(
             body.get('entities', {}))
-        pecan.request.indexer.create_resource(_id, entities)
+        pecan.request.indexer.create_resource(
+            _id,
+            body['user_id'], body['project_id'],
+            entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201
         return {"id": str(_id),

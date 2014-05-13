@@ -93,6 +93,8 @@ class Resource(Base, models.ModelBase):
     __tablename__ = 'resource'
 
     id = sqlalchemy.Column(GUID, primary_key=True)
+    user_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    project_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     entities = sqlalchemy.orm.relationship(
         ResourceEntity)
 
@@ -106,9 +108,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
-    def create_resource(self, uuid, entities=None):
+    def create_resource(self, uuid, user_id, project_id, entities=None):
         session = self.engine_facade.get_session()
-        r = Resource(id=uuid)
+        r = Resource(id=uuid,
+                     user_id=user_id,
+                     project_id=project_id)
         session.add(r)
         if entities is None:
             entities = {}
@@ -126,6 +130,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.NoSuchEntity(None)
 
         return {"id": r.id,
+                "user_id": r.user_id,
+                "project_id": r.project_id,
                 'entities': entities}
 
     def update_resource(self, uuid, entities=None):
