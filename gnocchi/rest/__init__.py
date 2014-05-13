@@ -21,6 +21,7 @@ import uuid
 import iso8601
 import pecan
 from pecan import rest
+import six
 import voluptuous
 
 from gnocchi.openstack.common import jsonutils
@@ -130,8 +131,30 @@ class EntitiesController(rest.RestController):
                 "archives": body['archives']}
 
 
+def UUID(value):
+    return uuid.UUID(value)
+
+
+class ResourcesController(rest.RestController):
+    Resource = voluptuous.Schema({
+        voluptuous.Required("id"): UUID,
+        'entities': {six.text_type: UUID},
+    })
+
+    @vexpose(Resource, 'json')
+    def post(self, body):
+        _id = body['id']
+        entities = body.get('entities', {})
+        pecan.request.indexer.create_resource(_id, entities)
+        pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
+        pecan.response.status = 201
+        return {"id": str(_id),
+                "entities": entities}
+
+
 class V1Controller(object):
     entity = EntitiesController()
+    resource = ResourcesController()
 
 
 class RootController(object):

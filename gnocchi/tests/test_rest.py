@@ -167,3 +167,41 @@ class RestTest(tests.TestCase):
         result = jsonutils.loads(ret.body)
         self.assertEqual({'2013-01-01T12:00:00.000000': 12345.2},
                          result)
+
+    def test_post_resource(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1})
+        self.assertEqual(201, result.status_code)
+        resource = jsonutils.loads(result.body)
+        self.assertEqual("http://localhost/v1/resource/" + r1,
+                         result.headers['Location'])
+        self.assertEqual(resource, {"id": r1, "entities": {}})
+
+    def test_post_resource_invalid_uuid(self):
+        r1 = "foobar"
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1},
+                                    expect_errors=True)
+        self.assertEqual(400, result.status_code)
+        self.assertEqual("text/plain", result.content_type)
+        self.assertIn(
+            u"Invalid input: not a valid value "
+            "for dictionary value @ data[u'id']",
+            result.body)
+
+    def test_post_resource_with_entities(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/entity",
+                                    params={"archives": [(5, 10)]})
+        entity = jsonutils.loads(result.body)
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1,
+                                            'entities':
+                                            {"foo": entity['id']}})
+        self.assertEqual(201, result.status_code)
+        resource = jsonutils.loads(result.body)
+        self.assertEqual("http://localhost/v1/resource/" + r1,
+                         result.headers['Location'])
+        self.assertEqual(resource, {"id": r1, "entities":
+                                    {"foo": entity['id']}})
