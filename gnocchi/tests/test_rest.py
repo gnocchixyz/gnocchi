@@ -205,3 +205,18 @@ class RestTest(tests.TestCase):
                          result.headers['Location'])
         self.assertEqual(resource, {"id": r1, "entities":
                                     {"foo": entity['id']}})
+
+    def test_post_resource_with_null_entities(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1,
+                                            'entities':
+                                            {"foo": {"archives": [(10, 20)]}}})
+        self.assertEqual(201, result.status_code)
+        resource = jsonutils.loads(result.body)
+        self.assertEqual("http://localhost/v1/resource/" + r1,
+                         result.headers['Location'])
+        self.assertEqual(resource["id"], r1)
+        entity_id = uuid.UUID(resource['entities']['foo'])
+        result = self.app.get("/v1/entity/" + str(entity_id) + "/measures")
+        self.assertEqual(200, result.status_code)

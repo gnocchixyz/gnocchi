@@ -116,15 +116,19 @@ class EntitiesController(rest.RestController):
                        voluptuous.Length(min=1))
     })
 
+    @staticmethod
+    def create_entity(archives):
+        id = uuid.uuid4()
+        pecan.request.storage.create_entity(str(id), archives)
+        pecan.request.indexer.create_entity(id)
+        return id
+
     @vexpose(Entity, 'json')
     def post(self, body):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         # TODO(jd) Use a better format than (seconds,number of metric)
-        id = uuid.uuid4()
-        pecan.request.storage.create_entity(str(id),
-                                            body['archives'])
-        pecan.request.indexer.create_entity(id)
+        id = self.create_entity(body['archives'])
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
@@ -132,19 +136,32 @@ class EntitiesController(rest.RestController):
 
 
 def UUID(value):
-    return uuid.UUID(value)
+    try:
+        return uuid.UUID(value)
+    except Exception as e:
+        raise ValueError(e)
 
 
 class ResourcesController(rest.RestController):
     Resource = voluptuous.Schema({
         voluptuous.Required("id"): UUID,
-        'entities': {six.text_type: UUID},
+        'entities': {six.text_type:
+                     voluptuous.Any(UUID,
+                                    EntitiesController.Entity)},
     })
 
+    @staticmethod
     @vexpose(Resource, 'json')
-    def post(self, body):
+    def post(body):
         _id = body['id']
-        entities = body.get('entities', {})
+        original_entities = body.get('entities', {})
+        # Replace None as value for an entity by a brand a new entity
+        entities = {}
+        for k, v in original_entities.iteritems():
+            if isinstance(v, six.text_type):
+                entities[k] = v
+            else:
+                entities[k] = str(EntitiesController.create_entity(v['archives']))
         pecan.request.indexer.create_resource(_id, entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201
