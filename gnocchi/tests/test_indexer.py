@@ -43,6 +43,17 @@ class TestIndexerDriver(tests.TestCase):
         rg = self.index.get_resource(r1)
         self.assertEqual(rc, rg)
 
+    def test_delete_resource(self):
+        r1 = uuid.uuid4()
+        self.index.create_resource(r1)
+        self.index.delete_resource(r1)
+
+    def test_delete_resource_non_existent(self):
+        r1 = uuid.uuid4()
+        self.assertRaises(indexer.NoSuchResource,
+                          self.index.delete_resource,
+                          r1)
+
     def test_create_entity_twice(self):
         e1 = str(uuid.uuid4())
         self.index.create_entity(e1)

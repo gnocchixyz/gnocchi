@@ -128,6 +128,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return {"id": r.id,
                 'entities': entities}
 
+    def delete_resource(self, id):
+        session = self.engine_facade.get_session()
+        if session.query(Resource).filter(Resource.id == id).delete() == 0:
+            raise indexer.NoSuchResource(id)
+
     def get_resource(self, uuid):
         session = self.engine_facade.get_session()
         q = session.query(

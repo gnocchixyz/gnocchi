@@ -24,6 +24,7 @@ from pecan import rest
 import six
 import voluptuous
 
+from gnocchi import indexer
 from gnocchi.openstack.common import jsonutils
 from gnocchi.openstack.common import timeutils
 from gnocchi import storage
@@ -142,6 +143,20 @@ def UUID(value):
         raise ValueError(e)
 
 
+class ResourceController(rest.RestController):
+    def __init__(self, id):
+        self.id = id
+
+    @pecan.expose()
+    def delete(self):
+        try:
+            pecan.request.indexer.delete_resource(self.id)
+        except indexer.NoSuchResource as e:
+            pecan.abort(400, str(e))
+        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
+        pecan.response.status = 204
+
+
 class ResourcesController(rest.RestController):
     Resource = voluptuous.Schema({
         voluptuous.Required("id"): UUID,
@@ -149,6 +164,11 @@ class ResourcesController(rest.RestController):
                      voluptuous.Any(UUID,
                                     EntitiesController.Entity)},
     })
+
+    @staticmethod
+    @pecan.expose()
+    def _lookup(id, *remainder):
+        return ResourceController(id), remainder
 
     @staticmethod
     @vexpose(Resource, 'json')

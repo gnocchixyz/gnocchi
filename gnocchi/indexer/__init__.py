@@ -52,6 +52,14 @@ class NoSuchEntity(Exception):
         self.entity = entity
 
 
+class NoSuchResource(Exception):
+    """Error raised when a resource does not exist."""
+    def __init__(self, resource):
+        super(NoSuchResource, self).__init__("Resource %s does not exist" %
+                                             str(resource))
+        self.resource = resource
+
+
 class EntityAlreadyExists(Exception):
     """Error raised when an entity already exists."""
     def __init__(self, entity):
@@ -71,6 +79,10 @@ class IndexerDriver(object):
 
     @staticmethod
     def create_resource(uuid, entities=None):
+        raise NotImplementedError
+
+    @staticmethod
+    def delete_resource(uuid):
         raise NotImplementedError
 
     @staticmethod

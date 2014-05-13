@@ -178,6 +178,22 @@ class RestTest(tests.TestCase):
                          result.headers['Location'])
         self.assertEqual(resource, {"id": r1, "entities": {}})
 
+    def test_delete_resource(self):
+        r1 = str(uuid.uuid4())
+        self.app.post_json("/v1/resource",
+                           params={"id": r1})
+        result = self.app.delete("/v1/resource/" + r1)
+        self.assertEqual(204, result.status_code)
+
+    def test_delete_resource_non_existent(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.delete("/v1/resource/" + r1,
+                                 expect_errors=True)
+        self.assertEqual(400, result.status_code)
+        self.assertIn(
+            u"Resource %s does not exist" % r1,
+            result.body)
+
     def test_post_resource_invalid_uuid(self):
         r1 = "foobar"
         result = self.app.post_json("/v1/resource",
