@@ -155,6 +155,8 @@ class ResourceController(rest.RestController):
 
     Resource = voluptuous.Schema({
         voluptuous.Required("id"): UUID,
+        'started_at': Timestamp,
+        'ended_at': Timestamp,
         'user_id': six.text_type,
         'project_id': six.text_type,
         'entities': Entities,
@@ -207,12 +209,19 @@ class ResourcesController(rest.RestController):
     @staticmethod
     @vexpose(ResourceController.Resource, 'json')
     def post(body):
+        started_at = body.get('started_at')
+        ended_at = body.get('ended_at')
+        if started_at is not None \
+           and ended_at is not None \
+           and started_at > ended_at:
+            pecan.abort(400, "Start timestamp cannot be after end timestamp")
         _id = body['id']
         entities = ResourceController.convert_entity_list(
             body.get('entities', {}))
         resource = pecan.request.indexer.create_resource(
             _id,
             body['user_id'], body['project_id'],
+            started_at, ended_at,
             entities=entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201

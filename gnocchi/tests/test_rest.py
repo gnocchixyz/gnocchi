@@ -170,20 +170,34 @@ class RestTest(tests.TestCase):
 
     def test_post_resource(self):
         r1 = str(uuid.uuid4())
-        result = self.app.post_json("/v1/resource",
-                                    params={"id": r1,
-                                            "user_id": "foo",
-                                            "project_id": "bar"})
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "started_at": "2014-01-01 02:02:02",
+                    "user_id": "foo",
+                    "project_id": "bar"})
         self.assertEqual(201, result.status_code)
         resource = jsonutils.loads(result.body)
         self.assertEqual("http://localhost/v1/resource/" + r1,
                          result.headers['Location'])
-        del resource['started_at']
         self.assertEqual(resource, {"id": r1,
                                     "entities": {},
                                     "user_id": "foo",
+                                    "started_at": "2014-01-01 02:02:02",
                                     "ended_at": None,
                                     "project_id": "bar"})
+
+    def test_post_invalid_timestamp(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "started_at": "2014-01-01 02:02:02",
+                    "ended_at": "2013-01-01 02:02:02",
+                    "user_id": "foo",
+                    "project_id": "bar"},
+            expect_errors=True)
+        self.assertEqual(400, result.status_code)
 
     def test_get_resource(self):
         r1 = str(uuid.uuid4())
