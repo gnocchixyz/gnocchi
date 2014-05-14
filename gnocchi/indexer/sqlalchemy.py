@@ -134,14 +134,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 "project_id": r.project_id,
                 'entities': entities}
 
-    def update_resource(self, uuid, entities=None):
+    def update_resource_entities(self, uuid, entities):
         session = self.engine_facade.get_session()
         try:
             with session.begin():
                 session.query(ResourceEntity).filter(
                     ResourceEntity.resource_id == uuid).delete()
-                if entities is None:
-                    entities = {}
                 for name, e in entities.iteritems():
                     session.add(ResourceEntity(resource_id=uuid,
                                                entity_id=e,

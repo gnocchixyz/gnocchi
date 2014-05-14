@@ -191,17 +191,15 @@ class RestTest(tests.TestCase):
         self.assertEqual({"id": r1, "entities": {}},
                          jsonutils.loads(result.body))
 
-    def test_put_resource(self):
+    def test_put_resource_entities(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
                                     params={"id": r1,
                                             "user_id": "foo",
                                             "project_id": "bar"})
         self.assertEqual(201, result.status_code)
-        resource = jsonutils.loads(result.body)
-        resource['entities']['foo'] = {'archives': [(1, 2)]}
-        result = self.app.put_json("/v1/resource/" + r1,
-                                   params=resource)
+        result = self.app.put_json("/v1/resource/" + r1 + "/entities",
+                                   params={'foo': {'archives': [(1, 2)]}})
         r = jsonutils.loads(result.body)
         self.assertEqual(r['id'], r1)
         self.assertIsNotNone(r['entities']['foo'])

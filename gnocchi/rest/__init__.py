@@ -144,13 +144,20 @@ def UUID(value):
 
 
 class ResourceController(rest.RestController):
+    _custom_actions = {
+        'entities': ['PUT']
+    }
+
+    Entities = voluptuous.Schema({
+        six.text_type: voluptuous.Any(UUID,
+                                      EntitiesController.Entity),
+    })
+
     Resource = voluptuous.Schema({
         voluptuous.Required("id"): UUID,
         'user_id': six.text_type,
         'project_id': six.text_type,
-        'entities': {six.text_type:
-                     voluptuous.Any(UUID,
-                                    EntitiesController.Entity)},
+        'entities': Entities,
     })
 
     def __init__(self, id):
@@ -175,11 +182,11 @@ class ResourceController(rest.RestController):
             return resource
         pecan.abort(404)
 
-    @vexpose(Resource, 'json')
-    def put(self, body):
-        return pecan.request.indexer.update_resource(
+    @vexpose(Entities, 'json')
+    def put_entities(self, body):
+        return pecan.request.indexer.update_resource_entities(
             self.id,
-            self.convert_entity_list(body['entities']))
+            self.convert_entity_list(body))
 
     @pecan.expose()
     def delete(self):

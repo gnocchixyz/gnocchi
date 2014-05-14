@@ -81,7 +81,7 @@ class TestIndexerDriver(tests.TestCase):
         self.assertEqual({"id": str(r1),
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
-    def test_update_resource(self):
+    def test_update_resource_entities(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
@@ -89,7 +89,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_resource(r1, "foo", "bar",
                                    {'foo': e1})
         self.index.create_entity(e2)
-        rc = self.index.update_resource(r1, {'bar': e2})
+        rc = self.index.update_resource_entities(r1, {'bar': e2})
         r = self.index.get_resource(r1)
         self.assertEqual(rc, r)
 
@@ -97,7 +97,7 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         self.assertRaises(indexer.NoSuchEntity,
-                          self.index.update_resource,
+                          self.index.update_resource_entities,
                           r1, {'bar': e1})
 
     def test_update_non_existent_resource(self):
@@ -106,7 +106,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_entity(e1)
         # FIXME(jd) Should raises NoSuchResource actually
         self.assertRaises(indexer.NoSuchEntity,
-                          self.index.update_resource,
+                          self.index.update_resource_entities,
                           r1, {'bar': e1})
 
     def test_create_resource_with_non_existent_entities(self):
