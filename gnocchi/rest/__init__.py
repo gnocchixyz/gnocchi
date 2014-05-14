@@ -186,12 +186,19 @@ class ResourceController(rest.RestController):
 
     @vexpose(ResourcePatch)
     def patch(self, body):
+        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
+        pecan.response.status = 204
+
+        if len(body) == 0:
+            # Empty update, just check if the resource exists
+            if pecan.request.indexer.get_resource(self.id):
+                return
+            pecan.abort(404)
+
         if 'entities' in body:
             pecan.request.indexer.update_resource_entities(
                 self.id,
                 self.convert_entity_list(body['entities']))
-        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
-        pecan.response.status = 204
 
     @pecan.expose()
     def delete(self):

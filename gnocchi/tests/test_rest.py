@@ -255,6 +255,13 @@ class RestTest(tests.TestCase):
         del r['entities']
         self.assertEqual(r, result)
 
+    def test_patch_resource_non_existent(self):
+        result = self.app.patch_json(
+            "/v1/resource/" + str(uuid.uuid4()),
+            params={},
+            expect_errors=True)
+        self.assertEqual(result.status_code, 404)
+
     def test_patch_resource_unknown_field(self):
         r1 = str(uuid.uuid4())
         self.app.post_json("/v1/resource",
