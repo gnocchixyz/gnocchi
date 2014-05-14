@@ -188,8 +188,13 @@ class RestTest(tests.TestCase):
                                             "project_id": "bar"})
         self.assertEqual(201, result.status_code)
         result = self.app.get("/v1/resource/" + r1)
-        self.assertEqual({"id": r1, "entities": {}},
-                         jsonutils.loads(result.body))
+        result = jsonutils.loads(result.body)
+        self.assertIn('started_at', result)
+        del result['started_at']
+        self.assertEqual({"id": r1,
+                          "entities": {},
+                          "ended_at": None},
+                         result)
 
     def test_put_resource_entities(self):
         r1 = str(uuid.uuid4())
@@ -204,7 +209,10 @@ class RestTest(tests.TestCase):
         self.assertEqual(r['id'], r1)
         self.assertIsNotNone(r['entities']['foo'])
         result = self.app.get("/v1/resource/" + r1)
-        self.assertEqual(r, jsonutils.loads(result.body))
+        r['ended_at'] = None
+        result = jsonutils.loads(result.body)
+        del result['started_at']  # We cannot guess
+        self.assertEqual(r, result)
 
     def test_delete_resource(self):
         r1 = str(uuid.uuid4())

@@ -78,7 +78,8 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def create_resource(uuid, user_id, project_id, entities=None):
+    def create_resource(uuid, user_id, project_id,
+                        started_at=None, ended_at=None, entities=None):
         raise NotImplementedError
 
     @staticmethod

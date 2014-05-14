@@ -213,7 +213,7 @@ class ResourcesController(rest.RestController):
         pecan.request.indexer.create_resource(
             _id,
             body['user_id'], body['project_id'],
-            entities)
+            entities=entities)
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201
         return {"id": str(_id),

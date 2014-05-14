@@ -15,6 +15,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import datetime
 import uuid
 
 import testscenarios
@@ -39,10 +40,14 @@ class TestIndexerDriver(tests.TestCase):
     def test_create_resource(self):
         r1 = uuid.uuid4()
         rc = self.index.create_resource(r1, "foo", "bar")
+        self.assertIsNotNone(rc['started_at'])
+        del rc['started_at']
         self.assertEqual({"id": r1,
                           "user_id": "foo",
                           "project_id": "bar",
-                          "entities": {}}, rc)
+                          "ended_at": None,
+                          "entities": {}},
+                         rc)
         rg = self.index.get_resource(r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
@@ -65,6 +70,24 @@ class TestIndexerDriver(tests.TestCase):
                           self.index.create_entity,
                           e1)
 
+    def test_create_resource_with_start_timestamp(self):
+        r1 = uuid.uuid4()
+        ts = datetime.datetime(2014, 1, 1, 23, 34, 23, 1234)
+        rc = self.index.create_resource(
+            r1, "foo", "bar",
+            started_at=ts)
+        self.assertEqual({"id": r1,
+                          "user_id": "foo",
+                          "project_id": "bar",
+                          "started_at": ts,
+                          "ended_at": None,
+                          "entities": {}}, rc)
+        r = self.index.get_resource(r1)
+        self.assertEqual({"id": str(r1),
+                          "started_at": ts,
+                          "ended_at": None,
+                          "entities": {}}, r)
+
     def test_create_resource_with_entities(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
@@ -72,13 +95,19 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_entity(e1)
         self.index.create_entity(e2)
         rc = self.index.create_resource(r1, "foo", "bar",
-                                        {'foo': e1, 'bar': e2})
+                                        entities={'foo': e1, 'bar': e2})
+        self.assertIsNotNone(rc['started_at'])
+        del rc['started_at']
         self.assertEqual({"id": r1,
                           "user_id": "foo",
                           "project_id": "bar",
+                          "ended_at": None,
                           "entities": {'foo': e1, 'bar': e2}}, rc)
         r = self.index.get_resource(r1)
+        self.assertIsNotNone(r['started_at'])
+        del r['started_at']
         self.assertEqual({"id": str(r1),
+                          "ended_at": None,
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_resource_entities(self):
@@ -87,10 +116,12 @@ class TestIndexerDriver(tests.TestCase):
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_resource(r1, "foo", "bar",
-                                   {'foo': e1})
+                                   entities={'foo': e1})
         self.index.create_entity(e2)
         rc = self.index.update_resource_entities(r1, {'bar': e2})
         r = self.index.get_resource(r1)
+        del r['started_at']
+        del r['ended_at']
         self.assertEqual(rc, r)
 
     def test_update_non_existent_entity(self):
@@ -115,7 +146,7 @@ class TestIndexerDriver(tests.TestCase):
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.create_resource,
                           r1, "foo", "bar",
-                          {'foo': e1})
+                          entities={'foo': e1})
 
     def test_delete_entity(self):
         r1 = uuid.uuid4()
@@ -124,8 +155,11 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_entity(e1)
         self.index.create_entity(e2)
         self.index.create_resource(r1, "foo", "bar",
-                                   {'foo': e1, 'bar': e2})
+                                   entities={'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
         r = self.index.get_resource(r1)
+        self.assertIsNotNone(r['started_at'])
+        del r['started_at']
         self.assertEqual({"id": str(r1),
+                          "ended_at": None,
                           "entities": {'bar': str(e2)}}, r)

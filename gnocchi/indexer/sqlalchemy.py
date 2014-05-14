@@ -95,6 +95,9 @@ class Resource(Base, models.ModelBase):
     id = sqlalchemy.Column(GUID, primary_key=True)
     user_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     project_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    started_at = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False,
+                                   default=sqlalchemy.func.now())
+    ended_at = sqlalchemy.Column(sqlalchemy.DateTime)
     entities = sqlalchemy.orm.relationship(
         ResourceEntity)
 
@@ -108,11 +111,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
-    def create_resource(self, uuid, user_id, project_id, entities=None):
+    def create_resource(self, uuid, user_id, project_id,
+                        started_at=None, ended_at=None, entities=None):
         session = self.engine_facade.get_session()
         r = Resource(id=uuid,
                      user_id=user_id,
-                     project_id=project_id)
+                     project_id=project_id,
+                     started_at=started_at,
+                     ended_at=ended_at)
         session.add(r)
         if entities is None:
             entities = {}
@@ -130,6 +136,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.NoSuchEntity(None)
 
         return {"id": r.id,
+                "started_at": r.started_at,
+                "ended_at": r.ended_at,
                 "user_id": r.user_id,
                 "project_id": r.project_id,
                 'entities': entities}
@@ -168,6 +176,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         r = q.first()
         if r:
             return {"id": str(r.id),
+                    "started_at": r.started_at,
+                    "ended_at": r.ended_at,
                     'entities': dict((e.name, str(e.entity_id))
                                      for e in r.entities)}
 
