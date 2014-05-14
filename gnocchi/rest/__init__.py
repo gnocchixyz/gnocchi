@@ -157,8 +157,8 @@ class ResourceController(rest.RestController):
         voluptuous.Required("id"): UUID,
         'started_at': Timestamp,
         'ended_at': Timestamp,
-        'user_id': six.text_type,
-        'project_id': six.text_type,
+        voluptuous.Required('user_id'): six.text_type,
+        voluptuous.Required('project_id'): six.text_type,
         'entities': Entities,
     })
 

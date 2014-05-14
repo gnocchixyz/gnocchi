@@ -199,6 +199,24 @@ class RestTest(tests.TestCase):
             expect_errors=True)
         self.assertEqual(400, result.status_code)
 
+    def test_post_invalid_no_user(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "project_id": "bar"},
+            expect_errors=True)
+        self.assertEqual(400, result.status_code)
+
+    def test_post_invalid_no_project(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "user_id": "bar"},
+            expect_errors=True)
+        self.assertEqual(400, result.status_code)
+
     def test_get_resource(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
