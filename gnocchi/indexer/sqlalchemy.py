@@ -176,6 +176,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         r = q.first()
         if r:
             return {"id": str(r.id),
+                    "user_id": r.user_id,
+                    "project_id": r.project_id,
                     "started_at": r.started_at,
                     "ended_at": r.ended_at,
                     'entities': dict((e.name, str(e.entity_id))

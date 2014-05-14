@@ -84,6 +84,8 @@ class TestIndexerDriver(tests.TestCase):
                           "entities": {}}, rc)
         r = self.index.get_resource(r1)
         self.assertEqual({"id": str(r1),
+                          "user_id": "foo",
+                          "project_id": "bar",
                           "started_at": ts,
                           "ended_at": None,
                           "entities": {}}, r)
@@ -108,6 +110,8 @@ class TestIndexerDriver(tests.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
+                          "user_id": "foo",
+                          "project_id": "bar",
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_resource_entities(self):
@@ -122,6 +126,8 @@ class TestIndexerDriver(tests.TestCase):
         r = self.index.get_resource(r1)
         del r['started_at']
         del r['ended_at']
+        del r['user_id']
+        del r['project_id']
         self.assertEqual(rc, r)
 
     def test_update_non_existent_entity(self):
@@ -162,4 +168,6 @@ class TestIndexerDriver(tests.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
+                          "user_id": "foo",
+                          "project_id": "bar",
                           "entities": {'bar': str(e2)}}, r)

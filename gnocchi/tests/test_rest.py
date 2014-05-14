@@ -178,7 +178,12 @@ class RestTest(tests.TestCase):
         resource = jsonutils.loads(result.body)
         self.assertEqual("http://localhost/v1/resource/" + r1,
                          result.headers['Location'])
-        self.assertEqual(resource, {"id": r1, "entities": {}})
+        del resource['started_at']
+        self.assertEqual(resource, {"id": r1,
+                                    "entities": {},
+                                    "user_id": "foo",
+                                    "ended_at": None,
+                                    "project_id": "bar"})
 
     def test_get_resource(self):
         r1 = str(uuid.uuid4())
@@ -193,6 +198,8 @@ class RestTest(tests.TestCase):
         del result['started_at']
         self.assertEqual({"id": r1,
                           "entities": {},
+                          "user_id": "foo",
+                          "project_id": "bar",
                           "ended_at": None},
                          result)
 
@@ -202,16 +209,17 @@ class RestTest(tests.TestCase):
                                     params={"id": r1,
                                             "user_id": "foo",
                                             "project_id": "bar"})
+        r = jsonutils.loads(result.body)
         self.assertEqual(201, result.status_code)
         result = self.app.put_json("/v1/resource/" + r1 + "/entities",
                                    params={'foo': {'archives': [(1, 2)]}})
-        r = jsonutils.loads(result.body)
-        self.assertEqual(r['id'], r1)
-        self.assertIsNotNone(r['entities']['foo'])
+        rupdate = jsonutils.loads(result.body)
+        self.assertEqual(rupdate['id'], r1)
+        self.assertIsNotNone(rupdate['entities']['foo'])
+        r['entities'] = rupdate['entities']
         result = self.app.get("/v1/resource/" + r1)
         r['ended_at'] = None
         result = jsonutils.loads(result.body)
-        del result['started_at']  # We cannot guess
         self.assertEqual(r, result)
 
     def test_delete_resource(self):
@@ -259,7 +267,12 @@ class RestTest(tests.TestCase):
         resource = jsonutils.loads(result.body)
         self.assertEqual("http://localhost/v1/resource/" + r1,
                          result.headers['Location'])
-        self.assertEqual(resource, {"id": r1, "entities":
+        del resource['started_at']  # We cannot guess
+        self.assertEqual(resource, {"id": r1,
+                                    "user_id": "foo",
+                                    "project_id": "bar",
+                                    "ended_at": None,
+                                    "entities":
                                     {"foo": entity['id']}})
 
     def test_post_resource_with_null_entities(self):
