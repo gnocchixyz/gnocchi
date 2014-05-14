@@ -255,6 +255,25 @@ class RestTest(tests.TestCase):
         del r['entities']
         self.assertEqual(r, result)
 
+    def test_patch_resource_non_existent_entities(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
+        self.assertEqual(201, result.status_code)
+        e1 = str(uuid.uuid4())
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'entities': {'foo': e1}},
+            expect_errors=True)
+        self.assertEqual(result.status_code, 400)
+        # FIXME(jd) We should retrieve the real entity when oslo.db is improved
+        self.assertIn("Entity ??? does not exist", result.body)
+        result = self.app.get("/v1/resource/" + r1)
+        result = jsonutils.loads(result.body)
+        self.assertEqual(result['entities'], {})
+
     def test_patch_resource_non_existent(self):
         result = self.app.patch_json(
             "/v1/resource/" + str(uuid.uuid4()),

@@ -196,9 +196,12 @@ class ResourceController(rest.RestController):
             pecan.abort(404)
 
         if 'entities' in body:
-            pecan.request.indexer.update_resource_entities(
-                self.id,
-                self.convert_entity_list(body['entities']))
+            try:
+                pecan.request.indexer.update_resource_entities(
+                    self.id,
+                    self.convert_entity_list(body['entities']))
+            except indexer.NoSuchEntity as e:
+                pecan.abort(400, e)
 
     @pecan.expose()
     def delete(self):

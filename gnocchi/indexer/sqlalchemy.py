@@ -158,7 +158,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if isinstance(e.inner_exception,
                           sqlalchemy.exc.IntegrityError):
                 # FIXME(jd) This could also be a non existent resource!
-                raise indexer.NoSuchEntity(None)
+                raise indexer.NoSuchEntity("???")
         return {"id": str(uuid),
                 'entities': dict((k, str(v))
                                  for k, v in entities.iteritems())}
