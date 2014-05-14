@@ -235,7 +235,7 @@ class RestTest(tests.TestCase):
                           "ended_at": None},
                          result)
 
-    def test_put_resource_entities(self):
+    def test_patch_resource_entities(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json("/v1/resource",
                                     params={"id": r1,
@@ -243,16 +243,32 @@ class RestTest(tests.TestCase):
                                             "project_id": "bar"})
         r = jsonutils.loads(result.body)
         self.assertEqual(201, result.status_code)
-        result = self.app.put_json("/v1/resource/" + r1 + "/entities",
-                                   params={'foo': {'archives': [(1, 2)]}})
-        rupdate = jsonutils.loads(result.body)
-        self.assertEqual(rupdate['id'], r1)
-        self.assertIsNotNone(rupdate['entities']['foo'])
-        r['entities'] = rupdate['entities']
+        new_entities = {'foo': {'archives': [(1, 2)]}}
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'entities': new_entities})
+        self.assertEqual(result.status_code, 204)
         result = self.app.get("/v1/resource/" + r1)
-        r['ended_at'] = None
         result = jsonutils.loads(result.body)
+        self.assertTrue(uuid.UUID(result['entities']['foo']))
+        del result['entities']
+        del r['entities']
         self.assertEqual(r, result)
+
+    def test_patch_resource_unknown_field(self):
+        r1 = str(uuid.uuid4())
+        self.app.post_json("/v1/resource",
+                           params={"id": r1,
+                                   "user_id": "foo",
+                                   "project_id": "bar"})
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'foobar': 123},
+            expect_errors=True)
+        self.assertEqual(result.status_code, 400)
+        self.assertIn(
+            "Invalid input: extra keys not allowed @ data[u'foobar']",
+            result.body)
 
     def test_delete_resource(self):
         r1 = str(uuid.uuid4())

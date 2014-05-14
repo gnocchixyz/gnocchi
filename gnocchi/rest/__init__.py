@@ -144,10 +144,6 @@ def UUID(value):
 
 
 class ResourceController(rest.RestController):
-    _custom_actions = {
-        'entities': ['PUT']
-    }
-
     Entities = voluptuous.Schema({
         six.text_type: voluptuous.Any(UUID,
                                       EntitiesController.Entity),
@@ -184,11 +180,18 @@ class ResourceController(rest.RestController):
             return resource
         pecan.abort(404)
 
-    @vexpose(Entities, 'json')
-    def put_entities(self, body):
-        return pecan.request.indexer.update_resource_entities(
-            self.id,
-            self.convert_entity_list(body))
+    ResourcePatch = voluptuous.Schema({
+        'entities': Entities,
+    })
+
+    @vexpose(ResourcePatch)
+    def patch(self, body):
+        if 'entities' in body:
+            pecan.request.indexer.update_resource_entities(
+                self.id,
+                self.convert_entity_list(body['entities']))
+        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
+        pecan.response.status = 204
 
     @pecan.expose()
     def delete(self):
