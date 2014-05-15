@@ -114,6 +114,40 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": "bar",
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
+    def test_update_non_existent_resource_end_timestamp(self):
+        r1 = uuid.uuid4()
+        self.assertRaises(
+            indexer.NoSuchResource,
+            self.index.update_resource,
+            r1,
+            ended_at=datetime.datetime(2014, 1, 1, 2, 3, 4))
+
+    def test_update_resource_end_timestamp(self):
+        r1 = uuid.uuid4()
+        self.index.create_resource(r1, "foo", "bar")
+        self.index.update_resource(
+            r1,
+            ended_at=datetime.datetime(2014, 1, 1, 2, 3, 4))
+        r = self.index.get_resource(r1)
+        self.assertIsNotNone(r['started_at'])
+        del r['started_at']
+        self.assertEqual({"id": str(r1),
+                          "ended_at": datetime.datetime(2014, 1, 1, 2, 3, 4),
+                          "user_id": "foo",
+                          "project_id": "bar",
+                          "entities": {}}, r)
+        self.index.update_resource(
+            r1,
+            ended_at=None)
+        r = self.index.get_resource(r1)
+        self.assertIsNotNone(r['started_at'])
+        del r['started_at']
+        self.assertEqual({"id": str(r1),
+                          "ended_at": None,
+                          "user_id": "foo",
+                          "project_id": "bar",
+                          "entities": {}}, r)
+
     def test_update_resource_entities(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()

@@ -37,6 +37,9 @@ cfg.CONF.import_opt('connection', 'gnocchi.openstack.common.db.options',
 Base = declarative.declarative_base()
 
 
+_marker = object()
+
+
 class GUID(types.TypeDecorator):
     """Platform-independent GUID type.
 
@@ -141,6 +144,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 "user_id": r.user_id,
                 "project_id": r.project_id,
                 'entities': entities}
+
+    def update_resource(self, uuid, ended_at=_marker):
+        if ended_at is not _marker:
+            session = self.engine_facade.get_session()
+            updated = session.query(
+                Resource).filter(
+                    Resource.id == uuid).update(
+                        {Resource.ended_at: ended_at})
+            if updated == 0:
+                raise indexer.NoSuchResource(uuid)
 
     def update_resource_entities(self, uuid, entities):
         session = self.engine_facade.get_session()
