@@ -38,7 +38,7 @@ def vexpose(schema, *vargs, **vkwargs):
         def callfunction(*args, **kwargs):
             params = jsonutils.loads(pecan.request.body)
             try:
-                schema(params)
+                params = schema(params)
             except voluptuous.Error as e:
                 pecan.abort(400, "Invalid input: %s" % e)
             return f(*args, body=params, **kwargs)
@@ -166,7 +166,7 @@ class ResourceController(rest.RestController):
         # Replace None as value for an entity by a brand a new entity
         new_entities = {}
         for k, v in entities.iteritems():
-            if isinstance(v, six.text_type):
+            if isinstance(v, uuid.UUID):
                 new_entities[k] = v
             else:
                 new_entities[k] = str(EntitiesController.create_entity(

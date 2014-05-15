@@ -183,7 +183,7 @@ class RestTest(tests.TestCase):
         self.assertEqual(resource, {"id": r1,
                                     "entities": {},
                                     "user_id": "foo",
-                                    "started_at": "2014-01-01 02:02:02",
+                                    "started_at": "2014-01-01 02:02:02+00:00",
                                     "ended_at": None,
                                     "project_id": "bar"})
 

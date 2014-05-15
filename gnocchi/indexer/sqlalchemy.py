@@ -138,12 +138,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                           sqlalchemy.exc.IntegrityError):
                 raise indexer.NoSuchEntity(None)
 
-        return {"id": r.id,
+        return {"id": str(r.id),
                 "started_at": r.started_at,
                 "ended_at": r.ended_at,
                 "user_id": r.user_id,
                 "project_id": r.project_id,
-                'entities': entities}
+                'entities': dict((k, str(v))
+                                 for k, v in entities.iteritems())}
 
     def update_resource(self, uuid, ended_at=_marker):
         if ended_at is not _marker:

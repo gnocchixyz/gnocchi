@@ -42,7 +42,7 @@ class TestIndexerDriver(tests.TestCase):
         rc = self.index.create_resource(r1, "foo", "bar")
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
-        self.assertEqual({"id": r1,
+        self.assertEqual({"id": str(r1),
                           "user_id": "foo",
                           "project_id": "bar",
                           "ended_at": None,
@@ -76,7 +76,7 @@ class TestIndexerDriver(tests.TestCase):
         rc = self.index.create_resource(
             r1, "foo", "bar",
             started_at=ts)
-        self.assertEqual({"id": r1,
+        self.assertEqual({"id": str(r1),
                           "user_id": "foo",
                           "project_id": "bar",
                           "started_at": ts,
@@ -100,11 +100,11 @@ class TestIndexerDriver(tests.TestCase):
                                         entities={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
-        self.assertEqual({"id": r1,
+        self.assertEqual({"id": str(r1),
                           "user_id": "foo",
                           "project_id": "bar",
                           "ended_at": None,
-                          "entities": {'foo': e1, 'bar': e2}}, rc)
+                          "entities": {'foo': str(e1), 'bar': str(e2)}}, rc)
         r = self.index.get_resource(r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
