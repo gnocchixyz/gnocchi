@@ -274,6 +274,35 @@ class RestTest(tests.TestCase):
         result = jsonutils.loads(result.body)
         self.assertEqual(result['entities'], {})
 
+    def test_patch_resource_ended_at(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1,
+                                            "ended_at": "2044-12-01 23:23:23",
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
+        self.assertEqual(201, result.status_code)
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'ended_at': "2043-05-05 23:23:23"})
+        self.assertEqual(result.status_code, 204)
+        result = self.app.get("/v1/resource/" + r1)
+        result = jsonutils.loads(result.body)
+        self.assertEqual("2043-05-05 23:23:23", result['ended_at'])
+
+    def test_patch_resource_ended_at_before_started_at(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json("/v1/resource",
+                                    params={"id": r1,
+                                            "user_id": "foo",
+                                            "project_id": "bar"})
+        self.assertEqual(201, result.status_code)
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'ended_at': "2000-05-05 23:23:23"},
+            expect_errors=True)
+        self.assertEqual(result.status_code, 400)
+
     def test_patch_resource_non_existent(self):
         result = self.app.patch_json(
             "/v1/resource/" + str(uuid.uuid4()),

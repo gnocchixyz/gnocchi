@@ -28,6 +28,7 @@ from gnocchi import indexer
 from gnocchi.openstack.common.db import exception
 from gnocchi.openstack.common.db.sqlalchemy import models
 from gnocchi.openstack.common.db.sqlalchemy import session
+from gnocchi.openstack.common import timeutils
 
 
 cfg.CONF.import_opt('connection', 'gnocchi.openstack.common.db.options',
@@ -149,12 +150,23 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def update_resource(self, uuid, ended_at=_marker):
         if ended_at is not _marker:
             session = self.engine_facade.get_session()
-            updated = session.query(
+            q = session.query(
                 Resource).filter(
-                    Resource.id == uuid).update(
-                        {Resource.ended_at: ended_at})
-            if updated == 0:
+                    Resource.id == uuid).with_for_update()
+            r = q.first()
+            if r is None:
                 raise indexer.NoSuchResource(uuid)
+            # NOTE(jd) Could be better to have check in the db for that so
+            # we can just run the UPDATE
+            if r.started_at is not None \
+               and ended_at is not None:
+                # Convert to UTC because we store in UTC :(
+                ended_at = timeutils.normalize_time(ended_at)
+                if r.started_at > ended_at:
+                    raise ValueError(
+                        "Start timestamp cannot be after end timestamp")
+            r.ended_at = ended_at
+            session.flush()
 
     def update_resource_entities(self, uuid, entities):
         session = self.engine_facade.get_session()

@@ -182,6 +182,7 @@ class ResourceController(rest.RestController):
 
     ResourcePatch = voluptuous.Schema({
         'entities': Entities,
+        'ended_at': Timestamp,
     })
 
     @vexpose(ResourcePatch)
@@ -201,6 +202,14 @@ class ResourceController(rest.RestController):
                     self.id,
                     self.convert_entity_list(body['entities']))
             except indexer.NoSuchEntity as e:
+                pecan.abort(400, e)
+
+        if 'ended_at' in body:
+            try:
+                pecan.request.indexer.update_resource(
+                    self.id,
+                    body['ended_at'])
+            except (indexer.NoSuchEntity, ValueError) as e:
                 pecan.abort(400, e)
 
     @pecan.expose()
