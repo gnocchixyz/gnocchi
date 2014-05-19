@@ -189,28 +189,23 @@ class ResourceController(rest.RestController):
     def patch(self, body):
         # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
         pecan.response.status = 204
-
         if len(body) == 0:
             # Empty update, just check if the resource exists
             if pecan.request.indexer.get_resource(self.id):
                 return
             pecan.abort(404)
 
-        if 'entities' in body:
-            try:
-                pecan.request.indexer.update_resource_entities(
-                    self.id,
-                    self.convert_entity_list(body['entities']))
-            except indexer.NoSuchEntity as e:
-                pecan.abort(400, e)
-
-        if 'ended_at' in body:
-            try:
-                pecan.request.indexer.update_resource(
-                    self.id,
-                    body['ended_at'])
-            except (indexer.NoSuchEntity, ValueError) as e:
-                pecan.abort(400, e)
+        try:
+            kwargs = {}
+            if 'ended_at' in body:
+                kwargs['ended_at'] = body['ended_at']
+            if 'entities' in body:
+                kwargs['entities'] = self.convert_entity_list(
+                    body['entities'])
+            pecan.request.indexer.update_resource(
+                self.id, **kwargs)
+        except (indexer.NoSuchEntity, indexer.NoSuchResource, ValueError) as e:
+            pecan.abort(400, e)
 
     @pecan.expose()
     def delete(self):
@@ -231,20 +226,17 @@ class ResourcesController(rest.RestController):
     @staticmethod
     @vexpose(ResourceController.Resource, 'json')
     def post(body):
-        started_at = body.get('started_at')
-        ended_at = body.get('ended_at')
-        if started_at is not None \
-           and ended_at is not None \
-           and started_at > ended_at:
-            pecan.abort(400, "Start timestamp cannot be after end timestamp")
         _id = body['id']
         entities = ResourceController.convert_entity_list(
             body.get('entities', {}))
-        resource = pecan.request.indexer.create_resource(
-            _id,
-            body['user_id'], body['project_id'],
-            started_at, ended_at,
-            entities=entities)
+        try:
+            resource = pecan.request.indexer.create_resource(
+                _id,
+                body['user_id'], body['project_id'],
+                body.get('started_at'), body.get('ended_at'),
+                entities=entities)
+        except ValueError as e:
+            pecan.abort(400, str(e))
         pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
         pecan.response.status = 201
         return resource

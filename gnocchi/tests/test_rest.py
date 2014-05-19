@@ -183,7 +183,7 @@ class RestTest(tests.TestCase):
         self.assertEqual(resource, {"id": r1,
                                     "entities": {},
                                     "user_id": "foo",
-                                    "started_at": "2014-01-01 02:02:02+00:00",
+                                    "started_at": "2014-01-01 02:02:02",
                                     "ended_at": None,
                                     "project_id": "bar"})
 
@@ -302,6 +302,33 @@ class RestTest(tests.TestCase):
             params={'ended_at': "2000-05-05 23:23:23"},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
+
+    def test_patch_resource_no_partial_update(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "started_at": "2000-05-05 23:23:23",
+                    "user_id": "foo",
+                    "project_id": "bar"})
+        self.assertEqual(201, result.status_code)
+        result = self.app.patch_json(
+            "/v1/resource/" + r1,
+            params={'ended_at': "2044-05-05 23:23:23",
+                    'entities': {"foo": str(uuid.uuid4())}},
+            expect_errors=True)
+        self.assertEqual(result.status_code, 400)
+        self.assertIn("Entity ??? does not exist", result.body)
+        result = self.app.get("/v1/resource/" + r1)
+        result = jsonutils.loads(result.body)
+        self.assertEqual({
+            "id": r1,
+            "user_id": "foo",
+            "project_id": "bar",
+            "started_at": "2000-05-05 23:23:23",
+            "ended_at": None,
+            "entities": {},
+        }, result)
 
     def test_patch_resource_non_existent(self):
         result = self.app.patch_json(

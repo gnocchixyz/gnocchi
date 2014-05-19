@@ -38,7 +38,7 @@ cfg.CONF.import_opt('connection', 'gnocchi.openstack.common.db.options',
 Base = declarative.declarative_base()
 
 
-_marker = object()
+_marker = indexer._marker
 
 
 class GUID(types.TypeDecorator):
@@ -117,27 +117,37 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def create_resource(self, uuid, user_id, project_id,
                         started_at=None, ended_at=None, entities=None):
-        session = self.engine_facade.get_session()
+        # Convert to UTC because we store in UTC :(
+        if started_at is not None:
+            started_at = timeutils.normalize_time(started_at)
+        if ended_at is not None:
+            ended_at = timeutils.normalize_time(ended_at)
+        if started_at is not None \
+           and ended_at is not None \
+           and started_at > ended_at:
+            raise ValueError("Start timestamp cannot be after end timestamp")
         r = Resource(id=uuid,
                      user_id=user_id,
                      project_id=project_id,
                      started_at=started_at,
                      ended_at=ended_at)
-        session.add(r)
-        if entities is None:
-            entities = {}
-        for name, e in entities.iteritems():
-            session.add(ResourceEntity(resource_id=r.id,
-                                       entity_id=e,
-                                       name=name))
-        try:
-            session.flush()
-        except exception.DBError as e:
-            # TODO(jd) Add an exception in oslo.db to match foreign key
-            # issues
-            if isinstance(e.inner_exception,
-                          sqlalchemy.exc.IntegrityError):
-                raise indexer.NoSuchEntity(None)
+        session = self.engine_facade.get_session()
+        with session.begin():
+            session.add(r)
+            if entities is None:
+                entities = {}
+            for name, e in entities.iteritems():
+                session.add(ResourceEntity(resource_id=r.id,
+                                           entity_id=e,
+                                           name=name))
+            try:
+                session.flush()
+            except exception.DBError as e:
+                # TODO(jd) Add an exception in oslo.db to match foreign key
+                # issues
+                if isinstance(e.inner_exception,
+                              sqlalchemy.exc.IntegrityError):
+                    raise indexer.NoSuchEntity(None)
 
         return {"id": str(r.id),
                 "started_at": r.started_at,
@@ -147,47 +157,53 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 'entities': dict((k, str(v))
                                  for k, v in entities.iteritems())}
 
-    def update_resource(self, uuid, ended_at=_marker):
-        if ended_at is not _marker:
-            session = self.engine_facade.get_session()
+    def update_resource(self, uuid, ended_at=_marker, entities=_marker):
+        session = self.engine_facade.get_session()
+        with session.begin():
             q = session.query(
                 Resource).filter(
                     Resource.id == uuid).with_for_update()
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(uuid)
-            # NOTE(jd) Could be better to have check in the db for that so
-            # we can just run the UPDATE
-            if r.started_at is not None \
-               and ended_at is not None:
-                # Convert to UTC because we store in UTC :(
-                ended_at = timeutils.normalize_time(ended_at)
-                if r.started_at > ended_at:
-                    raise ValueError(
-                        "Start timestamp cannot be after end timestamp")
-            r.ended_at = ended_at
-            session.flush()
 
-    def update_resource_entities(self, uuid, entities):
-        session = self.engine_facade.get_session()
-        try:
-            with session.begin():
+            if ended_at is not _marker:
+                # NOTE(jd) Could be better to have check in the db for that so
+                # we can just run the UPDATE
+                if r.started_at is not None \
+                   and ended_at is not None:
+                    # Convert to UTC because we store in UTC :(
+                    ended_at = timeutils.normalize_time(ended_at)
+                    if r.started_at > ended_at:
+                        raise ValueError(
+                            "Start timestamp cannot be after end timestamp")
+                r.ended_at = ended_at
+                session.flush()
+            if entities is not _marker:
                 session.query(ResourceEntity).filter(
                     ResourceEntity.resource_id == uuid).delete()
                 for name, e in entities.iteritems():
                     session.add(ResourceEntity(resource_id=uuid,
                                                entity_id=e,
                                                name=name))
-        except exception.DBError as e:
-            # TODO(jd) Add an exception in oslo.db to match foreign key
-            # issues
-            if isinstance(e.inner_exception,
-                          sqlalchemy.exc.IntegrityError):
-                # FIXME(jd) This could also be a non existent resource!
-                raise indexer.NoSuchEntity("???")
-        return {"id": str(uuid),
-                'entities': dict((k, str(v))
-                                 for k, v in entities.iteritems())}
+                    try:
+                        session.flush()
+                    except exception.DBError as e:
+                        # TODO(jd) Add an exception in oslo.db to match
+                        # foreign key issues
+                        if isinstance(e.inner_exception,
+                                      sqlalchemy.exc.IntegrityError):
+                            # FIXME(jd) This could also be a non existent
+                            # resource!
+                            raise indexer.NoSuchEntity("???")
+
+        return {"id": str(r.id),
+                "user_id": r.user_id,
+                "project_id": r.project_id,
+                "started_at": r.started_at,
+                "ended_at": r.ended_at,
+                'entities': dict((e.name, str(e.entity_id))
+                                 for e in r.entities)}
 
     def delete_resource(self, id):
         session = self.engine_facade.get_session()

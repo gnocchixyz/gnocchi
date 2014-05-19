@@ -27,6 +27,9 @@ OPTS = [
 cfg.CONF.register_opts(OPTS, group="indexer")
 
 
+_marker = object()
+
+
 def _get_driver(name, conf):
     """Return the driver named name.
 
@@ -87,11 +90,7 @@ class IndexerDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def update_resource(uuid, ended_at):
-        raise NotImplementedError
-
-    @staticmethod
-    def update_resource_entities(uuid, entities):
+    def update_resource(uuid, ended_at=_marker, entities=_marker):
         raise NotImplementedError
 
     @staticmethod
