@@ -147,7 +147,7 @@ def UUID(value):
         raise ValueError(e)
 
 
-class ResourceController(rest.RestController):
+class GenericResourceController(rest.RestController):
     Entities = voluptuous.Schema({
         six.text_type: voluptuous.Any(UUID,
                                       EntitiesController.Entity),
@@ -221,17 +221,17 @@ class ResourceController(rest.RestController):
         pecan.response.status = 204
 
 
-class ResourcesController(rest.RestController):
+class GenericResourcesController(rest.RestController):
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
-        return ResourceController(id), remainder
+        return GenericResourceController(id), remainder
 
     @staticmethod
-    @vexpose(ResourceController.Resource, 'json')
+    @vexpose(GenericResourceController.Resource, 'json')
     def post(body):
         _id = body['id']
-        entities = ResourceController.convert_entity_list(
+        entities = GenericResourceController.convert_entity_list(
             body.get('entities', {}))
         try:
             resource = pecan.request.indexer.create_resource(
@@ -242,9 +242,13 @@ class ResourcesController(rest.RestController):
                 entities=entities)
         except ValueError as e:
             pecan.abort(400, str(e))
-        pecan.response.headers['Location'] = "/v1/resource/" + str(_id)
+        pecan.response.headers['Location'] = "/v1/resource/generic/" + str(_id)
         pecan.response.status = 201
         return resource
+
+
+class ResourcesController(rest.RestController):
+    generic = GenericResourcesController()
 
 
 class V1Controller(object):
