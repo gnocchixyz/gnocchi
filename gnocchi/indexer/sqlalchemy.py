@@ -173,13 +173,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                               sqlalchemy.exc.IntegrityError):
                     raise indexer.NoSuchEntity("???")
 
-        return {"id": str(r.id),
-                "started_at": r.started_at,
-                "ended_at": r.ended_at,
-                "user_id": r.user_id,
-                "project_id": r.project_id,
-                'entities': dict((k, str(v))
-                                 for k, v in entities.iteritems())}
+        return self._resource_to_dict(r)
+
+    @staticmethod
+    def _resource_to_dict(resource):
+        r = dict(resource)
+        r['id'] = str(resource.id)
+        r['entities'] = dict((k.name, str(k.entity_id))
+                             for k in resource.entities)
+        return r
 
     def update_resource(self, uuid, ended_at=_marker, entities=_marker):
         session = self.engine_facade.get_session()
@@ -221,13 +223,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                             # resource!
                             raise indexer.NoSuchEntity("???")
 
-        return {"id": str(r.id),
-                "user_id": r.user_id,
-                "project_id": r.project_id,
-                "started_at": r.started_at,
-                "ended_at": r.ended_at,
-                'entities': dict((e.name, str(e.entity_id))
-                                 for e in r.entities)}
+        return self._resource_to_dict(r)
 
     def delete_resource(self, id):
         session = self.engine_facade.get_session()
@@ -241,13 +237,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Resource.id == uuid)
         r = q.first()
         if r:
-            return {"id": str(r.id),
-                    "user_id": r.user_id,
-                    "project_id": r.project_id,
-                    "started_at": r.started_at,
-                    "ended_at": r.ended_at,
-                    'entities': dict((e.name, str(e.entity_id))
-                                     for e in r.entities)}
+            return self._resource_to_dict(r)
 
     def create_entity(self, id):
         session = self.engine_facade.get_session()

@@ -66,6 +66,11 @@ class TestIndexerDriver(tests.TestCase):
                           "user_id": "foo",
                           "project_id": "bar",
                           "ended_at": None,
+                          "display_name": "lol",
+                          "architecture": "x86",
+                          "host": "foo",
+                          "image_ref": "http://foo/bar",
+                          "flavor_id": 1,
                           "entities": {}},
                          rc)
         rg = self.index.get_resource(r1)
