@@ -122,7 +122,7 @@ class Instance(Resource):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
-        'resource': Resource,
+        'generic': Resource,
         'instance': Instance,
     }
 
