@@ -106,7 +106,26 @@ class Resource(Base, models.ModelBase):
         ResourceEntity)
 
 
+class Instance(Resource):
+    __tablename__ = 'instance'
+
+    id = sqlalchemy.Column(GUID, sqlalchemy.ForeignKey('resource.id'),
+                           primary_key=True)
+
+    flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    image_ref = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    host = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    display_name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    architecture = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+
+
 class SQLAlchemyIndexer(indexer.IndexerDriver):
+    # TODO(jd) Use stevedore instead to allow extending?
+    _RESOURCE_CLASS_MAPPER = {
+        'resource': Resource,
+        'instance': Instance,
+    }
+
     def __init__(self, conf):
         self.engine_facade = session.EngineFacade.from_config(
             conf.database.connection, conf)
@@ -115,8 +134,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
-    def create_resource(self, uuid, user_id, project_id,
-                        started_at=None, ended_at=None, entities=None):
+    def create_resource(self, resource_type, uuid, user_id, project_id,
+                        started_at=None, ended_at=None, entities=None,
+                        **kwargs):
+        if resource_type not in self._RESOURCE_CLASS_MAPPER:
+            raise indexer.UnknownResourceType(resource_type)
         # Convert to UTC because we store in UTC :(
         if started_at is not None:
             started_at = timeutils.normalize_time(started_at)
@@ -126,11 +148,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
            and ended_at is not None \
            and started_at > ended_at:
             raise ValueError("Start timestamp cannot be after end timestamp")
-        r = Resource(id=uuid,
-                     user_id=user_id,
-                     project_id=project_id,
-                     started_at=started_at,
-                     ended_at=ended_at)
+        r = self._RESOURCE_CLASS_MAPPER[resource_type](
+            id=uuid,
+            user_id=user_id,
+            project_id=project_id,
+            started_at=started_at,
+            ended_at=ended_at,
+            **kwargs)
         session = self.engine_facade.get_session()
         with session.begin():
             session.add(r)
@@ -147,7 +171,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 # issues
                 if isinstance(e.inner_exception,
                               sqlalchemy.exc.IntegrityError):
-                    raise indexer.NoSuchEntity(None)
+                    raise indexer.NoSuchEntity("???")
 
         return {"id": str(r.id),
                 "started_at": r.started_at,

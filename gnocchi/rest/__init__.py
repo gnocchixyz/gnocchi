@@ -235,6 +235,7 @@ class ResourcesController(rest.RestController):
             body.get('entities', {}))
         try:
             resource = pecan.request.indexer.create_resource(
+                'resource',
                 _id,
                 body['user_id'], body['project_id'],
                 body.get('started_at'), body.get('ended_at'),

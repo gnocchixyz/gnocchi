@@ -39,7 +39,27 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource(self):
         r1 = uuid.uuid4()
-        rc = self.index.create_resource(r1, "foo", "bar")
+        rc = self.index.create_resource('resource', r1, "foo", "bar")
+        self.assertIsNotNone(rc['started_at'])
+        del rc['started_at']
+        self.assertEqual({"id": str(r1),
+                          "user_id": "foo",
+                          "project_id": "bar",
+                          "ended_at": None,
+                          "entities": {}},
+                         rc)
+        rg = self.index.get_resource(r1)
+        self.assertEqual(str(rc['id']), rg['id'])
+        self.assertEqual(rc['entities'], rg['entities'])
+
+    def test_create_instance(self):
+        r1 = uuid.uuid4()
+        rc = self.index.create_resource('instance', r1, "foo", "bar",
+                                        flavor_id=1,
+                                        image_ref="http://foo/bar",
+                                        host="foo",
+                                        display_name="lol",
+                                        architecture="x86")
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
@@ -54,7 +74,7 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_delete_resource(self):
         r1 = uuid.uuid4()
-        self.index.create_resource(r1, "foo", "bar")
+        self.index.create_resource('resource', r1, "foo", "bar")
         self.index.delete_resource(r1)
 
     def test_delete_resource_non_existent(self):
@@ -74,6 +94,7 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         ts = datetime.datetime(2014, 1, 1, 23, 34, 23, 1234)
         rc = self.index.create_resource(
+            'resource',
             r1, "foo", "bar",
             started_at=ts)
         self.assertEqual({"id": str(r1),
@@ -96,7 +117,7 @@ class TestIndexerDriver(tests.TestCase):
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
-        rc = self.index.create_resource(r1, "foo", "bar",
+        rc = self.index.create_resource('resource', r1, "foo", "bar",
                                         entities={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
@@ -124,7 +145,7 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_update_resource_end_timestamp(self):
         r1 = uuid.uuid4()
-        self.index.create_resource(r1, "foo", "bar")
+        self.index.create_resource('resource', r1, "foo", "bar")
         self.index.update_resource(
             r1,
             ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
@@ -153,7 +174,7 @@ class TestIndexerDriver(tests.TestCase):
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
-        self.index.create_resource(r1, "foo", "bar",
+        self.index.create_resource('resource', r1, "foo", "bar",
                                    entities={'foo': e1})
         self.index.create_entity(e2)
         rc = self.index.update_resource(r1, entities={'bar': e2})
@@ -163,7 +184,7 @@ class TestIndexerDriver(tests.TestCase):
     def test_update_non_existent_entity(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.index.create_resource(r1, "foo", "bar")
+        self.index.create_resource('resource', r1, "foo", "bar")
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.update_resource,
                           r1, entities={'bar': e1})
@@ -181,6 +202,7 @@ class TestIndexerDriver(tests.TestCase):
         e1 = uuid.uuid4()
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.create_resource,
+                          'resource',
                           r1, "foo", "bar",
                           entities={'foo': e1})
 
@@ -190,7 +212,7 @@ class TestIndexerDriver(tests.TestCase):
         e2 = uuid.uuid4()
         self.index.create_entity(e1)
         self.index.create_entity(e2)
-        self.index.create_resource(r1, "foo", "bar",
+        self.index.create_resource('resource', r1, "foo", "bar",
                                    entities={'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
         r = self.index.get_resource(r1)

@@ -47,6 +47,14 @@ def get_driver(conf):
                        conf)
 
 
+class UnknownResourceType(Exception):
+    """Error raised when the resource type is unknown."""
+    def __init__(self, type):
+        super(UnknownResourceType, self).__init__(
+            "Resource type %s is unknown" % type)
+        self.type = type
+
+
 class NoSuchEntity(Exception):
     """Error raised when an entitiy does not exist."""
     def __init__(self, entity):
@@ -85,8 +93,9 @@ class IndexerDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def create_resource(uuid, user_id, project_id,
-                        started_at=None, ended_at=None, entities=None):
+    def create_resource(resource_type, uuid, user_id, project_id,
+                        started_at=None, ended_at=None, entities=None,
+                        **kwargs):
         raise NotImplementedError
 
     @staticmethod
