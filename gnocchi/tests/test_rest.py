@@ -187,6 +187,20 @@ class RestTest(tests.TestCase):
                                     "ended_at": None,
                                     "project_id": "bar"})
 
+    def test_post_unix_timestamp(self):
+        r1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource",
+            params={"id": r1,
+                    "started_at": "1400580045.856219",
+                    "user_id": "foo",
+                    "project_id": "bar"},
+            expect_errors=True)
+        self.assertEqual(201, result.status_code)
+        resource = jsonutils.loads(result.body)
+        self.assertEqual("2014-05-20 12:00:45.856219",
+                         resource['started_at'])
+
     def test_post_invalid_timestamp(self):
         r1 = str(uuid.uuid4())
         result = self.app.post_json(

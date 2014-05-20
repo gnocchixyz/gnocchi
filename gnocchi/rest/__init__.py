@@ -15,6 +15,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import datetime
 import functools
 import uuid
 
@@ -47,8 +48,11 @@ def vexpose(schema, *vargs, **vkwargs):
 
 
 def Timestamp(v):
-    # TODO(jd) Support Unix timestamp?
-    return iso8601.parse_date(v)
+    try:
+        v = float(v)
+    except ValueError:
+        return iso8601.parse_date(v)
+    return datetime.datetime.fromtimestamp(v)
 
 
 class EntityController(rest.RestController):
