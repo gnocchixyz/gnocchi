@@ -223,29 +223,26 @@ class GenericResourceController(rest.RestController):
 
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
+    _resource_rest_class = GenericResourceController
+    _resource_class = GenericResourceController.Resource
 
-    @staticmethod
     @pecan.expose()
-    def _lookup(id, *remainder):
-        return GenericResourceController(id), remainder
+    def _lookup(self, id, *remainder):
+        return self._resource_rest_class(id), remainder
 
-    @vexpose(GenericResourceController.Resource, 'json')
+    @vexpose(_resource_class, 'json')
     def post(self, body):
-        _id = body['id']
-        entities = GenericResourceController.convert_entity_list(
+        body['entities'] = GenericResourceController.convert_entity_list(
             body.get('entities', {}))
         try:
             resource = pecan.request.indexer.create_resource(
                 self._resource_type,
-                _id,
-                body['user_id'], body['project_id'],
-                body.get('started_at'), body.get('ended_at'),
-                entities=entities)
+                **body)
         except ValueError as e:
             pecan.abort(400, str(e))
         pecan.response.headers['Location'] = "/v1/resource/" \
                                              + self._resource_type + "/" \
-                                             + str(_id)
+                                             + resource['id']
         pecan.response.status = 201
         return resource
 

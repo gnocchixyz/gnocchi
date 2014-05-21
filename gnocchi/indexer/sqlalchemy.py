@@ -134,7 +134,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
-    def create_resource(self, resource_type, uuid, user_id, project_id,
+    def create_resource(self, resource_type, id, user_id, project_id,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
         if resource_type not in self._RESOURCE_CLASS_MAPPER:
@@ -149,7 +149,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
            and started_at > ended_at:
             raise ValueError("Start timestamp cannot be after end timestamp")
         r = self._RESOURCE_CLASS_MAPPER[resource_type](
-            id=uuid,
+            id=id,
             user_id=user_id,
             project_id=project_id,
             started_at=started_at,
