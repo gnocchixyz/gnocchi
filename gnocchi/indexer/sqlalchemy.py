@@ -109,7 +109,8 @@ class Resource(Base, models.ModelBase):
 class Instance(Resource):
     __tablename__ = 'instance'
 
-    id = sqlalchemy.Column(GUID, sqlalchemy.ForeignKey('resource.id'),
+    id = sqlalchemy.Column(GUID, sqlalchemy.ForeignKey('resource.id',
+                                                       ondelete="CASCADE"),
                            primary_key=True)
 
     flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
@@ -134,11 +135,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine)
 
+    def _resource_type_to_class(self, resource_type):
+        if resource_type not in self._RESOURCE_CLASS_MAPPER:
+            raise indexer.UnknownResourceType(resource_type)
+        return self._RESOURCE_CLASS_MAPPER[resource_type]
+
     def create_resource(self, resource_type, id, user_id, project_id,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
-        if resource_type not in self._RESOURCE_CLASS_MAPPER:
-            raise indexer.UnknownResourceType(resource_type)
+        resource_cls = self._resource_type_to_class(resource_type)
         # Convert to UTC because we store in UTC :(
         if started_at is not None:
             started_at = timeutils.normalize_time(started_at)
@@ -148,7 +153,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
            and ended_at is not None \
            and started_at > ended_at:
             raise ValueError("Start timestamp cannot be after end timestamp")
-        r = self._RESOURCE_CLASS_MAPPER[resource_type](
+        r = resource_cls(
             id=id,
             user_id=user_id,
             project_id=project_id,
@@ -158,6 +163,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         with session.begin():
             session.add(r)
+            session.flush()
             if entities is None:
                 entities = {}
             for name, e in entities.iteritems():
@@ -230,11 +236,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if session.query(Resource).filter(Resource.id == id).delete() == 0:
             raise indexer.NoSuchResource(id)
 
-    def get_resource(self, uuid):
+    def get_resource(self, resource_type, uuid):
+        resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
-            Resource).filter(
-                Resource.id == uuid)
+            resource_cls).filter(
+                resource_cls.id == uuid)
         r = q.first()
         if r:
             return self._resource_to_dict(r)

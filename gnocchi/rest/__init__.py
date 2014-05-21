@@ -179,7 +179,7 @@ class GenericResourceController(rest.RestController):
 
     @pecan.expose('json')
     def get(self):
-        resource = pecan.request.indexer.get_resource(self.id)
+        resource = pecan.request.indexer.get_resource('generic', self.id)
         if resource:
             return resource
         pecan.abort(404)
@@ -195,7 +195,7 @@ class GenericResourceController(rest.RestController):
         pecan.response.status = 204
         if len(body) == 0:
             # Empty update, just check if the resource exists
-            if pecan.request.indexer.get_resource(self.id):
+            if pecan.request.indexer.get_resource('generic', self.id):
                 return
             pecan.abort(404)
 

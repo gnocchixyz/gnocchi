@@ -89,7 +89,7 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def get_resource(uuid):
+    def get_resource(resource_type, uuid):
         raise NotImplementedError
 
     @staticmethod

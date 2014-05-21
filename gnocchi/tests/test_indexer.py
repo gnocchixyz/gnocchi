@@ -48,7 +48,7 @@ class TestIndexerDriver(tests.TestCase):
                           "ended_at": None,
                           "entities": {}},
                          rc)
-        rg = self.index.get_resource(r1)
+        rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
 
@@ -73,7 +73,7 @@ class TestIndexerDriver(tests.TestCase):
                           "flavor_id": 1,
                           "entities": {}},
                          rc)
-        rg = self.index.get_resource(r1)
+        rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
 
@@ -108,7 +108,7 @@ class TestIndexerDriver(tests.TestCase):
                           "started_at": ts,
                           "ended_at": None,
                           "entities": {}}, rc)
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertEqual({"id": str(r1),
                           "user_id": "foo",
                           "project_id": "bar",
@@ -131,7 +131,7 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": "bar",
                           "ended_at": None,
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, rc)
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -154,7 +154,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.update_resource(
             r1,
             ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -165,7 +165,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.update_resource(
             r1,
             ended_at=None)
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -183,7 +183,7 @@ class TestIndexerDriver(tests.TestCase):
                                    entities={'foo': e1})
         self.index.create_entity(e2)
         rc = self.index.update_resource(r1, entities={'bar': e2})
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
 
     def test_update_non_existent_entity(self):
@@ -220,7 +220,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_resource('generic', r1, "foo", "bar",
                                    entities={'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
-        r = self.index.get_resource(r1)
+        r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -228,3 +228,17 @@ class TestIndexerDriver(tests.TestCase):
                           "user_id": "foo",
                           "project_id": "bar",
                           "entities": {'bar': str(e2)}}, r)
+
+    def test_delete_instance(self):
+        r1 = uuid.uuid4()
+        created = self.index.create_resource('instance', r1, "foo", "bar",
+                                             flavor_id=123,
+                                             image_ref="foo",
+                                             host="dwq",
+                                             display_name="foobar",
+                                             architecture="arm")
+        got = self.index.get_resource('instance', r1)
+        self.assertEqual(created, got)
+        self.index.delete_resource(r1)
+        got = self.index.get_resource('instance', r1)
+        self.assertIsNone(got)
