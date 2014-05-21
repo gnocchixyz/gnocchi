@@ -31,26 +31,31 @@ from gnocchi.openstack.common import timeutils
 from gnocchi import storage
 
 
+def deserialize(schema):
+    params = jsonutils.loads(pecan.request.body)
+    try:
+        return schema(params)
+    except voluptuous.Error as e:
+        pecan.abort(400, "Invalid input: %s" % e)
+
+
 def vexpose(schema, *vargs, **vkwargs):
     def expose(f):
         f = pecan.expose(*vargs, **vkwargs)(f)
 
         @functools.wraps(f)
         def callfunction(*args, **kwargs):
-            params = jsonutils.loads(pecan.request.body)
-            try:
-                params = schema(params)
-            except voluptuous.Error as e:
-                pecan.abort(400, "Invalid input: %s" % e)
-            return f(*args, body=params, **kwargs)
+            return f(*args, body=deserialize(schema), **kwargs)
         return callfunction
     return expose
 
 
 def Timestamp(v):
+    if v is None:
+        return v
     try:
         v = float(v)
-    except ValueError:
+    except (ValueError, TypeError):
         return iso8601.parse_date(v)
     return datetime.datetime.fromtimestamp(v)
 
@@ -147,22 +152,29 @@ def UUID(value):
         raise ValueError(e)
 
 
-class GenericResourceController(rest.RestController):
-    _resource_type = 'generic'
+Entities = voluptuous.Schema({
+    six.text_type: voluptuous.Any(UUID,
+                                  EntitiesController.Entity),
+})
 
-    Entities = voluptuous.Schema({
-        six.text_type: voluptuous.Any(UUID,
-                                      EntitiesController.Entity),
-    })
 
-    Resource = voluptuous.Schema({
+def ResourceSchema(schema):
+    base_schema = {
         voluptuous.Required("id"): UUID,
         'started_at': Timestamp,
         'ended_at': Timestamp,
         voluptuous.Required('user_id'): six.text_type,
         voluptuous.Required('project_id'): six.text_type,
         'entities': Entities,
-    })
+    }
+    base_schema.update(schema)
+    return voluptuous.Schema(base_schema)
+
+
+class GenericResourceController(rest.RestController):
+    _resource_type = 'generic'
+
+    Resource = ResourceSchema({})
 
     def __init__(self, id):
         self.id = id
@@ -225,6 +237,18 @@ class GenericResourceController(rest.RestController):
         pecan.response.status = 204
 
 
+class InstanceController(GenericResourceController):
+    _resource_type = 'instance'
+
+    Instance = ResourceSchema({
+        voluptuous.Required("flavor_id"): int,
+        voluptuous.Required("image_ref"): six.text_type,
+        voluptuous.Required("host"): six.text_type,
+        voluptuous.Required("display_name"): six.text_type,
+        voluptuous.Required("architecture"): six.text_type,
+    })
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -234,8 +258,11 @@ class GenericResourcesController(rest.RestController):
     def _lookup(self, id, *remainder):
         return self._resource_rest_class(id), remainder
 
-    @vexpose(_resource_class, 'json')
-    def post(self, body):
+    @pecan.expose('json')
+    def post(self):
+        # NOTE(jd) Can't use vexpose because it does not take into account
+        # inheritance
+        body = deserialize(self._resource_class)
         body['entities'] = GenericResourceController.convert_entity_list(
             body.get('entities', {}))
         try:
@@ -251,8 +278,15 @@ class GenericResourcesController(rest.RestController):
         return resource
 
 
+class InstancesController(GenericResourcesController):
+    _resource_type = 'instance'
+    _resource_rest_class = InstanceController
+    _resource_class = InstanceController.Instance
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
+    instance = InstancesController()
 
 
 class V1Controller(object):
