@@ -185,6 +185,7 @@ class RestTest(tests.TestCase):
                                     "user_id": "foo",
                                     "started_at": "2014-01-01 02:02:02",
                                     "ended_at": None,
+                                    "type": "generic",
                                     "project_id": "bar"})
 
     def test_post_unix_timestamp(self):
@@ -246,6 +247,7 @@ class RestTest(tests.TestCase):
                           "entities": {},
                           "user_id": "foo",
                           "project_id": "bar",
+                          "type": "generic",
                           "ended_at": None},
                          result)
 
@@ -342,6 +344,7 @@ class RestTest(tests.TestCase):
             "started_at": "2000-05-05 23:23:23",
             "ended_at": None,
             "entities": {},
+            "type": "generic",
         }, result)
 
     def test_patch_resource_non_existent(self):
@@ -416,6 +419,7 @@ class RestTest(tests.TestCase):
                                     "user_id": "foo",
                                     "project_id": "bar",
                                     "ended_at": None,
+                                    "type": "generic",
                                     "entities":
                                     {"foo": entity['id']}})
 

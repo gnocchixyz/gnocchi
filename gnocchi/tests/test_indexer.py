@@ -46,6 +46,7 @@ class TestIndexerDriver(tests.TestCase):
                           "user_id": "foo",
                           "project_id": "bar",
                           "ended_at": None,
+                          "type": "generic",
                           "entities": {}},
                          rc)
         rg = self.index.get_resource('generic', r1)
@@ -64,6 +65,7 @@ class TestIndexerDriver(tests.TestCase):
         del rc['started_at']
         self.assertEqual({"id": str(r1),
                           "user_id": "foo",
+                          "type": "instance",
                           "project_id": "bar",
                           "ended_at": None,
                           "display_name": "lol",
@@ -107,6 +109,7 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": "bar",
                           "started_at": ts,
                           "ended_at": None,
+                          "type": "generic",
                           "entities": {}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertEqual({"id": str(r1),
@@ -114,6 +117,7 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": "bar",
                           "started_at": ts,
                           "ended_at": None,
+                          "type": "generic",
                           "entities": {}}, r)
 
     def test_create_resource_with_entities(self):
@@ -130,11 +134,13 @@ class TestIndexerDriver(tests.TestCase):
                           "user_id": "foo",
                           "project_id": "bar",
                           "ended_at": None,
+                          "type": "generic",
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
+                          "type": "generic",
                           "ended_at": None,
                           "user_id": "foo",
                           "project_id": "bar",
@@ -161,6 +167,7 @@ class TestIndexerDriver(tests.TestCase):
                           "ended_at": datetime.datetime(2043, 1, 1, 2, 3, 4),
                           "user_id": "foo",
                           "project_id": "bar",
+                          "type": "generic",
                           "entities": {}}, r)
         self.index.update_resource(
             r1,
@@ -172,6 +179,7 @@ class TestIndexerDriver(tests.TestCase):
                           "ended_at": None,
                           "user_id": "foo",
                           "project_id": "bar",
+                          "type": "generic",
                           "entities": {}}, r)
 
     def test_update_resource_entities(self):
@@ -227,6 +235,7 @@ class TestIndexerDriver(tests.TestCase):
                           "ended_at": None,
                           "user_id": "foo",
                           "project_id": "bar",
+                          "type": "generic",
                           "entities": {'bar': str(e2)}}, r)
 
     def test_delete_instance(self):

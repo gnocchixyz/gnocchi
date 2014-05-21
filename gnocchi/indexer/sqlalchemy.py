@@ -97,6 +97,9 @@ class Resource(Base, models.ModelBase):
     __tablename__ = 'resource'
 
     id = sqlalchemy.Column(GUID, primary_key=True)
+    type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
+                                             name="resource_type_enum"),
+                             nullable=False, default='generic')
     user_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     project_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
     started_at = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False,
@@ -155,6 +158,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise ValueError("Start timestamp cannot be after end timestamp")
         r = resource_cls(
             id=id,
+            type=resource_type,
             user_id=user_id,
             project_id=project_id,
             started_at=started_at,
