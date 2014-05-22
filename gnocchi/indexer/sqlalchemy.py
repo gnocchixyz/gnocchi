@@ -167,7 +167,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         with session.begin():
             session.add(r)
-            session.flush()
+            try:
+                session.flush()
+            except exception.DBDuplicateEntry:
+                raise indexer.ResourceAlreadyExists(id)
             if entities is None:
                 entities = {}
             for name, e in entities.iteritems():

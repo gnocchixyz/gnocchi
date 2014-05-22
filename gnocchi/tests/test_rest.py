@@ -222,6 +222,19 @@ class ResourceTest(RestTest):
         self.attributes['entities'] = {}
         self.assertEqual(resource, self.attributes)
 
+    def test_post_resource_already_exist(self):
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes)
+        self.assertEqual(201, result.status_code)
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes,
+            expect_errors=True)
+        self.assertEqual(400, result.status_code)
+        self.assertIn("Resource %s already exists" % self.attributes['id'],
+                      result.body)
+
     def test_post_unix_timestamp(self):
         self.attributes['started_at'] = "1400580045.856219"
         result = self.app.post_json(

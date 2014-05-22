@@ -53,6 +53,13 @@ class TestIndexerDriver(tests.TestCase):
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
 
+    def test_create_resource_already_exists(self):
+        r1 = uuid.uuid4()
+        self.index.create_resource('generic', r1, "foo", "bar")
+        self.assertRaises(indexer.ResourceAlreadyExists,
+                          self.index.create_resource,
+                          'generic', r1, "foo", "bar")
+
     def test_create_instance(self):
         r1 = uuid.uuid4()
         rc = self.index.create_resource('instance', r1, "foo", "bar",

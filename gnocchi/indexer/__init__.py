@@ -71,6 +71,14 @@ class NoSuchResource(Exception):
         self.resource = resource
 
 
+class ResourceAlreadyExists(Exception):
+    """Error raised when a resource already exists."""
+    def __init__(self, resource):
+        super(ResourceAlreadyExists, self).__init__(
+            "Resource %s already exists" % resource)
+        self.resource = resource
+
+
 class EntityAlreadyExists(Exception):
     """Error raised when an entity already exists."""
     def __init__(self, entity):

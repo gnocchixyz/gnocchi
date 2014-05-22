@@ -269,7 +269,7 @@ class GenericResourcesController(rest.RestController):
             resource = pecan.request.indexer.create_resource(
                 self._resource_type,
                 **body)
-        except ValueError as e:
+        except (ValueError, indexer.ResourceAlreadyExists) as e:
             pecan.abort(400, str(e))
         pecan.response.headers['Location'] = "/v1/resource/" \
                                              + self._resource_type + "/" \
