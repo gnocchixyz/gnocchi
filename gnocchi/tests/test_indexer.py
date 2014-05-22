@@ -258,3 +258,40 @@ class TestIndexerDriver(tests.TestCase):
         self.index.delete_resource(r1)
         got = self.index.get_resource('instance', r1)
         self.assertIsNone(got)
+
+    def test_list_resources(self):
+        # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
+        # database for all tests and the tests are running concurrently, but
+        # for now it'll be better than nothing.
+        r1 = uuid.uuid4()
+        g = self.index.create_resource('generic', r1, "foo", "bar")
+        r2 = uuid.uuid4()
+        i = self.index.create_resource('instance', r2, "foo", "bar",
+                                       flavor_id=123,
+                                       image_ref="foo",
+                                       host="dwq",
+                                       display_name="foobar",
+                                       architecture="arm")
+        resources = self.index.list_resources('generic')
+        self.assertGreaterEqual(len(resources), 2)
+        g_found = False
+        i_found = False
+        for r in resources:
+            if r['id'] == str(r1):
+                self.assertEqual(g, r)
+                g_found = True
+            elif r['id'] == str(r2):
+                i_found = True
+            if i_found and g_found:
+                break
+        else:
+            self.fail("Some resources were not found")
+
+        resources = self.index.list_resources('instance')
+        self.assertGreaterEqual(len(resources), 1)
+        for r in resources:
+            if r['id'] == str(r2):
+                self.assertEqual(i, r)
+                break
+        else:
+            self.fail("Some resources were not found")
