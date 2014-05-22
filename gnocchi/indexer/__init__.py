@@ -101,7 +101,7 @@ class IndexerDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def list_resources(resource_type='generic'):
+    def list_resources(resource_type='generic', started_after=None):
         raise NotImplementedError
 
     @staticmethod

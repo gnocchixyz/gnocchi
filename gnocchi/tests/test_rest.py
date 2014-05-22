@@ -176,7 +176,7 @@ class ResourceTest(RestTest):
     resource_scenarios = [
         ('generic', dict(
             attributes={
-                "started_at": "2014-01-01 02:02:02",
+                "started_at": "2014-01-03 02:02:02",
                 "user_id": "foo",
                 "project_id": "bar",
             },
@@ -491,6 +491,54 @@ class ResourceTest(RestTest):
             self.fail("Some resources were not found")
 
         result = self.app.get("/v1/resource/" + self.resource_type)
+        resources = jsonutils.loads(result.body)
+        self.assertGreaterEqual(len(resources), 1)
+        for r in resources:
+            if r['id'] == str(i['id']):
+                self.assertEqual(i, r)
+                break
+        else:
+            self.fail("Some resources were not found")
+
+    def test_list_resources_started_after(self):
+        # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
+        # database for all tests and the tests are running concurrently, but
+        # for now it'll be better than nothing.
+        result = self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": str(uuid.uuid4()),
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": "foo",
+                "project_id": "bar",
+            })
+        g = jsonutils.loads(result.body)
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes)
+        i = jsonutils.loads(result.body)
+        result = self.app.get(
+            "/v1/resource/generic?started_after=2014-01-01")
+        self.assertEqual(200, result.status_code)
+        resources = jsonutils.loads(result.body)
+        self.assertGreaterEqual(len(resources), 2)
+
+        i_found = False
+        g_found = False
+        for r in resources:
+            if r['id'] == str(g['id']):
+                self.assertEqual(g, r)
+                g_found = True
+            elif r['id'] == str(i['id']):
+                i_found = True
+            if i_found and g_found:
+                break
+        else:
+            self.fail("Some resources were not found")
+
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "?started_after=2014-01-03")
         resources = jsonutils.loads(result.body)
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
