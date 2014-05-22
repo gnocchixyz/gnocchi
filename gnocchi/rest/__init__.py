@@ -277,6 +277,10 @@ class GenericResourcesController(rest.RestController):
         pecan.response.status = 201
         return resource
 
+    @pecan.expose('json')
+    def get(self):
+        return pecan.request.indexer.list_resources(self._resource_type)
+
 
 class InstancesController(GenericResourcesController):
     _resource_type = 'instance'
