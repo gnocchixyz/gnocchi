@@ -104,10 +104,11 @@ class SwiftStorage(storage.StorageDriver):
                 for second, size in archive
             ])
             compressed = six.StringIO()
-            with gzip.GzipFile(
-                    fileobj=compressed, mode="wb",
-                    compresslevel=self.compresslevel) as z:
-                z.write(tsc.serialize())
+            z = gzip.GzipFile(
+                fileobj=compressed, mode="wb",
+                compresslevel=self.compresslevel)
+            z.write(tsc.serialize())
+            z.close()
             self.swift.put_object(entity, aggregation,
                                   compressed.getvalue())
 
@@ -146,9 +147,10 @@ class SwiftStorage(storage.StorageDriver):
                 for measure in measures:
                     tsc[measure.timestamp] = measure.value
                 compressed = six.StringIO()
-                with gzip.GzipFile(fileobj=compressed, mode="wb",
-                                   compresslevel=self.compresslevel) as z:
-                    z.write(tsc.serialize())
+                z = gzip.GzipFile(fileobj=compressed, mode="wb",
+                                  compresslevel=self.compresslevel)
+                z.write(tsc.serialize())
+                z.close()
                 self.swift.put_object(entity, aggregation,
                                       compressed.getvalue())
 

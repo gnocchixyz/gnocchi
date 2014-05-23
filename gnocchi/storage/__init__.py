@@ -63,10 +63,9 @@ def _get_driver(name, conf):
     :param name: The name of the driver.
     :param conf: The conf to pass to the driver.
     """
-    return driver.DriverManager('gnocchi.storage',
-                                name,
-                                invoke_args=(conf,),
-                                invoke_on_load=True).driver
+    d = driver.DriverManager('gnocchi.storage',
+                             name).driver
+    return d(conf)
 
 
 def get_driver(conf):

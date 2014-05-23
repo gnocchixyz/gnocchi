@@ -47,6 +47,9 @@ def _skip_decorator(func):
             return func(*args, **kwargs)
         except AssertionError:
             raise
+        # FIXME(jd) Some Python code that is not our own can raise this, and
+        # therefore skip a test without us knowing, which is a bad idea. We
+        # need to define our own NotImplementedError.
         except NotImplementedError as e:
             raise testcase.TestSkipped(six.text_type(e))
     return skip_if_not_implemented
@@ -120,6 +123,9 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         self.conf.set_override('connection',
                                getattr(self, "db_url", "sqlite:///"),
                                'database')
+        # No env var exported, no integration tests
+        if self.conf.database.connection is None:
+            raise NotImplementedError
         self.index = indexer.get_driver(self.conf)
         try:
             self.index.upgrade()

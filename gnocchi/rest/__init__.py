@@ -17,6 +17,7 @@
 # under the License.
 import datetime
 import functools
+import json
 import uuid
 
 import iso8601
@@ -26,13 +27,12 @@ import six
 import voluptuous
 
 from gnocchi import indexer
-from gnocchi.openstack.common import jsonutils
 from gnocchi.openstack.common import timeutils
 from gnocchi import storage
 
 
 def deserialize(schema):
-    params = jsonutils.loads(pecan.request.body)
+    params = json.loads(pecan.request.body)
     try:
         return schema(params)
     except voluptuous.Error as e:
