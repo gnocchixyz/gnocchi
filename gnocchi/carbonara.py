@@ -20,6 +20,7 @@ import operator
 
 import msgpack
 import pandas
+import six
 
 
 class TimeSerie(object):
@@ -57,9 +58,15 @@ class TimeSerie(object):
         :param d: The dict.
         :returns: A TimeSerie object
         """
-        return cls(*zip(*dict((pandas.Timestamp(k), v)
-                              for k, v in d['values'].iteritems()).items())
-                   or ([], []),
+        values_and_timestamps = tuple(
+            zip(*dict(
+                (pandas.Timestamp(k), v)
+                for k, v in six.iteritems(d['values'])).items()))
+        if values_and_timestamps:
+            values, timestamps = values_and_timestamps
+        else:
+            values, timestamps = (), ()
+        return cls(values, timestamps,
                    max_size=d.get('max_size'),
                    sampling=d.get('sampling'),
                    aggregation_method=d.get('aggregation_method', 'mean'))
@@ -68,9 +75,11 @@ class TimeSerie(object):
         return {
             'aggregation_method': self.aggregation_method,
             'max_size': self.max_size,
-            'sampling': str(self.sampling.n) + self.sampling.rule_code,
-            'values': dict((str(k), v)
-                           for k, v in self.ts[~self.ts.isnull()].iteritems()),
+            'sampling': (six.text_type(self.sampling.n)
+                         + self.sampling.rule_code),
+            'values': dict((six.text_type(k), float(v))
+                           for k, v
+                           in six.iteritems(self.ts[~self.ts.isnull()])),
         }
 
     def _truncate(self):
@@ -95,7 +104,7 @@ class TimeSerie(object):
 
     @classmethod
     def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(data))
+        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
 
 
 class TimeSerieCollection(object):
@@ -124,7 +133,12 @@ class TimeSerieCollection(object):
         return self.timeseries == other.timeseries
 
     def serialize(self):
-        return msgpack.dumps([ts.to_dict() for ts in self.timeseries])
+        try:
+            return msgpack.dumps([ts.to_dict() for ts in self.timeseries])
+        except Exception as e:
+            f = [ts.to_dict() for ts in self.timeseries]
+            f = f[0]['values']['2014-01-01 12:12:45'].__class__
+            raise Exception(str(e), f)
 
     def __setitem__(self, timestamp, value):
         timestamp = pandas.Timestamp(timestamp, unit='s')
@@ -141,4 +155,5 @@ class TimeSerieCollection(object):
 
     @classmethod
     def unserialize(cls, data):
-        return cls([TimeSerie.from_dict(ts) for ts in msgpack.loads(data)])
+        return cls([TimeSerie.from_dict(ts)
+                    for ts in msgpack.loads(data, encoding='utf-8')])

@@ -1,6 +1,6 @@
 babel
 iso8601
-lockfile
+lockfile>=0.9.1
 netaddr
 oslo.config
 oslotest
@@ -14,3 +14,4 @@ sqlalchemy
 stevedore
 tooz
 voluptuous
+werkzeug

@@ -25,6 +25,7 @@ import pecan
 from pecan import rest
 import six
 import voluptuous
+import werkzeug.http
 
 from gnocchi import indexer
 from gnocchi.openstack.common import timeutils
@@ -32,7 +33,13 @@ from gnocchi import storage
 
 
 def deserialize(schema):
-    params = json.loads(pecan.request.body)
+    try:
+        type, options = werkzeug.http.parse_options_header(
+            pecan.request.headers.get('Content-Type'))
+        params = json.loads(pecan.request.body.decode(
+            options.get('charset', 'ascii')))
+    except Exception:
+        pecan.abort(400, "Unable to decode body")
     try:
         return schema(params)
     except voluptuous.Error as e:
@@ -57,7 +64,7 @@ def Timestamp(v):
         v = float(v)
     except (ValueError, TypeError):
         return iso8601.parse_date(v)
-    return datetime.datetime.fromtimestamp(v)
+    return datetime.datetime.utcfromtimestamp(v)
 
 
 class EntityController(rest.RestController):
@@ -96,9 +103,9 @@ class EntityController(rest.RestController):
         try:
             # Replace timestamp keys by their string versions
             return dict((timeutils.strtime(k), v)
-                        for k, v in pecan.request.storage.get_measures(
-                            self.entity_id,
-                            start, stop, aggregation).iteritems())
+                        for k, v
+                        in six.iteritems(pecan.request.storage.get_measures(
+                            self.entity_id, start, stop, aggregation)))
         except storage.EntityDoesNotExist as e:
             pecan.abort(400, str(e))
 
@@ -183,7 +190,7 @@ class GenericResourceController(rest.RestController):
     def convert_entity_list(entities):
         # Replace None as value for an entity by a brand a new entity
         new_entities = {}
-        for k, v in entities.iteritems():
+        for k, v in six.iteritems(entities):
             if isinstance(v, uuid.UUID):
                 new_entities[k] = v
             else:

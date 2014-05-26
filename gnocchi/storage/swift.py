@@ -70,7 +70,7 @@ class SwiftStorage(storage.StorageDriver):
         self.compresslevel = conf.compression_level
         self.coord = coordination.get_coordinator(
             conf.swift_coordination_driver,
-            str(uuid.uuid4()))
+            str(uuid.uuid4()).encode('ascii'))
         self.coord.start()
         # NOTE(jd) So this is a (smart?) optimization: since we're going to
         # lock for each of this aggregation type, if we are using running
@@ -103,7 +103,7 @@ class SwiftStorage(storage.StorageDriver):
                                         second))
                 for second, size in archive
             ])
-            compressed = six.StringIO()
+            compressed = six.BytesIO()
             z = gzip.GzipFile(
                 fileobj=compressed, mode="wb",
                 compresslevel=self.compresslevel)
@@ -134,7 +134,8 @@ class SwiftStorage(storage.StorageDriver):
             # If-Match, and then restart the whole get/update/put if the put
             # returned 412 (If-Match failed). But for now Swift does not
             # support If-Match with ETag. :(
-            with self.coord.get_lock("gnocchi-" + entity + "-" + aggregation):
+            with self.coord.get_lock(b"gnocchi-" + entity.encode('ascii')
+                                     + b"-" + aggregation.encode('ascii')):
                 try:
                     headers, contents = self.swift.get_object(
                         entity, aggregation)
@@ -143,10 +144,10 @@ class SwiftStorage(storage.StorageDriver):
                         raise storage.EntityDoesNotExist(entity)
                     raise
                 tsc = carbonara.TimeSerieCollection.unserialize(
-                    gzip.GzipFile(fileobj=six.StringIO(contents)).read())
+                    gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
                 for measure in measures:
                     tsc[measure.timestamp] = measure.value
-                compressed = six.StringIO()
+                compressed = six.BytesIO()
                 z = gzip.GzipFile(fileobj=compressed, mode="wb",
                                   compresslevel=self.compresslevel)
                 z.write(tsc.serialize())
@@ -163,5 +164,5 @@ class SwiftStorage(storage.StorageDriver):
                 raise storage.EntityDoesNotExist(entity)
             raise
         tsc = carbonara.TimeSerieCollection.unserialize(
-            gzip.GzipFile(fileobj=six.StringIO(contents)).read())
+            gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
         return dict(tsc.fetch(from_timestamp, to_timestamp))
