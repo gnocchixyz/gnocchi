@@ -296,14 +296,15 @@ class TestIndexerDriver(tests.TestCase):
         else:
             self.fail("Some resources were not found")
 
-    def test_list_resources_started_after(self):
+    def test_list_resources_started_after_ended_before(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
         # database for all tests and the tests are running concurrently, but
         # for now it'll be better than nothing.
         r1 = uuid.uuid4()
         g = self.index.create_resource(
             'generic', r1, "foo", "bar",
-            started_at=datetime.datetime(2000, 1, 1, 23, 23, 23))
+            started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
+            ended_at=datetime.datetime(2000, 1, 3, 23, 23, 23))
         r2 = uuid.uuid4()
         i = self.index.create_resource(
             'instance', r2, "foo", "bar",
@@ -312,10 +313,12 @@ class TestIndexerDriver(tests.TestCase):
             host="dwq",
             display_name="foobar",
             architecture="arm",
-            started_at=datetime.datetime(2001, 1, 1, 23, 23, 23))
+            started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
+            ended_at=datetime.datetime(2000, 1, 4, 23, 23, 23))
         resources = self.index.list_resources(
             'generic',
-            started_after=datetime.datetime(2000, 1, 1, 23, 23, 23))
+            started_after=datetime.datetime(2000, 1, 1, 23, 23, 23),
+            ended_before=datetime.datetime(2000, 1, 5, 23, 23, 23))
         self.assertGreaterEqual(len(resources), 2)
         g_found = False
         i_found = False
@@ -332,7 +335,7 @@ class TestIndexerDriver(tests.TestCase):
 
         resources = self.index.list_resources(
             'instance',
-            started_after=datetime.datetime(2001, 1, 1, 23, 23, 23))
+            started_after=datetime.datetime(2000, 1, 1, 23, 23, 23))
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r['id'] == str(r2):
@@ -348,3 +351,8 @@ class TestIndexerDriver(tests.TestCase):
         for r in resources:
             if r['id'] == str(r2):
                 self.fail("Some resources were not found")
+
+        resources = self.index.list_resources(
+            'generic',
+            ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
+        self.assertEqual(len(resources), 0)
