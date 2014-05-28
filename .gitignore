@@ -2,3 +2,5 @@
 *.pyc
 .tox
 *.egg-info
+AUTHORS
+ChangeLog
