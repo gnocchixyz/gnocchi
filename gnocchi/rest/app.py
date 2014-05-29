@@ -15,7 +15,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import logging
+
 import socket
 from wsgiref import simple_server
 
@@ -99,10 +99,7 @@ def get_server_cls(host):
     return server_cls
 
 
-def main():
-    cfg.CONF()
-    log.setup('gnocchi')
-    cfg.CONF.log_opt_values(LOG, logging.DEBUG)
+def build_server():
     srv = simple_server.make_server(cfg.CONF.api.host,
                                     cfg.CONF.api.port,
                                     setup_app(),
