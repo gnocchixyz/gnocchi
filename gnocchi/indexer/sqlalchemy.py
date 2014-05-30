@@ -255,7 +255,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_resources(self, resource_type='generic',
                        started_after=None,
-                       ended_before=None):
+                       ended_before=None,
+                       user_id=None):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
@@ -264,6 +265,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             q = q.filter(resource_cls.started_at >= started_after)
         if ended_before is not None:
             q = q.filter(resource_cls.started_at < ended_before)
+        if user_id is not None:
+            q = q.filter(resource_cls.user_id == user_id)
         return [self._resource_to_dict(r) for r in q.all()]
 
     def create_entity(self, id):
