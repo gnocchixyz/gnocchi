@@ -270,6 +270,17 @@ class TestIndexerDriver(tests.TestCase):
                                               user_id=str(uuid.uuid4()))
         self.assertEqual(len(resources), 0)
 
+    def test_list_resources_by_project(self):
+        r1 = uuid.uuid4()
+        u1 = str(uuid.uuid4())
+        g = self.index.create_resource('generic', r1, "foo", u1)
+        resources = self.index.list_resources('generic', project_id=u1)
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(g, resources[0])
+        resources = self.index.list_resources('generic',
+                                              project_id=str(uuid.uuid4()))
+        self.assertEqual(len(resources), 0)
+
     def test_list_resources(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
         # database for all tests and the tests are running concurrently, but
