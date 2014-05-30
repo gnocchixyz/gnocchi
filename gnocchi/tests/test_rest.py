@@ -474,6 +474,25 @@ class ResourceTest(RestTest):
         self.assertGreaterEqual(len(resources), 1)
         self.assertEqual(created_resource, resources[0])
 
+    def test_list_resources_by_project(self):
+        p1 = str(uuid.uuid4())
+        self.attributes['project_id'] = p1
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes)
+        created_resource = jsonutils.loads(result.body)
+        result = self.app.get("/v1/resource/generic",
+                              params={"project_id": p1})
+        self.assertEqual(200, result.status_code)
+        resources = jsonutils.loads(result.body)
+        self.assertGreaterEqual(len(resources), 1)
+        result = self.app.get("/v1/resource/" + self.resource_type,
+                              params={"project_id": p1})
+        self.assertEqual(200, result.status_code)
+        resources = jsonutils.loads(result.body)
+        self.assertGreaterEqual(len(resources), 1)
+        self.assertEqual(created_resource, resources[0])
+
     def test_list_resources(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
         # database for all tests and the tests are running concurrently, but
