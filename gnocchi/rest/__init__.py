@@ -285,7 +285,8 @@ class GenericResourcesController(rest.RestController):
         return resource
 
     @pecan.expose('json')
-    def get_all(self, started_after=None, ended_before=None):
+    def get_all(self, started_after=None, ended_before=None,
+                user_id=None):
         if started_after is not None:
             try:
                 started_after = Timestamp(started_after)
@@ -299,7 +300,8 @@ class GenericResourcesController(rest.RestController):
         return pecan.request.indexer.list_resources(
             self._resource_type,
             started_after=started_after,
-            ended_before=ended_before)
+            ended_before=ended_before,
+            user_id=user_id)
 
 
 class InstancesController(GenericResourcesController):
