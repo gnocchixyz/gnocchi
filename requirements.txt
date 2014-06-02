@@ -4,7 +4,7 @@ lockfile>=0.9.1
 netaddr
 oslo.config
 oslotest
-pandas
+pandas<0.14  # Until https://github.com/pydata/pandas/issues/7284 is fixed
 pecan
 posix_ipc
 psycopg2
