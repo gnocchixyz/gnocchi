@@ -82,7 +82,7 @@ class ResourceEntity(Base, models.ModelBase):
                                   sqlalchemy.ForeignKey('entity.id',
                                                         ondelete="CASCADE"),
                                   primary_key=True)
-    name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     resources = sqlalchemy.orm.relationship(
         'Resource')
 
@@ -100,8 +100,8 @@ class Resource(Base, models.ModelBase):
     type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
-    user_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    project_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    user_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    project_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     started_at = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False,
                                    default=sqlalchemy.func.now())
     ended_at = sqlalchemy.Column(sqlalchemy.DateTime)
@@ -117,10 +117,10 @@ class Instance(Resource):
                            primary_key=True)
 
     flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    image_ref = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    host = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    display_name = sqlalchemy.Column(sqlalchemy.String, nullable=False)
-    architecture = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    architecture = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
 
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
