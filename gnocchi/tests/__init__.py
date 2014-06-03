@@ -27,6 +27,7 @@ from testtools import testcase
 from gnocchi import indexer
 from gnocchi.openstack.common.fixture import config
 from gnocchi.openstack.common.fixture import mockpatch
+from gnocchi.openstack.common import lockutils
 from gnocchi import storage
 
 
@@ -127,12 +128,14 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         if self.conf.database.connection is None:
             raise NotImplementedError
         self.index = indexer.get_driver(self.conf)
-        try:
+
+        # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
+        # their tables in a single transaction even with the
+        # checkfirst=True, so what we do here is we force the upgrade code
+        # path to be sequential to avoid race conditions as the tests run in
+        # parallel.
+        with lockutils.lock("gnocchi-tests-db-lock", external=True):
             self.index.upgrade()
-        except Exception:
-            # FIXME(jd) We should be smarter in upgrade() for sqlalchemy to
-            # remove that
-            pass
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',

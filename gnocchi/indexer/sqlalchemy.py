@@ -136,7 +136,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def upgrade(self):
         engine = self.engine_facade.get_engine()
-        Base.metadata.create_all(engine)
+        Base.metadata.create_all(engine, checkfirst=True)
 
     def _resource_type_to_class(self, resource_type):
         if resource_type not in self._RESOURCE_CLASS_MAPPER:
