@@ -455,6 +455,16 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/entity/" + str(entity_id) + "/measures")
         self.assertEqual(200, result.status_code)
 
+    def test_list_resources_by_unknown_field(self):
+        result = self.app.get("/v1/resource/" + self.resource_type,
+                              params={"foo": "bar"},
+                              expect_errors=True)
+        self.assertEqual(400, result.status_code)
+        self.assertEqual("text/plain", result.content_type)
+        self.assertIn(b"Resource " + self.resource_type
+                      + b" has no foo attribute",
+                      result.body)
+
     def test_list_resources_by_user(self):
         u1 = str(uuid.uuid4())
         self.attributes['user_id'] = u1

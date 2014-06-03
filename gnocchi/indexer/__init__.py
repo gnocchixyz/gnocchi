@@ -87,6 +87,15 @@ class EntityAlreadyExists(Exception):
         self.entity = entity
 
 
+class ResourceAttributeError(AttributeError):
+    """Error raised when an attribute does not exist for a resource type."""
+    def __init__(self, resource, attribute):
+        super(ResourceAttributeError, self).__init__(
+            "Resource %s has no %s attribute" % (resource, attribute))
+        self.resource = resource,
+        self.attribute = attribute
+
+
 class IndexerDriver(object):
     @staticmethod
     def __init__(conf):
@@ -103,8 +112,7 @@ class IndexerDriver(object):
     @staticmethod
     def list_resources(resource_type='generic', started_after=None,
                        ended_before=None,
-                       user_id=None,
-                       project_id=None):
+                       attributes_filter=None):
         raise NotImplementedError
 
     @staticmethod
