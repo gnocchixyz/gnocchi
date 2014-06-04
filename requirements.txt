@@ -7,7 +7,6 @@ oslotest
 pandas<0.14  # Until https://github.com/pydata/pandas/issues/7284 is fixed
 pecan
 posix_ipc
-psycopg2
 python-swiftclient
 six
 sqlalchemy

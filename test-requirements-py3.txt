@@ -1,6 +1,5 @@
 fixtures
 mock
-MySQL-python
 psycopg2
 testrepository
 testscenarios

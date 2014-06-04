@@ -102,6 +102,8 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         ('null', dict(indexer_engine='null')),
         ('postgresql', dict(indexer_engine='sqlalchemy',
                             db_url=os.environ.get("GNOCCHI_TEST_PGSQL_URL"))),
+        ('mysql', dict(indexer_engine='sqlalchemy',
+                       db_url=os.environ.get("GNOCCHI_TEST_MYSQL_URL"))),
     ]
 
     storage_backends = [
