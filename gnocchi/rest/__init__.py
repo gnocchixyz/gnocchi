@@ -230,6 +230,7 @@ class GenericResourceController(rest.RestController):
                 kwargs['entities'] = self.convert_entity_list(
                     body['entities'])
             pecan.request.indexer.update_resource(
+                self._resource_type,
                 self.id, **kwargs)
         except (indexer.NoSuchEntity, indexer.NoSuchResource, ValueError) as e:
             pecan.abort(400, e)

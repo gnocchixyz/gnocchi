@@ -122,7 +122,9 @@ class IndexerDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def update_resource(uuid, ended_at=_marker, entities=_marker):
+    def update_resource(resource_type, uuid, ended_at=_marker,
+                        entities=_marker,
+                        **kwargs):
         raise NotImplementedError
 
     @staticmethod

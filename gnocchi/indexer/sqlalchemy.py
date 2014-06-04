@@ -197,12 +197,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                              for k in resource.entities)
         return r
 
-    def update_resource(self, uuid, ended_at=_marker, entities=_marker):
+    def update_resource(self, resource_type,
+                        uuid, ended_at=_marker, entities=_marker,
+                        **kwargs):
+        resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         with session.begin():
             q = session.query(
-                Resource).filter(
-                    Resource.id == uuid).with_for_update()
+                resource_cls).filter(
+                    resource_cls.id == uuid).with_for_update()
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(uuid)
@@ -218,7 +221,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         raise ValueError(
                             "Start timestamp cannot be after end timestamp")
                 r.ended_at = ended_at
-                session.flush()
+
+            if kwargs:
+                for attribute, value in six.iteritems(kwargs):
+                    if hasattr(r, attribute):
+                        setattr(r, attribute, value)
+                    else:
+                        raise indexer.ResourceAttributeError(
+                            r.type, attribute)
+
             if entities is not _marker:
                 session.query(ResourceEntity).filter(
                     ResourceEntity.resource_id == uuid).delete()
@@ -226,16 +237,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session.add(ResourceEntity(resource_id=uuid,
                                                entity_id=e,
                                                name=name))
-                    try:
-                        session.flush()
-                    except exception.DBError as e:
-                        # TODO(jd) Add an exception in oslo.db to match
-                        # foreign key issues
-                        if isinstance(e.inner_exception,
-                                      sqlalchemy.exc.IntegrityError):
-                            # FIXME(jd) This could also be a non existent
-                            # resource!
-                            raise indexer.NoSuchEntity("???")
+            try:
+                session.flush()
+            except exception.DBError as e:
+                # TODO(jd) Add an exception in oslo.db to match
+                # foreign key issues
+                if isinstance(e.inner_exception,
+                              sqlalchemy.exc.IntegrityError):
+                    # FIXME(jd) This could also be a non existent
+                    # resource!
+                    raise indexer.NoSuchEntity("???")
 
         return self._resource_to_dict(r)
 

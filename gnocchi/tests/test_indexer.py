@@ -158,6 +158,7 @@ class TestIndexerDriver(tests.TestCase):
         self.assertRaises(
             indexer.NoSuchResource,
             self.index.update_resource,
+            'generic',
             r1,
             ended_at=datetime.datetime(2014, 1, 1, 2, 3, 4))
 
@@ -165,6 +166,7 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         self.index.create_resource('generic', r1, "foo", "bar")
         self.index.update_resource(
+            'generic',
             r1,
             ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
         r = self.index.get_resource('generic', r1)
@@ -177,6 +179,7 @@ class TestIndexerDriver(tests.TestCase):
                           "type": "generic",
                           "entities": {}}, r)
         self.index.update_resource(
+            'generic',
             r1,
             ended_at=None)
         r = self.index.get_resource('generic', r1)
@@ -197,9 +200,35 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_resource('generic', r1, "foo", "bar",
                                    entities={'foo': e1})
         self.index.create_entity(e2)
-        rc = self.index.update_resource(r1, entities={'bar': e2})
+        rc = self.index.update_resource('generic', r1, entities={'bar': e2})
         r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
+
+    def test_update_resource_attribute(self):
+        r1 = uuid.uuid4()
+        rc = self.index.create_resource('instance', r1, "foo", "bar",
+                                        flavor_id=1,
+                                        image_ref="http://foo/bar",
+                                        host="foo",
+                                        display_name="lol",
+                                        architecture="x86")
+        rc = self.index.update_resource('instance', r1, host="bar")
+        r = self.index.get_resource('instance', r1)
+        rc['host'] = "bar"
+        self.assertEqual(rc, r)
+
+    def test_update_resource_unknown_attribute(self):
+        r1 = uuid.uuid4()
+        self.index.create_resource('instance', r1, "foo", "bar",
+                                   flavor_id=1,
+                                   image_ref="http://foo/bar",
+                                   host="foo",
+                                   display_name="lol",
+                                   architecture="x86")
+        self.assertRaises(indexer.ResourceAttributeError,
+                          self.index.update_resource,
+                          'instance',
+                          r1, foo="bar")
 
     def test_update_non_existent_entity(self):
         r1 = uuid.uuid4()
@@ -207,6 +236,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_resource('generic', r1, "foo", "bar")
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.update_resource,
+                          'generic',
                           r1, entities={'bar': e1})
 
     def test_update_non_existent_resource(self):
@@ -215,6 +245,7 @@ class TestIndexerDriver(tests.TestCase):
         self.index.create_entity(e1)
         self.assertRaises(indexer.NoSuchResource,
                           self.index.update_resource,
+                          'generic',
                           r1, entities={'bar': e1})
 
     def test_create_resource_with_non_existent_entities(self):
