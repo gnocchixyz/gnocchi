@@ -264,7 +264,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if started_after is not None:
             q = q.filter(resource_cls.started_at >= started_after)
         if ended_before is not None:
-            q = q.filter(resource_cls.started_at < ended_before)
+            q = q.filter(resource_cls.ended_at < ended_before)
         if user_id is not None:
             q = q.filter(resource_cls.user_id == user_id)
         return [self._resource_to_dict(r) for r in q.all()]

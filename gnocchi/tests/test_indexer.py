@@ -356,14 +356,6 @@ class TestIndexerDriver(tests.TestCase):
             self.fail("Some resources were not found")
 
         resources = self.index.list_resources(
-            'instance',
-            started_after=datetime.datetime(2010, 1, 1, 23, 23, 23))
-        self.assertGreaterEqual(len(resources), 1)
-        for r in resources:
-            if r['id'] == str(r2):
-                self.fail("Some resources were not found")
-
-        resources = self.index.list_resources(
             'generic',
             ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
         self.assertEqual(len(resources), 0)
