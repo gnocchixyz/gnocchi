@@ -231,7 +231,7 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
             expect_errors=True)
-        self.assertEqual(400, result.status_code)
+        self.assertEqual(409, result.status_code)
         self.assertIn("Resource %s already exists" % self.attributes['id'],
                       result.body)
 
