@@ -190,7 +190,6 @@ def ResourcePatchSchema(schema):
 class GenericResourceController(rest.RestController):
     _resource_type = 'generic'
 
-    Resource = ResourceSchema({})
     ResourcePatch = ResourcePatchSchema({})
 
     def __init__(self, id):
@@ -260,18 +259,12 @@ class InstanceController(GenericResourceController):
         "display_name": six.text_type,
     })
 
-    Instance = ResourceSchema({
-        voluptuous.Required("flavor_id"): int,
-        voluptuous.Required("image_ref"): six.text_type,
-        voluptuous.Required("host"): six.text_type,
-        voluptuous.Required("display_name"): six.text_type,
-    })
-
 
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
-    _resource_class = GenericResourceController.Resource
+
+    Resource = ResourceSchema({})
 
     @pecan.expose()
     def _lookup(self, id, *remainder):
@@ -281,7 +274,7 @@ class GenericResourcesController(rest.RestController):
     def post(self):
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
-        body = deserialize(self._resource_class)
+        body = deserialize(self.Resource)
         body['entities'] = GenericResourceController.convert_entity_list(
             body.get('entities', {}))
         try:
@@ -323,7 +316,13 @@ class GenericResourcesController(rest.RestController):
 class InstancesController(GenericResourcesController):
     _resource_type = 'instance'
     _resource_rest_class = InstanceController
-    _resource_class = InstanceController.Instance
+
+    Resource = ResourceSchema({
+        voluptuous.Required("flavor_id"): int,
+        voluptuous.Required("image_ref"): six.text_type,
+        voluptuous.Required("host"): six.text_type,
+        voluptuous.Required("display_name"): six.text_type,
+    })
 
 
 class ResourcesController(rest.RestController):
