@@ -19,6 +19,7 @@ from __future__ import absolute_import
 import uuid
 
 from oslo.config import cfg
+import six
 import sqlalchemy
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext import declarative
@@ -256,8 +257,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def list_resources(self, resource_type='generic',
                        started_after=None,
                        ended_before=None,
-                       user_id=None,
-                       project_id=None):
+                       attributes_filter=None):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
@@ -266,10 +266,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             q = q.filter(resource_cls.started_at >= started_after)
         if ended_before is not None:
             q = q.filter(resource_cls.ended_at < ended_before)
-        if user_id is not None:
-            q = q.filter(resource_cls.user_id == user_id)
-        if project_id is not None:
-            q = q.filter(resource_cls.project_id == project_id)
+        if attributes_filter is not None:
+            for attribute, value in six.iteritems(attributes_filter):
+                try:
+                    q = q.filter(getattr(resource_cls, attribute) == value)
+                except AttributeError:
+                    raise indexer.ResourceAttributeError(
+                        resource_type, attribute)
         return [self._resource_to_dict(r) for r in q.all()]
 
     def create_entity(self, id):

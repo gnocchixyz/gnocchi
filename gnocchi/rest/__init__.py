@@ -285,8 +285,7 @@ class GenericResourcesController(rest.RestController):
         return resource
 
     @pecan.expose('json')
-    def get_all(self, started_after=None, ended_before=None,
-                user_id=None, project_id=None):
+    def get_all(self, started_after=None, ended_before=None, **kwargs):
         if started_after is not None:
             try:
                 started_after = Timestamp(started_after)
@@ -297,12 +296,14 @@ class GenericResourcesController(rest.RestController):
                 ended_before = Timestamp(ended_before)
             except Exception:
                 pecan.abort(400, "Unable to parse ended_before timestamp")
-        return pecan.request.indexer.list_resources(
-            self._resource_type,
-            started_after=started_after,
-            ended_before=ended_before,
-            user_id=user_id,
-            project_id=project_id)
+        try:
+            return pecan.request.indexer.list_resources(
+                self._resource_type,
+                started_after=started_after,
+                ended_before=ended_before,
+                attributes_filter=kwargs)
+        except indexer.ResourceAttributeError as e:
+            pecan.abort(400, e)
 
 
 class InstancesController(GenericResourcesController):
