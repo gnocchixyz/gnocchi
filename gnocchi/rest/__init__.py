@@ -253,7 +253,6 @@ class InstanceController(GenericResourceController):
         voluptuous.Required("image_ref"): six.text_type,
         voluptuous.Required("host"): six.text_type,
         voluptuous.Required("display_name"): six.text_type,
-        voluptuous.Required("architecture"): six.text_type,
     })
 
 

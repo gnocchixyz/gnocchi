@@ -190,7 +190,6 @@ class ResourceTest(RestTest):
                 "image_ref": "imageref!",
                 "flavor_id": 123,
                 "display_name": "myinstance",
-                "architecture": "arm",
             },
             resource_type='instance')),
     ]

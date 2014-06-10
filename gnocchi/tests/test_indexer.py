@@ -66,8 +66,7 @@ class TestIndexerDriver(tests.TestCase):
                                         flavor_id=1,
                                         image_ref="http://foo/bar",
                                         host="foo",
-                                        display_name="lol",
-                                        architecture="x86")
+                                        display_name="lol")
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
@@ -76,7 +75,6 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": "bar",
                           "ended_at": None,
                           "display_name": "lol",
-                          "architecture": "x86",
                           "host": "foo",
                           "image_ref": "http://foo/bar",
                           "flavor_id": 1,
@@ -210,8 +208,7 @@ class TestIndexerDriver(tests.TestCase):
                                         flavor_id=1,
                                         image_ref="http://foo/bar",
                                         host="foo",
-                                        display_name="lol",
-                                        architecture="x86")
+                                        display_name="lol")
         rc = self.index.update_resource('instance', r1, host="bar")
         r = self.index.get_resource('instance', r1)
         rc['host'] = "bar"
@@ -223,8 +220,7 @@ class TestIndexerDriver(tests.TestCase):
                                    flavor_id=1,
                                    image_ref="http://foo/bar",
                                    host="foo",
-                                   display_name="lol",
-                                   architecture="x86")
+                                   display_name="lol")
         self.assertRaises(indexer.ResourceAttributeError,
                           self.index.update_resource,
                           'instance',
@@ -282,8 +278,7 @@ class TestIndexerDriver(tests.TestCase):
                                              flavor_id=123,
                                              image_ref="foo",
                                              host="dwq",
-                                             display_name="foobar",
-                                             architecture="arm")
+                                             display_name="foobar")
         got = self.index.get_resource('instance', r1)
         self.assertEqual(created, got)
         self.index.delete_resource(r1)
@@ -335,8 +330,7 @@ class TestIndexerDriver(tests.TestCase):
                                        flavor_id=123,
                                        image_ref="foo",
                                        host="dwq",
-                                       display_name="foobar",
-                                       architecture="arm")
+                                       display_name="foobar")
         resources = self.index.list_resources('generic')
         self.assertGreaterEqual(len(resources), 2)
         g_found = False
@@ -377,7 +371,6 @@ class TestIndexerDriver(tests.TestCase):
             image_ref="foo",
             host="dwq",
             display_name="foobar",
-            architecture="arm",
             started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
             ended_at=datetime.datetime(2000, 1, 4, 23, 23, 23))
         resources = self.index.list_resources(

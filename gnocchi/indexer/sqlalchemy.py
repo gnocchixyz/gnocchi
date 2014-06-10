@@ -121,7 +121,6 @@ class Instance(Resource):
     image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    architecture = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
 
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
