@@ -178,10 +178,20 @@ def ResourceSchema(schema):
     return voluptuous.Schema(base_schema)
 
 
+def ResourcePatchSchema(schema):
+    base_schema = {
+        'entities': Entities,
+        'ended_at': Timestamp,
+    }
+    base_schema.update(schema)
+    return voluptuous.Schema(base_schema)
+
+
 class GenericResourceController(rest.RestController):
     _resource_type = 'generic'
 
     Resource = ResourceSchema({})
+    ResourcePatch = ResourcePatchSchema({})
 
     def __init__(self, id):
         self.id = id
@@ -206,13 +216,11 @@ class GenericResourceController(rest.RestController):
             return resource
         pecan.abort(404)
 
-    ResourcePatch = voluptuous.Schema({
-        'entities': Entities,
-        'ended_at': Timestamp,
-    })
-
-    @vexpose(ResourcePatch)
-    def patch(self, body):
+    @pecan.expose()
+    def patch(self):
+        # NOTE(jd) Can't use vexpose because it does not take into account
+        # inheritance
+        body = deserialize(self.ResourcePatch)
         # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
         pecan.response.status = 204
         if len(body) == 0:
@@ -223,15 +231,12 @@ class GenericResourceController(rest.RestController):
             pecan.abort(404)
 
         try:
-            kwargs = {}
-            if 'ended_at' in body:
-                kwargs['ended_at'] = body['ended_at']
             if 'entities' in body:
-                kwargs['entities'] = self.convert_entity_list(
+                body['entities'] = self.convert_entity_list(
                     body['entities'])
             pecan.request.indexer.update_resource(
                 self._resource_type,
-                self.id, **kwargs)
+                self.id, **body)
         except (indexer.NoSuchEntity, indexer.NoSuchResource, ValueError) as e:
             pecan.abort(400, e)
 
@@ -247,6 +252,13 @@ class GenericResourceController(rest.RestController):
 
 class InstanceController(GenericResourceController):
     _resource_type = 'instance'
+
+    ResourcePatch = ResourcePatchSchema({
+        "flavor_id": int,
+        "image_ref": six.text_type,
+        "host": six.text_type,
+        "display_name": six.text_type,
+    })
 
     Instance = ResourceSchema({
         voluptuous.Required("flavor_id"): int,

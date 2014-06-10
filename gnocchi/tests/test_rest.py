@@ -197,6 +197,10 @@ class ResourceTest(RestTest):
             },
             patchable_attributes={
                 "ended_at": "2014-01-03 02:02:02",
+                "host": "fooz",
+                "image_ref": "imageref!z",
+                "flavor_id": 1234,
+                "display_name": "myinstancez",
             },
             resource_type='instance')),
     ]
