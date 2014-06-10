@@ -18,6 +18,7 @@
 import uuid
 
 import pecan.testing
+import six
 import testscenarios
 
 from gnocchi.openstack.common import jsonutils
@@ -180,6 +181,9 @@ class ResourceTest(RestTest):
                 "user_id": "foo",
                 "project_id": "bar",
             },
+            patchable_attributes={
+                "ended_at": "2014-01-03 02:02:02",
+            },
             resource_type='generic')),
         ('instance', dict(
             attributes={
@@ -190,6 +194,9 @@ class ResourceTest(RestTest):
                 "image_ref": "imageref!",
                 "flavor_id": 123,
                 "display_name": "myinstance",
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03 02:02:02",
             },
             resource_type='instance')),
     ]
@@ -325,19 +332,20 @@ class ResourceTest(RestTest):
         result = jsonutils.loads(result.body)
         self.assertEqual(result['entities'], {})
 
-    def test_patch_resource_ended_at(self):
+    def test_patch_resource_attributes(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
         self.assertEqual(201, result.status_code)
         result = self.app.patch_json(
             "/v1/resource/" + self.resource_type
             + "/" + self.attributes['id'],
-            params={'ended_at': "2043-05-05 23:23:23"})
+            params=self.patchable_attributes)
         self.assertEqual(result.status_code, 204)
         result = self.app.get("/v1/resource/" + self.resource_type
                               + "/" + self.attributes['id'])
         result = jsonutils.loads(result.body)
-        self.assertEqual("2043-05-05 23:23:23", result['ended_at'])
+        for k, v in six.iteritems(self.patchable_attributes):
+            self.assertEqual(v, result[k])
 
     def test_patch_resource_ended_at_before_started_at(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
