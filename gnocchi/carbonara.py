@@ -133,12 +133,7 @@ class TimeSerieCollection(object):
         return self.timeseries == other.timeseries
 
     def serialize(self):
-        try:
-            return msgpack.dumps([ts.to_dict() for ts in self.timeseries])
-        except Exception as e:
-            f = [ts.to_dict() for ts in self.timeseries]
-            f = f[0]['values']['2014-01-01 12:12:45'].__class__
-            raise Exception(str(e), f)
+        return msgpack.dumps([ts.to_dict() for ts in self.timeseries])
 
     def __setitem__(self, timestamp, value):
         timestamp = pandas.Timestamp(timestamp, unit='s')
