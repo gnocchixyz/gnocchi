@@ -130,7 +130,7 @@ class SwiftStorage(storage.StorageDriver):
             # other work might run add_measures() at the same time and we
             # might overwrite its measures when re-puting the file in Swift.
             # This should be replaceable by using a mechanism where we store
-            # the ETag when getting the object from Switch, then put with
+            # the ETag when getting the object from Swift, then put with
             # If-Match, and then restart the whole get/update/put if the put
             # returned 412 (If-Match failed). But for now Swift does not
             # support If-Match with ETag. :(
