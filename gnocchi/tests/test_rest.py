@@ -97,6 +97,18 @@ class EntityTest(RestTest):
                      "value": 1234.2}])
         self.assertEqual(result.status_code, 204)
 
+    def test_add_multiple_measures_per_entity(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archives": [(5, 60),
+                                                         (60, 60)]})
+        entity = jsonutils.loads(result.body)
+        for x in xrange(5):
+            result = self.app.post_json(
+                "/v1/entity/%s/measures" % entity['id'],
+                params=[{"timestamp": '2013-01-01 23:23:2%d' % x,
+                         "value": 1234.2 + x}])
+            self.assertEqual(result.status_code, 204)
+
     def test_add_measure_no_such_entity(self):
         e1 = str(uuid.uuid4())
         result = self.app.post_json(
