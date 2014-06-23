@@ -98,17 +98,15 @@ You can now send requests to the API. Here's an example that creates an
 entity with an archive that stores one point every second for an hour
 (shown both with the curl command and using a Python script)::
 
-    curl -i 'http://0.0.0.0:8041/v1/entity -X POST -H
-    "Content:Type: application/json" -H "Accept: application/json"
-    -d '{"archives": [1, 3600]}'
+    curl -i http://0.0.0.0:8041/v1/entity -X POST \
+      -H "Content-Type: application/json" -H "Accept: application/json" \
+      -d '{"archives": [[1, 3600]]}'
 
 Or::
 
     import requests
     import json
 
-    r = requests.post('http://0.0.0.0:8041/v1/entity', data=json.dumps({"archives": [1, 3600]}))
+    r = requests.post('http://0.0.0.0:8041/v1/entity', data=json.dumps({"archives": [[1, 3600]]}))
     print r.status_code
     print r.text
-
-
