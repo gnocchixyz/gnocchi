@@ -120,6 +120,13 @@ class EntityController(rest.RestController):
         pecan.response.status = 204
 
 
+def PositiveNotNullInt(value):
+    value = int(value)
+    if value <= 0:
+        raise ValueError("Value must be positive")
+    return value
+
+
 class EntitiesController(rest.RestController):
     @staticmethod
     @pecan.expose()
@@ -128,7 +135,7 @@ class EntitiesController(rest.RestController):
 
     Entity = voluptuous.Schema({
         voluptuous.Required('archives'):
-        voluptuous.All([voluptuous.All([int],
+        voluptuous.All([voluptuous.All([PositiveNotNullInt],
                                        voluptuous.Length(min=2, max=2))],
                        voluptuous.Length(min=1))
     })

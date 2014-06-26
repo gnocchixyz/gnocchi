@@ -58,6 +58,18 @@ class EntityTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(entity['archives'], [[5, 60], [60, 60]])
 
+    def test_post_entity_negative_values(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archives": [(-5, 60),
+                                                         (60, 60)]},
+                                    expect_errors=True)
+        self.assertEqual(400, result.status_code)
+        result = self.app.post_json("/v1/entity",
+                                    params={"archives": [(5, 60),
+                                                         (60, -60)]},
+                                    expect_errors=True)
+        self.assertEqual(400, result.status_code)
+
     def test_delete_entity(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archives": [(5, 60),
