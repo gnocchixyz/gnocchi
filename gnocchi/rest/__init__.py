@@ -63,7 +63,7 @@ def Timestamp(v):
     try:
         v = float(v)
     except (ValueError, TypeError):
-        return iso8601.parse_date(v)
+        return timeutils.normalize_time(iso8601.parse_date(v))
     return datetime.datetime.utcfromtimestamp(v)
 
 

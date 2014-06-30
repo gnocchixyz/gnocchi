@@ -95,14 +95,13 @@ class SwiftStorage(storage.StorageDriver):
         # before – needs https://review.openstack.org/#/c/87575/
         self.swift.put_container(entity)
         for aggregation in self.aggregation_types:
-            tsc = carbonara.TimeSerieCollection([
-                carbonara.TimeSerie([], [],
-                                    aggregation_method=aggregation,
-                                    max_size=size,
-                                    sampling=pandas.tseries.offsets.Second(
-                                        second))
-                for second, size in archive
-            ])
+            # TODO(jd) Having the TimeSerieArchive.timeserie duplicated in
+            # each archive isn't the most efficient way of doing things. We
+            # may want to store it as its own object.
+            tsc = carbonara.TimeSerieArchive.from_definitions(
+                [(pandas.tseries.offsets.Second(second), size)
+                 for second, size in archive],
+                aggregation_method=aggregation)
             compressed = six.BytesIO()
             z = gzip.GzipFile(
                 fileobj=compressed, mode="wb",
@@ -150,10 +149,9 @@ class SwiftStorage(storage.StorageDriver):
                     if e.http_status == 404:
                         raise storage.EntityDoesNotExist(entity)
                     raise
-                tsc = carbonara.TimeSerieCollection.unserialize(
+                tsc = carbonara.TimeSerieArchive.unserialize(
                     gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
-                for measure in measures:
-                    tsc[measure.timestamp] = measure.value
+                tsc.set_values([(m.timestamp, m.value) for m in measures])
                 compressed = six.BytesIO()
                 z = gzip.GzipFile(fileobj=compressed, mode="wb",
                                   compresslevel=self.compresslevel)
@@ -170,6 +168,6 @@ class SwiftStorage(storage.StorageDriver):
             if e.http_status == 404:
                 raise storage.EntityDoesNotExist(entity)
             raise
-        tsc = carbonara.TimeSerieCollection.unserialize(
+        tsc = carbonara.TimeSerieArchive.unserialize(
             gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
         return dict(tsc.fetch(from_timestamp, to_timestamp))

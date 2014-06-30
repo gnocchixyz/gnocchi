@@ -212,11 +212,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
-        # Convert to UTC because we store in UTC :(
-        if started_at is not None:
-            started_at = timeutils.normalize_time(started_at)
-        if ended_at is not None:
-            ended_at = timeutils.normalize_time(ended_at)
         if started_at is not None \
            and ended_at is not None \
            and started_at > ended_at:
