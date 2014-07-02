@@ -96,9 +96,6 @@ class TimeSerie(object):
         self._resample()
         self._truncate()
 
-    def update_from_dict(self, d):
-        self.update(self.__class__.from_dict(d))
-
     def serialize(self):
         return msgpack.dumps(self.to_dict())
 
