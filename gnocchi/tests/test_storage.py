@@ -41,8 +41,15 @@ class TestStorageDriver(tests.TestCase):
                           self.storage.create_entity,
                           "foo", [(1, 1)])
 
-    def test_delete_entity(self):
+    def test_delete_empty_entity(self):
         self.storage.create_entity("foo", [(1, 1)])
+        self.storage.delete_entity("foo")
+
+    def test_delete_nonempty_entity(self):
+        self.storage.create_entity("foo", [(1, 1)])
+        self.storage.add_measures('foo', [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+        ])
         self.storage.delete_entity("foo")
 
     def test_add_and_get_measures(self):

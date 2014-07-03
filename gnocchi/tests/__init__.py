@@ -78,7 +78,11 @@ class FakeSwiftClient(object):
                                         http_status=404)
 
     def delete_object(self, container, obj):
-        del self.kvs[container][obj]
+        try:
+            del self.kvs[container][obj]
+        except KeyError:
+            raise swexc.ClientException("No such container/object",
+                                        http_status=404)
 
     def delete_container(self, container):
         if container not in self.kvs:

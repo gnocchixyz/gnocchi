@@ -114,6 +114,13 @@ class SwiftStorage(storage.StorageDriver):
 
     def delete_entity(self, entity):
         try:
+            for aggregation in self.aggregation_types:
+                try:
+                    self.swift.delete_object(entity, aggregation)
+                except swclient.ClientException as e:
+                    if e.http_status != 404:
+                        raise
+
             self.swift.delete_container(entity)
         except swclient.ClientException as e:
             if e.http_status == 404:
