@@ -31,9 +31,6 @@ OPTS = [
     cfg.StrOpt('driver',
                default='swift',
                help='Storage driver to use'),
-    cfg.IntOpt('compression_level',
-               default=1,
-               help='Storage compression level, if supported.'),
 ]
 
 cfg.CONF.register_opts(OPTS, group="storage")

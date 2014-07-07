@@ -15,13 +15,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import gzip
 import random
 import uuid
 
 from oslo.config import cfg
 import pandas
-import six
 from swiftclient import client as swclient
 from tooz import coordination
 
@@ -67,7 +65,6 @@ class SwiftStorage(storage.StorageDriver):
             user=conf.swift_user,
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
-        self.compresslevel = conf.compression_level
         self.coord = coordination.get_coordinator(
             conf.swift_coordination_driver,
             str(uuid.uuid4()).encode('ascii'))
@@ -102,14 +99,8 @@ class SwiftStorage(storage.StorageDriver):
                 [(pandas.tseries.offsets.Second(second), size)
                  for second, size in archive],
                 aggregation_method=aggregation)
-            compressed = six.BytesIO()
-            z = gzip.GzipFile(
-                fileobj=compressed, mode="wb",
-                compresslevel=self.compresslevel)
-            z.write(tsc.serialize())
-            z.close()
             self.swift.put_object(entity, aggregation,
-                                  compressed.getvalue())
+                                  tsc.serialize())
 
     def delete_entity(self, entity):
         try:
@@ -149,16 +140,9 @@ class SwiftStorage(storage.StorageDriver):
                     if e.http_status == 404:
                         raise storage.EntityDoesNotExist(entity)
                     raise
-                tsc = carbonara.TimeSerieArchive.unserialize(
-                    gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
+                tsc = carbonara.TimeSerieArchive.unserialize(contents)
                 tsc.set_values([(m.timestamp, m.value) for m in measures])
-                compressed = six.BytesIO()
-                z = gzip.GzipFile(fileobj=compressed, mode="wb",
-                                  compresslevel=self.compresslevel)
-                z.write(tsc.serialize())
-                z.close()
-                self.swift.put_object(entity, aggregation,
-                                      compressed.getvalue())
+                self.swift.put_object(entity, aggregation, tsc.serialize())
 
     def get_measures(self, entity, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
@@ -168,6 +152,5 @@ class SwiftStorage(storage.StorageDriver):
             if e.http_status == 404:
                 raise storage.EntityDoesNotExist(entity)
             raise
-        tsc = carbonara.TimeSerieArchive.unserialize(
-            gzip.GzipFile(fileobj=six.BytesIO(contents)).read())
+        tsc = carbonara.TimeSerieArchive.unserialize(contents)
         return dict(tsc.fetch(from_timestamp, to_timestamp))
