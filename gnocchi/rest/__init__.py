@@ -299,7 +299,9 @@ class GenericResourcesController(rest.RestController):
         return resource
 
     @pecan.expose('json')
-    def get_all(self, started_after=None, ended_before=None, **kwargs):
+    def get_all(self, **kwargs):
+        started_after = kwargs.pop('started_after', None)
+        ended_before = kwargs.pop('ended_before', None)
         if started_after is not None:
             try:
                 started_after = Timestamp(started_after)

@@ -5,7 +5,7 @@ netaddr
 oslo.config
 oslotest
 pandas<0.14  # Until https://github.com/pydata/pandas/issues/7284 is fixed
-pecan<0.6.0
+pecan
 posix_ipc
 python-swiftclient
 six

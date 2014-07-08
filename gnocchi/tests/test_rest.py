@@ -588,7 +588,7 @@ class ResourceTest(RestTest):
         # database for all tests and the tests are running concurrently, but
         # for now it'll be better than nothing.
         result = self.app.post_json(
-            "/v1/resource/generic",
+            "/v1/resource/generic/",
             params={
                 "id": str(uuid.uuid4()),
                 "started_at": "2014-01-01 02:02:02",
@@ -601,7 +601,8 @@ class ResourceTest(RestTest):
             params=self.attributes)
         i = jsonutils.loads(result.body)
         result = self.app.get(
-            "/v1/resource/generic?started_after=2014-01-01")
+            "/v1/resource/generic/",
+            params={"started_after": "2014-01-01"})
         self.assertEqual(200, result.status_code)
         resources = jsonutils.loads(result.body)
         self.assertGreaterEqual(len(resources), 2)
