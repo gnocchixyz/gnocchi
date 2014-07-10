@@ -16,6 +16,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+import calendar
+import datetime
+import decimal
 import uuid
 
 from oslo.config import cfg
@@ -30,6 +33,7 @@ from gnocchi.openstack.common.db import exception
 from gnocchi.openstack.common.db.sqlalchemy import models
 from gnocchi.openstack.common.db.sqlalchemy import session
 from gnocchi.openstack.common import timeutils
+from gnocchi.openstack.common import units
 
 
 cfg.CONF.import_opt('connection', 'gnocchi.openstack.common.db.options',
@@ -40,6 +44,56 @@ Base = declarative.declarative_base()
 
 
 _marker = indexer._marker
+
+
+class PreciseTimestamp(types.TypeDecorator):
+    """Represents a timestamp precise to the microsecond."""
+
+    impl = sqlalchemy.DateTime
+
+    @staticmethod
+    def _decimal_to_dt(dec):
+        """Return a datetime from Decimal unixtime format."""
+        if dec is None:
+            return None
+
+        integer = int(dec)
+        micro = (dec - decimal.Decimal(integer)) * decimal.Decimal(units.M)
+        daittyme = datetime.datetime.utcfromtimestamp(integer)
+        return daittyme.replace(microsecond=int(round(micro)))
+
+    @staticmethod
+    def _dt_to_decimal(utc):
+        """Datetime to Decimal.
+
+        Some databases don't store microseconds in datetime
+        so we always store as Decimal unixtime.
+        """
+        if utc is None:
+            return None
+
+        decimal.getcontext().prec = 30
+        return (decimal.Decimal(str(calendar.timegm(utc.utctimetuple()))) +
+                (decimal.Decimal(str(utc.microsecond)) /
+                 decimal.Decimal("1000000.0")))
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'mysql':
+            return dialect.type_descriptor(
+                types.DECIMAL(precision=20,
+                              scale=6,
+                              asdecimal=True))
+        return self.impl
+
+    def process_bind_param(self, value, dialect):
+        if dialect.name == 'mysql':
+            return self._dt_to_decimal(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if dialect.name == 'mysql':
+            return self._decimal_to_dt(value)
+        return value
 
 
 class GUID(types.TypeDecorator):
@@ -72,7 +126,12 @@ class GUID(types.TypeDecorator):
         return uuid.UUID(value)
 
 
-class ResourceEntity(Base, models.ModelBase):
+class GnocchiBase(models.ModelBase):
+    __table_args__ = {'mysql_charset': "utf8",
+                      'mysql_engine': "InnoDB"}
+
+
+class ResourceEntity(Base, GnocchiBase):
     __tablename__ = 'resource_entity'
 
     resource_id = sqlalchemy.Column(GUID,
@@ -88,13 +147,13 @@ class ResourceEntity(Base, models.ModelBase):
         'Resource')
 
 
-class Entity(Base, models.ModelBase):
+class Entity(Base, GnocchiBase):
     __tablename__ = 'entity'
 
     id = sqlalchemy.Column(GUID, primary_key=True)
 
 
-class Resource(Base, models.ModelBase):
+class Resource(Base, GnocchiBase):
     __tablename__ = 'resource'
 
     id = sqlalchemy.Column(GUID, primary_key=True)
@@ -103,9 +162,15 @@ class Resource(Base, models.ModelBase):
                              nullable=False, default='generic')
     user_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     project_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    started_at = sqlalchemy.Column(sqlalchemy.DateTime, nullable=False,
-                                   default=sqlalchemy.func.now())
-    ended_at = sqlalchemy.Column(sqlalchemy.DateTime)
+    started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+                                   # NOTE(jd): We would like to use
+                                   # sqlalchemy.func.now, but we can't
+                                   # because the type of PreciseTimestamp in
+                                   # MySQL is not a Timestamp, so it would
+                                   # not store a timestamp but a date as an
+                                   # integer…
+                                   default=datetime.datetime.utcnow)
+    ended_at = sqlalchemy.Column(PreciseTimestamp)
     entities = sqlalchemy.orm.relationship(
         ResourceEntity)
 
