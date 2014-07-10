@@ -15,7 +15,6 @@
 
 import contextlib
 import errno
-import fcntl
 import functools
 import os
 import shutil
@@ -38,7 +37,7 @@ LOG = logging.getLogger(__name__)
 
 util_opts = [
     cfg.BoolOpt('disable_process_locking', default=False,
-                help='Whether to disable inter-process locks'),
+                help='Enables or disables inter-process locks.'),
     cfg.StrOpt('lock_path',
                default=os.environ.get("GNOCCHI_LOCK_PATH"),
                help='Directory to use for lock files.')
@@ -195,7 +194,9 @@ if os.name == 'nt':
     FileLock = _WindowsLock
 else:
     import base64
+    import fcntl
     import hashlib
+
     import posix_ipc
     InterProcessLock = _PosixLock
     FileLock = _FcntlLock
@@ -239,7 +240,7 @@ def external_lock(name, lock_file_prefix=None, lock_path=None):
 
 
 def remove_external_lock_file(name, lock_file_prefix=None):
-    """Remove a external lock file when it's not used anymore
+    """Remove an external lock file when it's not used anymore
     This will be helpful when we have a lot of lock files
     """
     with internal_lock(name):
