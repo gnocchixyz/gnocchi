@@ -19,6 +19,8 @@ from __future__ import absolute_import
 import calendar
 import datetime
 import decimal
+import itertools
+import operator
 import uuid
 
 from oslo.config import cfg
@@ -327,7 +329,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def list_resources(self, resource_type='generic',
                        started_after=None,
                        ended_before=None,
-                       attributes_filter=None):
+                       attributes_filter=None,
+                       details=False):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
@@ -343,7 +346,25 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 except AttributeError:
                     raise indexer.ResourceAttributeError(
                         resource_type, attribute)
-        return [self._resource_to_dict(r) for r in q.all()]
+        if details:
+            grouped_by_type = itertools.groupby(q.all(),
+                                                operator.attrgetter('type'))
+            all_resources = []
+            for type, resources in grouped_by_type:
+                if type == 'generic':
+                    # No need for a second query
+                    all_resources.extend(resources)
+                else:
+                    resources_ids = [r.id for r in resources]
+                    all_resources.extend(
+                        session.query(
+                            self._RESOURCE_CLASS_MAPPER[type]).filter(
+                                self._RESOURCE_CLASS_MAPPER[type].id.in_(
+                                    resources_ids)).all())
+        else:
+            all_resources = q.all()
+
+        return [self._resource_to_dict(r) for r in all_resources]
 
     def create_entity(self, id):
         session = self.engine_facade.get_session()
