@@ -28,6 +28,7 @@ import voluptuous
 import werkzeug.http
 
 from gnocchi import indexer
+from gnocchi.openstack.common import strutils
 from gnocchi.openstack.common import timeutils
 from gnocchi import storage
 
@@ -302,6 +303,19 @@ class GenericResourcesController(rest.RestController):
     def get_all(self, **kwargs):
         started_after = kwargs.pop('started_after', None)
         ended_before = kwargs.pop('ended_before', None)
+
+        type, options = werkzeug.http.parse_options_header(
+            pecan.request.headers.get('Accept'))
+        try:
+            details = strutils.bool_from_string(
+                options.get('details', kwargs.pop('details', 'false')),
+                strict=True)
+        except ValueError as e:
+            method = 'Accept' if 'details' in options else 'query'
+            pecan.abort(
+                400,
+                "Unable to parse details value in %s: %s" % (method, str(e)))
+
         if started_after is not None:
             try:
                 started_after = Timestamp(started_after)
@@ -317,7 +331,8 @@ class GenericResourcesController(rest.RestController):
                 self._resource_type,
                 started_after=started_after,
                 ended_before=ended_before,
-                attributes_filter=kwargs)
+                attributes_filter=kwargs,
+                details=details)
         except indexer.ResourceAttributeError as e:
             pecan.abort(400, e)
 
