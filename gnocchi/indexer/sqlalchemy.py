@@ -21,7 +21,10 @@ import datetime
 import decimal
 import uuid
 
-from oslo.config import cfg
+from oslo.db import exception
+from oslo.db import options
+from oslo.db.sqlalchemy import models
+from oslo.db.sqlalchemy import session
 import six
 import sqlalchemy
 from sqlalchemy.dialects import postgresql
@@ -29,15 +32,8 @@ from sqlalchemy.ext import declarative
 from sqlalchemy import types
 
 from gnocchi import indexer
-from gnocchi.openstack.common.db import exception
-from gnocchi.openstack.common.db.sqlalchemy import models
-from gnocchi.openstack.common.db.sqlalchemy import session
 from gnocchi.openstack.common import timeutils
 from gnocchi.openstack.common import units
-
-
-cfg.CONF.import_opt('connection', 'gnocchi.openstack.common.db.options',
-                    group='database')
 
 
 Base = declarative.declarative_base()
@@ -196,8 +192,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     }
 
     def __init__(self, conf):
-        self.engine_facade = session.EngineFacade.from_config(
-            conf.database.connection, conf)
+        options.set_defaults(conf)
+        self.conf = conf
+
+    def connect(self):
+        self.engine_facade = session.EngineFacade.from_config(self.conf)
 
     def upgrade(self):
         engine = self.engine_facade.get_engine()

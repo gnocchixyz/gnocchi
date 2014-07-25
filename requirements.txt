@@ -3,6 +3,7 @@ iso8601
 lockfile>=0.9.1
 netaddr
 oslo.config
+oslo.db
 oslotest
 pandas<0.14  # Until https://github.com/pydata/pandas/issues/7284 is fixed
 pecan

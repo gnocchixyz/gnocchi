@@ -77,6 +77,7 @@ def setup_app(pecan_config=PECAN_CONFIG):
     i = pecan_config.get('indexer')
     if not i:
         i = indexer.get_driver(conf)
+    i.connect()
     return pecan.make_app(
         pecan_config['app']['root'],
         debug=conf.debug,

@@ -102,6 +102,10 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
+    def connect():
+        pass
+
+    @staticmethod
     def upgrade():
         pass
 
