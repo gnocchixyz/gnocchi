@@ -117,6 +117,14 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
     scenarios = testscenarios.multiply_scenarios(storage_backends,
                                                  indexer_backends)
 
+    def _pre_connect_sqlalchemy(self):
+        self.conf.set_override('connection',
+                               getattr(self, "db_url", "sqlite:///"),
+                               'database')
+        # No env var exported, no integration tests
+        if self.conf.database.connection is None:
+            raise NotImplementedError
+
     def setUp(self):
         super(TestCase, self).setUp()
         self.conf = self.useFixture(config.Config()).conf
@@ -124,16 +132,12 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         self.conf.set_override('debug', True)
 
         self.conf.set_override('driver', self.indexer_engine, 'indexer')
-        self.conf.import_opt('connection',
-                             'gnocchi.openstack.common.db.options',
-                             group='database')
-        self.conf.set_override('connection',
-                               getattr(self, "db_url", "sqlite:///"),
-                               'database')
-        # No env var exported, no integration tests
-        if self.conf.database.connection is None:
-            raise NotImplementedError
         self.index = indexer.get_driver(self.conf)
+        pre_connect_func = getattr(self, "_pre_connect_" + self.indexer_engine,
+                                   None)
+        if pre_connect_func:
+            pre_connect_func()
+        self.index.connect()
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
