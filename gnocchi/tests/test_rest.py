@@ -318,6 +318,46 @@ class ResourceTest(RestTest):
         self.attributes['ended_at'] = None
         self.assertEqual(self.attributes, result)
 
+    def test_get_resource_named_entity(self):
+        self.attributes['entities'] = {'foo': {'archives': [(1, 2)]}}
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "/"
+                              + self.attributes['id']
+                              + "/entity/foo/measures")
+        self.assertEqual(200, result.status_code)
+
+    def test_delete_resource_named_entity(self):
+        self.attributes['entities'] = {'foo': {'archives': [(1, 2)]}}
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        result = self.app.delete("/v1/resource/"
+                                 + self.resource_type
+                                 + "/"
+                                 + self.attributes['id']
+                                 + "/entity/foo")
+        self.assertEqual(204, result.status_code)
+        result = self.app.delete("/v1/resource/"
+                                 + self.resource_type
+                                 + "/"
+                                 + self.attributes['id']
+                                 + "/entity/foo/measures",
+                                 expect_errors=True)
+        self.assertEqual(404, result.status_code)
+
+    def test_get_resource_unknown_named_entity(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "/"
+                              + self.attributes['id']
+                              + "/entity/foo",
+                              expect_errors=True)
+        self.assertEqual(404, result.status_code)
+
     def test_patch_resource_entities(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)

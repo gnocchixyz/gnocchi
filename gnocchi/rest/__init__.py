@@ -160,6 +160,22 @@ class EntitiesController(rest.RestController):
                 "archives": body['archives']}
 
 
+class NamedEntityController(rest.RestController):
+    def __init__(self, resource_id):
+        self.resource_id = resource_id
+
+    @pecan.expose()
+    def _lookup(self, name, *remainder):
+        # TODO(jd) There might be an slight optimization to do by using a
+        # dedicated driver method rather than get_resource, which might be
+        # heavier.
+        resource = pecan.request.indexer.get_resource(
+            'generic', self.resource_id)
+        if name in resource['entities']:
+            return EntityController(resource['entities'][name]), remainder
+        pecan.abort(404)
+
+
 def UUID(value):
     try:
         return uuid.UUID(value)
@@ -202,6 +218,7 @@ class GenericResourceController(rest.RestController):
 
     def __init__(self, id):
         self.id = id
+        self.entity = NamedEntityController(id)
 
     @staticmethod
     def convert_entity_list(entities):
