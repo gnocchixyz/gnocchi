@@ -15,13 +15,9 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import random
-import uuid
-
 from oslo.config import cfg
 import pandas
 from swiftclient import client as swclient
-from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
@@ -48,16 +44,14 @@ OPTIONS = [
                help='Swift key/password.'),
     cfg.StrOpt('swift_tenant_name',
                help='Swift tenant name, only used in v2 auth.'),
-    cfg.StrOpt('swift_coordination_url',
-               help='Coordination driver URL',
-               default='memcached://'),
 ]
 
 cfg.CONF.register_opts(OPTIONS, group="storage")
 
 
-class SwiftStorage(storage.StorageDriver):
+class SwiftStorage(storage.StorageDriver, storage.CoordinatorMixin):
     def __init__(self, conf):
+        super(SwiftStorage, self).__init__(conf)
         self.swift = swclient.Connection(
             auth_version=conf.swift_auth_version,
             authurl=conf.swift_authurl,
@@ -65,16 +59,7 @@ class SwiftStorage(storage.StorageDriver):
             user=conf.swift_user,
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
-        self.coord = coordination.get_coordinator(
-            conf.swift_coordination_url,
-            str(uuid.uuid4()).encode('ascii'))
-        self.coord.start()
-        # NOTE(jd) So this is a (smart?) optimization: since we're going to
-        # lock for each of this aggregation type, if we are using running
-        # Gnocchi with multiple processses, let's randomize what we iter
-        # over so there are less chances we fight for the same lock!
-        self.aggregation_types = list(storage.AGGREGATION_TYPES)
-        random.shuffle(self.aggregation_types)
+        self._init_coordinator(conf.coordination_url)
 
     def create_entity(self, entity, archive):
         try:
