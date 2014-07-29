@@ -200,6 +200,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def connect(self):
         self.engine_facade = session.EngineFacade.from_config(self.conf)
 
+    def disconnect(self):
+        self.engine_facade.get_engine().dispose()
+
     def upgrade(self):
         engine = self.engine_facade.get_engine()
         Base.metadata.create_all(engine, checkfirst=True)

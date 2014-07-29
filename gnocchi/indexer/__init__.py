@@ -106,6 +106,10 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
+    def disconnect():
+        pass
+
+    @staticmethod
     def upgrade():
         pass
 
