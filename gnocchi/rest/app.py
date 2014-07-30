@@ -55,7 +55,7 @@ class DBHook(pecan.hooks.PecanHook):
         self.storage = storage
         self.indexer = indexer
 
-    def before(self, state):
+    def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
 
