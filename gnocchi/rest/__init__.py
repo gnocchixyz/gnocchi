@@ -91,7 +91,7 @@ class EntityController(rest.RestController):
                     m['timestamp'],
                     m['value']) for m in body))
         except storage.EntityDoesNotExist as e:
-            pecan.abort(400, str(e))
+            pecan.abort(404, str(e))
         # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
         pecan.response.status = 204
 
@@ -108,14 +108,14 @@ class EntityController(rest.RestController):
                         in six.iteritems(pecan.request.storage.get_measures(
                             self.entity_id, start, stop, aggregation)))
         except storage.EntityDoesNotExist as e:
-            pecan.abort(400, str(e))
+            pecan.abort(404, str(e))
 
     @pecan.expose()
     def delete(self):
         try:
             pecan.request.storage.delete_entity(self.entity_id)
         except storage.EntityDoesNotExist as e:
-            pecan.abort(400, str(e))
+            pecan.abort(404, str(e))
         pecan.request.indexer.delete_entity(self.entity_id)
         # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
         pecan.response.status = 204

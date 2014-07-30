@@ -82,7 +82,7 @@ class EntityTest(RestTest):
         e1 = str(uuid.uuid4())
         result = self.app.delete("/v1/entity/" + e1,
                                  expect_errors=True)
-        self.assertEqual(result.status_code, 400)
+        self.assertEqual(result.status_code, 404)
         self.assertIn(
             b"Entity " + e1.encode('ascii') + b" does not exist",
             result.body)
@@ -128,7 +128,7 @@ class EntityTest(RestTest):
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             expect_errors=True)
-        self.assertEqual(result.status_code, 400)
+        self.assertEqual(result.status_code, 404)
         self.assertIn(
             b"Entity " + e1.encode('ascii') + b" does not exist",
             result.body)
