@@ -21,6 +21,8 @@ import json
 import uuid
 
 import iso8601
+from oslo.utils import strutils
+from oslo.utils import timeutils
 import pecan
 from pecan import rest
 import six
@@ -28,8 +30,6 @@ import voluptuous
 import werkzeug.http
 
 from gnocchi import indexer
-from gnocchi.openstack.common import strutils
-from gnocchi.openstack.common import timeutils
 from gnocchi import storage
 
 

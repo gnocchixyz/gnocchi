@@ -18,6 +18,8 @@
 import functools
 import os
 
+from oslo.config import fixture as config_fixture
+from oslotest import mockpatch
 import six
 from swiftclient import exceptions as swexc
 import testscenarios
@@ -25,8 +27,6 @@ import testtools
 from testtools import testcase
 
 from gnocchi import indexer
-from gnocchi.openstack.common.fixture import config
-from gnocchi.openstack.common.fixture import mockpatch
 from gnocchi.openstack.common import lockutils
 from gnocchi import storage
 
@@ -127,7 +127,7 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
     def setUp(self):
         super(TestCase, self).setUp()
-        self.conf = self.useFixture(config.Config()).conf
+        self.conf = self.useFixture(config_fixture.Config()).conf
         self.conf.import_opt('debug', 'gnocchi.openstack.common.log')
         self.conf.set_override('debug', True)
 

@@ -27,6 +27,8 @@ from oslo.db import exception
 from oslo.db import options
 from oslo.db.sqlalchemy import models
 from oslo.db.sqlalchemy import session
+from oslo.utils import timeutils
+from oslo.utils import units
 import six
 import sqlalchemy
 from sqlalchemy.dialects import postgresql
@@ -34,8 +36,6 @@ from sqlalchemy.ext import declarative
 from sqlalchemy import types
 
 from gnocchi import indexer
-from gnocchi.openstack.common import timeutils
-from gnocchi.openstack.common import units
 
 
 Base = declarative.declarative_base()
