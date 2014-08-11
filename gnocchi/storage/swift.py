@@ -48,9 +48,9 @@ OPTIONS = [
                help='Swift key/password.'),
     cfg.StrOpt('swift_tenant_name',
                help='Swift tenant name, only used in v2 auth.'),
-    cfg.StrOpt('swift_coordination_driver',
-               help='Coordination driver',
-               default='memcached'),
+    cfg.StrOpt('swift_coordination_url',
+               help='Coordination driver URL',
+               default='memcached://'),
 ]
 
 cfg.CONF.register_opts(OPTIONS, group="storage")
@@ -66,7 +66,7 @@ class SwiftStorage(storage.StorageDriver):
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
         self.coord = coordination.get_coordinator(
-            conf.swift_coordination_driver,
+            conf.swift_coordination_url,
             str(uuid.uuid4()).encode('ascii'))
         self.coord.start()
         # NOTE(jd) So this is a (smart?) optimization: since we're going to

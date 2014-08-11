@@ -13,6 +13,6 @@ python-swiftclient
 six
 sqlalchemy
 stevedore
-tooz
+tooz>=0.3
 voluptuous
 werkzeug
