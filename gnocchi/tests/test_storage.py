@@ -33,27 +33,27 @@ class TestStorageDriver(tests.TestCase):
         self.assertIsInstance(driver, null.NullStorage)
 
     def test_create_entity(self):
-        self.storage.create_entity("foo", [(1, 1)])
+        self.storage.create_entity("foo", 'low')
 
     def test_create_entity_already_exists(self):
-        self.storage.create_entity("foo", [(1, 1)])
+        self.storage.create_entity("foo", 'low')
         self.assertRaises(storage.EntityAlreadyExists,
                           self.storage.create_entity,
                           "foo", [(1, 1)])
 
     def test_delete_empty_entity(self):
-        self.storage.create_entity("foo", [(1, 1)])
+        self.storage.create_entity("foo", 'low')
         self.storage.delete_entity("foo")
 
     def test_delete_nonempty_entity(self):
-        self.storage.create_entity("foo", [(1, 1)])
+        self.storage.create_entity("foo", 'low')
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.storage.delete_entity("foo")
 
     def test_add_and_get_measures(self):
-        self.storage.create_entity("foo", [(5, 3)])
+        self.storage.create_entity("foo", 'low')
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),
@@ -62,22 +62,24 @@ class TestStorageDriver(tests.TestCase):
         ])
 
         values = self.storage.get_measures('foo')
-        self.assertEqual(3, len(values))
-        self.assertEqual(4, values[datetime.datetime(2014, 1, 1, 12, 9, 30)])
-        self.assertEqual(44, values[datetime.datetime(2014, 1, 1, 12, 12, 45)])
-        self.assertEqual(42, values[datetime.datetime(2014, 1, 1, 12, 7, 30)])
+        self.assertEqual(4, len(values))
+        self.assertEqual(39.75, values[datetime.datetime(2014, 1, 1, 0, 0, 0)])
+        self.assertEqual(69, values[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+        self.assertEqual(23, values[datetime.datetime(2014, 1, 1, 12, 5, 0)])
+        self.assertEqual(44, values[datetime.datetime(2014, 1, 1, 12, 10, 0)])
 
         values = self.storage.get_measures(
             'foo',
-            from_timestamp='2014-01-01 12:10:10')
+            from_timestamp='2014-01-01 12:10:00')
         self.assertEqual(1, len(values))
-        self.assertEqual(44, values[datetime.datetime(2014, 1, 1, 12, 12, 45)])
+        self.assertEqual(44, values[datetime.datetime(2014, 1, 1, 12, 10, 0)])
 
         values = self.storage.get_measures('foo',
-                                           to_timestamp='2014-01-01 12:10:10')
-        self.assertEqual(2, len(values))
-        self.assertEqual(42, values[datetime.datetime(2014, 1, 1, 12, 7, 30)])
-        self.assertEqual(4, values[datetime.datetime(2014, 1, 1, 12, 9, 30)])
+                                           to_timestamp='2014-01-01 12:05:00')
+        self.assertEqual(3, len(values))
+        self.assertEqual(39.75, values[datetime.datetime(2014, 1, 1, 0, 0, 0)])
+        self.assertEqual(69, values[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+        self.assertEqual(23, values[datetime.datetime(2014, 1, 1, 12, 5, 0)])
 
         values = self.storage.get_measures(
             'foo',
@@ -87,10 +89,10 @@ class TestStorageDriver(tests.TestCase):
 
         values = self.storage.get_measures(
             'foo',
-            to_timestamp='2014-01-01 12:10:10',
-            from_timestamp='2014-01-01 12:09:30')
+            from_timestamp='2014-01-01 12:00:00',
+            to_timestamp='2014-01-01 12:00:02')
         self.assertEqual(1, len(values))
-        self.assertEqual(4, values[datetime.datetime(2014, 1, 1, 12, 9, 30)])
+        self.assertEqual(69, values[datetime.datetime(2014, 1, 1, 12, 0, 0)])
 
     def test_get_measure_unknown_entity(self):
         self.assertRaises(storage.EntityDoesNotExist,

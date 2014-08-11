@@ -41,7 +41,7 @@ class FileStorage(storage.StorageDriver, storage.CoordinatorMixin):
         self.basepath = conf.file_basepath
         self._init_coordinator(conf.coordination_url)
 
-    def create_entity(self, entity, archive):
+    def create_entity(self, entity, archive_policy):
         path = os.path.join(self.basepath, entity)
         try:
             os.mkdir(path, 0o750)
@@ -55,7 +55,7 @@ class FileStorage(storage.StorageDriver, storage.CoordinatorMixin):
             # may want to store it as its own object.
             tsc = carbonara.TimeSerieArchive.from_definitions(
                 [(pandas.tseries.offsets.Second(second), size)
-                 for second, size in archive],
+                 for second, size in storage.ARCHIVE_POLICIES[archive_policy]],
                 aggregation_method=aggregation)
             aggregation_path = os.path.join(path, aggregation)
             with open(aggregation_path, 'wb') as aggregation_file:

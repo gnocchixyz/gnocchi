@@ -49,31 +49,17 @@ class RestTest(tests.TestCase):
 class EntityTest(RestTest):
     def test_post_entity(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60),
-                                                         (60, 60)]})
+                                    params={"archive_policy": "medium"})
         self.assertEqual("application/json", result.content_type)
         self.assertEqual(201, result.status_code)
         entity = json.loads(result.body)
         self.assertEqual("http://localhost/v1/entity/" + entity['id'],
                          result.headers['Location'])
-        self.assertEqual(entity['archives'], [[5, 60], [60, 60]])
-
-    def test_post_entity_negative_values(self):
-        result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(-5, 60),
-                                                         (60, 60)]},
-                                    expect_errors=True)
-        self.assertEqual(400, result.status_code)
-        result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60),
-                                                         (60, -60)]},
-                                    expect_errors=True)
-        self.assertEqual(400, result.status_code)
+        self.assertEqual(entity['archive_policy'], "medium")
 
     def test_delete_entity(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60),
-                                                         (60, 60)]})
+                                    params={"archive_policy": "medium"})
         entity = json.loads(result.body)
         result = self.app.delete("/v1/entity/" + entity['id'])
         self.assertEqual(result.status_code, 204)
@@ -89,19 +75,18 @@ class EntityTest(RestTest):
 
     def test_post_entity_bad_archives(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60, 30),
-                                                         (60, 60)]},
+                                    params={"archive_policy": 'foobar123'},
                                     expect_errors=True)
         self.assertEqual("text/plain", result.content_type)
         self.assertEqual(result.status_code, 400)
-        self.assertIn(b"Invalid input: invalid list value @ data["
-                      + repr(u'archives').encode('ascii') + b"][0]",
+        self.assertIn(b"Invalid input: not a valid value "
+                      b"for dictionary value @ data["
+                      + repr(u'archive_policy').encode('ascii') + b"]",
                       result.body)
 
     def test_add_measure(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60),
-                                                         (60, 60)]})
+                                    params={"archive_policy": "high"})
         entity = json.loads(result.body)
         result = self.app.post_json(
             "/v1/entity/%s/measures" % entity['id'],
@@ -111,8 +96,7 @@ class EntityTest(RestTest):
 
     def test_add_multiple_measures_per_entity(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 60),
-                                                         (60, 60)]})
+                                    params={"archive_policy": "high"})
         entity = json.loads(result.body)
         for x in xrange(5):
             result = self.app.post_json(
@@ -135,7 +119,7 @@ class EntityTest(RestTest):
 
     def test_get_measure(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(1, 10)]})
+                                    params={"archive_policy": "low"})
         entity = json.loads(result.body)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
@@ -143,12 +127,15 @@ class EntityTest(RestTest):
         ret = self.app.get("/v1/entity/%s/measures" % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = json.loads(ret.body)
-        self.assertEqual({'2013-01-01T23:23:23.000000': 1234.2},
-                         result)
+        self.assertEqual(
+            {u'2013-01-01T00:00:00.000000': 1234.2,
+             u'2013-01-01T23:00:00.000000': 1234.2,
+             u'2013-01-01T23:20:00.000000': 1234.2},
+            result)
 
     def test_get_measure_start(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(1, 10)]})
+                                    params={"archive_policy": "high"})
         entity = json.loads(result.body)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
@@ -163,7 +150,7 @@ class EntityTest(RestTest):
 
     def test_get_measure_stop(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(1, 10)]})
+                                    params={"archive_policy": "high"})
         entity = json.loads(result.body)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
@@ -179,7 +166,7 @@ class EntityTest(RestTest):
 
     def test_get_measure_aggregation(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 10)]})
+                                    params={"archive_policy": "medium"})
         entity = json.loads(result.body)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
@@ -192,7 +179,8 @@ class EntityTest(RestTest):
             "/v1/entity/%s/measures?aggregation=max" % entity['id'])
         self.assertEqual(ret.status_code, 200)
         result = json.loads(ret.body)
-        self.assertEqual({'2013-01-01T12:00:00.000000': 12345.2},
+        self.assertEqual({'2013-01-01T12:00:00.000000': 12345.2,
+                          '2013-01-01T00:00:00.000000': 12345.2},
                          result)
 
 
@@ -319,7 +307,7 @@ class ResourceTest(RestTest):
         self.assertEqual(self.attributes, result)
 
     def test_get_resource_named_entity(self):
-        self.attributes['entities'] = {'foo': {'archives': [(1, 2)]}}
+        self.attributes['entities'] = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         result = self.app.get("/v1/resource/"
@@ -330,7 +318,7 @@ class ResourceTest(RestTest):
         self.assertEqual(200, result.status_code)
 
     def test_delete_resource_named_entity(self):
-        self.attributes['entities'] = {'foo': {'archives': [(1, 2)]}}
+        self.attributes['entities'] = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         result = self.app.delete("/v1/resource/"
@@ -363,7 +351,7 @@ class ResourceTest(RestTest):
                                     params=self.attributes)
         r = json.loads(result.body)
         self.assertEqual(201, result.status_code)
-        new_entities = {'foo': {'archives': [(1, 2)]}}
+        new_entities = {'foo': {'archive_policy': "medium"}}
         result = self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
@@ -500,7 +488,7 @@ class ResourceTest(RestTest):
 
     def test_post_resource_with_entities(self):
         result = self.app.post_json("/v1/entity",
-                                    params={"archives": [(5, 10)]})
+                                    params={"archive_policy": "medium"})
         entity = json.loads(result.body)
         self.attributes['entities'] = {"foo": entity['id']}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
@@ -516,7 +504,7 @@ class ResourceTest(RestTest):
         self.assertEqual(resource, self.attributes)
 
     def test_post_resource_with_null_entities(self):
-        self.attributes['entities'] = {"foo": {"archives": [(10, 20)]}}
+        self.attributes['entities'] = {"foo": {"archive_policy": "low"}}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
         self.assertEqual(201, result.status_code)

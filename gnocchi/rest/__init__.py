@@ -121,13 +121,6 @@ class EntityController(rest.RestController):
         pecan.response.status = 204
 
 
-def PositiveNotNullInt(value):
-    value = int(value)
-    if value <= 0:
-        raise ValueError("Value must be positive")
-    return value
-
-
 class EntitiesController(rest.RestController):
     @staticmethod
     @pecan.expose()
@@ -135,16 +128,14 @@ class EntitiesController(rest.RestController):
         return EntityController(id), remainder
 
     Entity = voluptuous.Schema({
-        voluptuous.Required('archives'):
-        voluptuous.All([voluptuous.All([PositiveNotNullInt],
-                                       voluptuous.Length(min=2, max=2))],
-                       voluptuous.Length(min=1))
+        voluptuous.Required('archive_policy'):
+        voluptuous.Any(*storage.ARCHIVE_POLICIES.keys()),
     })
 
     @staticmethod
-    def create_entity(archives):
+    def create_entity(archive_policy):
         id = uuid.uuid4()
-        pecan.request.storage.create_entity(str(id), archives)
+        pecan.request.storage.create_entity(str(id), archive_policy)
         pecan.request.indexer.create_entity(id)
         return id
 
@@ -152,12 +143,11 @@ class EntitiesController(rest.RestController):
     def post(self, body):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
-        # TODO(jd) Use a better format than (seconds,number of metric)
-        id = self.create_entity(body['archives'])
+        id = self.create_entity(body['archive_policy'])
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
-                "archives": body['archives']}
+                "archive_policy": body['archive_policy']}
 
 
 class NamedEntityController(rest.RestController):
@@ -229,7 +219,7 @@ class GenericResourceController(rest.RestController):
                 new_entities[k] = v
             else:
                 new_entities[k] = str(EntitiesController.create_entity(
-                    v['archives']))
+                    v['archive_policy']))
         return new_entities
 
     @pecan.expose('json')

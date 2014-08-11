@@ -30,6 +30,39 @@ AGGREGATION_TYPES = ('mean', 'sum', 'last', 'max', 'min',
                      'std', 'median', 'first')
 
 
+ArchivePolicy = collections.namedtuple('ArchivePolicy',
+                                       ['granularity', 'points'])
+
+
+# TODO(jd) Store these policy using the driver and export a CRUD API so we
+# can use with REST
+ARCHIVE_POLICIES = {
+    'low': [
+        # 5 minutes resolution for an hour
+        ArchivePolicy(300, 12),
+        # 1 hour resolution for a day
+        ArchivePolicy(3600, 24),
+        # 1 day resolution for a month
+        ArchivePolicy(3600 * 24, 30),
+    ],
+    'medium': [
+        # 1 minute resolution for an hour
+        ArchivePolicy(60, 60),
+        # 1 hour resolution for a week
+        ArchivePolicy(3600, 7 * 24),
+        # 1 day resolution for a year
+        ArchivePolicy(3600 * 24, 365),
+    ],
+    'high': [
+        # 1 second resolution for a day
+        ArchivePolicy(1, 3600 * 24),
+        # 1 minute resolution for a month
+        ArchivePolicy(60, 60 * 24 * 30),
+        # 1 hour resolution for a year
+        ArchivePolicy(3600, 365 * 24),
+    ],
+}
+
 OPTS = [
     cfg.StrOpt('driver',
                default='swift',
@@ -100,13 +133,11 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_entity(entity, archive):
+    def create_entity(entity, archive_policy):
         """Create an entity.
 
         :param entity: The entity key.
-        :param archive: The archive configuration to use.
-                        A list of (seconds, points) that indicates how many
-                        points to keep every seconds interval in archives.
+        :param archive_policy: The archive policy to use.
         """
         raise NotImplementedError
 

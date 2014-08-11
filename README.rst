@@ -100,13 +100,13 @@ entity with an archive that stores one point every second for an hour
 
     curl -i http://0.0.0.0:8041/v1/entity -X POST \
       -H "Content-Type: application/json" -H "Accept: application/json" \
-      -d '{"archives": [[1, 3600]]}'
+      -d '{"archives": "high"}'
 
 Or::
 
     import requests
     import json
 
-    r = requests.post('http://0.0.0.0:8041/v1/entity', data=json.dumps({"archives": [[1, 3600]]}))
+    r = requests.post('http://0.0.0.0:8041/v1/entity', data=json.dumps({"archives": "high"}))
     print r.status_code
     print r.text
