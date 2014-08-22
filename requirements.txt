@@ -6,7 +6,7 @@ oslo.config>=1.4.0.0a1
 oslo.db
 oslo.utils
 oslotest
-pandas<0.14  # Until https://github.com/pydata/pandas/issues/7284 is fixed
+pandas
 pecan
 posix_ipc
 python-swiftclient
