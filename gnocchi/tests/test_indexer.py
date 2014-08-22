@@ -53,6 +53,17 @@ class TestIndexerDriver(tests.TestCase):
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
 
+    def test_create_non_existent_entity(self):
+        e = uuid.uuid4()
+        try:
+            self.index.create_resource(
+                'generic', uuid.uuid4(), "foo", "bar",
+                entities={"foo": e})
+        except indexer.NoSuchEntity as ex:
+            self.assertEqual(e, ex.entity)
+        else:
+            self.fail("Exception not raised")
+
     def test_create_resource_already_exists(self):
         r1 = uuid.uuid4()
         self.index.create_resource('generic', r1, "foo", "bar")
