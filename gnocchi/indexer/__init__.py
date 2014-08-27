@@ -79,14 +79,6 @@ class ResourceAlreadyExists(Exception):
         self.resource = resource
 
 
-class EntityAlreadyExists(Exception):
-    """Error raised when an entity already exists."""
-    def __init__(self, entity):
-        super(EntityAlreadyExists, self).__init__("Entity %s already exists" %
-                                                  entity)
-        self.entity = entity
-
-
 class ResourceAttributeError(AttributeError):
     """Error raised when an attribute does not exist for a resource type."""
     def __init__(self, resource, attribute):
@@ -138,10 +130,6 @@ class IndexerDriver(object):
 
     @staticmethod
     def delete_resource(uuid):
-        raise NotImplementedError
-
-    @staticmethod
-    def create_entity(id):
         raise NotImplementedError
 
     @staticmethod

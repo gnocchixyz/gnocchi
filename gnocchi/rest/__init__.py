@@ -133,17 +133,19 @@ class EntitiesController(rest.RestController):
     })
 
     @staticmethod
-    def create_entity(archive_policy):
+    def create_entity(archive_policy, user_id, project_id):
         id = uuid.uuid4()
         pecan.request.storage.create_entity(str(id), archive_policy)
-        pecan.request.indexer.create_entity(id)
+        pecan.request.indexer.create_resource('entity', id,
+                                              user_id, project_id)
         return id
 
     @vexpose(Entity, 'json')
     def post(self, body):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
-        id = self.create_entity(body['archive_policy'])
+        # FIXME(jd) Use the real user_id/project_id
+        id = self.create_entity(body['archive_policy'], "admin", "admin")
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
@@ -211,7 +213,7 @@ class GenericResourceController(rest.RestController):
         self.entity = NamedEntityController(id)
 
     @staticmethod
-    def convert_entity_list(entities):
+    def convert_entity_list(entities, user_id, project_id):
         # Replace None as value for an entity by a brand a new entity
         new_entities = {}
         for k, v in six.iteritems(entities):
@@ -219,7 +221,7 @@ class GenericResourceController(rest.RestController):
                 new_entities[k] = v
             else:
                 new_entities[k] = str(EntitiesController.create_entity(
-                    v['archive_policy']))
+                    v['archive_policy'], user_id, project_id))
         return new_entities
 
     @pecan.expose('json')
@@ -246,8 +248,9 @@ class GenericResourceController(rest.RestController):
 
         try:
             if 'entities' in body:
+                # FIXME(jd) Use the real user_id/project_id
                 body['entities'] = self.convert_entity_list(
-                    body['entities'])
+                    body['entities'], "admin", "admin")
             pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
@@ -291,7 +294,7 @@ class GenericResourcesController(rest.RestController):
         # inheritance
         body = deserialize(self.Resource)
         body['entities'] = GenericResourceController.convert_entity_list(
-            body.get('entities', {}))
+            body.get('entities', {}), body['user_id'], body['project_id'])
         try:
             resource = pecan.request.indexer.create_resource(
                 self._resource_type,

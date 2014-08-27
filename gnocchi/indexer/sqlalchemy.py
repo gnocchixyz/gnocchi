@@ -114,19 +114,12 @@ class ResourceEntity(Base, GnocchiBase):
         'Resource')
 
 
-class Entity(Base, GnocchiBase):
-    __tablename__ = 'entity'
-
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           primary_key=True)
-
-
 class Resource(Base, GnocchiBase):
     __tablename__ = 'resource'
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
-    type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
+    type = sqlalchemy.Column(sqlalchemy.Enum('entity', 'generic', 'instance',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     user_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
@@ -142,6 +135,15 @@ class Resource(Base, GnocchiBase):
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     entities = sqlalchemy.orm.relationship(
         ResourceEntity)
+
+
+class Entity(Resource):
+    __tablename__ = 'entity'
+
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"),
+                           primary_key=True)
 
 
 class Instance(Resource):
@@ -161,6 +163,7 @@ class Instance(Resource):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
+        'entity': Entity,
         'generic': Resource,
         'instance': Instance,
     }
@@ -339,14 +342,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             all_resources = q.all()
 
         return [self._resource_to_dict(r) for r in all_resources]
-
-    def create_entity(self, id):
-        session = self.engine_facade.get_session()
-        session.add(Entity(id=id))
-        try:
-            session.flush()
-        except exception.DBDuplicateEntry:
-            raise indexer.EntityAlreadyExists(id)
 
     def delete_entity(self, id):
         session = self.engine_facade.get_session()
