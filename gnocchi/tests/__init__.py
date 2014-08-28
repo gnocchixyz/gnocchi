@@ -60,7 +60,12 @@ class FakeSwiftClient(object):
     def __init__(self, *args, **kwargs):
         self.kvs = {}
 
-    def put_container(self, container):
+    def put_container(self, container, response_dict=None):
+        if response_dict is not None:
+            if container in self.kvs:
+                response_dict['status'] = 204
+            else:
+                response_dict['status'] = 201
         self.kvs[container] = {}
 
     def put_object(self, container, key, obj):

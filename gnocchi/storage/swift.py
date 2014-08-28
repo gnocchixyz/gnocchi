@@ -77,20 +77,13 @@ class SwiftStorage(storage.StorageDriver):
         random.shuffle(self.aggregation_types)
 
     def create_entity(self, entity, archive):
-        try:
-            self.swift.head_container(entity)
-        except swclient.ClientException as e:
-            if e.http_status != 404:
-                raise
-        else:
-            raise storage.EntityAlreadyExists(entity)
         # TODO(jd) A container per user in their account?
-        # TODO(jd) put_container does not return anything, but if it
-        # returned the status code, we could guess that 201 is created
-        # (entity did not exist) whereas 204 means it already exist, so we
-        # would raise EntityAlreadyExists without doing a head_container()
-        # before – needs https://review.openstack.org/#/c/87575/
-        self.swift.put_container(entity)
+        resp = {}
+        self.swift.put_container(entity, response_dict=resp)
+        # put_container() should return 201 Created; if it returns 204, that
+        # means the entity was already created!
+        if resp['status'] == 204:
+            raise storage.EntityAlreadyExists(entity)
         for aggregation in self.aggregation_types:
             # TODO(jd) Having the TimeSerieArchive.timeserie duplicated in
             # each archive isn't the most efficient way of doing things. We
