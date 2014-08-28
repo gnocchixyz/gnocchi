@@ -102,6 +102,33 @@ class FakeSwiftClient(object):
 @six.add_metaclass(SkipNotImplementedMeta)
 class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
+    ARCHIVE_POLICIES = {
+        'low': [
+            # 5 minutes resolution for an hour
+            {"granularity": 300, "points": 12},
+            # 1 hour resolution for a day
+            {"granularity": 3600, "points": 24},
+            # 1 day resolution for a month
+            {"granularity": 3600 * 24, "points": 30},
+        ],
+        'medium': [
+            # 1 minute resolution for an hour
+            {"granularity": 60, "points": 60},
+            # 1 hour resolution for a week
+            {"granularity": 3600, "points": 7 * 24},
+            # 1 day resolution for a year
+            {"granularity": 3600 * 24, "points": 365},
+        ],
+        'high': [
+            # 1 second resolution for a day
+            {"granularity": 1, "points": 3600 * 24},
+            # 1 minute resolution for a month
+            {"granularity": 60, "points": 60 * 24 * 30},
+            # 1 hour resolution for a year
+            {"granularity": 3600, "points": 365 * 24},
+        ],
+    }
+
     indexer_backends = [
         ('null', dict(indexer_engine='null')),
         ('postgresql', dict(indexer_engine='sqlalchemy',
@@ -150,6 +177,20 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
+
+        # Create basic archive policies
+        try:
+            self.archive_policies = dict([
+                (name, self.index.create_archive_policy(
+                    name=name,
+                    definition=definition)['definition'])
+                for name, definition in six.iteritems(self.ARCHIVE_POLICIES)
+            ])
+        except indexer.ArchivePolicyAlreadyExists:
+            self.archive_policies = dict([
+                (name, self.index.get_archive_policy(name)['definition'])
+                for name, definition in six.iteritems(self.ARCHIVE_POLICIES)
+            ])
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',

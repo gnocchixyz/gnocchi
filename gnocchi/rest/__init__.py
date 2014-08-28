@@ -139,8 +139,7 @@ class EntityController(rest.RestController):
 
 
 EntitySchemaDefinition = {
-    voluptuous.Required('archive_policy'):
-    voluptuous.Any(*storage.ARCHIVE_POLICIES.keys()),
+    voluptuous.Required('archive_policy'): six.text_type,
 }
 
 
@@ -155,10 +154,13 @@ class EntitiesController(rest.RestController):
     @staticmethod
     def create_entity(archive_policy, user_id, project_id):
         id = uuid.uuid4()
-        pecan.request.storage.create_entity(str(id), archive_policy)
+        policy = pecan.request.indexer.get_archive_policy(archive_policy)
+        if policy is None:
+            pecan.abort(400, "Unknown archive policy %s" % archive_policy)
         pecan.request.indexer.create_resource('entity', id,
                                               user_id, project_id,
-                                              archive_policy=archive_policy)
+                                              archive_policy=policy['name'])
+        pecan.request.storage.create_entity(str(id), policy['definition'])
         return id
 
     @vexpose(Entity, 'json')
@@ -170,7 +172,7 @@ class EntitiesController(rest.RestController):
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
-                "archive_policy": body['archive_policy']}
+                "archive_policy": str(body['archive_policy'])}
 
 
 def UUID(value):
@@ -217,6 +219,12 @@ class NamedEntityController(rest.RestController):
         except indexer.NoSuchResource as e:
             pecan.abort(404, e)
         pecan.response.status = 204
+
+
+Entities = voluptuous.Schema({
+    six.text_type: voluptuous.Any(UUID,
+                                  EntitiesController.Entity),
+})
 
 
 def ResourceSchema(schema):

@@ -98,6 +98,25 @@ class ResourceAttributeError(AttributeError):
         self.attribute = attribute
 
 
+class ResourceValueError(ValueError):
+    """Error raised when an attribute value is invalid for a resource type."""
+    def __init__(self, resource_type, attribute, value):
+        super(ResourceValueError, self).__init__(
+            "Value %s for attribute %s on resource type %s is invalid"
+            % (value, attribute, resource_type))
+        self.resource_type = resource_type
+        self.attribute = attribute
+        self.value = value
+
+
+class ArchivePolicyAlreadyExists(Exception):
+    """Error raised when an archive policy already exists."""
+    def __init__(self, name):
+        super(ArchivePolicyAlreadyExists, self).__init__(
+            "Archive policy %s already exists" % name)
+        self.name = name
+
+
 class IndexerDriver(object):
     @staticmethod
     def __init__(conf):
@@ -124,6 +143,14 @@ class IndexerDriver(object):
                        ended_before=None,
                        attributes_filter=None,
                        details=False):
+        raise gnocchi.NotImplementedError
+
+    @staticmethod
+    def get_archive_policy(name):
+        raise gnocchi.NotImplementedError
+
+    @staticmethod
+    def create_archive_policy(name, definition):
         raise gnocchi.NotImplementedError
 
     @staticmethod

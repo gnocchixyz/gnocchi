@@ -150,6 +150,17 @@ class Resource(Base, GnocchiBase):
         ResourceEntity)
 
 
+class ArchivePolicy(Base, GnocchiBase):
+    __tablename__ = 'archive_policy'
+    __table_args__ = (
+        sqlalchemy.Index('ix_archive_policy_name', 'name'),
+        COMMON_TABLES_ARGS,
+    )
+
+    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
+    definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
+
+
 class Entity(Resource):
     __tablename__ = 'entity'
     __table_args__ = (
@@ -161,7 +172,11 @@ class Entity(Resource):
                            sqlalchemy.ForeignKey('resource.id',
                                                  ondelete="CASCADE"),
                            primary_key=True)
-    archive_policy = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    archive_policy = sqlalchemy.Column(
+        sqlalchemy.String(255),
+        sqlalchemy.ForeignKey('archive_policy.name',
+                              ondelete="RESTRICT"),
+        nullable=False)
 
 
 class Instance(Resource):
@@ -223,6 +238,22 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.UnknownResourceType(resource_type)
         return self._RESOURCE_CLASS_MAPPER[resource_type]
 
+    def get_archive_policy(self, name):
+        session = self.engine_facade.get_session()
+        ap = session.query(ArchivePolicy).get(name)
+        if ap:
+            return dict(ap)
+
+    def create_archive_policy(self, name, definition):
+        ap = ArchivePolicy(name=name, definition=definition)
+        session = self.engine_facade.get_session()
+        session.add(ap)
+        try:
+            session.flush()
+        except exception.DBDuplicateEntry:
+            raise indexer.ArchivePolicyAlreadyExists(name)
+        return dict(ap)
+
     def create_resource(self, resource_type, id, user_id, project_id,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
@@ -246,6 +277,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 session.flush()
             except exception.DBDuplicateEntry:
                 raise indexer.ResourceAlreadyExists(id)
+            except exception.DBReferenceError as ex:
+                raise indexer.ResourceValueError(r.type,
+                                                 ex.key,
+                                                 getattr(r, ex.key))
             if entities is None:
                 entities = {}
             for name, e in entities.iteritems():

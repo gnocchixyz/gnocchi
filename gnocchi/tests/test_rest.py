@@ -57,10 +57,19 @@ class EntityTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(entity['archive_policy'], "medium")
 
-    def test_get_entity_as_resource(self):
+    def test_post_entity_wrong_archive_policy(self):
+        policy = str(uuid.uuid4())
         result = self.app.post_json("/v1/entity",
-                                    params={"archive_policy": "medium"},
-                                    status=201)
+                                    params={"archive_policy": policy},
+                                    expect_errors=True,
+                                    status=400)
+        self.assertIn('Unknown archive policy %s' % policy, result.body)
+
+    def test_get_entity_as_resource(self):
+        result = self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": "medium"},
+            status=201)
         self.assertEqual("application/json", result.content_type)
         entity = json.loads(result.body)
         result = self.app.get("/v1/resource/entity/%s" % entity['id'])
@@ -90,13 +99,10 @@ class EntityTest(RestTest):
     def test_post_entity_bad_archives(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": 'foobar123'},
-                                    expect_errors=True)
+                                    expect_errors=True,
+                                    status=400)
         self.assertEqual("text/plain", result.content_type)
-        self.assertEqual(result.status_code, 400)
-        self.assertIn(b"Invalid input: not a valid value "
-                      b"for dictionary value @ data["
-                      + repr(u'archive_policy').encode('ascii') + b"]",
-                      result.body)
+        self.assertIn(b"Unknown archive policy foobar123", result.body)
 
     def test_add_measure(self):
         result = self.app.post_json("/v1/entity",

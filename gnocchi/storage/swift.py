@@ -74,8 +74,8 @@ class SwiftStorage(storage.StorageDriver, storage.CoordinatorMixin):
             # each archive isn't the most efficient way of doing things. We
             # may want to store it as its own object.
             tsc = carbonara.TimeSerieArchive.from_definitions(
-                [(pandas.tseries.offsets.Second(second), size)
-                 for second, size in storage.ARCHIVE_POLICIES[archive_policy]],
+                [(pandas.tseries.offsets.Second(v['granularity']), v['points'])
+                 for v in archive_policy],
                 aggregation_method=aggregation)
             self.swift.put_object(entity, aggregation,
                                   tsc.serialize())

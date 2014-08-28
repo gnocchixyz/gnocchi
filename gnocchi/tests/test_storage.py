@@ -33,27 +33,27 @@ class TestStorageDriver(tests.TestCase):
         self.assertIsInstance(driver, null.NullStorage)
 
     def test_create_entity(self):
-        self.storage.create_entity("foo", 'low')
+        self.storage.create_entity("foo", self.archive_policies['low'])
 
     def test_create_entity_already_exists(self):
-        self.storage.create_entity("foo", 'low')
+        self.storage.create_entity("foo", self.archive_policies['low'])
         self.assertRaises(storage.EntityAlreadyExists,
                           self.storage.create_entity,
-                          "foo", [(1, 1)])
+                          "foo", self.archive_policies['low'])
 
     def test_delete_empty_entity(self):
-        self.storage.create_entity("foo", 'low')
+        self.storage.create_entity("foo", self.archive_policies['low'])
         self.storage.delete_entity("foo")
 
     def test_delete_nonempty_entity(self):
-        self.storage.create_entity("foo", 'low')
+        self.storage.create_entity("foo", self.archive_policies['low'])
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.storage.delete_entity("foo")
 
     def test_add_and_get_measures(self):
-        self.storage.create_entity("foo", 'low')
+        self.storage.create_entity("foo", self.archive_policies['low'])
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),

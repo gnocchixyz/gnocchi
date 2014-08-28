@@ -38,6 +38,12 @@ class TestIndexer(tests.TestCase):
 
 class TestIndexerDriver(tests.TestCase):
 
+    def test_create_archive_policy_already_exists(self):
+        # NOTE(jd) This archive policy
+        # is created by gnocchi.tests on setUp() :)
+        self.assertRaises(indexer.ArchivePolicyAlreadyExists,
+                          self.index.create_archive_policy, "high", {})
+
     def test_create_resource(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
@@ -55,6 +61,19 @@ class TestIndexerDriver(tests.TestCase):
         rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
+
+    def test_create_resource_unknown_attribute_fkey(self):
+        r1 = uuid.uuid4()
+        try:
+            self.index.create_resource('entity', r1,
+                                       uuid.uuid4(), uuid.uuid4(),
+                                       archive_policy="foobar")
+        except indexer.ResourceValueError as e:
+            self.assertEqual('entity', e.resource_type)
+            self.assertEqual('archive_policy', e.attribute)
+            self.assertEqual("foobar", e.value)
+        else:
+            self.fail("No exception raised")
 
     def test_create_non_existent_entity(self):
         e = uuid.uuid4()
