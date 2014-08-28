@@ -21,7 +21,6 @@ import datetime
 import decimal
 import itertools
 import operator
-import uuid
 
 from oslo.db import exception
 from oslo.db import options
@@ -31,9 +30,9 @@ from oslo.utils import timeutils
 from oslo.utils import units
 import six
 import sqlalchemy
-from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext import declarative
 from sqlalchemy import types
+import sqlalchemy_utils
 
 from gnocchi import indexer
 
@@ -94,36 +93,6 @@ class PreciseTimestamp(types.TypeDecorator):
         return value
 
 
-class GUID(types.TypeDecorator):
-    """Platform-independent GUID type.
-
-    Uses Postgresql's UUID type, otherwise uses
-    CHAR(32), storing as stringified hex values.
-
-    """
-    impl = types.CHAR
-
-    def load_dialect_impl(self, dialect):
-        if dialect.name == 'postgresql':
-            return dialect.type_descriptor(postgresql.UUID())
-        return dialect.type_descriptor(types.CHAR(32))
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return value
-        elif dialect.name == 'postgresql':
-            return str(value)
-        if not isinstance(value, uuid.UUID):
-            return "%.32x" % uuid.UUID(value)
-        # hexstring
-        return "%.32x" % value
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return value
-        return uuid.UUID(value)
-
-
 class GnocchiBase(models.ModelBase):
     __table_args__ = {'mysql_charset': "utf8",
                       'mysql_engine': "InnoDB"}
@@ -132,11 +101,11 @@ class GnocchiBase(models.ModelBase):
 class ResourceEntity(Base, GnocchiBase):
     __tablename__ = 'resource_entity'
 
-    resource_id = sqlalchemy.Column(GUID,
+    resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
                                                           ondelete="CASCADE"),
                                     primary_key=True)
-    entity_id = sqlalchemy.Column(GUID,
+    entity_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                   sqlalchemy.ForeignKey('entity.id',
                                                         ondelete="CASCADE"),
                                   primary_key=True)
@@ -148,13 +117,15 @@ class ResourceEntity(Base, GnocchiBase):
 class Entity(Base, GnocchiBase):
     __tablename__ = 'entity'
 
-    id = sqlalchemy.Column(GUID, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           primary_key=True)
 
 
 class Resource(Base, GnocchiBase):
     __tablename__ = 'resource'
 
-    id = sqlalchemy.Column(GUID, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           primary_key=True)
     type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
@@ -176,8 +147,9 @@ class Resource(Base, GnocchiBase):
 class Instance(Resource):
     __tablename__ = 'instance'
 
-    id = sqlalchemy.Column(GUID, sqlalchemy.ForeignKey('resource.id',
-                                                       ondelete="CASCADE"),
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"),
                            primary_key=True)
 
     flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)

@@ -12,6 +12,7 @@ posix_ipc
 python-swiftclient
 six
 sqlalchemy
+sqlalchemy-utils
 stevedore
 tooz>=0.3
 voluptuous
