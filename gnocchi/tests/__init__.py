@@ -101,9 +101,6 @@ class FakeSwiftClient(object):
                                         http_status=404)
 
 
-load_tests = testscenarios.load_tests_apply_scenarios
-
-
 @six.add_metaclass(SkipNotImplementedMeta)
 class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
