@@ -18,6 +18,7 @@
 import functools
 import os
 
+import fixtures
 from oslo.config import fixture as config_fixture
 from oslotest import mockpatch
 import six
@@ -114,6 +115,7 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
     storage_backends = [
         ('swift', dict(storage_engine='swift')),
+        ('file', dict(storage_engine='file')),
     ]
 
     scenarios = testscenarios.multiply_scenarios(storage_backends,
@@ -152,6 +154,15 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',
             FakeSwiftClient))
+
+        if self.storage_engine == 'file':
+            self.conf.import_opt('file_basepath',
+                                 'gnocchi.storage.file',
+                                 group='storage')
+            self.tempdir = self.useFixture(fixtures.TempDir())
+            self.conf.set_override('file_basepath',
+                                   self.tempdir.path,
+                                   'storage')
 
         self.conf.set_override('driver', self.storage_engine, 'storage')
         self.storage = storage.get_driver(self.conf)
