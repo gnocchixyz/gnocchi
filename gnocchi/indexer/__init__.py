@@ -18,6 +18,8 @@
 from oslo.config import cfg
 from stevedore import driver
 
+import gnocchi
+
 OPTS = [
     cfg.StrOpt('driver',
                default='sqlalchemy',
@@ -107,31 +109,35 @@ class IndexerDriver(object):
 
     @staticmethod
     def get_resource(resource_type, uuid):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
 
     @staticmethod
     def list_resources(resource_type='generic', started_after=None,
                        ended_before=None,
                        attributes_filter=None,
                        details=False):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
 
     @staticmethod
     def create_resource(resource_type, id, user_id, project_id,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
 
     @staticmethod
     def update_resource(resource_type, uuid, ended_at=_marker,
                         entities=_marker,
                         **kwargs):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
 
     @staticmethod
     def delete_resource(uuid):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
+
+    @staticmethod
+    def create_entity(id):
+        raise gnocchi.NotImplementedError
 
     @staticmethod
     def delete_entity(id):
-        raise NotImplementedError
+        raise gnocchi.NotImplementedError
