@@ -13,6 +13,7 @@ wait_for_line () {
 # Start MySQL process for tests
 MYSQL_DATA=`mktemp -d /tmp/gnocchi-mysql-XXXXX`
 mkfifo ${MYSQL_DATA}/out
+PATH=$PATH:/usr/libexec
 mysqld --datadir=${MYSQL_DATA} --pid-file=${MYSQL_DATA}/mysql.pid --socket=${MYSQL_DATA}/mysql.socket --skip-networking --skip-grant-tables &> ${MYSQL_DATA}/out &
 # Wait for MySQL to start listening to connections
 wait_for_line "mysqld: ready for connections." ${MYSQL_DATA}/out
