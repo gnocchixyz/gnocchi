@@ -23,6 +23,7 @@ from gnocchi import service
 def storage_dbsync():
     service.prepare_service()
     indexer = sql_db.SQLAlchemyIndexer(cfg.CONF)
+    indexer.connect()
     indexer.upgrade()
 
 
