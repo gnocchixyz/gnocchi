@@ -121,23 +121,27 @@ class EntityController(rest.RestController):
         pecan.response.status = 204
 
 
+EntitySchemaDefinition = {
+    voluptuous.Required('archive_policy'):
+    voluptuous.Any(*storage.ARCHIVE_POLICIES.keys()),
+}
+
+
 class EntitiesController(rest.RestController):
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
         return EntityController(id), remainder
 
-    Entity = voluptuous.Schema({
-        voluptuous.Required('archive_policy'):
-        voluptuous.Any(*storage.ARCHIVE_POLICIES.keys()),
-    })
+    Entity = voluptuous.Schema(EntitySchemaDefinition)
 
     @staticmethod
     def create_entity(archive_policy, user_id, project_id):
         id = uuid.uuid4()
         pecan.request.storage.create_entity(str(id), archive_policy)
         pecan.request.indexer.create_resource('entity', id,
-                                              user_id, project_id)
+                                              user_id, project_id,
+                                              archive_policy=archive_policy)
         return id
 
     @vexpose(Entity, 'json')
@@ -234,6 +238,8 @@ class GenericResourceController(rest.RestController):
 
     @pecan.expose()
     def patch(self):
+        if getattr(self, "read_only", False):
+            pecan.abort(403, "Unable to patch resource")
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.ResourcePatch)
@@ -269,7 +275,7 @@ class GenericResourceController(rest.RestController):
         pecan.response.status = 204
 
 
-class InstanceController(GenericResourceController):
+class InstanceResourceController(GenericResourceController):
     _resource_type = 'instance'
 
     ResourcePatch = ResourcePatchSchema({
@@ -278,6 +284,12 @@ class InstanceController(GenericResourceController):
         "host": six.text_type,
         "display_name": six.text_type,
     })
+
+
+class EntityResourceController(GenericResourceController):
+    _resource_type = 'entity'
+
+    read_only = True
 
 
 class GenericResourcesController(rest.RestController):
@@ -292,6 +304,8 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
+        if getattr(self, "read_only", False):
+            pecan.abort(403, "Unable to create resource")
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.Resource)
@@ -349,9 +363,9 @@ class GenericResourcesController(rest.RestController):
             pecan.abort(400, e)
 
 
-class InstancesController(GenericResourcesController):
+class InstancesResourcesController(GenericResourcesController):
     _resource_type = 'instance'
-    _resource_rest_class = InstanceController
+    _resource_rest_class = InstanceResourceController
 
     Resource = ResourceSchema({
         voluptuous.Required("flavor_id"): int,
@@ -361,9 +375,19 @@ class InstancesController(GenericResourcesController):
     })
 
 
+class EntitiesResourcesController(GenericResourcesController):
+    _resource_type = 'entity'
+    _resource_rest_class = EntityResourceController
+
+    read_only = True
+
+    Resource = ResourceSchema(EntitySchemaDefinition)
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
-    instance = InstancesController()
+    entity = EntitiesResourcesController()
+    instance = InstancesResourcesController()
 
 
 class V1Controller(object):
