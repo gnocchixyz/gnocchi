@@ -446,6 +446,14 @@ class ResourceTest(RestTest):
             expect_errors=True)
         self.assertEqual(result.status_code, 404)
 
+    def test_patch_resource_non_existent_with_body(self):
+        result = self.app.patch_json(
+            "/v1/resource/" + self.resource_type
+            + "/" + str(uuid.uuid4()),
+            params=self.patchable_attributes,
+            expect_errors=True)
+        self.assertEqual(result.status_code, 404)
+
     def test_patch_resource_unknown_field(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)

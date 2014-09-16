@@ -254,8 +254,10 @@ class GenericResourceController(rest.RestController):
             pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
-        except (indexer.NoSuchEntity, indexer.NoSuchResource, ValueError) as e:
+        except (indexer.NoSuchEntity, ValueError) as e:
             pecan.abort(400, e)
+        except indexer.NoSuchResource as e:
+            pecan.abort(404, e)
 
     @pecan.expose()
     def delete(self):
