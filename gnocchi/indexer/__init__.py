@@ -73,6 +73,14 @@ class NoSuchResource(Exception):
         self.resource = resource
 
 
+class NamedEntityAlreadyExists(Exception):
+    """Error raised when a named entity already exists."""
+    def __init__(self, entity):
+        super(NamedEntityAlreadyExists, self).__init__(
+            "Named entity %s already exists" % entity)
+        self.entity = entity
+
+
 class ResourceAlreadyExists(Exception):
     """Error raised when a resource already exists."""
     def __init__(self, resource):
@@ -127,6 +135,7 @@ class IndexerDriver(object):
     @staticmethod
     def update_resource(resource_type, uuid, ended_at=_marker,
                         entities=_marker,
+                        append_entities=False,
                         **kwargs):
         raise gnocchi.NotImplementedError
 
