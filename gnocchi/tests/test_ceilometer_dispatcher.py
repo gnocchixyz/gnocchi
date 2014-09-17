@@ -1,0 +1,239 @@
+#
+# Copyright 2014 eNovance
+#
+# Authors: Mehdi Abaakouk <mehdi.abaakouk@enovance.com>
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+import json
+import uuid
+
+import mock
+from oslo.config import fixture as config_fixture
+import requests
+import testscenarios
+import testtools
+
+from gnocchi.ceilometer import dispatcher
+
+
+load_tests = testscenarios.load_tests_apply_scenarios
+
+
+class json_matcher(object):
+    def __init__(self, ref):
+        self.ref = ref
+
+    def __eq__(self, obj):
+        return self.ref == json.loads(obj)
+
+    def __repr__(self):
+        return "<json_matcher \"%s\">" % self.ref
+
+
+class DispatcherTest(testtools.TestCase):
+    def setUp(self):
+        super(DispatcherTest, self).setUp()
+        self.conf = self.useFixture(config_fixture.Config())
+
+    def test_extensions_load(self):
+        d = dispatcher.GnocchiDispatcher(self.conf.conf)
+        self.assertIn('instance', d.mgmr.names())
+
+
+class MockResponse(mock.NonCallableMock):
+    def __init__(self, code):
+        text = {500: 'Internal Server Error',
+                404: 'Not Found',
+                204: 'Created',
+                409: 'Conflict',
+                }.get(code)
+        super(MockResponse, self).__init__(spec=requests.Response,
+                                           status_code=code,
+                                           text=text)
+
+
+class DispatcherWorkflowTest(testtools.TestCase,
+                             testscenarios.TestWithScenarios):
+
+    sample_scenarios = [
+        ('disk.root.size', dict(
+            sample={
+                'counter_name': 'disk.root.size',
+                'counter_type': 'gauge',
+                'counter_volume': '2',
+                'user_id': 'test_user',
+                'project_id': 'test_project',
+                'source': 'openstack',
+                'timestamp': '2012-05-08 20:23:48.028195',
+                'resource_metadata': {
+                    'host': 'foo',
+                    'image_ref_url': 'imageref!',
+                    'instance_flavor_id': 1234,
+                    'display_name': 'myinstance',
+                }
+            },
+            measures_attributes=[{
+                'timestamp': '2012-05-08 20:23:48.028195',
+                'value': '2'
+            }],
+            postable_attributes={
+                'user_id': 'test_user',
+                'project_id': 'test_project',
+            },
+            patchable_attributes={
+                'host': 'foo',
+                'image_ref': 'imageref!',
+                'flavor_id': 1234,
+                'display_name': 'myinstance',
+            },
+            entity_names=[
+                'instance', 'disk.root.size', 'disk.ephemeral.size',
+                'memory', 'vcpus'],
+            resource_type='instance')),
+    ]
+
+    worflow_scenarios = [
+        ('normal_workflow', dict(measure=204, post_resource=None, entity=None,
+                                 measure_retry=None, patch_resource=204)),
+        ('new_resource', dict(measure=404, post_resource=204, entity=None,
+                              measure_retry=204, patch_resource=None)),
+        ('new_resource_fail', dict(measure=404, post_resource=500, entity=None,
+                                   measure_retry=None, patch_resource=None)),
+        ('resource_update_fail', dict(measure=204, post_resource=None,
+                                      entity=None, measure_retry=None,
+                                      patch_resource=500)),
+        ('new_entity', dict(measure=404, post_resource=409, entity=204,
+                            measure_retry=204, patch_resource=204)),
+        ('new_entity_fail', dict(measure=404, post_resource=409, entity=500,
+                                 measure_retry=None, patch_resource=None)),
+        ('retry_fail', dict(measure=404, post_resource=409, entity=409,
+                            measure_retry=500, patch_resource=None)),
+        ('measure_fail', dict(measure=500, post_resource=None, entity=None,
+                              measure_retry=None, patch_resource=None)),
+    ]
+
+    @classmethod
+    def generate_scenarios(cls):
+        cls.scenarios = testscenarios.multiply_scenarios(cls.sample_scenarios,
+                                                         cls.worflow_scenarios)
+
+    def setUp(self):
+        super(DispatcherWorkflowTest, self).setUp()
+        self.conf = self.useFixture(config_fixture.Config())
+        self.dispatcher = dispatcher.GnocchiDispatcher(self.conf.conf)
+        self.sample['resource_id'] = str(uuid.uuid4())
+
+    @mock.patch('gnocchi.ceilometer.dispatcher.LOG')
+    @mock.patch('gnocchi.ceilometer.dispatcher.requests')
+    def test_workflow(self, requests, logger):
+        url_params = {
+            'url': 'http://localhost:8041/v1/resource',
+            'resource_id': self.sample['resource_id'],
+            'resource_type': self.resource_type,
+            'entity_name': self.sample['counter_name']
+        }
+        expected_calls = []
+        patch_responses = []
+        post_responses = []
+
+        expected_calls.append(mock.call.post(
+            "%(url)s/%(resource_type)s/%(resource_id)s/"
+            "entity/%(entity_name)s/measures" % url_params,
+            headers={'Content-Type': 'application/json'},
+            data=json_matcher(self.measures_attributes))
+        )
+        post_responses.append(MockResponse(self.measure))
+
+        if self.post_resource:
+            attributes = self.postable_attributes.copy()
+            attributes.update(self.patchable_attributes)
+            attributes['id'] = self.sample['resource_id']
+            attributes['entities'] = dict((entity_name,
+                                           {'archive_policy': 'low'})
+                                          for entity_name in self.entity_names)
+            expected_calls.append(mock.call.post(
+                "%(url)s/%(resource_type)s" % url_params,
+                headers={'Content-Type': 'application/json'},
+                data=json_matcher(attributes)),
+            )
+            post_responses.append(MockResponse(self.post_resource))
+
+        if self.entity:
+            expected_calls.append(mock.call.post(
+                "%(url)s/%(resource_type)s/%(resource_id)s/entity"
+                % url_params,
+                headers={'Content-Type': 'application/json'},
+                data=json_matcher({self.sample['counter_name']:
+                                   {'archive_policy': 'low'}}))
+            )
+            post_responses.append(MockResponse(self.entity))
+
+        if self.measure_retry:
+            expected_calls.append(mock.call.post(
+                "%(url)s/%(resource_type)s/%(resource_id)s/"
+                "entity/%(entity_name)s/measures" % url_params,
+                headers={'Content-Type': 'application/json'},
+                data=json_matcher(self.measures_attributes))
+            )
+            post_responses.append(MockResponse(self.measure_retry))
+
+        if self.patch_resource:
+            expected_calls.append(mock.call.patch(
+                "%(url)s/%(resource_type)s/%(resource_id)s" % url_params,
+                headers={'Content-Type': 'application/json'},
+                data=json_matcher(self.patchable_attributes)),
+            )
+            patch_responses.append(MockResponse(self.patch_resource))
+
+        requests.patch.side_effect = patch_responses
+        requests.post.side_effect = post_responses
+
+        self.dispatcher.record_metering_data([self.sample])
+
+        # Check that the last log message is the expected one
+        if self.measure == 500 or self.measure_retry == 500:
+            logger.error.assert_called_with(
+                "Fail to post measure on entity %s of resource %s "
+                "with status: %d: Internal Server Error" %
+                (self.sample['counter_name'],
+                 self.sample['resource_id'],
+                 500))
+
+        elif self.post_resource == 500 or self.patch_resource == 500:
+            logger.error.assert_called_with(
+                "Resource %s %s failed with status: "
+                "%d: Internal Server Error" %
+                (self.sample['resource_id'],
+                 'update' if self.patch_resource else 'creation',
+                 500))
+        elif self.entity == 500:
+            logger.error.assert_called_with(
+                "Fail to create entity %s of resource %s "
+                "with status: %d: Internal Server Error" %
+                (self.sample['counter_name'],
+                 self.sample['resource_id'],
+                 500))
+        elif self.patch_resource == 204:
+            logger.debug.assert_called_with(
+                'Resource %s updated', self.sample['resource_id'])
+        else:
+            logger.debug.assert_called_with(
+                "Measure posted on entity %s of resource %s",
+                self.sample['counter_name'],
+                self.sample['resource_id'])
+
+        self.assertEqual(expected_calls, requests.mock_calls)
+
+
+DispatcherWorkflowTest.generate_scenarios()

@@ -14,6 +14,7 @@ python-swiftclient
 pytimeparse
 # pytimeparse misses this dep for now
 future
+requests
 six
 sqlalchemy
 sqlalchemy-utils

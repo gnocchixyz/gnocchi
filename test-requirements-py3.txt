@@ -1,3 +1,4 @@
+http://tarballs.openstack.org/ceilometer/ceilometer-master.tar.gz#egg=ceilometer
 fixtures
 keystonemiddleware
 mock
