@@ -41,6 +41,11 @@ API_SERVICE_OPTS = [
                default='0.0.0.0',
                help='The listen IP for the Gnocchi API server.',
                ),
+    cfg.BoolOpt('pecan_debug',
+                default='$debug',
+                help='Toggle Pecan Debug Middleware. '
+                'Defaults to global debug value.'
+                ),
 ]
 
 opt_group = cfg.OptGroup(name='api',
@@ -80,7 +85,7 @@ def setup_app(pecan_config=PECAN_CONFIG):
     i.connect()
     return pecan.make_app(
         pecan_config['app']['root'],
-        debug=conf.debug,
+        debug=conf.api.pecan_debug,
         hooks=(DBHook(s, i),),
         guess_content_type_from_ext=False,
     )
