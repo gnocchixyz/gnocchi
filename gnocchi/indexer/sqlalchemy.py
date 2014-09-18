@@ -116,8 +116,7 @@ class ResourceEntity(Base, GnocchiBase):
                                                         ondelete="CASCADE"),
                                   primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    resources = sqlalchemy.orm.relationship(
-        'Resource')
+    resources = sqlalchemy.orm.relationship('MeasurableResource')
 
 
 class Resource(Base, GnocchiBase):
@@ -146,8 +145,6 @@ class Resource(Base, GnocchiBase):
                                    # integer…
                                    default=datetime.datetime.utcnow)
     ended_at = sqlalchemy.Column(PreciseTimestamp)
-    entities = sqlalchemy.orm.relationship(
-        ResourceEntity)
 
 
 class ArchivePolicy(Base, GnocchiBase):
@@ -179,7 +176,11 @@ class Entity(Resource):
         nullable=False)
 
 
-class Instance(Resource):
+class MeasurableResource(Resource):
+    entities = sqlalchemy.orm.relationship(ResourceEntity)
+
+
+class Instance(MeasurableResource):
     __tablename__ = 'instance'
     __table_args__ = (
         sqlalchemy.Index('ix_instance_id', 'id'),
@@ -197,7 +198,7 @@ class Instance(Resource):
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
 
 
-class SwiftAccount(Resource):
+class SwiftAccount(MeasurableResource):
     __tablename__ = 'swift_account'
     __table_args__ = (
         sqlalchemy.Index('ix_swift_account_id', 'id'),
@@ -214,7 +215,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
         'entity': Entity,
-        'generic': Resource,
+        'generic': MeasurableResource,
         'instance': Instance,
         'swift_account': SwiftAccount,
     }
@@ -307,8 +308,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         for k, v in six.iteritems(r):
             if isinstance(v, uuid.UUID):
                 r[k] = six.text_type(v)
-        r['entities'] = dict((k.name, str(k.entity_id))
-                             for k in resource.entities)
+        if isinstance(resource, MeasurableResource):
+            r['entities'] = dict((k.name, str(k.entity_id))
+                                 for k in resource.entities)
         return r
 
     def update_resource(self, resource_type,
