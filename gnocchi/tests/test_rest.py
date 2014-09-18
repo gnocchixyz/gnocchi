@@ -57,6 +57,20 @@ class EntityTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(entity['archive_policy'], "medium")
 
+    def test_get_entity_as_resource(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archive_policy": "medium"},
+                                    status=201)
+        self.assertEqual("application/json", result.content_type)
+        entity = json.loads(result.body)
+        result = self.app.get("/v1/resource/entity/%s" % entity['id'])
+        self.assertDictContainsSubset(entity, json.loads(result.body))
+
+    def test_post_entity_as_resource(self):
+        self.app.post_json("/v1/resource/entity",
+                           params={"archive_policy": "medium"},
+                           status=403)
+
     def test_delete_entity(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "medium"})

@@ -144,6 +144,7 @@ class Entity(Resource):
                            sqlalchemy.ForeignKey('resource.id',
                                                  ondelete="CASCADE"),
                            primary_key=True)
+    archive_policy = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
 
 
 class Instance(Resource):
