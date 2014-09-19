@@ -63,7 +63,6 @@ Edit `/etc/gnocchi/gnocchi.conf`. Shown below is a sample configuration file::
     swift_authurl = http://localhost:8080/auth/v1.0
     swift_user = admin:admin
     swift_key = admin
-    swift_coordination_driver = memcached
 
     [indexer]
     driver = sqlalchemy
