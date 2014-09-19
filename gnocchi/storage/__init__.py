@@ -71,7 +71,7 @@ OPTS = [
                help='Storage driver to use'),
     cfg.StrOpt('coordination_url',
                help='Coordination driver URL',
-               default='memcached://'),
+               default='ipc://'),
 ]
 
 cfg.CONF.register_opts(OPTS, group="storage")

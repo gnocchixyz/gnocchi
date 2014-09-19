@@ -1,6 +1,4 @@
 #!/bin/bash -x
-memcached &
-
 wait_for_line () {
     while read line
     do

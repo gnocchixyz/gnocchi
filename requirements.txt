@@ -14,6 +14,6 @@ six
 sqlalchemy
 sqlalchemy-utils
 stevedore
-tooz>=0.3
+tooz>=0.4
 voluptuous
 werkzeug
