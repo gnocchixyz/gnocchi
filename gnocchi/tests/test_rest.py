@@ -687,8 +687,8 @@ class ResourceTest(RestTest):
                               expect_errors=True)
         self.assertEqual(400, result.status_code)
         self.assertIn(
-            "Unable to parse details value in query: "
-            "Unrecognized value 'awesome', acceptable values are",
+            b"Unable to parse details value in query: "
+            b"Unrecognized value 'awesome', acceptable values are",
             result.body)
 
     def test_list_resources_with_bad_details_in_accept(self):
@@ -699,8 +699,8 @@ class ResourceTest(RestTest):
                               expect_errors=True)
         self.assertEqual(400, result.status_code)
         self.assertIn(
-            "Unable to parse details value in Accept: "
-            "Unrecognized value 'foo', acceptable values are",
+            b"Unable to parse details value in Accept: "
+            b"Unrecognized value 'foo', acceptable values are",
             result.body)
 
     def _do_test_list_resources_with_detail(self, request):

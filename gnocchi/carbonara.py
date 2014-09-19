@@ -169,8 +169,9 @@ class AggregatedTimeSerie(TimeSerie):
                 and self.aggregation_method == other.aggregation_method)
 
     def set_values(self, values):
+        values = list(values)
         super(AggregatedTimeSerie, self).set_values(values)
-        self._resample(min(values, key=operator.itemgetter(0))[0])
+        self._resample(min(list(values), key=operator.itemgetter(0))[0])
         self._truncate()
 
     @classmethod

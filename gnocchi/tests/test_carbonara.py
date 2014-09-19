@@ -18,6 +18,7 @@
 import datetime
 
 import pandas
+import six
 import testtools
 
 from gnocchi import carbonara
@@ -319,7 +320,7 @@ class TestTimeSerieArchive(testtools.TestCase):
         ts = carbonara.TimeSerieArchive.from_definitions(
             [(pandas.tseries.offsets.Minute(1), None)])
 
-        for i in xrange(1, 11):
+        for i in six.moves.range(1, 11):
             ts.set_values([
                 (datetime.datetime(2014, 1, 1, 12, i, i), float(i))
             ])
@@ -338,7 +339,7 @@ class TestTimeSerieArchive(testtools.TestCase):
 
         # inject single data points 61s apart, round-triping to and from the
         # storage representation on each iteration
-        for i in xrange(1, 11):
+        for i in six.moves.range(1, 11):
             timeseries = carbonara.TimeSerieArchive.from_dict(d)
             measures = timeseries.fetch()
             self.assertEqual(i - 1, len(measures))
