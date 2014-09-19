@@ -17,6 +17,7 @@
 # under the License.
 import functools
 import os
+import uuid
 
 import fixtures
 from oslo.config import fixture as config_fixture
@@ -26,10 +27,10 @@ from swiftclient import exceptions as swexc
 import testscenarios
 import testtools
 from testtools import testcase
+from tooz import coordination
 
 import gnocchi
 from gnocchi import indexer
-from gnocchi.openstack.common import lockutils
 from gnocchi import storage
 
 
@@ -144,7 +145,10 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         # checkfirst=True, so what we do here is we force the upgrade code
         # path to be sequential to avoid race conditions as the tests run in
         # parallel.
-        with lockutils.lock("gnocchi-tests-db-lock", external=True):
+        self.coord = coordination.get_coordinator(
+            "ipc://", str(uuid.uuid4()).encode('ascii'))
+
+        with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
 
         self.useFixture(mockpatch.Patch(
