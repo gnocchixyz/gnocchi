@@ -21,6 +21,7 @@ import datetime
 import decimal
 import itertools
 import operator
+import uuid
 
 from oslo.db import exception
 from oslo.db import options
@@ -132,8 +133,10 @@ class Resource(Base, GnocchiBase):
                                              'swift_account',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
-    user_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    project_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                                nullable=False)
+    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                                   nullable=False)
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -264,7 +267,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @staticmethod
     def _resource_to_dict(resource):
         r = dict(resource)
-        r['id'] = str(resource.id)
+        # FIXME(jd) Convert UUID to string; would be better if Pecan JSON
+        # serializer could be patched to handle that.
+        for k, v in six.iteritems(r):
+            if isinstance(v, uuid.UUID):
+                r[k] = six.text_type(v)
         r['entities'] = dict((k.name, str(k.entity_id))
                              for k in resource.entities)
         return r
