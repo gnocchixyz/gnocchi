@@ -68,6 +68,19 @@ def Timestamp(v):
     return datetime.datetime.utcfromtimestamp(v)
 
 
+def convert_entity_list(entities, user_id, project_id):
+    # Replace an archive policy as value for an entity by a brand
+    # a new entity
+    new_entities = {}
+    for k, v in six.iteritems(entities):
+        if isinstance(v, uuid.UUID):
+            new_entities[k] = v
+        else:
+            new_entities[k] = str(EntitiesController.create_entity(
+                v['archive_policy'], user_id, project_id))
+    return new_entities
+
+
 class EntityController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
@@ -156,9 +169,23 @@ class EntitiesController(rest.RestController):
                 "archive_policy": body['archive_policy']}
 
 
+def UUID(value):
+    try:
+        return uuid.UUID(value)
+    except Exception as e:
+        raise ValueError(e)
+
+
+Entities = voluptuous.Schema({
+    six.text_type: voluptuous.Any(UUID,
+                                  EntitiesController.Entity),
+})
+
+
 class NamedEntityController(rest.RestController):
-    def __init__(self, resource_id):
+    def __init__(self, resource_id, resource_type):
         self.resource_id = resource_id
+        self.resource_type = resource_type
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
@@ -171,18 +198,21 @@ class NamedEntityController(rest.RestController):
             return EntityController(resource['entities'][name]), remainder
         pecan.abort(404)
 
-
-def UUID(value):
-    try:
-        return uuid.UUID(value)
-    except Exception as e:
-        raise ValueError(e)
-
-
-Entities = voluptuous.Schema({
-    six.text_type: voluptuous.Any(UUID,
-                                  EntitiesController.Entity),
-})
+    @vexpose(Entities)
+    def post(self, body):
+        # FIXME(sileht) Use the real user_id/project_id
+        entities = convert_entity_list(body, "admin", "admin")
+        try:
+            pecan.request.indexer.update_resource(
+                self.resource_type, self.resource_id, entities=entities,
+                append_entities=True)
+        except (indexer.NoSuchEntity, ValueError) as e:
+            pecan.abort(400, e)
+        except indexer.NamedEntityAlreadyExists as e:
+            pecan.abort(409, e)
+        except indexer.NoSuchResource as e:
+            pecan.abort(404, e)
+        pecan.response.status = 204
 
 
 def ResourceSchema(schema):
@@ -214,19 +244,7 @@ class GenericResourceController(rest.RestController):
 
     def __init__(self, id):
         self.id = id
-        self.entity = NamedEntityController(id)
-
-    @staticmethod
-    def convert_entity_list(entities, user_id, project_id):
-        # Replace None as value for an entity by a brand a new entity
-        new_entities = {}
-        for k, v in six.iteritems(entities):
-            if isinstance(v, uuid.UUID):
-                new_entities[k] = v
-            else:
-                new_entities[k] = str(EntitiesController.create_entity(
-                    v['archive_policy'], user_id, project_id))
-        return new_entities
+        self.entity = NamedEntityController(id, self._resource_type)
 
     @pecan.expose('json')
     def get(self):
@@ -255,7 +273,7 @@ class GenericResourceController(rest.RestController):
         try:
             if 'entities' in body:
                 # FIXME(jd) Use the real user_id/project_id
-                body['entities'] = self.convert_entity_list(
+                body['entities'] = convert_entity_list(
                     body['entities'], "admin", "admin")
             pecan.request.indexer.update_resource(
                 self._resource_type,
@@ -313,7 +331,7 @@ class GenericResourcesController(rest.RestController):
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.Resource)
-        body['entities'] = GenericResourceController.convert_entity_list(
+        body['entities'] = convert_entity_list(
             body.get('entities', {}), body['user_id'], body['project_id'])
         try:
             resource = pecan.request.indexer.create_resource(

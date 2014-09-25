@@ -370,6 +370,42 @@ class ResourceTest(RestTest):
                               expect_errors=True)
         self.assertEqual(404, result.status_code)
 
+    def test_post_append_entities_already_exists(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+
+        entities = {'foo': {'archive_policy': "high"}}
+        self.app.post_json("/v1/resource/" + self.resource_type
+                           + "/" + self.attributes['id'] + "/entity",
+                           params=entities, status=204)
+        entities = {'foo': {'archive_policy': "low"}}
+        result = self.app.post_json("/v1/resource/" + self.resource_type
+                                    + "/" + self.attributes['id']
+                                    + "/entity",
+                                    params=entities,
+                                    expect_errors=True)
+        self.assertEqual(409, result.status_code)
+
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type + "/"
+                              + self.attributes['id'])
+        result = json.loads(result.body)
+        self.assertTrue(uuid.UUID(result['entities']['foo']))
+
+    def test_post_append_entities(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+
+        entities = {'foo': {'archive_policy': "high"}}
+        self.app.post_json("/v1/resource/" + self.resource_type
+                           + "/" + self.attributes['id'] + "/entity",
+                           params=entities, status=204)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type + "/"
+                              + self.attributes['id'])
+        result = json.loads(result.body)
+        self.assertTrue(uuid.UUID(result['entities']['foo']))
+
     def test_patch_resource_entities(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
@@ -403,8 +439,7 @@ class ResourceTest(RestTest):
             params={'entities': {'foo': e1}},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
-        # FIXME(jd) We should retrieve the real entity when oslo.db is improved
-        self.assertIn("Entity ??? does not exist", result.body)
+        self.assertIn("Entity %s does not exist" % e1, result.body)
         result = self.app.get("/v1/resource/"
                               + self.resource_type
                               + "/"
@@ -445,14 +480,15 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
         self.assertEqual(201, result.status_code)
+        e1 = str(uuid.uuid4())
         result = self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
             params={'ended_at': "2044-05-05 23:23:23",
-                    'entities': {"foo": str(uuid.uuid4())}},
+                    'entities': {"foo": e1}},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
-        self.assertIn("Entity ??? does not exist", result.body)
+        self.assertIn("Entity %s does not exist" % e1, result.body)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])

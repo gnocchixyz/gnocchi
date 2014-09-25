@@ -210,6 +210,41 @@ class TestIndexerDriver(tests.TestCase):
         r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
 
+    def test_update_resource_entities_append(self):
+        r1 = uuid.uuid4()
+        e1 = uuid.uuid4()
+        e2 = uuid.uuid4()
+        self.index.create_resource('entity', e1, "foo", "bar",
+                                   archive_policy="low")
+        self.index.create_resource('entity', e2, "foo", "bar",
+                                   archive_policy="low")
+        self.index.create_resource('generic', r1, "foo", "bar",
+                                   entities={'foo': e1})
+        rc = self.index.update_resource('generic', r1, entities={'bar': e2},
+                                        append_entities=True)
+        r = self.index.get_resource('generic', r1)
+        self.assertEqual(rc, r)
+        self.assertIn('foo', rc['entities'])
+        self.assertIn('bar', rc['entities'])
+
+    def test_update_resource_entities_append_fail(self):
+        r1 = uuid.uuid4()
+        e1 = uuid.uuid4()
+        e2 = uuid.uuid4()
+        self.index.create_resource('entity', e1, "foo", "bar",
+                                   archive_policy="low")
+        self.index.create_resource('entity', e2, "foo", "bar",
+                                   archive_policy="low")
+        self.index.create_resource('generic', r1, "foo", "bar",
+                                   entities={'foo': e1})
+
+        self.assertRaises(indexer.NamedEntityAlreadyExists,
+                          self.index.update_resource,
+                          'generic', r1, entities={'foo': e2},
+                          append_entities=True)
+        r = self.index.get_resource('generic', r1)
+        self.assertEqual(str(e1), r['entities']['foo'])
+
     def test_update_resource_attribute(self):
         r1 = uuid.uuid4()
         rc = self.index.create_resource('instance', r1, "foo", "bar",

@@ -39,6 +39,8 @@ from gnocchi import indexer
 
 Base = declarative.declarative_base()
 
+COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
+                      'mysql_engine': "InnoDB"}
 
 _marker = indexer._marker
 
@@ -94,12 +96,15 @@ class PreciseTimestamp(types.TypeDecorator):
 
 
 class GnocchiBase(models.ModelBase):
-    __table_args__ = {'mysql_charset': "utf8",
-                      'mysql_engine': "InnoDB"}
+    pass
 
 
 class ResourceEntity(Base, GnocchiBase):
     __tablename__ = 'resource_entity'
+    __table_args__ = (
+        sqlalchemy.UniqueConstraint('resource_id', 'name', name="name_unique"),
+        COMMON_TABLES_ARGS,
+    )
 
     resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
@@ -116,6 +121,10 @@ class ResourceEntity(Base, GnocchiBase):
 
 class Resource(Base, GnocchiBase):
     __tablename__ = 'resource'
+    __table_args__ = (
+        sqlalchemy.Index('ix_resource_id', 'id'),
+        COMMON_TABLES_ARGS,
+    )
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
@@ -140,6 +149,10 @@ class Resource(Base, GnocchiBase):
 
 class Entity(Resource):
     __tablename__ = 'entity'
+    __table_args__ = (
+        sqlalchemy.Index('ix_entity_id', 'id'),
+        COMMON_TABLES_ARGS,
+    )
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            sqlalchemy.ForeignKey('resource.id',
@@ -150,6 +163,10 @@ class Entity(Resource):
 
 class Instance(Resource):
     __tablename__ = 'instance'
+    __table_args__ = (
+        sqlalchemy.Index('ix_instance_id', 'id'),
+        COMMON_TABLES_ARGS,
+    )
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            sqlalchemy.ForeignKey('resource.id',
@@ -164,6 +181,10 @@ class Instance(Resource):
 
 class SwiftAccount(Resource):
     __tablename__ = 'swift_account'
+    __table_args__ = (
+        sqlalchemy.Index('ix_swift_account_id', 'id'),
+        COMMON_TABLES_ARGS,
+    )
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            sqlalchemy.ForeignKey('resource.id',
@@ -250,6 +271,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def update_resource(self, resource_type,
                         uuid, ended_at=_marker, entities=_marker,
+                        append_entities=False,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
@@ -282,23 +304,24 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                             r.type, attribute)
 
             if entities is not _marker:
-                session.query(ResourceEntity).filter(
-                    ResourceEntity.resource_id == uuid).delete()
-                for name, e in entities.iteritems():
-                    session.add(ResourceEntity(resource_id=uuid,
-                                               entity_id=e,
-                                               name=name))
-            try:
-                session.flush()
-            except exception.DBReferenceError as e:
-                if e.table == 'resource_entity':
-                    if e.key == 'entity_id':
-                        # FIXME(jd) Add a way to oslo.db to give the value
-                        # that was incorrect
-                        raise indexer.NoSuchEntity("???")
-                    if e.key == 'resource_id':
-                        raise indexer.NoSuchResource(uuid)
-                raise
+                if not append_entities:
+                    session.query(ResourceEntity).filter(
+                        ResourceEntity.resource_id == uuid).delete()
+                for name, eid in entities.iteritems():
+                    with session.begin(subtransactions=True):
+                        session.add(ResourceEntity(resource_id=uuid,
+                                                   entity_id=eid,
+                                                   name=name))
+                        try:
+                            session.flush()
+                        except exception.DBReferenceError as e:
+                            if e.key == 'entity_id':
+                                raise indexer.NoSuchEntity(eid)
+                            if e.key == 'resource_id':
+                                raise indexer.NoSuchResource(uuid)
+                            raise
+                        except exception.DBDuplicateEntry as e:
+                            raise indexer.NamedEntityAlreadyExists(name)
 
         return self._resource_to_dict(r)
 
