@@ -229,6 +229,16 @@ class ResourceTest(RestTest):
                 "display_name": "myinstancez",
             },
             resource_type='instance')),
+        ('swift_account', dict(
+            attributes={
+                "started_at": "2014-01-03 02:02:02",
+                "user_id": "foo",
+                "project_id": "bar",
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03 02:02:02",
+            },
+            resource_type='swift_account')),
     ]
 
     @classmethod

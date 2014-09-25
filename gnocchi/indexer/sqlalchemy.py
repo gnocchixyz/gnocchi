@@ -120,6 +120,7 @@ class Resource(Base, GnocchiBase):
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
     type = sqlalchemy.Column(sqlalchemy.Enum('entity', 'generic', 'instance',
+                                             'swift_account',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     user_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
@@ -161,12 +162,22 @@ class Instance(Resource):
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
 
 
+class SwiftAccount(Resource):
+    __tablename__ = 'swift_account'
+
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"),
+                           primary_key=True)
+
+
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
         'entity': Entity,
         'generic': Resource,
         'instance': Instance,
+        'swift_account': SwiftAccount,
     }
 
     def __init__(self, conf):
