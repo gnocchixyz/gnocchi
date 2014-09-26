@@ -341,9 +341,9 @@ class GenericResourcesController(rest.RestController):
             pecan.abort(400, e)
         except indexer.ResourceAlreadyExists as e:
             pecan.abort(409, e)
-        pecan.response.headers['Location'] = "/v1/resource/" \
-                                             + self._resource_type + "/" \
-                                             + resource['id']
+        pecan.response.headers['Location'] = ("/v1/resource/"
+                                              + self._resource_type + "/"
+                                              + resource['id'])
         pecan.response.status = 201
         return resource
 

@@ -63,6 +63,7 @@ class TimeSerie(object):
     @classmethod
     def from_dict(cls, d):
         """Build a time series from a dict.
+
         The dict format must be datetime as key and values as values.
 
         :param d: The dict.
@@ -125,6 +126,7 @@ class BoundTimeSerie(TimeSerie):
     @classmethod
     def from_dict(cls, d):
         """Build a time series from a dict.
+
         The dict format must be datetime as key and values as values.
 
         :param d: The dict.
@@ -177,6 +179,7 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def from_dict(cls, d):
         """Build a time series from a dict.
+
         The dict format must be datetime as key and values as values.
 
         :param d: The dict.
@@ -262,13 +265,11 @@ class TimeSerieArchive(object):
 
         # Limit the main timeserie to a timespan mapping
         return cls(BoundTimeSerie(timespan=block_size * 2),
-                   [
-                       AggregatedTimeSerie(
-                           max_size=size, sampling=sampling,
-                           block_size=block_size,
-                           aggregation_method=aggregation_method)
-                       for sampling, size in definitions
-                   ])
+                   [AggregatedTimeSerie(
+                       max_size=size, sampling=sampling,
+                       block_size=block_size,
+                       aggregation_method=aggregation_method)
+                    for sampling, size in definitions])
 
     def fetch(self, from_timestamp=None, to_timestamp=None):
         result = pandas.Series()

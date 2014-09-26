@@ -224,9 +224,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
-        if started_at is not None \
-           and ended_at is not None \
-           and started_at > ended_at:
+        if (started_at is not None
+           and ended_at is not None
+           and started_at > ended_at):
             raise ValueError("Start timestamp cannot be after end timestamp")
         r = resource_cls(
             id=id,
@@ -286,8 +286,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if ended_at is not _marker:
                 # NOTE(jd) Could be better to have check in the db for that so
                 # we can just run the UPDATE
-                if r.started_at is not None \
-                   and ended_at is not None:
+                if r.started_at is not None and ended_at is not None:
                     # Convert to UTC because we store in UTC :(
                     ended_at = timeutils.normalize_time(ended_at)
                     if r.started_at > ended_at:
