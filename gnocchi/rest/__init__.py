@@ -33,6 +33,10 @@ from gnocchi import indexer
 from gnocchi import storage
 
 
+# FIXME(jd) Fake UUID to remove once we use the real ones :)
+ADMIN = "C3B608B8-DFD9-4BEF-8EC6-7D08F40C3BD0"
+
+
 def deserialize(schema):
     try:
         type, options = werkzeug.http.parse_options_header(
@@ -162,7 +166,7 @@ class EntitiesController(rest.RestController):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         # FIXME(jd) Use the real user_id/project_id
-        id = self.create_entity(body['archive_policy'], "admin", "admin")
+        id = self.create_entity(body['archive_policy'], ADMIN, ADMIN)
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
@@ -201,7 +205,7 @@ class NamedEntityController(rest.RestController):
     @vexpose(Entities)
     def post(self, body):
         # FIXME(sileht) Use the real user_id/project_id
-        entities = convert_entity_list(body, "admin", "admin")
+        entities = convert_entity_list(body, ADMIN, ADMIN)
         try:
             pecan.request.indexer.update_resource(
                 self.resource_type, self.resource_id, entities=entities,
@@ -220,8 +224,8 @@ def ResourceSchema(schema):
         voluptuous.Required("id"): UUID,
         'started_at': Timestamp,
         'ended_at': Timestamp,
-        voluptuous.Required('user_id'): six.text_type,
-        voluptuous.Required('project_id'): six.text_type,
+        voluptuous.Required('user_id'): UUID,
+        voluptuous.Required('project_id'): UUID,
         'entities': Entities,
     }
     base_schema.update(schema)
@@ -274,7 +278,7 @@ class GenericResourceController(rest.RestController):
             if 'entities' in body:
                 # FIXME(jd) Use the real user_id/project_id
                 body['entities'] = convert_entity_list(
-                    body['entities'], "admin", "admin")
+                    body['entities'], ADMIN, ADMIN)
             pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)

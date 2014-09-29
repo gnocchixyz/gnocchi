@@ -18,6 +18,7 @@
 import datetime
 import uuid
 
+import six
 import testscenarios
 
 from gnocchi import indexer
@@ -39,12 +40,14 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource(self):
         r1 = uuid.uuid4()
-        rc = self.index.create_resource('generic', r1, "foo", "bar")
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        rc = self.index.create_resource('generic', r1, user, project)
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "ended_at": None,
                           "type": "generic",
                           "entities": {}},
@@ -57,7 +60,7 @@ class TestIndexerDriver(tests.TestCase):
         e = uuid.uuid4()
         try:
             self.index.create_resource(
-                'generic', uuid.uuid4(), "foo", "bar",
+                'generic', uuid.uuid4(), uuid.uuid4(), uuid.uuid4(),
                 entities={"foo": e})
         except indexer.NoSuchEntity as ex:
             self.assertEqual(e, ex.entity)
@@ -66,14 +69,18 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_create_resource_already_exists(self):
         r1 = uuid.uuid4()
-        self.index.create_resource('generic', r1, "foo", "bar")
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('generic', r1, user, project)
         self.assertRaises(indexer.ResourceAlreadyExists,
                           self.index.create_resource,
-                          'generic', r1, "foo", "bar")
+                          'generic', r1, user, project)
 
     def test_create_instance(self):
         r1 = uuid.uuid4()
-        rc = self.index.create_resource('instance', r1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        rc = self.index.create_resource('instance', r1, user, project,
                                         flavor_id=1,
                                         image_ref="http://foo/bar",
                                         host="foo",
@@ -81,9 +88,9 @@ class TestIndexerDriver(tests.TestCase):
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
-                          "user_id": "foo",
+                          "user_id": six.text_type(user),
                           "type": "instance",
-                          "project_id": "bar",
+                          "project_id": six.text_type(project),
                           "ended_at": None,
                           "display_name": "lol",
                           "host": "foo",
@@ -97,7 +104,7 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_delete_resource(self):
         r1 = uuid.uuid4()
-        self.index.create_resource('generic', r1, "foo", "bar")
+        self.index.create_resource('generic', r1, uuid.uuid4(), uuid.uuid4())
         self.index.delete_resource(r1)
 
     def test_delete_resource_non_existent(self):
@@ -109,21 +116,23 @@ class TestIndexerDriver(tests.TestCase):
     def test_create_resource_with_start_timestamp(self):
         r1 = uuid.uuid4()
         ts = datetime.datetime(2014, 1, 1, 23, 34, 23, 1234)
+        user = uuid.uuid4()
+        project = uuid.uuid4()
         rc = self.index.create_resource(
             'generic',
-            r1, "foo", "bar",
+            r1, user, project,
             started_at=ts)
         self.assertEqual({"id": str(r1),
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
                           "entities": {}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertEqual({"id": str(r1),
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
@@ -133,17 +142,21 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1,
+                                   user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, "foo", "bar",
+        self.index.create_resource('entity', e2,
+                                   user, project,
                                    archive_policy="low")
-        rc = self.index.create_resource('generic', r1, "foo", "bar",
+        rc = self.index.create_resource('generic', r1, user, project,
                                         entities={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "ended_at": None,
                           "type": "generic",
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, rc)
@@ -153,8 +166,8 @@ class TestIndexerDriver(tests.TestCase):
         self.assertEqual({"id": str(r1),
                           "type": "generic",
                           "ended_at": None,
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_non_existent_resource_end_timestamp(self):
@@ -168,7 +181,9 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_update_resource_end_timestamp(self):
         r1 = uuid.uuid4()
-        self.index.create_resource('generic', r1, "foo", "bar")
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('generic', r1, user, project)
         self.index.update_resource(
             'generic',
             r1,
@@ -178,8 +193,8 @@ class TestIndexerDriver(tests.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": datetime.datetime(2043, 1, 1, 2, 3, 4),
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "type": "generic",
                           "entities": {}}, r)
         self.index.update_resource(
@@ -191,8 +206,8 @@ class TestIndexerDriver(tests.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "type": "generic",
                           "entities": {}}, r)
 
@@ -200,11 +215,13 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('generic', r1, "foo", "bar",
+        self.index.create_resource('generic', r1, user, project,
                                    entities={'foo': e1})
-        self.index.create_resource('entity', e2, "foo", "bar",
+        self.index.create_resource('entity', e2, user, project,
                                    archive_policy="low")
         rc = self.index.update_resource('generic', r1, entities={'bar': e2})
         r = self.index.get_resource('generic', r1)
@@ -214,11 +231,13 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, "foo", "bar",
+        self.index.create_resource('entity', e2, user, project,
                                    archive_policy="low")
-        self.index.create_resource('generic', r1, "foo", "bar",
+        self.index.create_resource('generic', r1, user, project,
                                    entities={'foo': e1})
         rc = self.index.update_resource('generic', r1, entities={'bar': e2},
                                         append_entities=True)
@@ -231,11 +250,13 @@ class TestIndexerDriver(tests.TestCase):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, "foo", "bar",
+        self.index.create_resource('entity', e2, user, project,
                                    archive_policy="low")
-        self.index.create_resource('generic', r1, "foo", "bar",
+        self.index.create_resource('generic', r1, user, project,
                                    entities={'foo': e1})
 
         self.assertRaises(indexer.NamedEntityAlreadyExists,
@@ -247,7 +268,9 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_update_resource_attribute(self):
         r1 = uuid.uuid4()
-        rc = self.index.create_resource('instance', r1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        rc = self.index.create_resource('instance', r1, user, project,
                                         flavor_id=1,
                                         image_ref="http://foo/bar",
                                         host="foo",
@@ -259,7 +282,7 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_update_resource_unknown_attribute(self):
         r1 = uuid.uuid4()
-        self.index.create_resource('instance', r1, "foo", "bar",
+        self.index.create_resource('instance', r1, uuid.uuid4(), uuid.uuid4(),
                                    flavor_id=1,
                                    image_ref="http://foo/bar",
                                    host="foo",
@@ -272,7 +295,7 @@ class TestIndexerDriver(tests.TestCase):
     def test_update_non_existent_entity(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.index.create_resource('generic', r1, "foo", "bar")
+        self.index.create_resource('generic', r1, uuid.uuid4(), uuid.uuid4())
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.update_resource,
                           'generic',
@@ -281,7 +304,7 @@ class TestIndexerDriver(tests.TestCase):
     def test_update_non_existent_resource(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        self.index.create_resource('entity', e1, uuid.uuid4(), uuid.uuid4(),
                                    archive_policy="low")
         self.assertRaises(indexer.NoSuchResource,
                           self.index.update_resource,
@@ -294,18 +317,20 @@ class TestIndexerDriver(tests.TestCase):
         self.assertRaises(indexer.NoSuchEntity,
                           self.index.create_resource,
                           'generic',
-                          r1, "foo", "bar",
+                          r1, uuid.uuid4(), uuid.uuid4(),
                           entities={'foo': e1})
 
     def test_delete_entity(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
-        self.index.create_resource('entity', e1, "foo", "bar",
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, "foo", "bar",
+        self.index.create_resource('entity', e2, user, project,
                                    archive_policy="low")
-        self.index.create_resource('generic', r1, "foo", "bar",
+        self.index.create_resource('generic', r1, user, project,
                                    entities={'foo': e1, 'bar': e2})
         self.index.delete_entity(e1)
         r = self.index.get_resource('generic', r1)
@@ -313,14 +338,15 @@ class TestIndexerDriver(tests.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
-                          "user_id": "foo",
-                          "project_id": "bar",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
                           "type": "generic",
                           "entities": {'bar': str(e2)}}, r)
 
     def test_delete_instance(self):
         r1 = uuid.uuid4()
-        created = self.index.create_resource('instance', r1, "foo", "bar",
+        created = self.index.create_resource('instance', r1,
+                                             uuid.uuid4(), uuid.uuid4(),
                                              flavor_id=123,
                                              image_ref="foo",
                                              host="dwq",
@@ -339,31 +365,34 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_list_resources_by_user(self):
         r1 = uuid.uuid4()
-        u1 = str(uuid.uuid4())
-        g = self.index.create_resource('generic', r1, u1, "bar")
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        g = self.index.create_resource('generic', r1, user, project)
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": u1})
+            attributes_filter={"user_id": user})
         self.assertEqual(len(resources), 1)
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": str(uuid.uuid4())})
+            attributes_filter={"user_id": uuid.uuid4()})
         self.assertEqual(len(resources), 0)
 
     def test_list_resources_by_user_with_details(self):
         r1 = uuid.uuid4()
-        u1 = str(uuid.uuid4())
-        g = self.index.create_resource('generic', r1, u1, "bar")
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        g = self.index.create_resource('generic', r1, user, project)
         r2 = uuid.uuid4()
-        i = self.index.create_resource('instance', r2, u1, "bar",
+        i = self.index.create_resource('instance', r2,
+                                       user, project,
                                        flavor_id=123,
                                        image_ref="foo",
                                        host="dwq",
                                        display_name="foobar")
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": u1},
+            attributes_filter={"user_id": user},
             details=True,
         )
         self.assertEqual(len(resources), 2)
@@ -371,16 +400,17 @@ class TestIndexerDriver(tests.TestCase):
 
     def test_list_resources_by_project(self):
         r1 = uuid.uuid4()
-        p1 = str(uuid.uuid4())
-        g = self.index.create_resource('generic', r1, "foo", p1)
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        g = self.index.create_resource('generic', r1, user, project)
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"project_id": p1})
+            attributes_filter={"project_id": project})
         self.assertEqual(len(resources), 1)
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"project_id": str(uuid.uuid4())})
+            attributes_filter={"project_id": uuid.uuid4()})
         self.assertEqual(len(resources), 0)
 
     def test_list_resources(self):
@@ -388,9 +418,11 @@ class TestIndexerDriver(tests.TestCase):
         # database for all tests and the tests are running concurrently, but
         # for now it'll be better than nothing.
         r1 = uuid.uuid4()
-        g = self.index.create_resource('generic', r1, "foo", "bar")
+        g = self.index.create_resource('generic', r1,
+                                       uuid.uuid4(), uuid.uuid4())
         r2 = uuid.uuid4()
-        i = self.index.create_resource('instance', r2, "foo", "bar",
+        i = self.index.create_resource('instance', r2,
+                                       uuid.uuid4(), uuid.uuid4(),
                                        flavor_id=123,
                                        image_ref="foo",
                                        host="dwq",
@@ -424,13 +456,15 @@ class TestIndexerDriver(tests.TestCase):
         # database for all tests and the tests are running concurrently, but
         # for now it'll be better than nothing.
         r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
         g = self.index.create_resource(
-            'generic', r1, "foo", "bar",
+            'generic', r1, user, project,
             started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
             ended_at=datetime.datetime(2000, 1, 3, 23, 23, 23))
         r2 = uuid.uuid4()
         i = self.index.create_resource(
-            'instance', r2, "foo", "bar",
+            'instance', r2, user, project,
             flavor_id=123,
             image_ref="foo",
             host="dwq",
