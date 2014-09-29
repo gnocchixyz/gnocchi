@@ -38,23 +38,31 @@ import inspect
 import itertools
 import sys
 
+is_simplejson = False
 if sys.version_info < (2, 7):
     # On Python <= 2.6, json module is not C boosted, so try to use
     # simplejson module if available
     try:
         import simplejson as json
+        # NOTE(mriedem): Make sure we have a new enough version of simplejson
+        # to support the namedobject_as_tuple argument. This can be removed
+        # in the Kilo release when python 2.6 support is dropped.
+        if 'namedtuple_as_object' in inspect.getargspec(json.dumps).args:
+            is_simplejson = True
+        else:
+            import json
     except ImportError:
         import json
 else:
     import json
 
+from oslo.utils import encodeutils
+from oslo.utils import importutils
+from oslo.utils import timeutils
 import six
 import six.moves.xmlrpc_client as xmlrpclib
 
 from gnocchi.openstack.common import gettextutils
-from gnocchi.openstack.common import importutils
-from gnocchi.openstack.common import strutils
-from gnocchi.openstack.common import timeutils
 
 netaddr = importutils.try_import("netaddr")
 
@@ -165,15 +173,19 @@ def to_primitive(value, convert_instances=False, convert_datetime=True,
 
 
 def dumps(value, default=to_primitive, **kwargs):
+    if is_simplejson:
+        kwargs['namedtuple_as_object'] = False
     return json.dumps(value, default=default, **kwargs)
 
 
 def dump(obj, fp, *args, **kwargs):
+    if is_simplejson:
+        kwargs['namedtuple_as_object'] = False
     return json.dump(obj, fp, *args, **kwargs)
 
 
 def loads(s, encoding='utf-8', **kwargs):
-    return json.loads(strutils.safe_decode(s, encoding), **kwargs)
+    return json.loads(encodeutils.safe_decode(s, encoding), **kwargs)
 
 
 def load(fp, encoding='utf-8', **kwargs):
