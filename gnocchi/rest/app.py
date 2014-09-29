@@ -21,6 +21,7 @@ from wsgiref import simple_server
 
 import netaddr
 from oslo.config import cfg
+from oslo.utils import importutils
 import pecan
 
 from gnocchi import indexer
@@ -46,6 +47,9 @@ OPTS = [
                 help='Toggle Pecan Debug Middleware. '
                 'Defaults to global debug value.'
                 ),
+    cfg.MultiStrOpt('middlewares',
+                    default=['keystonemiddleware.auth_token.AuthProtocol'],
+                    help='Middlewares to use',),
 ]
 
 opt_group = cfg.OptGroup(name='api',
@@ -83,12 +87,19 @@ def setup_app(pecan_config=PECAN_CONFIG):
     if not i:
         i = indexer.get_driver(conf)
     i.connect()
-    return pecan.make_app(
+
+    app = pecan.make_app(
         pecan_config['app']['root'],
         debug=conf.api.pecan_debug,
         hooks=(DBHook(s, i),),
         guess_content_type_from_ext=False,
     )
+
+    for middleware in reversed(pecan_config['conf'].api.middlewares):
+        klass = importutils.import_class(middleware)
+        app = klass(app, dict(conf))
+
+    return app
 
 
 def get_server_cls(host):
