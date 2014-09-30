@@ -178,19 +178,16 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
 
-        # Create basic archive policies
-        try:
-            self.archive_policies = dict([
-                (name, self.index.create_archive_policy(
+        self.archive_policies = {}
+        for name, definition in six.iteritems(self.ARCHIVE_POLICIES):
+            # Create basic archive policies
+            try:
+                self.archive_policies[name] = self.index.create_archive_policy(
                     name=name,
-                    definition=definition)['definition'])
-                for name, definition in six.iteritems(self.ARCHIVE_POLICIES)
-            ])
-        except indexer.ArchivePolicyAlreadyExists:
-            self.archive_policies = dict([
-                (name, self.index.get_archive_policy(name)['definition'])
-                for name, definition in six.iteritems(self.ARCHIVE_POLICIES)
-            ])
+                    definition=definition)['definition']
+            except indexer.ArchivePolicyAlreadyExists:
+                self.archive_policies[name] = self.index.get_archive_policy(
+                    name)['definition']
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',
