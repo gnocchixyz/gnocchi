@@ -320,7 +320,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with session.begin():
             q = session.query(
                 resource_cls).filter(
-                    resource_cls.id == uuid).with_for_update()
+                    resource_cls.id == uuid)
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(uuid)
