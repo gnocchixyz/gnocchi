@@ -32,7 +32,7 @@ LOG = log.getLogger(__name__)
 
 cfg.CONF.import_opt('debug', 'gnocchi.openstack.common.log')
 
-API_SERVICE_OPTS = [
+OPTS = [
     cfg.IntOpt('port',
                default=8041,
                help='The port for the Gnocchi API server.',
@@ -51,7 +51,7 @@ API_SERVICE_OPTS = [
 opt_group = cfg.OptGroup(name='api',
                          title='Options for the gnocchi-api service')
 cfg.CONF.register_group(opt_group)
-cfg.CONF.register_opts(API_SERVICE_OPTS, opt_group)
+cfg.CONF.register_opts(OPTS, opt_group)
 
 
 class DBHook(pecan.hooks.PecanHook):

@@ -4,3 +4,4 @@
 *.egg-info
 AUTHORS
 ChangeLog
+etc/gnocchi/gnocchi.conf

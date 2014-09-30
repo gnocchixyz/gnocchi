@@ -26,13 +26,13 @@ from gnocchi import carbonara
 from gnocchi import storage
 
 
-OPTIONS = [
+OPTS = [
     cfg.StrOpt('file_basepath',
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
 ]
 
-cfg.CONF.register_opts(OPTIONS, group="storage")
+cfg.CONF.register_opts(OPTS, group="storage")
 
 
 class FileStorage(storage.StorageDriver, storage.CoordinatorMixin):

@@ -23,7 +23,7 @@ from gnocchi import carbonara
 from gnocchi import storage
 
 
-OPTIONS = [
+OPTS = [
     cfg.StrOpt('swift_auth_version',
                default='1',
                help='Swift authentication version to user.'),
@@ -46,7 +46,7 @@ OPTIONS = [
                help='Swift tenant name, only used in v2 auth.'),
 ]
 
-cfg.CONF.register_opts(OPTIONS, group="storage")
+cfg.CONF.register_opts(OPTS, group="storage")
 
 
 class SwiftStorage(storage.StorageDriver, storage.CoordinatorMixin):
