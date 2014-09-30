@@ -38,14 +38,14 @@ import sys
 import traceback
 
 from oslo.config import cfg
+from oslo.serialization import jsonutils
 from oslo.utils import importutils
 import six
 from six import moves
 
 _PY26 = sys.version_info[0:2] == (2, 6)
 
-from gnocchi.openstack.common.gettextutils import _
-from gnocchi.openstack.common import jsonutils
+from gnocchi.openstack.common._i18n import _
 from gnocchi.openstack.common import local
 
 
