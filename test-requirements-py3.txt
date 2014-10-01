@@ -1,6 +1,8 @@
 fixtures
+keystonemiddleware
 mock
 psycopg2
 testrepository
 testscenarios
 testtools>=0.9.38
+WebTest>=2.0.16

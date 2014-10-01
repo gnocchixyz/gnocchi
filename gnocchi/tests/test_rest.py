@@ -15,18 +15,62 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import datetime
 import json
 import uuid
 
-import pecan.testing
+from oslo.utils import timeutils
+import pecan
 import six
 import testscenarios
+import webtest
 
 from gnocchi.rest import app
 from gnocchi import tests
 
 
 load_tests = testscenarios.load_tests_apply_scenarios
+
+
+class FakeMemcache(object):
+    VALID_TOKEN = '4562138218392831'
+    USER_ID = str(uuid.uuid4())
+    PROJECT_ID = str(uuid.uuid4())
+
+    def get(self, key):
+        if key == "tokens/%s" % self.VALID_TOKEN:
+            dt = datetime.datetime(
+                year=datetime.MAXYEAR, month=12, day=31,
+                hour=23, minute=59, second=59)
+            return json.dumps(({'access': {
+                'token': {'id': self.VALID_TOKEN,
+                          'expires': timeutils.isotime(dt)},
+                'user': {
+                    'id': self.USER_ID,
+                    'name': 'myusername',
+                    'tenantId': self.PROJECT_ID,
+                    'tenantName': 'mytenant',
+                    'roles': [
+                        {'name': 'admin'},
+                    ]},
+            }}, timeutils.isotime(dt)))
+
+    @staticmethod
+    def set(key, value, **kwargs):
+        pass
+
+
+class TestingApp(webtest.TestApp):
+    CACHE_NAME = 'fake.cache'
+
+    def __init__(self, *args, **kwargs):
+        super(TestingApp, self).__init__(*args, **kwargs)
+        # Setup Keystone auth_token fake cache
+        self.extra_environ.update({self.CACHE_NAME: FakeMemcache()})
+
+    def do_request(self, req, *args, **kwargs):
+        req.headers['X-Auth-Token'] = FakeMemcache.VALID_TOKEN
+        return super(TestingApp, self).do_request(req, *args, **kwargs)
 
 
 class RestTest(tests.TestCase):
@@ -37,13 +81,16 @@ class RestTest(tests.TestCase):
         c['conf'] = self.conf
         c['indexer'] = self.index
         c['storage'] = self.storage
-        self.app = pecan.testing.load_test_app(c)
+        self.conf.import_opt("cache", "keystonemiddleware.auth_token",
+                             group="keystone_authtoken")
+        self.conf.set_override("cache", TestingApp.CACHE_NAME,
+                               group='keystone_authtoken')
+        self.app = TestingApp(pecan.load_app(c))
 
     def test_root(self):
-        result = self.app.get("/")
+        result = self.app.get("/", status=200)
         self.assertEqual(b"Nom nom nom.", result.body)
         self.assertEqual("text/plain", result.content_type)
-        self.assertEqual(200, result.status_code)
 
 
 class ArchivePolicyTest(RestTest):

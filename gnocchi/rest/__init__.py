@@ -33,8 +33,9 @@ from gnocchi import indexer
 from gnocchi import storage
 
 
-# FIXME(jd) Fake UUID to remove once we use the real ones :)
-ADMIN = "C3B608B8-DFD9-4BEF-8EC6-7D08F40C3BD0"
+def get_user_and_project():
+    return (pecan.request.headers.get('X-User-Id'),
+            pecan.request.headers.get('X-Project-Id'))
 
 
 def deserialize(schema):
@@ -205,8 +206,8 @@ class EntitiesController(rest.RestController):
     def post(self, body):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
-        # FIXME(jd) Use the real user_id/project_id
-        id = self.create_entity(body['archive_policy'], ADMIN, ADMIN)
+        user, project = get_user_and_project()
+        id = self.create_entity(body['archive_policy'], user, project)
         pecan.response.headers['Location'] = "/v1/entity/" + str(id)
         pecan.response.status = 201
         return {"id": str(id),
@@ -244,8 +245,8 @@ class NamedEntityController(rest.RestController):
 
     @vexpose(Entities)
     def post(self, body):
-        # FIXME(sileht) Use the real user_id/project_id
-        entities = convert_entity_list(body, ADMIN, ADMIN)
+        user, project = get_user_and_project()
+        entities = convert_entity_list(body, user, project)
         try:
             pecan.request.indexer.update_resource(
                 self.resource_type, self.resource_id, entities=entities,
@@ -322,9 +323,9 @@ class GenericResourceController(rest.RestController):
 
         try:
             if 'entities' in body:
-                # FIXME(jd) Use the real user_id/project_id
+                user, project = get_user_and_project()
                 body['entities'] = convert_entity_list(
-                    body['entities'], ADMIN, ADMIN)
+                    body['entities'], user, project)
             pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
