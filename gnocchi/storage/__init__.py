@@ -72,6 +72,17 @@ class NoDeloreanAvailable(Exception):
             "%s is before %s" % (bad_timestamp, first_timestamp))
 
 
+class MetricUnaggregatable(Exception):
+    """Error raised when metrics can't be aggregated."""
+
+    def __init__(self, metrics, reason):
+        self.metrics = metrics
+        self.reason = reason
+        super(MetricUnaggregatable, self).__init__(
+            "Metrics %s can't be aggregated: %s" % (" ,".join(metrics),
+                                                    reason))
+
+
 def _get_driver(name, conf):
     """Return the driver named name.
 
@@ -116,7 +127,7 @@ class StorageDriver(object):
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
-        """Add a measure to an metric.
+        """Get a measure to an metric.
 
         :param metric: The metric measured.
         :param from timestamp: The timestamp to get the measure from.
@@ -127,4 +138,16 @@ class StorageDriver(object):
 
     @staticmethod
     def delete_metric(metric):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_cross_metric_measures(metrics, from_timestamp=None,
+                                  to_timestamp=None, aggregation='mean'):
+        """Get aggregated measures of multiple entities.
+
+        :param entities: The entities measured to aggregate.
+        :param from timestamp: The timestamp to get the measure from.
+        :param to timestamp: The timestamp to get the measure to.
+        :param aggregation: The type of aggregation to retrieve.
+        """
         raise exceptions.NotImplementedError

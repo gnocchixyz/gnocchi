@@ -127,6 +127,10 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             # 1 hour resolution for a year
             {"granularity": 3600, "points": 365 * 24},
         ],
+        'no_granularity_match': [
+            # 2 second resolution for a day
+            {"granularity": 2, "points": 3600 * 24},
+        ],
     }
 
     indexer_backends = [
