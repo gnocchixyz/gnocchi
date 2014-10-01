@@ -25,7 +25,7 @@ from gnocchi import service
 from gnocchi.rest import app
 
 # The pecan debugger cannot be used in wsgi mode
-cfg.set_default('pecan_debug', False, group='api')
+cfg.CONF.set_default('pecan_debug', False, group='api')
 
 # Initialize the oslo configuration library and logging
 service.prepare_service()
