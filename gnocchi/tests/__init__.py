@@ -29,7 +29,7 @@ import testtools
 from testtools import testcase
 from tooz import coordination
 
-import gnocchi
+from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi import storage
 
@@ -49,7 +49,7 @@ def _skip_decorator(func):
     def skip_if_not_implemented(*args, **kwargs):
         try:
             return func(*args, **kwargs)
-        except gnocchi.NotImplementedError as e:
+        except exceptions.NotImplementedError as e:
             raise testcase.TestSkipped(six.text_type(e))
     return skip_if_not_implemented
 

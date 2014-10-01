@@ -18,7 +18,7 @@
 from oslo.config import cfg
 from stevedore import driver
 
-import gnocchi
+from gnocchi import exceptions
 
 OPTS = [
     cfg.StrOpt('driver',
@@ -136,48 +136,48 @@ class IndexerDriver(object):
 
     @staticmethod
     def get_resource(resource_type, uuid):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def list_resources(resource_type='generic', started_after=None,
                        ended_before=None,
                        attributes_filter=None,
                        details=False):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def list_archive_policies():
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def get_archive_policy(name):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def create_archive_policy(name, definition):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def create_resource(resource_type, id, user_id, project_id,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def update_resource(resource_type, uuid, ended_at=_marker,
                         entities=_marker,
                         append_entities=False,
                         **kwargs):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def delete_resource(uuid):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def create_entity(id):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def delete_entity(id):
-        raise gnocchi.NotImplementedError
+        raise exceptions.NotImplementedError
