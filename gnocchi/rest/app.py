@@ -96,6 +96,8 @@ def setup_app(pecan_config=PECAN_CONFIG):
     )
 
     for middleware in reversed(pecan_config['conf'].api.middlewares):
+        if not middleware:
+            continue
         klass = importutils.import_class(middleware)
         app = klass(app, dict(conf))
 
