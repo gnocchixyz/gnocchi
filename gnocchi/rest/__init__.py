@@ -85,6 +85,44 @@ def convert_entity_list(entities, user_id, project_id):
     return new_entities
 
 
+def PositiveNotNullInt(value):
+    value = int(value)
+    if value <= 0:
+        raise ValueError("Value must be positive")
+    return value
+
+
+class ArchivePoliciesController(rest.RestController):
+    ArchivePolicy = voluptuous.Schema({
+        voluptuous.Required("name"): six.text_type,
+        voluptuous.Required("definition"):
+        voluptuous.All([{
+            voluptuous.Required("granularity"): PositiveNotNullInt,
+            voluptuous.Required("points"): PositiveNotNullInt,
+        }], voluptuous.Length(min=1)),
+    })
+
+    @staticmethod
+    @vexpose(ArchivePolicy, 'json')
+    def post(body):
+        # TODO(jd) Use RBAC policy to limit which user can create a policy
+        try:
+            ap = pecan.request.indexer.create_archive_policy(**body)
+        except indexer.ArchivePolicyAlreadyExists as e:
+            pecan.abort(409, e)
+        pecan.response.headers['Location'] = "/v1/archive_policy/" + ap['name']
+        pecan.response.status = 201
+        return ap
+
+    @pecan.expose('json')
+    def get_one(self, id):
+        return pecan.request.indexer.get_archive_policy(id)
+
+    @pecan.expose('json')
+    def get_all(self):
+        return pecan.request.indexer.list_archive_policies()
+
+
 class EntityController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
@@ -431,6 +469,7 @@ class ResourcesController(rest.RestController):
 
 
 class V1Controller(object):
+    archive_policy = ArchivePoliciesController()
     entity = EntitiesController()
     resource = ResourcesController()
 

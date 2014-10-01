@@ -239,6 +239,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.UnknownResourceType(resource_type)
         return self._RESOURCE_CLASS_MAPPER[resource_type]
 
+    def list_archive_policies(self):
+        session = self.engine_facade.get_session()
+        return [dict(ap) for ap in session.query(ArchivePolicy).all()]
+
     def get_archive_policy(self, name):
         session = self.engine_facade.get_session()
         ap = session.query(ArchivePolicy).get(name)

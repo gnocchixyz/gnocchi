@@ -46,6 +46,78 @@ class RestTest(tests.TestCase):
         self.assertEqual(200, result.status_code)
 
 
+class ArchivePolicyTest(RestTest):
+    def test_post_archive_policy(self):
+        name = str(uuid.uuid4())
+        definition = [{
+            "granularity": 10,
+            "points": 20,
+        }]
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition": definition},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.body)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual(definition, ap['definition'])
+
+    def test_post_archive_policy_and_entity(self):
+        ap = str(uuid.uuid4())
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": ap,
+                    "definition": [{
+                        "granularity": 10,
+                        "points": 20,
+                    }]},
+            status=201)
+        self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": ap},
+            status=201)
+
+    def test_post_archive_policy_wrong_value(self):
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": "somenewname",
+                    "definition": "foobar"},
+            expect_errors=True,
+            status=400)
+        self.assertIn('Invalid input: expected a list '
+                      'for dictionary value @ data[u\'definition\']',
+                      result.body)
+
+    def test_post_archive_already_exists(self):
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": "high",
+                    "definition": [{
+                        "granularity": 10,
+                        "points": 20,
+                    }]},
+            expect_errors=True,
+            status=409)
+        self.assertIn('Archive policy high already exists', result.body)
+
+    def test_get_archive_policy(self):
+        result = self.app.get("/v1/archive_policy/medium")
+        ap = json.loads(result.body)
+        self.assertEqual({"name": "medium",
+                          "definition": self.archive_policies['medium']},
+                         ap)
+
+    def test_list_archive_policy(self):
+        result = self.app.get("/v1/archive_policy")
+        aps = json.loads(result.body)
+        for name, definition in six.iteritems(self.archive_policies):
+            self.assertIn({"name": name,
+                           "definition": definition}, aps)
+
+
 class EntityTest(RestTest):
     def test_post_entity(self):
         result = self.app.post_json("/v1/entity",
