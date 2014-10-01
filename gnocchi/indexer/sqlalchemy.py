@@ -196,6 +196,7 @@ class Instance(MeasurableResource):
     image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    server_group = sqlalchemy.Column(sqlalchemy.String(255))
 
 
 class SwiftAccount(MeasurableResource):

@@ -345,6 +345,7 @@ class ResourceTest(RestTest):
                 "image_ref": "imageref!",
                 "flavor_id": 123,
                 "display_name": "myinstance",
+                "server_group": "as_group",
             },
             patchable_attributes={
                 "ended_at": "2014-01-03 02:02:02",
@@ -352,6 +353,7 @@ class ResourceTest(RestTest):
                 "image_ref": "imageref!z",
                 "flavor_id": 1234,
                 "display_name": "myinstancez",
+                "server_group": "new_as_group",
             },
             resource_type='instance')),
         ('swift_account', dict(

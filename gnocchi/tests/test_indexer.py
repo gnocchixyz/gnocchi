@@ -95,15 +95,17 @@ class TestIndexerDriver(tests.TestCase):
                           self.index.create_resource,
                           'generic', r1, user, project)
 
-    def test_create_instance(self):
+    def _do_test_create_instance(self, server_group=None):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
+        kwargs = {'server_group': server_group} if server_group else {}
+
         rc = self.index.create_resource('instance', r1, user, project,
                                         flavor_id=1,
                                         image_ref="http://foo/bar",
                                         host="foo",
-                                        display_name="lol")
+                                        display_name="lol", **kwargs)
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
@@ -112,6 +114,7 @@ class TestIndexerDriver(tests.TestCase):
                           "project_id": six.text_type(project),
                           "ended_at": None,
                           "display_name": "lol",
+                          "server_group": server_group,
                           "host": "foo",
                           "image_ref": "http://foo/bar",
                           "flavor_id": 1,
@@ -120,6 +123,12 @@ class TestIndexerDriver(tests.TestCase):
         rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['entities'], rg['entities'])
+
+    def test_create_instance(self):
+        self._do_test_create_instance()
+
+    def test_create_instance_with_server_group(self):
+        self._do_test_create_instance('my_autoscaling_group')
 
     def test_delete_resource(self):
         r1 = uuid.uuid4()

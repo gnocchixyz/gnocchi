@@ -356,6 +356,7 @@ class InstanceResourceController(GenericResourceController):
         "image_ref": six.text_type,
         "host": six.text_type,
         "display_name": six.text_type,
+        "server_group": six.text_type,
     })
 
 
@@ -450,6 +451,7 @@ class InstancesResourcesController(GenericResourcesController):
         voluptuous.Required("image_ref"): six.text_type,
         voluptuous.Required("host"): six.text_type,
         voluptuous.Required("display_name"): six.text_type,
+        "server_group": six.text_type,
     })
 
 
