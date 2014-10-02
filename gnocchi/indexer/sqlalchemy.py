@@ -289,7 +289,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                  getattr(r, ex.key))
             if entities is None:
                 entities = {}
-            for name, e in entities.iteritems():
+            for name, e in six.iteritems(entities):
                 session.add(ResourceEntity(resource_id=r.id,
                                            entity_id=e,
                                            name=name))
@@ -355,7 +355,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if not append_entities:
                     session.query(ResourceEntity).filter(
                         ResourceEntity.resource_id == uuid).delete()
-                for name, eid in entities.iteritems():
+                for name, eid in six.iteritems(entities):
                     with session.begin(subtransactions=True):
                         session.add(ResourceEntity(resource_id=uuid,
                                                    entity_id=eid,
