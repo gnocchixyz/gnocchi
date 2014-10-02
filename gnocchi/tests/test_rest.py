@@ -106,7 +106,7 @@ class ArchivePolicyTest(RestTest):
                     "definition": definition},
             status=201)
         self.assertEqual("application/json", result.content_type)
-        ap = json.loads(result.body)
+        ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
@@ -134,8 +134,9 @@ class ArchivePolicyTest(RestTest):
                     "definition": "foobar"},
             expect_errors=True,
             status=400)
-        self.assertIn('Invalid input: expected a list '
-                      'for dictionary value @ data[u\'definition\']',
+        self.assertIn(b'Invalid input: expected a list '
+                      b'for dictionary value @ data['
+                      + repr(u'definition').encode('ascii') + b"]",
                       result.body)
 
     def test_post_archive_already_exists(self):
@@ -148,18 +149,18 @@ class ArchivePolicyTest(RestTest):
                     }]},
             expect_errors=True,
             status=409)
-        self.assertIn('Archive policy high already exists', result.body)
+        self.assertIn('Archive policy high already exists', result.text)
 
     def test_get_archive_policy(self):
         result = self.app.get("/v1/archive_policy/medium")
-        ap = json.loads(result.body)
+        ap = json.loads(result.text)
         self.assertEqual({"name": "medium",
                           "definition": self.archive_policies['medium']},
                          ap)
 
     def test_list_archive_policy(self):
         result = self.app.get("/v1/archive_policy")
-        aps = json.loads(result.body)
+        aps = json.loads(result.text)
         for name, definition in six.iteritems(self.archive_policies):
             self.assertIn({"name": name,
                            "definition": definition}, aps)
@@ -171,7 +172,7 @@ class EntityTest(RestTest):
                                     params={"archive_policy": "medium"})
         self.assertEqual("application/json", result.content_type)
         self.assertEqual(201, result.status_code)
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.assertEqual("http://localhost/v1/entity/" + entity['id'],
                          result.headers['Location'])
         self.assertEqual(entity['archive_policy'], "medium")
@@ -182,7 +183,7 @@ class EntityTest(RestTest):
                                     params={"archive_policy": policy},
                                     expect_errors=True,
                                     status=400)
-        self.assertIn('Unknown archive policy %s' % policy, result.body)
+        self.assertIn('Unknown archive policy %s' % policy, result.text)
 
     def test_get_entity_as_resource(self):
         result = self.app.post_json(
@@ -190,9 +191,9 @@ class EntityTest(RestTest):
             params={"archive_policy": "medium"},
             status=201)
         self.assertEqual("application/json", result.content_type)
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         result = self.app.get("/v1/resource/entity/%s" % entity['id'])
-        self.assertDictContainsSubset(entity, json.loads(result.body))
+        self.assertDictContainsSubset(entity, json.loads(result.text))
 
     def test_post_entity_as_resource(self):
         self.app.post_json("/v1/resource/entity",
@@ -202,7 +203,7 @@ class EntityTest(RestTest):
     def test_delete_entity(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         result = self.app.delete("/v1/entity/" + entity['id'])
         self.assertEqual(result.status_code, 204)
 
@@ -226,7 +227,7 @@ class EntityTest(RestTest):
     def test_add_measure(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         result = self.app.post_json(
             "/v1/entity/%s/measures" % entity['id'],
             params=[{"timestamp": '2013-01-01 23:23:23',
@@ -236,8 +237,8 @@ class EntityTest(RestTest):
     def test_add_multiple_measures_per_entity(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.body)
-        for x in xrange(5):
+        entity = json.loads(result.text)
+        for x in range(5):
             result = self.app.post_json(
                 "/v1/entity/%s/measures" % entity['id'],
                 params=[{"timestamp": '2013-01-01 23:23:2%d' % x,
@@ -259,13 +260,13 @@ class EntityTest(RestTest):
     def test_get_measure(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "low"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
         ret = self.app.get("/v1/entity/%s/measures" % entity['id'])
         self.assertEqual(ret.status_code, 200)
-        result = json.loads(ret.body)
+        result = json.loads(ret.text)
         self.assertEqual(
             {u'2013-01-01T00:00:00.000000': 1234.2,
              u'2013-01-01T23:00:00.000000': 1234.2,
@@ -275,7 +276,7 @@ class EntityTest(RestTest):
     def test_get_measure_start(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
@@ -283,14 +284,14 @@ class EntityTest(RestTest):
             "/v1/entity/%s/measures?start='2013-01-01 23:23:20"
             % entity['id'])
         self.assertEqual(ret.status_code, 200)
-        result = json.loads(ret.body)
+        result = json.loads(ret.text)
         self.assertEqual({'2013-01-01T23:23:23.000000': 1234.2},
                          result)
 
     def test_get_measure_stop(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
                                     "value": 1234.2},
@@ -299,14 +300,14 @@ class EntityTest(RestTest):
         ret = self.app.get("/v1/entity/%s/measures"
                            "?stop=2013-01-01 12:00:00" % entity['id'])
         self.assertEqual(ret.status_code, 200)
-        result = json.loads(ret.body)
+        result = json.loads(ret.text)
         self.assertEqual({'2013-01-01T12:00:00.000000': 1234.2},
                          result)
 
     def test_get_measure_aggregation(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.app.post_json("/v1/entity/%s/measures" % entity['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
                                     "value": 123.2},
@@ -317,7 +318,7 @@ class EntityTest(RestTest):
         ret = self.app.get(
             "/v1/entity/%s/measures?aggregation=max" % entity['id'])
         self.assertEqual(ret.status_code, 200)
-        result = json.loads(ret.body)
+        result = json.loads(ret.text)
         self.assertEqual({'2013-01-01T12:00:00.000000': 12345.2,
                           '2013-01-01T00:00:00.000000': 12345.2},
                          result)
@@ -386,7 +387,7 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
         self.assertEqual(201, result.status_code)
-        resource = json.loads(result.body)
+        resource = json.loads(result.text)
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/" + self.attributes['id'],
                          result.headers['Location'])
@@ -406,7 +407,7 @@ class ResourceTest(RestTest):
             expect_errors=True)
         self.assertEqual(409, result.status_code)
         self.assertIn("Resource %s already exists" % self.attributes['id'],
-                      result.body)
+                      result.text)
 
     def test_post_unix_timestamp(self):
         self.attributes['started_at'] = "1400580045.856219"
@@ -414,7 +415,7 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
         self.assertEqual(201, result.status_code)
-        resource = json.loads(result.body)
+        resource = json.loads(result.text)
         self.assertEqual(u"2014-05-20 10:00:45.856219",
                          resource['started_at'])
 
@@ -451,7 +452,7 @@ class ResourceTest(RestTest):
                               + self.resource_type
                               + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.attributes['type'] = self.resource_type
         self.attributes['entities'] = {}
         self.attributes['ended_at'] = None
@@ -516,7 +517,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['entities']['foo']))
 
     def test_post_append_entities(self):
@@ -530,13 +531,13 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['entities']['foo']))
 
     def test_patch_resource_entities(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
-        r = json.loads(result.body)
+        r = json.loads(result.text)
         self.assertEqual(201, result.status_code)
         new_entities = {'foo': {'archive_policy': "medium"}}
         result = self.app.patch_json(
@@ -547,7 +548,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['entities']['foo']))
         del result['entities']
         del r['entities']
@@ -566,12 +567,12 @@ class ResourceTest(RestTest):
             params={'entities': {'foo': e1}},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
-        self.assertIn("Entity %s does not exist" % e1, result.body)
+        self.assertIn("Entity %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
                               + self.resource_type
                               + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.assertEqual(result['entities'], {})
 
     def test_patch_resource_attributes(self):
@@ -585,7 +586,7 @@ class ResourceTest(RestTest):
         self.assertEqual(result.status_code, 204)
         result = self.app.get("/v1/resource/" + self.resource_type
                               + "/" + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         for k, v in six.iteritems(self.patchable_attributes):
             self.assertEqual(v, result[k])
 
@@ -615,11 +616,11 @@ class ResourceTest(RestTest):
                     'entities': {"foo": e1}},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
-        self.assertIn("Entity %s does not exist" % e1, result.body)
+        self.assertIn("Entity %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
-        result = json.loads(result.body)
+        result = json.loads(result.text)
         self.attributes['type'] = self.resource_type
         self.attributes['ended_at'] = None
         self.attributes['entities'] = {}
@@ -650,9 +651,9 @@ class ResourceTest(RestTest):
             params={'foobar': 123},
             expect_errors=True)
         self.assertEqual(result.status_code, 400)
-        self.assertIn(
-            "Invalid input: extra keys not allowed @ data[u'foobar']",
-            result.body)
+        self.assertIn(b'Invalid input: extra keys not allowed @ data['
+                      + repr(u'foobar').encode('ascii') + b"]",
+                      result.body)
 
     def test_delete_resource(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -667,8 +668,8 @@ class ResourceTest(RestTest):
                                  expect_errors=True)
         self.assertEqual(400, result.status_code)
         self.assertIn(
-            u"Resource %s does not exist" % self.attributes['id'],
-            result.body)
+            "Resource %s does not exist" % self.attributes['id'],
+            result.text)
 
     def test_post_resource_invalid_uuid(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
@@ -684,12 +685,12 @@ class ResourceTest(RestTest):
     def test_post_resource_with_entities(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.body)
+        entity = json.loads(result.text)
         self.attributes['entities'] = {"foo": entity['id']}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
         self.assertEqual(201, result.status_code)
-        resource = json.loads(result.body)
+        resource = json.loads(result.text)
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/"
                          + self.attributes['id'],
@@ -703,7 +704,7 @@ class ResourceTest(RestTest):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes)
         self.assertEqual(201, result.status_code)
-        resource = json.loads(result.body)
+        resource = json.loads(result.text)
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/"
                          + self.attributes['id'],
@@ -719,9 +720,9 @@ class ResourceTest(RestTest):
                               expect_errors=True)
         self.assertEqual(400, result.status_code)
         self.assertEqual("text/plain", result.content_type)
-        self.assertIn(b"Resource " + self.resource_type
-                      + b" has no foo attribute",
-                      result.body)
+        self.assertIn("Resource " + self.resource_type
+                      + " has no foo attribute",
+                      result.text)
 
     def test_list_resources_by_user(self):
         u1 = str(uuid.uuid4())
@@ -729,16 +730,16 @@ class ResourceTest(RestTest):
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
-        created_resource = json.loads(result.body)
+        created_resource = json.loads(result.text)
         result = self.app.get("/v1/resource/generic",
                               params={"user_id": u1})
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         result = self.app.get("/v1/resource/" + self.resource_type,
                               params={"user_id": u1})
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         self.assertEqual(created_resource, resources[0])
 
@@ -748,16 +749,16 @@ class ResourceTest(RestTest):
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
-        created_resource = json.loads(result.body)
+        created_resource = json.loads(result.text)
         result = self.app.get("/v1/resource/generic",
                               params={"project_id": p1})
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         result = self.app.get("/v1/resource/" + self.resource_type,
                               params={"project_id": p1})
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         self.assertEqual(created_resource, resources[0])
 
@@ -773,14 +774,14 @@ class ResourceTest(RestTest):
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             })
-        g = json.loads(result.body)
+        g = json.loads(result.text)
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
-        i = json.loads(result.body)
+        i = json.loads(result.text)
         result = self.app.get("/v1/resource/generic")
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 2)
 
         i_found = False
@@ -797,7 +798,7 @@ class ResourceTest(RestTest):
             self.fail("Some resources were not found")
 
         result = self.app.get("/v1/resource/" + self.resource_type)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r['id'] == str(i['id']):
@@ -818,16 +819,16 @@ class ResourceTest(RestTest):
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             })
-        g = json.loads(result.body)
+        g = json.loads(result.text)
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
-        i = json.loads(result.body)
+        i = json.loads(result.text)
         result = self.app.get(
             "/v1/resource/generic/",
             params={"started_after": "2014-01-01"})
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 2)
 
         i_found = False
@@ -846,7 +847,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/"
                               + self.resource_type
                               + "?started_after=2014-01-03")
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r['id'] == str(i['id']):
@@ -888,14 +889,14 @@ class ResourceTest(RestTest):
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             })
-        g = json.loads(result.body)
+        g = json.loads(result.text)
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes)
-        i = json.loads(result.body)
+        i = json.loads(result.text)
         result = request()
         self.assertEqual(200, result.status_code)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 2)
 
         i_found = False
@@ -914,7 +915,7 @@ class ResourceTest(RestTest):
             self.fail("Some resources were not found")
 
         result = self.app.get("/v1/resource/" + self.resource_type)
-        resources = json.loads(result.body)
+        resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r['id'] == str(i['id']):

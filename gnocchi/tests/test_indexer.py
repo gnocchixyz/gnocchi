@@ -424,7 +424,8 @@ class TestIndexerDriver(tests.TestCase):
             details=True,
         )
         self.assertEqual(len(resources), 2)
-        self.assertEqual(sorted(resources), sorted([g, i]))
+        self.assertIn(g, resources)
+        self.assertIn(i, resources)
 
     def test_list_resources_by_project(self):
         r1 = uuid.uuid4()
