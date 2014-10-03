@@ -5,7 +5,7 @@ netaddr
 oslo.config>=1.4.0.0a1
 oslo.db>=0.5.0
 oslo.serialization>=1.0.0
-oslo.utils
+oslo.utils>=0.3.0
 oslotest
 pandas
 pecan
