@@ -11,6 +11,9 @@ pandas
 pecan
 posix_ipc
 python-swiftclient
+pytimeparse
+# pytimeparse misses this dep for now
+future
 six
 sqlalchemy
 sqlalchemy-utils

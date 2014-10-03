@@ -25,6 +25,7 @@ import six
 import testscenarios
 import webtest
 
+from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi import tests
 
@@ -96,21 +97,98 @@ class RestTest(tests.TestCase):
 class ArchivePolicyTest(RestTest):
     def test_post_archive_policy(self):
         name = str(uuid.uuid4())
-        definition = [{
-            "granularity": 10,
-            "points": 20,
-        }]
         result = self.app.post_json(
             "/v1/archive_policy",
             params={"name": name,
-                    "definition": definition},
+                    "definition":
+                    [{
+                        "granularity": 10,
+                        "points": 20,
+                    }]},
             status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
-        self.assertEqual(definition, ap['definition'])
+        self.assertEqual([{
+            "granularity": 10,
+            "points": 20,
+            "timespan": "0:03:20",
+        }], ap['definition'])
+
+    def test_post_archive_policy_with_timespan(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition": [{
+                        "granularity": 10,
+                        "timespan": "1 hour",
+                    }]},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{'granularity': 10,
+                           'points': 360,
+                           'timespan': '1:00:00'}], ap['definition'])
+
+    def test_post_archive_policy_with_timespan_and_points(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition": [{
+                        "points": 1800,
+                        "timespan": "1 hour",
+                    }]},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{'granularity': 2,
+                           'points': 1800,
+                           'timespan': '1:00:00'}], ap['definition'])
+
+    def test_post_archive_policy_invalid_timespan(self):
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": str(uuid.uuid4()),
+                    "definition": [{
+                        "granularity": 10,
+                        "timespan": "1 shenanigan",
+                    }]},
+            expect_errors=True,
+            status=400)
+
+    def test_post_archive_policy_too_many_fields(self):
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": str(uuid.uuid4()),
+                    "definition": [{
+                        "points": 30,
+                        "granularity": 10,
+                        "timespan": "1 hour",
+                    }]},
+            expect_errors=True,
+            status=400)
+
+    def test_post_archive_policy_too_many_fields_with_invalid(self):
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": str(uuid.uuid4()),
+                    "definition": [{
+                        "points": 30,
+                        "granularity": 10,
+                        "timespan": "1 shenanigan",
+                    }]},
+            expect_errors=True,
+            status=400)
 
     def test_post_archive_policy_and_entity(self):
         ap = str(uuid.uuid4())
@@ -154,9 +232,13 @@ class ArchivePolicyTest(RestTest):
     def test_get_archive_policy(self):
         result = self.app.get("/v1/archive_policy/medium")
         ap = json.loads(result.text)
-        self.assertEqual({"name": "medium",
-                          "definition": self.archive_policies['medium']},
-                         ap)
+        self.assertEqual(
+            {"name": "medium",
+             "definition": [
+                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 for d in self.archive_policies['medium']
+             ]},
+            ap)
 
     def test_get_archive_policy_non_existent(self):
         self.app.get("/v1/archive_policy/" + str(uuid.uuid4()),
@@ -167,8 +249,12 @@ class ArchivePolicyTest(RestTest):
         result = self.app.get("/v1/archive_policy")
         aps = json.loads(result.text)
         for name, definition in six.iteritems(self.archive_policies):
-            self.assertIn({"name": name,
-                           "definition": definition}, aps)
+            self.assertIn(
+                {"name": name,
+                 "definition": [
+                     rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                     for d in definition
+                 ]}, aps)
 
 
 class EntityTest(RestTest):

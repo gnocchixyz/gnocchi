@@ -25,6 +25,7 @@ from oslo.utils import strutils
 from oslo.utils import timeutils
 import pecan
 from pecan import rest
+from pytimeparse import timeparse
 import six
 import voluptuous
 import werkzeug.http
@@ -94,15 +95,86 @@ def PositiveNotNullInt(value):
     return value
 
 
+def Timespan(value):
+    if value is None:
+        raise ValueError("Invalid timespan")
+    seconds = timeparse.timeparse(value)
+    if seconds is None:
+        raise ValueError("Unable to parse timespan")
+    if seconds <= 0:
+        raise ValueError("Timespan must be positive")
+    return seconds
+
+
+class ArchivePolicyItem(object):
+    def __init__(self, granularity=None, points=None, timespan=None):
+        unset = [i for i in (granularity, points, timespan) if i is None]
+        if len(unset) > 1:
+            raise ValueError(
+                "At least two of granularity/points/timespan must be provided")
+        elif len(unset) == 0 and timespan != granularity * points:
+            raise ValueError("Inconsistent granularity/points/timespan")
+        self._granularity = granularity
+        self._points = points
+        self._timespan = timespan
+
+    @property
+    def granularity(self):
+        if self._granularity is None:
+            self._granularity = self._timespan / self._points
+        return self._granularity
+
+    @property
+    def points(self):
+        if self._points is None:
+            self._points = self._timespan / self._granularity
+        return self._points
+
+    @property
+    def timespan(self):
+        if self._timespan is None:
+            self._timespan = self._granularity * self._points
+        return self._timespan
+
+    def to_dict(self):
+        return {
+            'timespan': self.timespan,
+            'granularity': self.granularity,
+            'points': self.points
+        }
+
+    def to_human_readable_dict(self):
+        """Return a dict representation with human readable values."""
+        return {
+            'timespan': six.text_type(
+                datetime.timedelta(seconds=self.timespan)),
+            'granularity': self.granularity,
+            'points': self.points
+        }
+
+    @classmethod
+    def archive_policy_to_human_readable(cls, archive_policy):
+        archive_policy['definition'] = [cls(**d).to_human_readable_dict()
+                                        for d in archive_policy['definition']]
+        return archive_policy
+
+
 class ArchivePoliciesController(rest.RestController):
     ArchivePolicy = voluptuous.Schema({
         voluptuous.Required("name"): six.text_type,
         voluptuous.Required("definition"):
-        voluptuous.All([{
-            voluptuous.Required("granularity"): PositiveNotNullInt,
-            voluptuous.Required("points"): PositiveNotNullInt,
-        }], voluptuous.Length(min=1)),
-    })
+        voluptuous.All([
+            voluptuous.Any({
+                voluptuous.Required("granularity"): PositiveNotNullInt,
+                voluptuous.Required("points"): PositiveNotNullInt,
+            }, {
+                voluptuous.Required("granularity"): PositiveNotNullInt,
+                voluptuous.Required("timespan"): Timespan,
+            }, {
+                voluptuous.Required("points"): PositiveNotNullInt,
+                voluptuous.Required("timespan"): Timespan,
+            })], voluptuous.Length(min=1))
+        })
 
     @staticmethod
     @vexpose(ArchivePolicy, 'json')
@@ -114,15 +186,18 @@ class ArchivePoliciesController(rest.RestController):
             pecan.abort(409, e)
         pecan.response.headers['Location'] = "/v1/archive_policy/" + ap['name']
         pecan.response.status = 201
-        return ap
+        return ArchivePolicyItem.archive_policy_to_human_readable(ap)
 
     @pecan.expose('json')
     def get_one(self, id):
-        return pecan.request.indexer.get_archive_policy(id)
+        ap = pecan.request.indexer.get_archive_policy(id)
+        if ap:
+            return ArchivePolicyItem.archive_policy_to_human_readable(ap)
 
     @pecan.expose('json')
     def get_all(self):
-        return pecan.request.indexer.list_archive_policies()
+        return list(map(ArchivePolicyItem.archive_policy_to_human_readable,
+                        pecan.request.indexer.list_archive_policies()))
 
 
 class EntityController(rest.RestController):
@@ -203,7 +278,11 @@ class EntitiesController(rest.RestController):
         pecan.request.indexer.create_resource('entity', id,
                                               user_id, project_id,
                                               archive_policy=policy['name'])
-        pecan.request.storage.create_entity(str(id), policy['definition'])
+        pecan.request.storage.create_entity(
+            str(id),
+            [ArchivePolicyItem(**d).to_dict()
+             for d in policy['definition']],
+        )
         return id
 
     @vexpose(Entity, 'json')
