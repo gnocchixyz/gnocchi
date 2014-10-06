@@ -102,7 +102,7 @@ class ArchivePolicyTest(RestTest):
             params={"name": name,
                     "definition":
                     [{
-                        "granularity": 10,
+                        "granularity": "1 minute",
                         "points": 20,
                     }]},
             status=201)
@@ -112,9 +112,9 @@ class ArchivePolicyTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
         self.assertEqual([{
-            "granularity": 10,
+            "granularity": "0:01:00",
             "points": 20,
-            "timespan": "0:03:20",
+            "timespan": "0:20:00",
         }], ap['definition'])
 
     def test_post_archive_policy_with_timespan(self):
@@ -123,7 +123,7 @@ class ArchivePolicyTest(RestTest):
             "/v1/archive_policy",
             params={"name": name,
                     "definition": [{
-                        "granularity": 10,
+                        "granularity": "10s",
                         "timespan": "1 hour",
                     }]},
             status=201)
@@ -132,9 +132,47 @@ class ArchivePolicyTest(RestTest):
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
-        self.assertEqual([{'granularity': 10,
+        self.assertEqual([{'granularity': "0:00:10",
                            'points': 360,
                            'timespan': '1:00:00'}], ap['definition'])
+
+    def test_post_archive_policy_with_timespan_float_points(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition": [{
+                        "granularity": "7s",
+                        "timespan": "1 hour",
+                    }]},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{'granularity': "0:00:07",
+                           'points': 514,
+                           'timespan': '0:59:58'}], ap['definition'])
+
+    def test_post_archive_policy_with_timespan_float_granularity(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition": [{
+                        "points": 1000,
+                        "timespan": "1 hour",
+                    }]},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{'granularity': "0:00:04",
+                           'points': 1000,
+                           'timespan': '1:06:40'}], ap['definition'])
 
     def test_post_archive_policy_with_timespan_and_points(self):
         name = str(uuid.uuid4())
@@ -151,7 +189,7 @@ class ArchivePolicyTest(RestTest):
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
-        self.assertEqual([{'granularity': 2,
+        self.assertEqual([{'granularity': "0:00:02",
                            'points': 1800,
                            'timespan': '1:00:00'}], ap['definition'])
 
@@ -160,7 +198,7 @@ class ArchivePolicyTest(RestTest):
             "/v1/archive_policy",
             params={"name": str(uuid.uuid4()),
                     "definition": [{
-                        "granularity": 10,
+                        "granularity": "10s",
                         "timespan": "1 shenanigan",
                     }]},
             expect_errors=True,
@@ -172,7 +210,7 @@ class ArchivePolicyTest(RestTest):
             params={"name": str(uuid.uuid4()),
                     "definition": [{
                         "points": 30,
-                        "granularity": 10,
+                        "granularity": "10s",
                         "timespan": "1 hour",
                     }]},
             expect_errors=True,
@@ -184,7 +222,7 @@ class ArchivePolicyTest(RestTest):
             params={"name": str(uuid.uuid4()),
                     "definition": [{
                         "points": 30,
-                        "granularity": 10,
+                        "granularity": "10s",
                         "timespan": "1 shenanigan",
                     }]},
             expect_errors=True,
@@ -196,7 +234,7 @@ class ArchivePolicyTest(RestTest):
             "/v1/archive_policy",
             params={"name": ap,
                     "definition": [{
-                        "granularity": 10,
+                        "granularity": "10s",
                         "points": 20,
                     }]},
             status=201)
@@ -222,7 +260,7 @@ class ArchivePolicyTest(RestTest):
             "/v1/archive_policy",
             params={"name": "high",
                     "definition": [{
-                        "granularity": 10,
+                        "granularity": "10s",
                         "points": 20,
                     }]},
             expect_errors=True,
