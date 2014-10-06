@@ -2,6 +2,8 @@ fixtures
 keystonemiddleware
 mock
 MySQL-python
+oslosphinx>=2.2.0  # Apache-2.0
+sphinx
 psycopg2
 testrepository
 testscenarios

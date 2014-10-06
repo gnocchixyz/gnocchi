@@ -1,7 +1,9 @@
 fixtures
 keystonemiddleware
 mock
+oslosphinx>=2.2.0  # Apache-2.0
 psycopg2
+sphinx
 testrepository
 testscenarios
 testtools>=0.9.38
