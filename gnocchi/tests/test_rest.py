@@ -257,6 +257,27 @@ class EntityTest(RestTest):
             b"Entity " + e1.encode('ascii') + b" does not exist",
             result.body)
 
+    def test_add_measures_too_old(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archive_policy": "low"})
+        entity = json.loads(result.text)
+        result = self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2013-01-01 23:23:23',
+                     "value": 1234.2}])
+        self.assertEqual(result.status_code, 204)
+
+        result = self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2012-01-01 23:23:23',
+                     "value": 1234.2}],
+            expect_errors=True)
+        self.assertEqual(result.status_code, 400)
+        self.assertIn(
+            b"One of the measure is too old considering the archive "
+            b"policy used by this entity",
+            result.body)
+
     def test_get_measure(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "low"})
