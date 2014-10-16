@@ -45,10 +45,72 @@ class DispatcherTest(testtools.TestCase):
     def setUp(self):
         super(DispatcherTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
+        self.resource_id = str(uuid.uuid4())
+        self.samples = [{
+            'counter_name': 'disk.root.size',
+            'counter_type': 'gauge',
+            'counter_volume': '2',
+            'user_id': 'test_user',
+            'project_id': 'test_project',
+            'source': 'openstack',
+            'timestamp': '2012-05-08 20:23:48.028195',
+            'resource_id': self.resource_id,
+            'resource_metadata': {
+                'host': 'foo',
+                'image_ref_url': 'imageref!',
+                'instance_flavor_id': 1234,
+                'display_name': 'myinstance',
+            }},
+            {
+                'counter_name': 'disk.root.size',
+                'counter_type': 'gauge',
+                'counter_volume': '2',
+                'user_id': 'test_user',
+                'project_id': 'test_project',
+                'source': 'openstack',
+                'timestamp': '2014-05-08 20:23:48.028195',
+                'resource_id': self.resource_id,
+                'resource_metadata': {
+                    'host': 'foo',
+                    'image_ref_url': 'imageref!',
+                    'instance_flavor_id': 1234,
+                    'display_name': 'myinstance',
+                }
+            }]
 
     def test_extensions_load(self):
+        self.conf.config(filter_service_activity=False,
+                         group='dispatcher_gnocchi')
         d = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.assertIn('instance', d.mgmr.names())
+
+    @mock.patch('gnocchi.ceilometer.dispatcher.GnocchiDispatcher'
+                '._process_samples')
+    @mock.patch('gnocchi.ceilometer.dispatcher.ksclient')
+    def _do_test_activity_filter(self, is_gnocchi_activity, ksclient,
+                                 fake_process_samples):
+        if is_gnocchi_activity:
+            self.samples[0]['user_id'] = 'gnocchi'
+            expected_samples = [self.samples[1]]
+        else:
+            expected_samples = self.samples
+
+        ksclient_instance = ksclient.Client.return_value
+        ksclient_instance.users.find.return_value = 'gnocchi'
+
+        d = dispatcher.GnocchiDispatcher(self.conf.conf)
+        d.record_metering_data(self.samples)
+
+        fake_process_samples.assert_called_with(
+            mock.ANY, self.resource_id, 'disk.root.size',
+            expected_samples, True,
+        )
+
+    def test_activity_filter_match(self):
+        self._do_test_activity_filter(True)
+
+    def test_activity_filter_nomatch(self):
+        self._do_test_activity_filter(False)
 
 
 class MockResponse(mock.NonCallableMock):
@@ -131,6 +193,8 @@ class DispatcherWorkflowTest(testtools.TestCase,
     def setUp(self):
         super(DispatcherWorkflowTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
+        self.conf.config(filter_service_activity=False,
+                         group='dispatcher_gnocchi')
         self.dispatcher = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.sample['resource_id'] = str(uuid.uuid4())
 
