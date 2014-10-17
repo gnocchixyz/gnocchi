@@ -22,6 +22,7 @@ import uuid
 from oslo.utils import timeutils
 import pecan
 import six
+from six.moves.urllib import parse as urllib_parse
 import testscenarios
 import webtest
 
@@ -109,6 +110,34 @@ class ArchivePolicyTest(RestTest):
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{
+            "granularity": "0:01:00",
+            "points": 20,
+            "timespan": "0:20:00",
+        }], ap['definition'])
+
+    def test_post_archive_policy_unicode(self):
+        name = u'æ' + str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition":
+                    [{
+                        "granularity": "1 minute",
+                        "points": 20,
+                    }]},
+            headers={'content-type': 'application/json; charset=UTF-8'},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+
+        location = "/v1/archive_policy/" + name
+        if six.PY2:
+            location = location.encode('utf-8')
+        self.assertEqual("http://localhost"
+                         + urllib_parse.quote(location),
                          result.headers['Location'])
         self.assertEqual(name, ap['name'])
         self.assertEqual([{

@@ -27,12 +27,24 @@ import pecan
 from pecan import rest
 from pytimeparse import timeparse
 import six
+from six.moves.urllib import parse as urllib_parse
 import voluptuous
 import werkzeug.http
 
 from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi import storage
+
+
+def set_resp_location_hdr(location):
+    # NOTE(sileht): according the pep-3333 the headers must be
+    # str in py2 and py3 even this is not the same thing in both
+    # version
+    # see: http://legacy.python.org/dev/peps/pep-3333/#unicode-issues
+    if six.PY2 and isinstance(location, six.text_type):
+        location = location.encode('utf-8')
+    location = urllib_parse.quote(location)
+    pecan.response.headers['Location'] = location
 
 
 def get_user_and_project():
@@ -177,7 +189,9 @@ class ArchivePoliciesController(rest.RestController):
             ap = pecan.request.indexer.create_archive_policy(**body)
         except indexer.ArchivePolicyAlreadyExists as e:
             pecan.abort(409, e)
-        pecan.response.headers['Location'] = "/v1/archive_policy/" + ap['name']
+
+        location = "/v1/archive_policy/" + ap['name']
+        set_resp_location_hdr(location)
         pecan.response.status = 201
         return ArchivePolicyItem.archive_policy_to_human_readable(ap)
 
@@ -296,7 +310,7 @@ class EntitiesController(rest.RestController):
         # 'archive'?
         user, project = get_user_and_project()
         id = self.create_entity(body['archive_policy'], user, project)
-        pecan.response.headers['Location'] = "/v1/entity/" + str(id)
+        set_resp_location_hdr("/v1/entity/" + str(id))
         pecan.response.status = 201
         return {"id": str(id),
                 "archive_policy": str(body['archive_policy'])}
@@ -481,9 +495,9 @@ class GenericResourcesController(rest.RestController):
             pecan.abort(400, e)
         except indexer.ResourceAlreadyExists as e:
             pecan.abort(409, e)
-        pecan.response.headers['Location'] = ("/v1/resource/"
-                                              + self._resource_type + "/"
-                                              + resource['id'])
+        set_resp_location_hdr("/v1/resource/"
+                              + self._resource_type + "/"
+                              + resource['id'])
         pecan.response.status = 201
         return resource
 
