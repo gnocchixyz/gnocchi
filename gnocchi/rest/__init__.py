@@ -229,6 +229,18 @@ class EntityController(rest.RestController):
             pecan.abort(400, "Invalid aggregation value %s, must be one of %s"
                         % (aggregation, str(storage.AGGREGATION_TYPES)))
 
+        if start is not None:
+            try:
+                start = Timestamp(start)
+            except Exception:
+                pecan.abort(400, "Invalid value for start")
+
+        if stop is not None:
+            try:
+                stop = Timestamp(stop)
+            except Exception:
+                pecan.abort(400, "Invalid value for stop")
+
         try:
             # Replace timestamp keys by their string versions
             return dict((timeutils.strtime(k), v)

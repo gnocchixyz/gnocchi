@@ -273,12 +273,8 @@ class TimeSerieArchive(object):
 
     def fetch(self, from_timestamp=None, to_timestamp=None):
         result = pandas.Series()
-        fts = pandas.Timestamp(from_timestamp,
-                               unit='s') if from_timestamp else None
-        tts = pandas.Timestamp(to_timestamp,
-                               unit='s') if to_timestamp else None
         for ts in self.agg_timeseries:
-            result = result.combine_first(ts[fts:tts])
+            result = result.combine_first(ts[from_timestamp:to_timestamp])
         return dict(result)
 
     def __eq__(self, other):

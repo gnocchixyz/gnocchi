@@ -8,7 +8,7 @@ oslo.serialization>=1.0.0
 oslo.utils>=0.3.0
 oslotest
 pandas
-pecan
+pecan<0.8
 posix_ipc
 python-swiftclient
 pytimeparse

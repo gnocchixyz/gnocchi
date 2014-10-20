@@ -70,12 +70,13 @@ class TestStorageDriver(tests.TestCase):
 
         values = self.storage.get_measures(
             'foo',
-            from_timestamp='2014-01-01 12:10:00')
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 0))
         self.assertEqual(1, len(values))
         self.assertEqual(44, values[datetime.datetime(2014, 1, 1, 12, 10, 0)])
 
-        values = self.storage.get_measures('foo',
-                                           to_timestamp='2014-01-01 12:05:00')
+        values = self.storage.get_measures(
+            'foo',
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 5, 0))
         self.assertEqual(3, len(values))
         self.assertEqual(39.75, values[datetime.datetime(2014, 1, 1, 0, 0, 0)])
         self.assertEqual(69, values[datetime.datetime(2014, 1, 1, 12, 0, 0)])
@@ -83,14 +84,14 @@ class TestStorageDriver(tests.TestCase):
 
         values = self.storage.get_measures(
             'foo',
-            to_timestamp='2014-01-01 12:10:10',
-            from_timestamp='2014-01-01 12:10:10')
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10),
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10))
         self.assertEqual({}, values)
 
         values = self.storage.get_measures(
             'foo',
-            from_timestamp='2014-01-01 12:00:00',
-            to_timestamp='2014-01-01 12:00:02')
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2))
         self.assertEqual(1, len(values))
         self.assertEqual(69, values[datetime.datetime(2014, 1, 1, 12, 0, 0)])
 
