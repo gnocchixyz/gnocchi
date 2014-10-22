@@ -27,7 +27,7 @@ import webtest
 
 from gnocchi import rest
 from gnocchi.rest import app
-from gnocchi import tests
+from gnocchi.tests import base as tests_base
 
 
 load_tests = testscenarios.load_tests_apply_scenarios
@@ -74,7 +74,7 @@ class TestingApp(webtest.TestApp):
         return super(TestingApp, self).do_request(req, *args, **kwargs)
 
 
-class RestTest(tests.TestCase):
+class RestTest(tests_base.TestCase):
     def setUp(self):
         super(RestTest, self).setUp()
         c = {}

@@ -21,12 +21,12 @@ import testscenarios
 
 from gnocchi import storage
 from gnocchi.storage import null
-from gnocchi import tests
+from gnocchi.tests import base as tests_base
 
 load_tests = testscenarios.load_tests_apply_scenarios
 
 
-class TestStorageDriver(tests.TestCase):
+class TestStorageDriver(tests_base.TestCase):
     def test_get_driver(self):
         self.conf.set_override('driver', 'null', 'storage')
         driver = storage.get_driver(self.conf)
