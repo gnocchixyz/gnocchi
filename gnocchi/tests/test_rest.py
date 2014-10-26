@@ -893,6 +893,16 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/entity/" + str(entity_id) + "/measures")
         self.assertEqual(200, result.status_code)
 
+    def test_list_resources_with_null_field(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes,
+                           status=201)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "?ended_at=",
+                              status=200)
+        self.assertGreaterEqual(len(json.loads(result.text)), 1)
+
     def test_list_resources_by_unknown_field(self):
         result = self.app.get("/v1/resource/" + self.resource_type,
                               params={"foo": "bar"},
