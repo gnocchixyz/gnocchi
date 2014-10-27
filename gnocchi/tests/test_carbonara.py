@@ -31,47 +31,42 @@ class TestBoundTimeSerie(testtools.TestCase):
                                   datetime.datetime(2014, 1, 1, 12, 0, 9)],
                                  [3, 5, 6])
 
-    def test_timespan(self):
+    def test_block_size(self):
         ts = carbonara.BoundTimeSerie(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6],
-            timespan='5s')
+            block_size='5s')
+        self.assertEqual(len(ts), 1)
+        ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 10), 3),
+                       (datetime.datetime(2014, 1, 1, 12, 0, 11), 4)])
         self.assertEqual(len(ts), 2)
+
+    def test_block_size_back_window(self):
+        ts = carbonara.BoundTimeSerie(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 4),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            [3, 5, 6],
+            block_size='5s',
+            back_window=1)
+        self.assertEqual(len(ts), 3)
         ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 10), 3),
                        (datetime.datetime(2014, 1, 1, 12, 0, 11), 4)])
         self.assertEqual(len(ts), 3)
 
-    def test_timespan_unordered(self):
+    def test_block_size_unordered(self):
         ts = carbonara.BoundTimeSerie(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 9),
              datetime.datetime(2014, 1, 1, 12, 0, 5)],
             [10, 5, 23],
-            timespan='5s')
+            block_size='5s')
         self.assertEqual(len(ts), 2)
         ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 11), 3),
                        (datetime.datetime(2014, 1, 1, 12, 0, 10), 4)])
-        self.assertEqual(len(ts), 3)
-
-    def test_timespan_timelimit(self):
-        ts = carbonara.BoundTimeSerie(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 4),
-             datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6],
-            timespan='5s')
         self.assertEqual(len(ts), 2)
-        ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 10), 3),
-                       (datetime.datetime(2014, 1, 1, 12, 0, 11), 4)])
-        self.assertEqual(len(ts), 3)
-
-        self.assertRaises(
-            carbonara.NoDeloreanAvailable,
-            ts.set_values,
-            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 42)],
-        )
 
 
 class TestAggregatedTimeSerie(testtools.TestCase):
@@ -164,30 +159,9 @@ class TestAggregatedTimeSerie(testtools.TestCase):
              datetime.datetime(2014, 1, 1, 12, 3, 12)],
             [3, 5, 7, 100],
             sampling='1Min',
-            block_size='1Min',
             max_size=10)
         s = ts.serialize()
         self.assertEqual(ts, carbonara.AggregatedTimeSerie.unserialize(s))
-
-    def test_truncate_block_size(self):
-        ts = carbonara.AggregatedTimeSerie(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 5),
-             datetime.datetime(2014, 1, 1, 12, 1, 4),
-             datetime.datetime(2014, 1, 1, 12, 1, 9),
-             datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 8, 5, 7, 1],
-            max_size=5,
-            block_size=pandas.tseries.offsets.Minute(1))
-        self.assertEqual(5, len(ts))
-        ts.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 19), 123)])
-        self.assertEqual(4, len(ts))
-        self.assertEqual(5, ts[datetime.datetime(2014, 1, 1, 12, 1, 4)])
-        self.assertEqual(7, ts[datetime.datetime(2014, 1, 1, 12, 1, 9)])
-        self.assertEqual(1, ts[datetime.datetime(2014, 1, 1, 12, 2, 12)])
-        self.assertEqual(123, ts[datetime.datetime(2014, 1, 1, 12, 3, 19)])
-        ts.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 20), 124)])
-        self.assertEqual(5, len(ts))
 
 
 class TestTimeSerieArchive(testtools.TestCase):
@@ -209,7 +183,7 @@ class TestTimeSerieArchive(testtools.TestCase):
         self.assertEqual(5.5, r[datetime.datetime(2014, 1, 1, 12, 1, 0)])
         self.assertEqual(8, r[datetime.datetime(2014, 1, 1, 12, 2, 0)])
 
-        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 10), 11)])
+        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 11)])
 
         r = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
 
@@ -238,7 +212,7 @@ class TestTimeSerieArchive(testtools.TestCase):
         self.assertAlmostEqual(9.8994949366116654,
                                r[datetime.datetime(2014, 1, 1, 12, 2, 0)])
 
-        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 10), 110)])
+        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)])
 
         r = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
 
@@ -267,7 +241,7 @@ class TestTimeSerieArchive(testtools.TestCase):
         self.assertEqual(7, r[datetime.datetime(2014, 1, 1, 12, 1, 0)])
         self.assertEqual(15, r[datetime.datetime(2014, 1, 1, 12, 2, 0)])
 
-        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 10), 110)])
+        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)])
 
         r = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
 
@@ -303,7 +277,6 @@ class TestTimeSerieArchive(testtools.TestCase):
                                       u'2013-01-01 23:45:10.672000': 10.0},
                            'timespan': u'120S'},
              'archives': [{'aggregation_method': u'std',
-                           'block_size': u'60S',
                            'values': {u'2013-01-01 23:40:00':
                                       3.0276503540974917,
                                       u'2013-01-01 23:45:00':
@@ -332,7 +305,6 @@ class TestTimeSerieArchive(testtools.TestCase):
         d = {'timeserie': {'values': {},
                            'timespan': u'120S'},
              'archives': [{'aggregation_method': u'mean',
-                           'block_size': u'60S',
                            'values': {},
                            'max_size': 3600,
                            'sampling': u'60S'}]}
@@ -351,3 +323,31 @@ class TestTimeSerieArchive(testtools.TestCase):
             # we expect all 10 of the *aggregated* (as opposed to raw)
             # datapoints not to be discarded
             self.assertEqual(i, len(d['archives'][0]['values']))
+
+    def test_back_window(self):
+        """Back window testing.
+
+        Test the the back window on an archive is not longer than the window we
+        aggregate on.
+        """
+        ts = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Second(1), 60)])
+
+        ts.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 1, 2300), 1),
+            (datetime.datetime(2014, 1, 1, 12, 0, 1, 4600), 2),
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 4500), 3),
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 7800), 4),
+            (datetime.datetime(2014, 1, 1, 12, 0, 3, 8), 2.5),
+        ])
+
+        self.assertEqual(ts.fetch(),
+                         {datetime.datetime(2014, 1, 1, 12, 0, 1): 1.5,
+                          datetime.datetime(2014, 1, 1, 12, 0, 2): 3.5,
+                          datetime.datetime(2014, 1, 1, 12, 0, 3): 2.5})
+
+        self.assertRaises(carbonara.NoDeloreanAvailable,
+                          ts.set_values,
+                          [
+                              (datetime.datetime(2014, 1, 1, 12, 0, 1, 99), 9),
+                          ])
