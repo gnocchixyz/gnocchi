@@ -163,15 +163,14 @@ endpoint:
     Content-Type: application/json
 
     [
-      {
-        "timestamp": "2014-10-06T14:33:00",
-        "value": 43.1
-      },
-      {
-        "timestamp": "2014-10-06T14:34:00",
-        "value": 7
-      }
+      ["2014-10-06T14:30:00", 300.0, 22.7],
+      ["2014-10-06T14:33:00", 60.0, 43.1],
+      ["2014-10-06T14:34:00", 60.0, 7]
     ]
+
+The list of points returned is composed of tuples with (timestamp, granularity,
+value) sorted by timestamp. The granularity is the timespan covered by
+aggregation for this point.
 
 It is possible to filter the measures over a time range by specifying the
 *start* and/or *stop* parameters to the query with timestamp. The timestamp
@@ -186,10 +185,7 @@ timestamp:
     Content-Type: application/json
 
     [
-      {
-        "timestamp": "2014-10-06T14:34:00",
-        "value": 7
-      }
+      ["2014-10-06T14:34:00", 60.0, 7]
     ]
 
 By default, the aggregated values that are returned use the *mean* aggregation
@@ -204,14 +200,8 @@ method. It is possible to request for any other method by specifying the
     Content-Type: application/json
 
     [
-      {
-        "timestamp": "2014-10-06T14:33:00",
-        "value": 43.1
-      },
-      {
-        "timestamp": "2014-10-06T14:34:00",
-        "value": 12
-      }
+      ["2014-10-06T14:33:00", 60.0, 43.1],
+      ["2014-10-06T14:34:00", 60.0, 12]
     ]
 
 The list of aggregation method available is: *mean*, *sum*, *last*, *max*,
@@ -679,10 +669,7 @@ usual `/v1/entity` endpoint or using the named relationship with the resource:
     Content-Type: application/json
 
     [
-      {
-        "timestamp": "2014-10-06T14:34:00",
-        "value": 7
-      }
+      ["2014-10-06T14:34:00", 60.0, 7]
     ]
 
 The same endpoint can be used to append entities to a resource:

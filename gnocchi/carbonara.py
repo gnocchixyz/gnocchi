@@ -34,7 +34,8 @@ class TimeSerie(object):
         self.ts = self.ts.sort_index()
 
     def __eq__(self, other):
-        return self.ts.all() == other.ts.all()
+        return (isinstance(other, TimeSerie)
+                and self.ts.all() == other.ts.all())
 
     def __getitem__(self, key):
         return self.ts[key]
@@ -176,7 +177,8 @@ class AggregatedTimeSerie(TimeSerie):
         self.max_size = max_size
 
     def __eq__(self, other):
-        return (self.ts.all() == other.ts.all()
+        return (isinstance(other, AggregatedTimeSerie)
+                and super(AggregatedTimeSerie, self).__eq__(other)
                 and self.max_size == other.max_size
                 and self.sampling == other.sampling
                 and self.aggregation_method == other.aggregation_method)
@@ -270,13 +272,27 @@ class TimeSerieArchive(object):
                     for sampling, size in definitions])
 
     def fetch(self, from_timestamp=None, to_timestamp=None):
-        result = pandas.Series()
+        """Fetch aggregated time value.
+
+        Returns a sorted list of tuples (timestamp, offset, value).
+        """
+        result = []
         for ts in self.agg_timeseries:
-            result = result.combine_first(ts[from_timestamp:to_timestamp])
-        return dict(result)
+            if result:
+                # Change to_timestamp not to override more precise points we
+                # already have
+                to_timestamp = result[0][0]
+            offset = ts.sampling.nanos / 1000000000.0
+            points = [(timestamp, offset, value)
+                      for timestamp, value
+                      in six.iteritems(ts[from_timestamp:to_timestamp])]
+            points.extend(result)
+            result = points
+        return result
 
     def __eq__(self, other):
-        return (self.timeserie == other.timeserie
+        return (isinstance(other, TimeSerieArchive)
+                and self.timeserie == other.timeserie
                 and self.agg_timeseries == other.agg_timeseries)
 
     def _update_aggregated_timeseries(self, timeserie):

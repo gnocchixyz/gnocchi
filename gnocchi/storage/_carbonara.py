@@ -57,7 +57,7 @@ class CarbonaraBasedStorage(storage.StorageDriver, storage.CoordinatorMixin):
                      aggregation='mean'):
         contents = self._get_measures(entity, aggregation)
         archive = carbonara.TimeSerieArchive.unserialize(contents)
-        return dict(archive.fetch(from_timestamp, to_timestamp))
+        return archive.fetch(from_timestamp, to_timestamp)
 
     def add_measures(self, entity, measures):
         # We are going to iterate multiple time over measures, so if it's a

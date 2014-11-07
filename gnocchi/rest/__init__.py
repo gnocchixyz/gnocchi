@@ -287,11 +287,11 @@ class EntityController(rest.RestController):
                 pecan.abort(400, "Invalid value for stop")
 
         try:
-            # Replace timestamp keys by their string versions
-            return dict((timeutils.strtime(k), v)
-                        for k, v
-                        in six.iteritems(pecan.request.storage.get_measures(
-                            self.entity_id, start, stop, aggregation)))
+            # Replace timestamps by their string versions
+            return [(timeutils.strtime(timestamp), offset, v)
+                    for timestamp, offset, v
+                    in pecan.request.storage.get_measures(
+                        self.entity_id, start, stop, aggregation)]
         except storage.EntityDoesNotExist as e:
             pecan.abort(404, str(e))
 
