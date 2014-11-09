@@ -39,7 +39,20 @@ To create an entity, the following API request should be used:
       "archive_policy": "medium"
     }
 
-Once created, it is possible to send metrics to the entity:
+Once created, you can retrieve the entity information:
+
+::
+
+  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
+
+  ◀ HTTP/1.1 200 Ok
+    Content-Type: application/json
+
+    {
+      "archive_policy": "medium"
+    }
+
+It is possible to send metrics to the entity:
 
 ::
 

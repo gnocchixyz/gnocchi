@@ -221,6 +221,14 @@ class EntityController(rest.RestController):
         voluptuous.Required("value"): voluptuous.Any(float, int),
     }])
 
+    @pecan.expose('json')
+    def get(self):
+        entity = pecan.request.indexer.get_resource(
+            'entity', self.entity_id)
+        if entity:
+            return entity
+        pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+
     @vexpose(Measures)
     def post_measures(self, body):
         try:
