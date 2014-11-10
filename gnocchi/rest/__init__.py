@@ -121,6 +121,21 @@ def Timespan(value):
     return seconds
 
 
+def get_details(params):
+    type, options = werkzeug.http.parse_options_header(
+        pecan.request.headers.get('Accept'))
+    try:
+        details = strutils.bool_from_string(
+            options.get('details', params.pop('details', 'false')),
+            strict=True)
+    except ValueError as e:
+        method = 'Accept' if 'details' in options else 'query'
+        pecan.abort(
+            400,
+            "Unable to parse details value in %s: %s" % (method, str(e)))
+    return details
+
+
 class ArchivePolicyItem(object):
     def __init__(self, granularity=None, points=None, timespan=None):
         unset = [i for i in (granularity, points, timespan) if i is None]
@@ -222,12 +237,20 @@ class EntityController(rest.RestController):
     }])
 
     @pecan.expose('json')
-    def get(self):
+    def get_all(self, **kwargs):
+        details = get_details(kwargs)
         entity = pecan.request.indexer.get_resource(
             'entity', self.entity_id)
-        if entity:
-            return entity
-        pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+        if not entity:
+            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+
+        if details:
+            archive_policy = pecan.request.indexer.get_archive_policy(
+                entity['archive_policy'])
+            entity['archive_policy'] = (
+                ArchivePolicyItem.archive_policy_to_human_readable(
+                    archive_policy))
+        return entity
 
     @vexpose(Measures)
     def post_measures(self, body):
@@ -513,18 +536,7 @@ class GenericResourcesController(rest.RestController):
     def get_all(self, **kwargs):
         started_after = kwargs.pop('started_after', None)
         ended_before = kwargs.pop('ended_before', None)
-
-        type, options = werkzeug.http.parse_options_header(
-            pecan.request.headers.get('Accept'))
-        try:
-            details = strutils.bool_from_string(
-                options.get('details', kwargs.pop('details', 'false')),
-                strict=True)
-        except ValueError as e:
-            method = 'Accept' if 'details' in options else 'query'
-            pecan.abort(
-                400,
-                "Unable to parse details value in %s: %s" % (method, str(e)))
+        details = get_details(kwargs)
 
         if started_after is not None:
             try:

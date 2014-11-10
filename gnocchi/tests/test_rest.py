@@ -345,6 +345,71 @@ class EntityTest(RestTest):
         entity = json.loads(result.text)
         self.assertEqual(entity['archive_policy'], "medium")
 
+    def test_get_detailed_entity(self):
+        result = self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": "medium"},
+            status=201)
+
+        result = self.app.get(result.headers['Location'] + '?details=true',
+                              status=200)
+        entity = json.loads(result.text)
+        self.assertEqual(
+            {"name": "medium",
+             "definition": [
+                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 for d in self.archive_policies['medium']
+             ]},
+            entity['archive_policy'])
+
+    def test_get_entity_with_detail_in_accept(self):
+        result = self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": "medium"},
+            status=201)
+
+        result = self.app.get(
+            result.headers['Location'],
+            headers={"Accept": "application/json; details=true"},
+            status=200)
+
+        entity = json.loads(result.text)
+        self.assertEqual(
+            {"name": "medium",
+             "definition": [
+                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 for d in self.archive_policies['medium']
+             ]},
+            entity['archive_policy'])
+
+    def test_get_detailed_entity_with_bad_details(self):
+        result = self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": "medium"},
+            status=201)
+
+        result = self.app.get(result.headers['Location'] + '?details=awesome',
+                              status=400)
+        self.assertIn(
+            b"Unable to parse details value in query: "
+            b"Unrecognized value 'awesome', acceptable values are",
+            result.body)
+
+    def test_get_entity_with_bad_detail_in_accept(self):
+        result = self.app.post_json(
+            "/v1/entity",
+            params={"archive_policy": "medium"},
+            status=201)
+
+        result = self.app.get(
+            result.headers['Location'],
+            headers={"Accept": "application/json; details=awesome"},
+            status=400)
+        self.assertIn(
+            b"Unable to parse details value in Accept: "
+            b"Unrecognized value 'awesome', acceptable values are",
+            result.body)
+
     def test_get_entity_with_wrong_entity_id(self):
         fake_entity_id = uuid.uuid4()
         result = self.app.get("/v1/entity/%s" % fake_entity_id, status=404)
