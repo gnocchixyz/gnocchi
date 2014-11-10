@@ -52,6 +52,72 @@ Once created, you can retrieve the entity information:
       "archive_policy": "medium"
     }
 
+You can retrieve the archive policy definitions by adding a *details* parameter
+to this request:
+
+::
+
+  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03?details=true
+
+  ◀ HTTP/1.1 200 Ok
+    Content-Type: application/json
+
+    {
+      "archive_policy": {
+        "definition": [
+          {
+            "points": 60,
+            "timespan": "1:00:00",
+            "granularity": "0:01:00"
+          },
+          {
+            "points": 168,
+            "timespan": "7 days, 0:00:00",
+            "granularity": "1:00:00"
+          },
+          {
+            "points": 365,
+            "timespan": "365 days, 0:00:00",
+            "granularity": "1 day, 0:00:00"
+          }
+        ],
+        "name": "medium"
+      }
+    }
+
+It is also possible to send the *details* parameter in the *Accept* header:
+
+::
+
+  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
+    Accept: application/json; details=true
+
+  ◀ HTTP/1.1 200 Ok
+    Content-Type: application/json
+
+    {
+      "archive_policy": {
+        "definition": [
+          {
+            "points": 60,
+            "timespan": "1:00:00",
+            "granularity": "0:01:00"
+          },
+          {
+            "points": 168,
+            "timespan": "7 days, 0:00:00",
+            "granularity": "1:00:00"
+          },
+          {
+            "points": 365,
+            "timespan": "365 days, 0:00:00",
+            "granularity": "1 day, 0:00:00"
+          }
+        ],
+        "name": "medium"
+      }
+    }
+
 It is possible to send metrics to the entity:
 
 ::
