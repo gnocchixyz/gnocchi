@@ -28,9 +28,11 @@ from pecan import rest
 from pytimeparse import timeparse
 import six
 from six.moves.urllib import parse as urllib_parse
+from stevedore import extension
 import voluptuous
 import werkzeug.http
 
+from gnocchi import aggregates
 from gnocchi import indexer
 from gnocchi.openstack.common import policy
 from gnocchi import storage
@@ -274,6 +276,9 @@ class MetricController(rest.RestController):
 
     def __init__(self, metric_id):
         self.metric_id = metric_id
+        mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
+                                         invoke_on_load=True)
+        self.custom_agg = dict((x.name, x.obj) for x in mgr)
 
     Measures = voluptuous.Schema([{
         voluptuous.Required("timestamp"):
@@ -321,11 +326,15 @@ class MetricController(rest.RestController):
                         % (e.bad_timestamp, e.first_timestamp))
 
     @pecan.expose('json')
-    def get_measures(self, start=None, stop=None, aggregation='mean'):
+    def get_measures(self, start=None, stop=None, aggregation='mean', **param):
         self.enforce_metric("get measures")
-        if aggregation not in storage.AGGREGATION_TYPES:
-            pecan.abort(400, "Invalid aggregation value %s, must be one of %s"
-                        % (aggregation, str(storage.AGGREGATION_TYPES)))
+        if not (aggregation in storage.AGGREGATION_TYPES or aggregation in
+                self.custom_agg):
+            msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
+                     or %(custom)s'''
+            pecan.abort(400, msg % dict(agg=aggregation,
+                                        std=str(storage.AGGREGATION_TYPES),
+                                        custom=str(self.custom_agg.keys())))
 
         if start is not None:
             try:
@@ -340,13 +349,21 @@ class MetricController(rest.RestController):
                 pecan.abort(400, "Invalid value for stop")
 
         try:
-            # Replace timestamps by their string versions
+            if aggregation in self.custom_agg:
+                measures = self.custom_agg[aggregation].compute(
+                    pecan.request.storage, self.metric_id, start, stop,
+                    **param)
+            else:
+                measures = pecan.request.storage.get_measures(self.metric_id,
+                                                              start, stop,
+                                                              aggregation)
+            # Replace timestamp keys by their string versions
             return [(timeutils.strtime(timestamp), offset, v)
-                    for timestamp, offset, v
-                    in pecan.request.storage.get_measures(
-                        self.metric_id, start, stop, aggregation)]
+                    for timestamp, offset, v in measures]
         except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
+        except aggregates.CustomAggFailure as e:
+            pecan.abort(400, str(e))
 
     @pecan.expose()
     def delete(self):
