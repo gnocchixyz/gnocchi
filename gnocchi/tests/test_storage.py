@@ -82,7 +82,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 23.0),
         ], self.storage.get_measures(
             'foo',
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 5, 0)))
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 6, 0)))
 
         self.assertEqual(
             [],

@@ -556,7 +556,7 @@ class EntityTest(RestTest):
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 456}])
         ret = self.app.get("/v1/entity/%s/measures"
-                           "?stop=2013-01-01 12:00:00" % entity['id'],
+                           "?stop=2013-01-01 12:00:01" % entity['id'],
                            status=200)
         result = json.loads(ret.text)
         self.assertEqual(
