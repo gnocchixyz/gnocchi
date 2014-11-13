@@ -118,6 +118,21 @@ class ArchivePolicyTest(RestTest):
             "timespan": "0:20:00",
         }], ap['definition'])
 
+    def test_post_archive_policy_invalid_multiple(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition":
+                    [{
+                        "granularity": "1 minute",
+                        "points": 20,
+                        "timespan": "3 hours",
+                    }]},
+            status=400)
+        self.assertIn(b'Inconsistent granularity/points/timespan',
+                      result.body)
+
     def test_post_archive_policy_unicode(self):
         name = u'æ' + str(uuid.uuid4())
         result = self.app.post_json(
@@ -222,35 +237,11 @@ class ArchivePolicyTest(RestTest):
                            'points': 1800,
                            'timespan': '1:00:00'}], ap['definition'])
 
-    def test_post_archive_policy_invalid_timespan(self):
+    def test_post_archive_policy_invalid_unit(self):
         self.app.post_json(
             "/v1/archive_policy",
             params={"name": str(uuid.uuid4()),
                     "definition": [{
-                        "granularity": "10s",
-                        "timespan": "1 shenanigan",
-                    }]},
-            expect_errors=True,
-            status=400)
-
-    def test_post_archive_policy_too_many_fields(self):
-        self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": str(uuid.uuid4()),
-                    "definition": [{
-                        "points": 30,
-                        "granularity": "10s",
-                        "timespan": "1 hour",
-                    }]},
-            expect_errors=True,
-            status=400)
-
-    def test_post_archive_policy_too_many_fields_with_invalid(self):
-        self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": str(uuid.uuid4()),
-                    "definition": [{
-                        "points": 30,
                         "granularity": "10s",
                         "timespan": "1 shenanigan",
                     }]},

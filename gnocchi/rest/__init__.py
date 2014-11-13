@@ -183,22 +183,22 @@ class ArchivePoliciesController(rest.RestController):
     ArchivePolicy = voluptuous.Schema({
         voluptuous.Required("name"): six.text_type,
         voluptuous.Required("definition"):
-        voluptuous.All([
-            voluptuous.Any({
-                voluptuous.Required("granularity"): Timespan,
-                voluptuous.Required("points"): PositiveNotNullInt,
-            }, {
-                voluptuous.Required("granularity"): Timespan,
-                voluptuous.Required("timespan"): Timespan,
-            }, {
-                voluptuous.Required("points"): PositiveNotNullInt,
-                voluptuous.Required("timespan"): Timespan,
-            })], voluptuous.Length(min=1))
+        voluptuous.All([{
+            "granularity": Timespan,
+            "points": PositiveNotNullInt,
+            "timespan": Timespan,
+            }], voluptuous.Length(min=1)),
         })
 
     @staticmethod
     @vexpose(ArchivePolicy, 'json')
     def post(body):
+        # Validate the data
+        for ap_def in body['definition']:
+            try:
+                ArchivePolicyItem(**ap_def)
+            except ValueError as e:
+                pecan.abort(400, e)
         # TODO(jd) Use RBAC policy to limit which user can create a policy
         try:
             ap = pecan.request.indexer.create_archive_policy(**body)
