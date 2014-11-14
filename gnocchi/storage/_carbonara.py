@@ -15,7 +15,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import threading
+
 import pandas
+import six.moves.queue
 
 from gnocchi import carbonara
 from gnocchi import storage
@@ -59,11 +62,8 @@ class CarbonaraBasedStorage(storage.StorageDriver, storage.CoordinatorMixin):
         archive = carbonara.TimeSerieArchive.unserialize(contents)
         return archive.fetch(from_timestamp, to_timestamp)
 
-    def add_measures(self, entity, measures):
-        # We are going to iterate multiple time over measures, so if it's a
-        # generator we need to build a list out of it right now.
-        measures = list(measures)
-        for aggregation in self.aggregation_types:
+    def _add_measures(self, aggregation, entity, measures, exceptions):
+        try:
             lock_name = (b"gnocchi-" + entity.encode('ascii')
                          + b"-" + aggregation.encode('ascii'))
             lock = self.coord.get_lock(lock_name)
@@ -73,3 +73,24 @@ class CarbonaraBasedStorage(storage.StorageDriver, storage.CoordinatorMixin):
                 archive.set_values([(m.timestamp, m.value) for m in measures])
                 self._store_entity_measures(entity, aggregation,
                                             archive.serialize())
+        except Exception as e:
+            exceptions.put(e)
+            return
+
+    def add_measures(self, entity, measures):
+        # We are going to iterate multiple time over measures, so if it's a
+        # generator we need to build a list out of it right now.
+        measures = list(measures)
+        threads = []
+        exceptions = six.moves.queue.Queue()
+        for aggregation in self.aggregation_types:
+            t = threading.Thread(target=self._add_measures,
+                                 args=(aggregation, entity,
+                                       measures, exceptions))
+            t.start()
+            threads.append(t)
+        for t in threads:
+            t.join()
+        if not exceptions.empty():
+            # Only raise the first one, not much choice
+            raise exceptions.get()
