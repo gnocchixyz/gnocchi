@@ -277,15 +277,22 @@ class TimeSerieArchive(object):
         Returns a sorted list of tuples (timestamp, offset, value).
         """
         result = []
+        end_timestamp = to_timestamp
         for ts in self.agg_timeseries:
             if result:
                 # Change to_timestamp not to override more precise points we
                 # already have
                 to_timestamp = result[0][0]
             offset = ts.sampling.nanos / 1000000000.0
+            points = ts[from_timestamp:to_timestamp]
+            try:
+                # Do not include stop timestamp
+                del points[end_timestamp]
+            except KeyError:
+                pass
             points = [(timestamp, offset, value)
                       for timestamp, value
-                      in six.iteritems(ts[from_timestamp:to_timestamp])]
+                      in six.iteritems(points)]
             points.extend(result)
             result = points
         return result

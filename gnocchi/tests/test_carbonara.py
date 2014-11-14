@@ -314,7 +314,7 @@ class TestTimeSerieArchive(testtools.TestCase):
         measure = timeseries.fetch()
         self.assertEqual(2, len(measure))
         measure = timeseries.fetch('2013-01-01 23:45:00',
-                                   '2013-01-01 23:45:00')
+                                   '2013-01-01 23:46:00')
         self.assertEqual(pandas.Timestamp('2013-01-01 23:45:00'),
                          measure[0][0])
         self.assertAlmostEquals(measure[0][2], 3.0276503540974917)
