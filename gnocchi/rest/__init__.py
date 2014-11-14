@@ -265,8 +265,6 @@ class EntityController(rest.RestController):
         except carbonara.NoDeloreanAvailable as e:
             pecan.abort(400, "One of the measure is too old considering the "
                         "archive policy used by this entity")
-        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
-        pecan.response.status = 204
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean'):
@@ -302,8 +300,6 @@ class EntityController(rest.RestController):
         except storage.EntityDoesNotExist as e:
             pecan.abort(404, str(e))
         pecan.request.indexer.delete_entity(self.entity_id)
-        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
-        pecan.response.status = 204
 
 
 EntitySchemaDefinition = {
@@ -390,7 +386,6 @@ class NamedEntityController(rest.RestController):
             pecan.abort(409, e)
         except indexer.NoSuchResource as e:
             pecan.abort(404, e)
-        pecan.response.status = 204
 
 
 Entities = voluptuous.Schema({
@@ -445,8 +440,6 @@ class GenericResourceController(rest.RestController):
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.ResourcePatch)
-        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
-        pecan.response.status = 204
         if len(body) == 0:
             # Empty update, just check if the resource exists
             if pecan.request.indexer.get_resource(
@@ -473,8 +466,6 @@ class GenericResourceController(rest.RestController):
             pecan.request.indexer.delete_resource(self.id)
         except indexer.NoSuchResource as e:
             pecan.abort(400, str(e))
-        # NOTE(jd) Until https://bugs.launchpad.net/pecan/+bug/1311629 is fixed
-        pecan.response.status = 204
 
 
 class SwiftAccountResourceController(GenericResourceController):
