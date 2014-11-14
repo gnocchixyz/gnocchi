@@ -539,6 +539,10 @@ class GenericResourcesController(rest.RestController):
                 ended_before = Timestamp(ended_before)
             except Exception:
                 pecan.abort(400, "Unable to parse ended_before timestamp")
+        # Transform empty string to None (NULL)
+        for k, v in six.iteritems(kwargs):
+            if v == '':
+                kwargs[k] = None
         try:
             return pecan.request.indexer.list_resources(
                 self._resource_type,
