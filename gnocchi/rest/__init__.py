@@ -138,22 +138,31 @@ def get_details(params):
 
 class ArchivePolicyItem(object):
     def __init__(self, granularity=None, points=None, timespan=None):
-        unset = [i for i in (granularity, points, timespan) if i is None]
-        if len(unset) > 1:
-            raise ValueError(
-                "At least two of granularity/points/timespan must be provided")
-        elif len(unset) == 0 and timespan != granularity * points:
-            raise ValueError("Inconsistent granularity/points/timespan")
+        if (granularity is not None
+           and points is not None
+           and timespan is not None):
+            if timespan != granularity * points:
+                raise ValueError(
+                    u"timespan ≠ granularity × points")
 
         if granularity is None:
+            if points is None or timespan is None:
+                raise ValueError(
+                    "At least two of granularity/points/timespan "
+                    "must be provided")
             granularity = round(timespan / float(points))
 
         if points is None:
-            points = int(timespan / granularity)
+            if timespan is None:
+                self.timespan = None
+            else:
+                points = int(timespan / granularity)
+                self.timespan = granularity * points
+        else:
+            self.timespan = granularity * points
 
         self.points = points
         self.granularity = granularity
-        self.timespan = granularity * points
 
     def to_dict(self):
         return {
@@ -166,10 +175,12 @@ class ArchivePolicyItem(object):
         """Return a dict representation with human readable values."""
         return {
             'timespan': six.text_type(
-                datetime.timedelta(seconds=self.timespan)),
+                datetime.timedelta(seconds=self.timespan))
+            if self.timespan is not None
+            else None,
             'granularity': six.text_type(
                 datetime.timedelta(seconds=self.granularity)),
-            'points': self.points
+            'points': self.points,
         }
 
     @classmethod
