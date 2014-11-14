@@ -36,7 +36,7 @@ class CarbonaraBasedStorage(storage.StorageDriver, storage.CoordinatorMixin):
     def create_entity(self, entity, archive_policy):
         self._create_entity_container(entity)
         for aggregation in self.aggregation_types:
-            # TODO(jd) Having the TimeSerieArchive.timeserie duplicated in
+            # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
             # each archive isn't the most efficient way of doing things. We
             # may want to store it as its own object.
             # TODO(jd) We should not use Pandas here

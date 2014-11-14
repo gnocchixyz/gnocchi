@@ -97,6 +97,9 @@ class BoundTimeSerie(TimeSerie):
                  block_size=None, back_window=0):
         """A time serie that is limited in size.
 
+        Used to represent the full-resolution buffer of incoming raw
+        datapoints associated with a metric.
+
         The maximum size of this time serie is expressed in a number of block
         size, called the back window.
         When the timeserie is truncated, a whole block is removed.
@@ -171,6 +174,12 @@ class AggregatedTimeSerie(TimeSerie):
     def __init__(self, timestamps=None, values=None,
                  max_size=None,
                  sampling=None, aggregation_method='mean'):
+        """A time serie that is downsampled.
+
+        Used to represent the downsampled timeserie for a single
+        granularity/aggregation-function pair stored for a metric.
+
+        """
         super(AggregatedTimeSerie, self).__init__(timestamps, values)
         self.aggregation_method = aggregation_method
         self.sampling = pandas.tseries.frequencies.to_offset(sampling)
@@ -244,8 +253,18 @@ class AggregatedTimeSerie(TimeSerie):
 
 class TimeSerieArchive(object):
 
-    def __init__(self, timeserie, agg_timeseries):
-        self.timeserie = timeserie
+    def __init__(self, full_res_timeserie, agg_timeseries):
+        """A raw data buffer and a collection of downsampled timeseries.
+
+        Used to represent the set of AggregatedTimeSeries for the range of
+        granularities supported for a metric (for a particular aggregation
+        function).
+
+        In addition, a single BoundTimeSerie acts as the buffer for full-
+        resolution datapoints feeding into the eager aggregation.
+
+        """
+        self.full_res_timeserie = full_res_timeserie
         self.agg_timeseries = sorted(agg_timeseries,
                                      key=operator.attrgetter("sampling"))
 
@@ -274,7 +293,7 @@ class TimeSerieArchive(object):
     def fetch(self, from_timestamp=None, to_timestamp=None):
         """Fetch aggregated time value.
 
-        Returns a sorted list of tuples (timestamp, offset, value).
+        Returns a sorted list of tuples (timestamp, granularity, value).
         """
         result = []
         end_timestamp = to_timestamp
@@ -283,14 +302,14 @@ class TimeSerieArchive(object):
                 # Change to_timestamp not to override more precise points we
                 # already have
                 to_timestamp = result[0][0]
-            offset = ts.sampling.nanos / 1000000000.0
+            granularity = ts.sampling.nanos / 1000000000.0
             points = ts[from_timestamp:to_timestamp]
             try:
                 # Do not include stop timestamp
                 del points[end_timestamp]
             except KeyError:
                 pass
-            points = [(timestamp, offset, value)
+            points = [(timestamp, granularity, value)
                       for timestamp, value
                       in six.iteritems(points)]
             points.extend(result)
@@ -299,7 +318,7 @@ class TimeSerieArchive(object):
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerieArchive)
-                and self.timeserie == other.timeserie
+                and self.full_res_timeserie == other.full_res_timeserie
                 and self.agg_timeseries == other.agg_timeseries)
 
     def _update_aggregated_timeseries(self, timeserie):
@@ -307,13 +326,13 @@ class TimeSerieArchive(object):
             agg.update(timeserie)
 
     def set_values(self, values):
-        self.timeserie.set_values(
+        self.full_res_timeserie.set_values(
             values,
             before_truncate_callback=self._update_aggregated_timeseries)
 
     def to_dict(self):
         return {
-            "timeserie": self.timeserie.to_dict(),
+            "timeserie": self.full_res_timeserie.to_dict(),
             "archives": [ts.to_dict() for ts in self.agg_timeseries],
         }
 
