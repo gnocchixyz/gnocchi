@@ -28,10 +28,8 @@ class NullStorage(storage.StorageDriver):
             raise storage.EntityAlreadyExists(entity)
         self.entities[entity] = True
 
-    @staticmethod
-    def delete_entity(entity):
-        pass
-
-    @staticmethod
-    def add_measures(entity, measures):
-        pass
+    def delete_entity(self, entity):
+        try:
+            del self.entities[entity]
+        except KeyError:
+            raise storage.EntityDoesNotExist(entity)

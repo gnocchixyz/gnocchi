@@ -138,6 +138,7 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
     ]
 
     storage_backends = [
+        ('null', dict(storage_engine='null')),
         ('swift', dict(storage_engine='swift')),
         ('file', dict(storage_engine='file')),
     ]
