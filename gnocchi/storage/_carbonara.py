@@ -15,19 +15,35 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import random
 import threading
+import uuid
 
 import pandas
 import six.moves.queue
+from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
 
 
-class CarbonaraBasedStorage(storage.StorageDriver, storage.CoordinatorMixin):
+class CarbonaraBasedStorage(storage.StorageDriver):
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
-        self._init_coordinator(conf.coordination_url)
+        self.aggregation_types = list(storage.AGGREGATION_TYPES)
+        self.coord = coordination.get_coordinator(
+            conf.coordination_url,
+            str(uuid.uuid4()).encode('ascii'))
+        self.coord.start()
+        # NOTE(jd) So this is a (smart?) optimization: since we're going to
+        # lock for each of this aggregation type, if we are using running
+        # Gnocchi with multiple processses, let's randomize what we iter
+        # over so there are less chances we fight for the same lock!
+
+        random.shuffle(self.aggregation_types)
+
+    def __del__(self):
+        self.coord.stop()
 
     @staticmethod
     def _create_entity_container(entity):
