@@ -336,11 +336,28 @@ class ArchivePolicyTest(RestTest):
             status=409)
         self.assertIn('Archive policy high already exists', result.text)
 
+    def test_create_archive_policy_with_back_window(self):
+        params = {"name": str(uuid.uuid4()),
+                  "back_window": 1,
+                  "definition": [{
+                      "granularity": "10s",
+                      "points": 20,
+                  }]}
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params=params,
+            status=201)
+        ap = json.loads(result.text)
+        params['definition'][0]['timespan'] = u'0:03:20'
+        params['definition'][0]['granularity'] = u'0:00:10'
+        self.assertEqual(params, ap)
+
     def test_get_archive_policy(self):
         result = self.app.get("/v1/archive_policy/medium")
         ap = json.loads(result.text)
         self.assertEqual(
             {"name": "medium",
+             "back_window": 0,
              "definition": [
                  rest.ArchivePolicyItem(**d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
@@ -358,6 +375,7 @@ class ArchivePolicyTest(RestTest):
         for name, definition in six.iteritems(self.archive_policies):
             self.assertIn(
                 {"name": name,
+                 "back_window": 0,
                  "definition": [
                      rest.ArchivePolicyItem(**d).to_human_readable_dict()
                      for d in definition
@@ -396,6 +414,7 @@ class EntityTest(RestTest):
         entity = json.loads(result.text)
         self.assertEqual(
             {"name": "medium",
+             "back_window": 0,
              "definition": [
                  rest.ArchivePolicyItem(**d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
@@ -416,6 +435,7 @@ class EntityTest(RestTest):
         entity = json.loads(result.text)
         self.assertEqual(
             {"name": "medium",
+             "back_window": 0,
              "definition": [
                  rest.ArchivePolicyItem(**d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
@@ -545,6 +565,55 @@ class EntityTest(RestTest):
         self.assertIn(
             b"Entity " + e1.encode('ascii') + b" does not exist",
             result.body)
+
+    def test_add_measures_back_window(self):
+        ap_name = str(uuid.uuid4())
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": ap_name,
+                    "back_window": 2,
+                    "definition":
+                    [{
+                        "granularity": "1 minute",
+                        "points": 20,
+                    }]},
+            status=201)
+        result = self.app.post_json("/v1/entity",
+                                    params={"archive_policy": ap_name})
+        entity = json.loads(result.text)
+        self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2013-01-01 23:30:23',
+                     "value": 1234.2}],
+            status=204)
+        self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2013-01-01 23:29:23',
+                     "value": 1234.2}],
+            status=204)
+        self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2013-01-01 23:28:23',
+                     "value": 1234.2}],
+            status=204)
+        result = self.app.post_json(
+            "/v1/entity/%s/measures" % entity['id'],
+            params=[{"timestamp": '2012-01-01 23:27:23',
+                     "value": 1234.2}],
+            status=400)
+        self.assertIn(
+            b"The measure for 2012-01-01 23:27:23 is too old considering "
+            b"the archive policy used by this entity. "
+            b"It can only go back to 2013-01-01 23:28:00.",
+            result.body)
+
+        ret = self.app.get("/v1/entity/%s/measures" % entity['id'])
+        result = json.loads(ret.text)
+        self.assertEqual(
+            [[u'2013-01-01T23:28:00.000000', 60.0, 1234.2],
+             [u'2013-01-01T23:29:00.000000', 60.0, 1234.2],
+             [u'2013-01-01T23:30:00.000000', 60.0, 1234.2]],
+            result)
 
     def test_add_measures_too_old(self):
         result = self.app.post_json("/v1/entity",

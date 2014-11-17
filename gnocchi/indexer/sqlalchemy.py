@@ -161,6 +161,7 @@ class ArchivePolicy(Base, GnocchiBase):
     )
 
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
+    back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
     definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
 
 
@@ -270,8 +271,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if entity:
             return self._resource_to_dict(entity)
 
-    def create_archive_policy(self, name, definition):
-        ap = ArchivePolicy(name=name, definition=definition)
+    def create_archive_policy(self, name, back_window, definition):
+        ap = ArchivePolicy(name=name, back_window=back_window,
+                           definition=definition)
         session = self.engine_facade.get_session()
         session.add(ap)
         try:

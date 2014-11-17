@@ -95,10 +95,11 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_entity(entity, archive_policy):
+    def create_entity(entity, back_window, archive_policy):
         """Create an entity.
 
         :param entity: The entity key.
+        :param back_window: Number of blocks to allow as back window.
         :param archive_policy: The archive policy to use.
         """
         raise exceptions.NotImplementedError

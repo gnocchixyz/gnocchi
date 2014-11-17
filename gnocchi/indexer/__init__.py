@@ -158,7 +158,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def create_archive_policy(name, definition):
+    def create_archive_policy(name, back_window, definition):
         raise exceptions.NotImplementedError
 
     @staticmethod

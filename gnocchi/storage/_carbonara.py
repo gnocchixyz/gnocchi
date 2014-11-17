@@ -49,7 +49,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _create_entity_container(entity):
         pass
 
-    def create_entity(self, entity, archive_policy):
+    def create_entity(self, entity, back_window, archive_policy):
         self._create_entity_container(entity)
         for aggregation in self.aggregation_types:
             # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
@@ -60,6 +60,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             archive = carbonara.TimeSerieArchive.from_definitions(
                 [(pandas.tseries.offsets.Second(v['granularity']), v['points'])
                  for v in archive_policy],
+                back_window=back_window,
                 aggregation_method=aggregation)
             self._store_entity_measures(entity, aggregation,
                                         archive.serialize())

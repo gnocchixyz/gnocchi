@@ -125,10 +125,17 @@ def convert_entity_list(entities, user_id, project_id):
     return new_entities
 
 
+def PositiveOrNullInt(value):
+    value = int(value)
+    if value < 0:
+        raise ValueError("Value must be positive")
+    return value
+
+
 def PositiveNotNullInt(value):
     value = int(value)
     if value <= 0:
-        raise ValueError("Value must be positive")
+        raise ValueError("Value must be positive and not null")
     return value
 
 
@@ -218,6 +225,7 @@ class ArchivePolicyItem(object):
 class ArchivePoliciesController(rest.RestController):
     ArchivePolicy = voluptuous.Schema({
         voluptuous.Required("name"): six.text_type,
+        voluptuous.Required("back_window", default=0): PositiveOrNullInt,
         voluptuous.Required("definition"):
         voluptuous.All([{
             "granularity": Timespan,
@@ -371,6 +379,7 @@ class EntitiesController(rest.RestController):
                                               archive_policy=policy['name'])
         pecan.request.storage.create_entity(
             str(id),
+            policy['back_window'],
             [ArchivePolicyItem(**d).to_dict()
              for d in policy['definition']],
         )

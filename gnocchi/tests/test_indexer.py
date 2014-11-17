@@ -42,7 +42,7 @@ class TestIndexerDriver(tests_base.TestCase):
         # NOTE(jd) This archive policy
         # is created by gnocchi.tests on setUp() :)
         self.assertRaises(indexer.ArchivePolicyAlreadyExists,
-                          self.index.create_archive_policy, "high", {})
+                          self.index.create_archive_policy, "high", 0, {})
 
     def test_create_resource(self):
         r1 = uuid.uuid4()
@@ -586,6 +586,7 @@ class TestIndexerDriver(tests_base.TestCase):
         del entity['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": {
+                              "back_window": 0,
                               "definition": [
                                   {u'granularity': 300, u'points': 12},
                                   {u'granularity': 3600, u'points': 24},

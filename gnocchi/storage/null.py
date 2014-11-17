@@ -23,7 +23,7 @@ class NullStorage(storage.StorageDriver):
     def __init__(self, conf):
         self.entities = {}
 
-    def create_entity(self, entity, archive_policy):
+    def create_entity(self, entity, back_window, archive_policy):
         if entity in self.entities:
             raise storage.EntityAlreadyExists(entity)
         self.entities[entity] = True
