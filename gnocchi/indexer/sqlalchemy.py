@@ -250,6 +250,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if ap:
             return dict(ap)
 
+    def get_entity(self, uuid, details=False):
+        session = self.engine_facade.get_session()
+        if details:
+            entity, archive_policy = session.query(
+                Entity, ArchivePolicy).filter(
+                    Entity.id == uuid).filter(
+                        ArchivePolicy.name == Entity.archive_policy).first()
+            entity['archive_policy'] = self._resource_to_dict(archive_policy)
+        else:
+            entity = session.query(Entity).get(uuid)
+
+        if entity:
+            return self._resource_to_dict(entity)
+
     def create_archive_policy(self, name, definition):
         ap = ArchivePolicy(name=name, definition=definition)
         session = self.engine_facade.get_session()

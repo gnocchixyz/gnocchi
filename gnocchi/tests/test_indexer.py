@@ -533,3 +533,50 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
         self.assertEqual(len(resources), 0)
+
+    def test_get_entity(self):
+        e1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1,
+                                   user, project,
+                                   archive_policy="low")
+
+        entity = self.index.get_entity(e1)
+        self.assertIsNotNone(entity['started_at'])
+        del entity['started_at']
+        self.assertEqual({"id": str(e1),
+                          "archive_policy": "low",
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
+                          "ended_at": None,
+                          "type": "entity"},
+                         entity)
+
+    def test_get_entity_with_details(self):
+        e1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('entity', e1,
+                                   user, project,
+                                   archive_policy="low")
+
+        entity = self.index.get_entity(e1, details=True)
+        self.assertIsNotNone(entity['started_at'])
+        del entity['started_at']
+        self.assertEqual({"id": str(e1),
+                          "archive_policy": {
+                              "definition": [
+                                  {u'granularity': 300, u'points': 12},
+                                  {u'granularity': 3600, u'points': 24},
+                                  {u'granularity': 86400, u'points': 30}],
+                              "name": "low"},
+                          "user_id": six.text_type(user),
+                          "project_id": six.text_type(project),
+                          "ended_at": None,
+                          "type": "entity"},
+                         entity)
+
+    def test_get_entity_with_bad_uuid(self):
+        e1 = uuid.uuid4()
+        self.assertIsNone(self.index.get_entity(e1))

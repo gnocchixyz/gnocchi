@@ -239,17 +239,15 @@ class EntityController(rest.RestController):
     @pecan.expose('json')
     def get_all(self, **kwargs):
         details = get_details(kwargs)
-        entity = pecan.request.indexer.get_resource(
-            'entity', self.entity_id)
+        entity = pecan.request.indexer.get_entity(self.entity_id,
+                                                  details=details)
         if not entity:
             pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
 
         if details:
-            archive_policy = pecan.request.indexer.get_archive_policy(
-                entity['archive_policy'])
             entity['archive_policy'] = (
                 ArchivePolicyItem.archive_policy_to_human_readable(
-                    archive_policy))
+                    entity['archive_policy']))
         return entity
 
     @vexpose(Measures)
