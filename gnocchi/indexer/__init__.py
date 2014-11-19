@@ -154,6 +154,10 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+    def get_entity(uuid, details=False):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
     def create_archive_policy(name, definition):
         raise exceptions.NotImplementedError
 
