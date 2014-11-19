@@ -118,6 +118,27 @@ class ArchivePolicyTest(RestTest):
             "timespan": "0:20:00",
         }], ap['definition'])
 
+    def test_post_archive_policy_infinite_points(self):
+        name = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": name,
+                    "definition":
+                    [{
+                        "granularity": "2 minutes",
+                    }]},
+            status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/archive_policy/" + name,
+                         result.headers['Location'])
+        self.assertEqual(name, ap['name'])
+        self.assertEqual([{
+            "granularity": "0:02:00",
+            "points": None,
+            "timespan": None,
+        }], ap['definition'])
+
     def test_post_archive_policy_invalid_multiple(self):
         name = str(uuid.uuid4())
         result = self.app.post_json(
@@ -130,7 +151,7 @@ class ArchivePolicyTest(RestTest):
                         "timespan": "3 hours",
                     }]},
             status=400)
-        self.assertIn(b'Inconsistent granularity/points/timespan',
+        self.assertIn(u"timespan ≠ granularity × points".encode('utf-8'),
                       result.body)
 
     def test_post_archive_policy_unicode(self):
