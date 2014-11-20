@@ -204,7 +204,6 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
 
         self.conf.set_override('driver', self.storage_engine, 'storage')
         self.storage = storage.get_driver(self.conf)
-        self.addCleanup(self.storage.coord.stop)
 
     def tearDown(self):
         self.index.disconnect()
