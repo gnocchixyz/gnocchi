@@ -15,6 +15,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import contextlib
 import datetime
 import json
 import uuid
@@ -39,11 +40,15 @@ class FakeMemcache(object):
     USER_ID = str(uuid.uuid4())
     PROJECT_ID = str(uuid.uuid4())
 
+    VALID_TOKEN_2 = '4562138218392832'
+    USER_ID_2 = str(uuid.uuid4())
+    PROJECT_ID_2 = str(uuid.uuid4())
+
     def get(self, key):
+        dt = datetime.datetime(
+            year=datetime.MAXYEAR, month=12, day=31,
+            hour=23, minute=59, second=59)
         if key == "tokens/%s" % self.VALID_TOKEN:
-            dt = datetime.datetime(
-                year=datetime.MAXYEAR, month=12, day=31,
-                hour=23, minute=59, second=59)
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN,
                           'expires': timeutils.isotime(dt)},
@@ -54,6 +59,19 @@ class FakeMemcache(object):
                     'tenantName': 'mytenant',
                     'roles': [
                         {'name': 'admin'},
+                    ]},
+            }}, timeutils.isotime(dt)))
+        elif key == "tokens/%s" % self.VALID_TOKEN_2:
+            return json.dumps(({'access': {
+                'token': {'id': self.VALID_TOKEN_2,
+                          'expires': timeutils.isotime(dt)},
+                'user': {
+                    'id': self.USER_ID_2,
+                    'name': 'myusername2',
+                    'tenantId': self.PROJECT_ID_2,
+                    'tenantName': 'mytenant2',
+                    'roles': [
+                        {'name': 'member'},
                     ]},
             }}, timeutils.isotime(dt)))
 
@@ -69,9 +87,19 @@ class TestingApp(webtest.TestApp):
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.extra_environ.update({self.CACHE_NAME: FakeMemcache()})
+        self.token = FakeMemcache.VALID_TOKEN
+
+    @contextlib.contextmanager
+    def use_another_user(self):
+        old_token = self.token
+        self.token = FakeMemcache.VALID_TOKEN_2
+        try:
+            yield
+        finally:
+            self.token = old_token
 
     def do_request(self, req, *args, **kwargs):
-        req.headers['X-Auth-Token'] = FakeMemcache.VALID_TOKEN
+        req.headers['X-Auth-Token'] = self.token
         return super(TestingApp, self).do_request(req, *args, **kwargs)
 
 
@@ -482,6 +510,17 @@ class EntityTest(RestTest):
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             status=204)
+
+    def test_add_measure_with_another_user(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archive_policy": "high"})
+        entity = json.loads(result.text)
+        with self.app.use_another_user():
+            self.app.post_json(
+                "/v1/entity/%s/measures" % entity['id'],
+                params=[{"timestamp": '2013-01-01 23:23:23',
+                         "value": 1234.2}],
+                status=403)
 
     def test_add_multiple_measures_per_entity(self):
         result = self.app.post_json("/v1/entity",

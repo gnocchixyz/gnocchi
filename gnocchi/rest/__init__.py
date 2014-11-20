@@ -33,7 +33,33 @@ import werkzeug.http
 
 from gnocchi import carbonara
 from gnocchi import indexer
+from gnocchi.openstack.common import policy
 from gnocchi import storage
+
+
+_ENFORCER = None
+
+
+def enforce(rule, target):
+    """Return the user and project the request should be limited to.
+
+    :param rule: The rule name
+    :param target: The target to enforce on.
+
+    """
+    global _ENFORCER
+    if not _ENFORCER:
+        _ENFORCER = policy.Enforcer()
+
+    headers = pecan.request.headers
+    creds = {
+        'roles': headers.get("X-Roles", "").split(","),
+        'user_id': headers.get("X-User-Id"),
+        'project_id': headers.get("X-Project-Id"),
+    }
+
+    if not _ENFORCER.enforce(rule, target, creds):
+        pecan.abort(403)
 
 
 def set_resp_location_hdr(location):
@@ -263,6 +289,10 @@ class EntityController(rest.RestController):
 
     @vexpose(Measures)
     def post_measures(self, body):
+        entity = pecan.request.indexer.get_resource('entity', self.entity_id)
+        if entity is None:
+            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+        enforce("post measures", entity)
         try:
             pecan.request.storage.add_measures(
                 self.entity_id,

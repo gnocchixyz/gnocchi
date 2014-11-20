@@ -154,9 +154,24 @@ class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
         if self.conf.database.connection is None:
             raise testcase.TestSkipped("No database connection configured")
 
+    @staticmethod
+    def path_get(project_file=None):
+        root = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                            '..',
+                                            '..',
+                                            )
+                               )
+        if project_file:
+            return os.path.join(root, project_file)
+        return root
+
     def setUp(self):
         super(TestCase, self).setUp()
         self.conf = self.useFixture(config_fixture.Config()).conf
+        self.conf([], project='gnocchi')
+        self.conf.import_opt('policy_file', 'gnocchi.openstack.common.policy')
+        self.conf.set_override('policy_file',
+                               self.path_get('etc/gnocchi/policy.json'))
         self.conf.import_opt('debug', 'gnocchi.openstack.common.log')
         self.conf.set_override('debug', True)
 
