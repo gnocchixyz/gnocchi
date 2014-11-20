@@ -104,7 +104,7 @@ class StorageDriver(object):
 
     @staticmethod
     def get_measures(entity, from_timestamp=None, to_timestamp=None,
-                     aggregation='average'):
+                     aggregation='mean'):
         """Add a measure to an entity.
 
         :param entity: The entity measured.
@@ -112,4 +112,8 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         """
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def delete_entity(entity):
         raise exceptions.NotImplementedError
