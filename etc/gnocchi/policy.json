@@ -3,6 +3,7 @@
     "owner": "project_id:%(project_id)s",
 
     "delete metric": "rule:admin_or_creator",
+    "get metric": "rule:admin_or_creator or rule:owner",
 
     "get measures":  "rule:admin_or_creator or rule:owner",
     "post measures":  "rule:admin_or_creator"
