@@ -582,6 +582,17 @@ class EntityTest(RestTest):
              [u'2013-01-01T23:20:00.000000', 300.0, 1234.2]],
             result)
 
+    def test_get_measure_with_another_user(self):
+        result = self.app.post_json("/v1/entity",
+                                    params={"archive_policy": "low"})
+        entity = json.loads(result.text)
+        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+                           params=[{"timestamp": '2013-01-01 23:23:23',
+                                    "value": 1234.2}])
+        with self.app.use_another_user():
+            self.app.get("/v1/entity/%s/measures" % entity['id'],
+                         status=403)
+
     def test_get_measure_start(self):
         result = self.app.post_json("/v1/entity",
                                     params={"archive_policy": "high"})

@@ -273,6 +273,12 @@ class EntityController(rest.RestController):
         voluptuous.Required("value"): voluptuous.Any(float, int),
     }])
 
+    def enforce_entity(self, rule):
+        entity = pecan.request.indexer.get_entity(self.entity_id)
+        if entity is None:
+            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+        enforce(rule, entity)
+
     @pecan.expose('json')
     def get_all(self, **kwargs):
         details = get_details(kwargs)
@@ -289,10 +295,7 @@ class EntityController(rest.RestController):
 
     @vexpose(Measures)
     def post_measures(self, body):
-        entity = pecan.request.indexer.get_resource('entity', self.entity_id)
-        if entity is None:
-            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
-        enforce("post measures", entity)
+        self.enforce_entity("post measures")
         try:
             pecan.request.storage.add_measures(
                 self.entity_id,
@@ -307,6 +310,7 @@ class EntityController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean'):
+        self.enforce_entity("get measures")
         if aggregation not in storage.AGGREGATION_TYPES:
             pecan.abort(400, "Invalid aggregation value %s, must be one of %s"
                         % (aggregation, str(storage.AGGREGATION_TYPES)))
