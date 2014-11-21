@@ -2,6 +2,8 @@
     "admin_or_creator": "role:admin or created_by_project_id:%(project_id)s",
     "owner": "project_id:%(project_id)s",
 
+    "delete metric": "rule:admin_or_creator",
+
     "get measures":  "rule:admin_or_creator or rule:owner",
     "post measures":  "rule:admin_or_creator"
 }
