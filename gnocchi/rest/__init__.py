@@ -384,6 +384,13 @@ class MetricsController(rest.RestController):
     def create_metric(created_by_user_id, created_by_project_id,
                       archive_policy,
                       user_id=None, project_id=None):
+        enforce("create metric", {
+            "created_by_user_id": created_by_user_id,
+            "created_by_project_id": created_by_project_id,
+            "user_id": user_id,
+            "project_id": project_id,
+            "archive_policy": archive_policy,
+        })
         id = uuid.uuid4()
         policy = pecan.request.indexer.get_archive_policy(archive_policy)
         if policy is None:
@@ -403,8 +410,6 @@ class MetricsController(rest.RestController):
 
     @vexpose(Metric, 'json')
     def post(self, body):
-        # TODO(jd) Use policy to limit what values the user can use as
-        # 'archive'?
         user, project = get_user_and_project()
         id = self.create_metric(user, project, **body)
         set_resp_location_hdr("/v1/metric/" + str(id))
