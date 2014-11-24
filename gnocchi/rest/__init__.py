@@ -31,7 +31,6 @@ from six.moves.urllib import parse as urllib_parse
 import voluptuous
 import werkzeug.http
 
-from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi.openstack.common import policy
 from gnocchi import storage
@@ -301,9 +300,12 @@ class EntityController(rest.RestController):
                     m['value']) for m in body))
         except storage.EntityDoesNotExist as e:
             pecan.abort(404, str(e))
-        except carbonara.NoDeloreanAvailable as e:
-            pecan.abort(400, "One of the measure is too old considering the "
-                        "archive policy used by this entity")
+        except storage.NoDeloreanAvailable as e:
+            pecan.abort(400,
+                        "The measure for %s is too old considering the "
+                        "archive policy used by this entity. "
+                        "It can only go back to %s."
+                        % (e.bad_timestamp, e.first_timestamp))
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean'):

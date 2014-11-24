@@ -563,8 +563,9 @@ class EntityTest(RestTest):
             expect_errors=True,
             status=400)
         self.assertIn(
-            b"One of the measure is too old considering the archive "
-            b"policy used by this entity",
+            b"The measure for 2012-01-01 23:23:23 is too old considering "
+            b"the archive policy used by this entity. "
+            b"It can only go back to 2013-01-01 00:00:00",
             result.body)
 
     def test_get_measure(self):
