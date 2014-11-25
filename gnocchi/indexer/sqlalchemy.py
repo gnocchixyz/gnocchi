@@ -132,6 +132,12 @@ class Resource(Base, GnocchiBase):
                                              'swift_account',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
+    created_by_user_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
+    created_by_project_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                 nullable=False)
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
@@ -274,7 +280,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.ArchivePolicyAlreadyExists(name)
         return dict(ap)
 
-    def create_resource(self, resource_type, id, user_id, project_id,
+    def create_resource(self, resource_type, id,
+                        created_by_user_id, created_by_project_id,
+                        user_id=None, project_id=None,
                         started_at=None, ended_at=None, entities=None,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
@@ -282,9 +290,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
            and ended_at is not None
            and started_at > ended_at):
             raise ValueError("Start timestamp cannot be after end timestamp")
+        if user_id is None:
+            user_id = created_by_user_id
+        if project_id is None:
+            project_id = created_by_project_id
         r = resource_cls(
             id=id,
             type=resource_type,
+            created_by_user_id=created_by_user_id,
+            created_by_project_id=created_by_project_id,
             user_id=user_id,
             project_id=project_id,
             started_at=started_at,

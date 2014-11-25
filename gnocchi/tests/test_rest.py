@@ -705,6 +705,12 @@ class ResourceTest(RestTest):
         self.attributes = self.attributes.copy()
         # Set an id in the attribute
         self.attributes['id'] = str(uuid.uuid4())
+        self.resource = self.attributes.copy()
+        self.resource['created_by_user_id'] = FakeMemcache.USER_ID
+        self.resource['created_by_project_id'] = FakeMemcache.PROJECT_ID
+        self.resource['type'] = self.resource_type
+        self.resource['ended_at'] = None
+        self.resource['entities'] = {}
 
     def test_post_resource(self):
         result = self.app.post_json(
@@ -715,10 +721,7 @@ class ResourceTest(RestTest):
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/" + self.attributes['id'],
                          result.headers['Location'])
-        self.attributes['type'] = self.resource_type
-        self.attributes['ended_at'] = None
-        self.attributes['entities'] = {}
-        self.assertEqual(resource, self.attributes)
+        self.assertEqual(resource, self.resource)
 
     def test_post_resource_already_exist(self):
         result = self.app.post_json(
@@ -777,10 +780,7 @@ class ResourceTest(RestTest):
                               + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.attributes['type'] = self.resource_type
-        self.attributes['entities'] = {}
-        self.attributes['ended_at'] = None
-        self.assertEqual(self.attributes, result)
+        self.assertEqual(self.resource, result)
 
     def test_get_resource_named_entity(self):
         self.attributes['entities'] = {'foo': {'archive_policy': "high"}}
@@ -944,10 +944,7 @@ class ResourceTest(RestTest):
                               + self.resource_type + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.attributes['type'] = self.resource_type
-        self.attributes['ended_at'] = None
-        self.attributes['entities'] = {}
-        self.assertEqual(self.attributes, result)
+        self.assertEqual(self.resource, result)
 
     def test_patch_resource_non_existent(self):
         self.app.patch_json(
@@ -1018,9 +1015,8 @@ class ResourceTest(RestTest):
                          + self.resource_type + "/"
                          + self.attributes['id'],
                          result.headers['Location'])
-        self.attributes['type'] = self.resource_type
-        self.attributes['ended_at'] = None
-        self.assertEqual(resource, self.attributes)
+        self.resource['entities'] = self.attributes['entities']
+        self.assertEqual(resource, self.resource)
 
     def test_post_resource_with_null_entities(self):
         self.attributes['entities'] = {"foo": {"archive_policy": "low"}}
