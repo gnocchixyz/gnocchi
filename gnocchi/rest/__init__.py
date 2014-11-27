@@ -550,11 +550,14 @@ class GenericResourcesController(rest.RestController):
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.Resource)
+        user, project = get_user_and_project()
         body['entities'] = convert_entity_list(
-            body.get('entities', {}), body['user_id'], body['project_id'])
+            body.get('entities', {}), user, project)
+        rid = body['id']
+        del body['id']
         try:
             resource = pecan.request.indexer.create_resource(
-                self._resource_type,
+                self._resource_type, rid, user, project,
                 **body)
         except ValueError as e:
             pecan.abort(400, e)

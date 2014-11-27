@@ -52,6 +52,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
@@ -109,8 +111,10 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
-                          "user_id": six.text_type(user),
                           "type": "instance",
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
+                          "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
                           "display_name": "lol",
@@ -151,6 +155,8 @@ class TestIndexerDriver(tests_base.TestCase):
             r1, user, project,
             started_at=ts)
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "started_at": ts,
@@ -159,6 +165,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "entities": {}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "started_at": ts,
@@ -183,6 +191,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
@@ -192,6 +202,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "type": "generic",
                           "ended_at": None,
                           "user_id": six.text_type(user),
@@ -220,6 +232,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "ended_at": datetime.datetime(2043, 1, 1, 2, 3, 4),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
@@ -234,6 +248,8 @@ class TestIndexerDriver(tests_base.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "type": "generic",
@@ -366,6 +382,8 @@ class TestIndexerDriver(tests_base.TestCase):
         del r['started_at']
         self.assertEqual({"id": str(r1),
                           "ended_at": None,
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "type": "generic",
@@ -547,6 +565,8 @@ class TestIndexerDriver(tests_base.TestCase):
         del entity['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": "low",
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
@@ -571,6 +591,8 @@ class TestIndexerDriver(tests_base.TestCase):
                                   {u'granularity': 3600, u'points': 24},
                                   {u'granularity': 86400, u'points': 30}],
                               "name": "low"},
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
