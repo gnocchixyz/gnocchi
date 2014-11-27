@@ -26,6 +26,12 @@ import six
 class NoDeloreanAvailable(Exception):
     """Error raised when trying to insert a value that is too old."""
 
+    def __init__(self, first_timestamp, bad_timestamp):
+        self.first_timestamp = first_timestamp
+        self.bad_timestamp = bad_timestamp
+        super(NoDeloreanAvailable, self).__init__(
+            "%s is before %s" % (bad_timestamp, first_timestamp))
+
 
 class TimeSerie(object):
 
@@ -126,9 +132,11 @@ class BoundTimeSerie(TimeSerie):
             # Check that the smallest timestamp does not go too much back in
             # time.
             # TODO(jd) convert keys to timestamp to be sure we can subtract?
-            if (min(map(operator.itemgetter(0), values))
-               < self._first_block_timestamp()):
-                raise NoDeloreanAvailable
+            smallest_timestamp = min(map(operator.itemgetter(0), values))
+            first_block_timestamp = self._first_block_timestamp()
+            if smallest_timestamp < first_block_timestamp:
+                raise NoDeloreanAvailable(first_block_timestamp,
+                                          smallest_timestamp)
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
             before_truncate_callback(self)

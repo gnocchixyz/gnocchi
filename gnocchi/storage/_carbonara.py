@@ -86,7 +86,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             with lock:
                 contents = self._get_measures(entity, aggregation)
                 archive = carbonara.TimeSerieArchive.unserialize(contents)
-                archive.set_values([(m.timestamp, m.value) for m in measures])
+                try:
+                    archive.set_values([(m.timestamp, m.value)
+                                        for m in measures])
+                except carbonara.NoDeloreanAvailable as e:
+                    raise storage.NoDeloreanAvailable(e.first_timestamp,
+                                                      e.bad_timestamp)
                 self._store_entity_measures(entity, aggregation,
                                             archive.serialize())
         except Exception as e:

@@ -62,6 +62,16 @@ class EntityAlreadyExists(Exception):
             "Entity %s already exists" % entity)
 
 
+class NoDeloreanAvailable(Exception):
+    """Error raised when trying to insert a value that is too old."""
+
+    def __init__(self, first_timestamp, bad_timestamp):
+        self.first_timestamp = first_timestamp
+        self.bad_timestamp = bad_timestamp
+        super(NoDeloreanAvailable, self).__init__(
+            "%s is before %s" % (bad_timestamp, first_timestamp))
+
+
 def _get_driver(name, conf):
     """Return the driver named name.
 

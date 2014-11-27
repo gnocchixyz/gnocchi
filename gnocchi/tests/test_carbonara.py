@@ -379,8 +379,17 @@ class TestTimeSerieArchive(testtools.TestCase):
             ],
             ts.fetch())
 
-        self.assertRaises(carbonara.NoDeloreanAvailable,
-                          ts.set_values,
-                          [
-                              (datetime.datetime(2014, 1, 1, 12, 0, 1, 99), 9),
-                          ])
+        try:
+            ts.set_values([
+                (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
+            ])
+        except carbonara.NoDeloreanAvailable as e:
+            self.assertEqual(
+                six.text_type(e),
+                u"2014-01-01 12:00:02.000099 is before 2014-01-01 12:00:03")
+            self.assertEqual(datetime.datetime(2014, 1, 1, 12, 0, 2, 99),
+                             e.bad_timestamp)
+            self.assertEqual(datetime.datetime(2014, 1, 1, 12, 0, 3),
+                             e.first_timestamp)
+        else:
+            self.fail("No exception raised")
