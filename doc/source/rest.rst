@@ -28,6 +28,8 @@ To create a metric, the following API request should be used:
     Content-Type: application/json
 
     {
+      "user_id": "525CDB19-633B-4BCB-B928-9597BFED389F",
+      "project_id": "26B1BC1F-B981-46F4-ADBF-FAD65336F1BA",
       "archive_policy": "medium"
     }
 
@@ -36,8 +38,14 @@ To create a metric, the following API request should be used:
     Content-Type: application/json
 
     {
+      "user_id": "525CDB19-633B-4BCB-B928-9597BFED389F",
+      "project_id": "26B1BC1F-B981-46F4-ADBF-FAD65336F1BA",
       "archive_policy": "medium"
     }
+
+
+By default, the `user_id` and `project_id` are set to the one used to
+authenticate against the API, but you can also specify them.
 
 Once created, you can retrieve the metric information:
 
@@ -49,6 +57,8 @@ Once created, you can retrieve the metric information:
     Content-Type: application/json
 
     {
+      "user_id": "525CDB19-633B-4BCB-B928-9597BFED389F",
+      "project_id": "26B1BC1F-B981-46F4-ADBF-FAD65336F1BA",
       "archive_policy": "medium"
     }
 
@@ -63,6 +73,8 @@ to this request:
     Content-Type: application/json
 
     {
+      "user_id": "525CDB19-633B-4BCB-B928-9597BFED389F",
+      "project_id": "26B1BC1F-B981-46F4-ADBF-FAD65336F1BA",
       "archive_policy": {
         "back_window": 0,
         "definition": [
@@ -97,6 +109,8 @@ It is also possible to send the *details* parameter in the *Accept* header:
     Content-Type: application/json
 
     {
+      "user_id": "525CDB19-633B-4BCB-B928-9597BFED389F",
+      "project_id": "26B1BC1F-B981-46F4-ADBF-FAD65336F1BA",
       "archive_policy": {
         "definition": [
           {
