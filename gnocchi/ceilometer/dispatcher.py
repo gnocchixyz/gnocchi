@@ -92,12 +92,22 @@ class GnocchiDispatcher(dispatcher.Base):
         self.filter_service_activity = (
             conf.dispatcher_gnocchi.filter_service_activity)
 
+        self._ks_client = ksclient.Client(
+            username=conf.service_credentials.os_username,
+            password=conf.service_credentials.os_password,
+            tenant_id=conf.service_credentials.os_tenant_id,
+            tenant_name=conf.service_credentials.os_tenant_name,
+            cacert=conf.service_credentials.os_cacert,
+            auth_url=conf.service_credentials.os_auth_url,
+            region_name=conf.service_credentials.os_region_name,
+            insecure=conf.service_credentials.insecure)
+
         if self.filter_service_activity:
             try:
-                self._set_gnocchi_creds(conf)
+                self.gnocchi_user_id = self._ks_client.users.find(
+                    name=conf.dispatcher_gnocchi.filter_user)
             except Exception:
-                LOG.exception('fail to retreive project/user of '
-                              'Gnocchi service')
+                LOG.exception('fail to retreive user of Gnocchi service')
                 raise
 
         self.gnocchi_url = conf.dispatcher_gnocchi.url
@@ -109,19 +119,11 @@ class GnocchiDispatcher(dispatcher.Base):
             'gnocchi.ceilometer.resource', lambda x: True,
             invoke_on_load=True)
 
-    def _set_gnocchi_creds(self, conf):
-        keystone = ksclient.Client(
-            username=conf.service_credentials.os_username,
-            password=conf.service_credentials.os_password,
-            tenant_id=conf.service_credentials.os_tenant_id,
-            tenant_name=conf.service_credentials.os_tenant_name,
-            cacert=conf.service_credentials.os_cacert,
-            auth_url=conf.service_credentials.os_auth_url,
-            region_name=conf.service_credentials.os_region_name,
-            insecure=conf.service_credentials.insecure)
-        # Just fail if the user/project doesn't exists
-        self.gnocchi_user_id = keystone.users.find(
-            name=conf.dispatcher_gnocchi.filter_user)
+    def _get_headers(self, content_type="application/json"):
+        return {
+            'Content-Type': content_type,
+            'X-Auth-Token': self._ks_client.auth_token,
+        }
 
     def _is_gnocchi_activity(self, sample):
         return (self.filter_service_activity
@@ -229,7 +231,7 @@ class GnocchiDispatcher(dispatcher.Base):
         r = requests.post("%s/v1/resource/%s/%s/entity/%s/measures"
                           % (self.gnocchi_url, resource_type, resource_id,
                              entity_name),
-                          headers={'Content-Type': "application/json"},
+                          headers=self._get_headers(),
                           data=json.dumps(measure_attributes))
         if r.status_code == 404:
             LOG.debug(_("The entity %(entity_name)s of "
@@ -256,7 +258,7 @@ class GnocchiDispatcher(dispatcher.Base):
                          resource_attributes):
         r = requests.post("%s/v1/resource/%s"
                           % (self.gnocchi_url, resource_type),
-                          headers={'Content-Type': "application/json"},
+                          headers=self._get_headers(),
                           data=json.dumps(resource_attributes))
         if r.status_code == 409:
             LOG.debug("Resource %s already exists", resource_id)
@@ -277,7 +279,7 @@ class GnocchiDispatcher(dispatcher.Base):
         r = requests.patch(
             "%s/v1/resource/%s/%s"
             % (self.gnocchi_url, resource_type, resource_id),
-            headers={'Content-Type': "application/json"},
+            headers=self._get_headers(),
             data=json.dumps(resource_attributes))
 
         if int(r.status_code / 100) != 2:
@@ -295,7 +297,7 @@ class GnocchiDispatcher(dispatcher.Base):
         r = requests.post("%s/v1/resource/%s/%s/entity"
                           % (self.gnocchi_url, resource_type,
                              resource_id),
-                          headers={'Content-Type': "application/json"},
+                          headers=self._get_headers(),
                           data=json.dumps(params))
         if r.status_code == 409:
             LOG.debug("Entity %s of resource %s already exists",
