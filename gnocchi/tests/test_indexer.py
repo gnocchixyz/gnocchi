@@ -54,8 +54,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "ended_at": None,
                           "type": "generic",
                           "metrics": {}},
@@ -114,8 +114,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "type": "instance",
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "ended_at": None,
                           "display_name": "lol",
                           "server_group": server_group,
@@ -157,8 +157,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
@@ -167,8 +167,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
@@ -193,8 +193,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "ended_at": None,
                           "type": "generic",
                           "metrics": {'foo': str(e1), 'bar': str(e2)}}, rc)
@@ -206,8 +206,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "created_by_project_id": six.text_type(project),
                           "type": "generic",
                           "ended_at": None,
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "metrics": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_non_existent_resource_end_timestamp(self):
@@ -235,8 +235,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
                           "ended_at": datetime.datetime(2043, 1, 1, 2, 3, 4),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "type": "generic",
                           "metrics": {}}, r)
         self.index.update_resource(
@@ -250,8 +250,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "type": "generic",
                           "metrics": {}}, r)
 
@@ -384,8 +384,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "type": "generic",
                           "metrics": {'bar': str(e2)}}, r)
 
@@ -413,7 +413,8 @@ class TestIndexerDriver(tests_base.TestCase):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        g = self.index.create_resource('generic', r1, user, project)
+        g = self.index.create_resource('generic', r1, user, project,
+                                       user, project)
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"user_id": user})
@@ -424,13 +425,30 @@ class TestIndexerDriver(tests_base.TestCase):
             attributes_filter={"user_id": uuid.uuid4()})
         self.assertEqual(len(resources), 0)
 
-    def test_list_resources_by_user_with_details(self):
+    def test_list_resources_by_created_by_user(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
         g = self.index.create_resource('generic', r1, user, project)
+        resources = self.index.list_resources(
+            'generic',
+            attributes_filter={"created_by_user_id": user})
+        self.assertEqual(len(resources), 1)
+        self.assertEqual(g, resources[0])
+        resources = self.index.list_resources(
+            'generic',
+            attributes_filter={"created_by_user_id": uuid.uuid4()})
+        self.assertEqual(len(resources), 0)
+
+    def test_list_resources_by_user_with_details(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        g = self.index.create_resource('generic', r1, user, project,
+                                       user, project)
         r2 = uuid.uuid4()
         i = self.index.create_resource('instance', r2,
+                                       user, project,
                                        user, project,
                                        flavor_id=123,
                                        image_ref="foo",
@@ -449,7 +467,8 @@ class TestIndexerDriver(tests_base.TestCase):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        g = self.index.create_resource('generic', r1, user, project)
+        g = self.index.create_resource('generic', r1, user, project,
+                                       user, project)
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"project_id": project})
@@ -567,8 +586,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "archive_policy": "low",
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "ended_at": None,
                           "type": "metric"},
                          metric)
@@ -594,8 +613,8 @@ class TestIndexerDriver(tests_base.TestCase):
                               "name": "low"},
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "user_id": six.text_type(user),
-                          "project_id": six.text_type(project),
+                          "user_id": None,
+                          "project_id": None,
                           "ended_at": None,
                           "type": "metric"},
                          metric)

@@ -138,10 +138,8 @@ class Resource(Base, GnocchiBase):
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False),
         nullable=False)
-    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                nullable=False)
-    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                   nullable=False)
+    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -292,10 +290,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
            and ended_at is not None
            and started_at > ended_at):
             raise ValueError("Start timestamp cannot be after end timestamp")
-        if user_id is None:
-            user_id = created_by_user_id
-        if project_id is None:
-            project_id = created_by_project_id
         r = resource_cls(
             id=id,
             type=resource_type,
