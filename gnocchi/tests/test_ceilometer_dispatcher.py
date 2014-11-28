@@ -20,6 +20,7 @@ import uuid
 
 import mock
 from oslo.config import fixture as config_fixture
+from oslotest import mockpatch
 import requests
 import testscenarios
 import testtools
@@ -78,6 +79,12 @@ class DispatcherTest(testtools.TestCase):
                 }
             }]
 
+        ks_client = mock.Mock(auth_token='fake_token')
+        ks_client.users.find.return_value = 'gnocchi'
+        self.useFixture(mockpatch.Patch(
+            'gnocchi.ceilometer.dispatcher.ksclient.Client',
+            return_value=ks_client))
+
     def test_extensions_load(self):
         self.conf.config(filter_service_activity=False,
                          group='dispatcher_gnocchi')
@@ -86,17 +93,13 @@ class DispatcherTest(testtools.TestCase):
 
     @mock.patch('gnocchi.ceilometer.dispatcher.GnocchiDispatcher'
                 '._process_samples')
-    @mock.patch('gnocchi.ceilometer.dispatcher.ksclient')
-    def _do_test_activity_filter(self, is_gnocchi_activity, ksclient,
+    def _do_test_activity_filter(self, is_gnocchi_activity,
                                  fake_process_samples):
         if is_gnocchi_activity:
             self.samples[0]['user_id'] = 'gnocchi'
             expected_samples = [self.samples[1]]
         else:
             expected_samples = self.samples
-
-        ksclient_instance = ksclient.Client.return_value
-        ksclient_instance.users.find.return_value = 'gnocchi'
 
         d = dispatcher.GnocchiDispatcher(self.conf.conf)
         d.record_metering_data(self.samples)
@@ -193,8 +196,13 @@ class DispatcherWorkflowTest(testtools.TestCase,
     def setUp(self):
         super(DispatcherWorkflowTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
-        self.conf.config(filter_service_activity=False,
-                         group='dispatcher_gnocchi')
+
+        ks_client = mock.Mock(auth_token='fake_token')
+        ks_client.users.find.return_value = 'gnocchi'
+        self.useFixture(mockpatch.Patch(
+            'gnocchi.ceilometer.dispatcher.ksclient.Client',
+            return_value=ks_client))
+
         self.dispatcher = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.sample['resource_id'] = str(uuid.uuid4())
 
@@ -207,6 +215,9 @@ class DispatcherWorkflowTest(testtools.TestCase,
             'resource_type': self.resource_type,
             'entity_name': self.sample['counter_name']
         }
+        headers = {'Content-Type': 'application/json',
+                   'X-Auth-Token': 'fake_token'}
+
         expected_calls = []
         patch_responses = []
         post_responses = []
@@ -214,7 +225,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
         expected_calls.append(mock.call.post(
             "%(url)s/%(resource_type)s/%(resource_id)s/"
             "entity/%(entity_name)s/measures" % url_params,
-            headers={'Content-Type': 'application/json'},
+            headers=headers,
             data=json_matcher(self.measures_attributes))
         )
         post_responses.append(MockResponse(self.measure))
@@ -228,7 +239,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
                                           for entity_name in self.entity_names)
             expected_calls.append(mock.call.post(
                 "%(url)s/%(resource_type)s" % url_params,
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
                 data=json_matcher(attributes)),
             )
             post_responses.append(MockResponse(self.post_resource))
@@ -236,18 +247,17 @@ class DispatcherWorkflowTest(testtools.TestCase,
         if self.entity:
             expected_calls.append(mock.call.post(
                 "%(url)s/%(resource_type)s/%(resource_id)s/entity"
-                % url_params,
-                headers={'Content-Type': 'application/json'},
+                % url_params, headers=headers,
                 data=json_matcher({self.sample['counter_name']:
-                                   {'archive_policy': 'low'}}))
-            )
+                                   {'archive_policy': 'low'}})
+            ))
             post_responses.append(MockResponse(self.entity))
 
         if self.measure_retry:
             expected_calls.append(mock.call.post(
                 "%(url)s/%(resource_type)s/%(resource_id)s/"
                 "entity/%(entity_name)s/measures" % url_params,
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
                 data=json_matcher(self.measures_attributes))
             )
             post_responses.append(MockResponse(self.measure_retry))
@@ -255,7 +265,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
         if self.patch_resource:
             expected_calls.append(mock.call.patch(
                 "%(url)s/%(resource_type)s/%(resource_id)s" % url_params,
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
                 data=json_matcher(self.patchable_attributes)),
             )
             patch_responses.append(MockResponse(self.patch_resource))
