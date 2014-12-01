@@ -504,6 +504,13 @@ class MetricTest(RestTest):
         metric = json.loads(result.text)
         result = self.app.delete("/v1/metric/" + metric['id'], status=204)
 
+    def test_delete_metric_another_user(self):
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy": "medium"})
+        metric = json.loads(result.text)
+        with self.app.use_another_user():
+            self.app.delete("/v1/metric/" + metric['id'], status=403)
+
     def test_delete_metric_non_existent(self):
         e1 = str(uuid.uuid4())
         result = self.app.delete("/v1/metric/" + e1,

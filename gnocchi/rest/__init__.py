@@ -349,6 +349,7 @@ class MetricController(rest.RestController):
 
     @pecan.expose()
     def delete(self):
+        self.enforce_metric("delete metric")
         try:
             pecan.request.storage.delete_metric(self.metric_id)
         except storage.MetricDoesNotExist as e:
