@@ -112,7 +112,7 @@ def Timestamp(v):
     return datetime.datetime.utcfromtimestamp(v)
 
 
-def convert_metric_list(metrics, user_id, project_id):
+def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
     # Replace an archive policy as value for an metric by a brand
     # a new metric
     new_metrics = {}
@@ -121,7 +121,8 @@ def convert_metric_list(metrics, user_id, project_id):
             new_metrics[k] = v
         else:
             new_metrics[k] = str(MetricsController.create_metric(
-                v['archive_policy'], user_id, project_id))
+                created_by_user_id, created_by_project_id,
+                v['archive_policy']))
     return new_metrics
 
 
@@ -355,7 +356,16 @@ class MetricController(rest.RestController):
         pecan.request.indexer.delete_metric(self.metric_id)
 
 
+def UUID(value):
+    try:
+        return uuid.UUID(value)
+    except Exception as e:
+        raise ValueError(e)
+
+
 MetricSchemaDefinition = {
+    "user_id": UUID,
+    "project_id": UUID,
     voluptuous.Required('archive_policy'): six.text_type,
 }
 
@@ -369,14 +379,18 @@ class MetricsController(rest.RestController):
     Metric = voluptuous.Schema(MetricSchemaDefinition)
 
     @staticmethod
-    def create_metric(archive_policy, user_id, project_id):
+    def create_metric(created_by_user_id, created_by_project_id,
+                      archive_policy,
+                      user_id=None, project_id=None):
         id = uuid.uuid4()
         policy = pecan.request.indexer.get_archive_policy(archive_policy)
         if policy is None:
             pecan.abort(400, "Unknown archive policy %s" % archive_policy)
-        pecan.request.indexer.create_resource('metric', id,
-                                              user_id, project_id,
-                                              archive_policy=policy['name'])
+        pecan.request.indexer.create_resource(
+            'metric', id,
+            created_by_user_id, created_by_project_id,
+            user_id, project_id,
+            archive_policy=policy['name'])
         pecan.request.storage.create_metric(
             str(id),
             policy['back_window'],
@@ -390,7 +404,7 @@ class MetricsController(rest.RestController):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         user, project = get_user_and_project()
-        id = self.create_metric(body['archive_policy'], user, project)
+        id = self.create_metric(user, project, **body)
         set_resp_location_hdr("/v1/metric/" + str(id))
         pecan.response.status = 201
         return {"id": str(id),

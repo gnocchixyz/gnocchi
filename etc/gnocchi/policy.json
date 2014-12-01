@@ -1,6 +1,7 @@
 {
-    "admin_or_owner": "role:admin or project_id:%(project_id)s",
+    "admin_or_creator": "role:admin or created_by_project_id:%(project_id)s",
+    "owner": "project_id:%(project_id)s",
 
-    "get measures":  "rule:admin_or_owner",
-    "post measures":  "project_id:%(project_id)s"
+    "get measures":  "rule:admin_or_creator or rule:owner",
+    "post measures":  "rule:admin_or_creator"
 }
