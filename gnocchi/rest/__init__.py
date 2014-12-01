@@ -289,6 +289,7 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
+        self.enforce_metric("get metric")
         details = get_details(kwargs)
         metric = pecan.request.indexer.get_metric(self.metric_id,
                                                   details=details)
