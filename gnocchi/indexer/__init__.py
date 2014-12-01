@@ -58,7 +58,7 @@ class UnknownResourceType(Exception):
 
 
 class NoSuchMetric(Exception):
-    """Error raised when an entitiy does not exist."""
+    """Error raised when a metric does not exist."""
     def __init__(self, metric):
         super(NoSuchMetric, self).__init__("Metric %s does not exist" %
                                            str(metric))
