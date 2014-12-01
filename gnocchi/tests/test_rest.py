@@ -782,8 +782,8 @@ class ResourceTest(RestTest):
         ('instance', dict(
             attributes={
                 "started_at": "2014-01-03 02:02:02",
-                "user_id": str(uuid.uuid4()),
-                "project_id": str(uuid.uuid4()),
+                # NOTE(jd) We test this one without user_id/project_id!
+                # Just to test that use case. :)
                 "host": "foo",
                 "image_ref": "imageref!",
                 "flavor_id": 123,
@@ -829,6 +829,10 @@ class ResourceTest(RestTest):
         self.resource['type'] = self.resource_type
         self.resource['ended_at'] = None
         self.resource['metrics'] = {}
+        if 'user_id' not in self.resource:
+            self.resource['user_id'] = None
+        if 'project_id' not in self.resource:
+            self.resource['project_id'] = None
 
     def test_post_resource(self):
         result = self.app.post_json(
@@ -867,22 +871,6 @@ class ResourceTest(RestTest):
     def test_post_invalid_timestamp(self):
         self.attributes['started_at'] = "2014-01-01 02:02:02"
         self.attributes['ended_at'] = "2013-01-01 02:02:02"
-        self.app.post_json(
-            "/v1/resource/" + self.resource_type,
-            params=self.attributes,
-            expect_errors=True,
-            status=400)
-
-    def test_post_invalid_no_user(self):
-        del self.attributes['user_id']
-        self.app.post_json(
-            "/v1/resource/" + self.resource_type,
-            params=self.attributes,
-            expect_errors=True,
-            status=400)
-
-    def test_post_invalid_no_project(self):
-        del self.attributes['project_id']
         self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
