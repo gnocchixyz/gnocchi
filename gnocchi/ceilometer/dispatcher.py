@@ -53,9 +53,6 @@ dispatcher_opts = [
 cfg.CONF.register_opts(dispatcher_opts, group="dispatcher_gnocchi")
 cfg.CONF.import_group('service_credentials', 'ceilometer.service')
 
-CREATE_ENTITY = 'create_entity'
-CREATE_RESOURCE = 'create_resource'
-
 
 class UnexpectedWorkflowError(Exception):
     pass
