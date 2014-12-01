@@ -112,17 +112,17 @@ def Timestamp(v):
     return datetime.datetime.utcfromtimestamp(v)
 
 
-def convert_entity_list(entities, user_id, project_id):
-    # Replace an archive policy as value for an entity by a brand
-    # a new entity
-    new_entities = {}
-    for k, v in six.iteritems(entities):
+def convert_metric_list(metrics, user_id, project_id):
+    # Replace an archive policy as value for an metric by a brand
+    # a new metric
+    new_metrics = {}
+    for k, v in six.iteritems(metrics):
         if isinstance(v, uuid.UUID):
-            new_entities[k] = v
+            new_metrics[k] = v
         else:
-            new_entities[k] = str(EntitiesController.create_entity(
+            new_metrics[k] = str(MetricsController.create_metric(
                 v['archive_policy'], user_id, project_id))
-    return new_entities
+    return new_metrics
 
 
 def PositiveOrNullInt(value):
@@ -266,13 +266,13 @@ class ArchivePoliciesController(rest.RestController):
                         pecan.request.indexer.list_archive_policies()))
 
 
-class EntityController(rest.RestController):
+class MetricController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
     }
 
-    def __init__(self, entity_id):
-        self.entity_id = entity_id
+    def __init__(self, metric_id):
+        self.metric_id = metric_id
 
     Measures = voluptuous.Schema([{
         voluptuous.Required("timestamp"):
@@ -280,47 +280,47 @@ class EntityController(rest.RestController):
         voluptuous.Required("value"): voluptuous.Any(float, int),
     }])
 
-    def enforce_entity(self, rule):
-        entity = pecan.request.indexer.get_entity(self.entity_id)
-        if entity is None:
-            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
-        enforce(rule, entity)
+    def enforce_metric(self, rule):
+        metric = pecan.request.indexer.get_metric(self.metric_id)
+        if metric is None:
+            pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
+        enforce(rule, metric)
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
         details = get_details(kwargs)
-        entity = pecan.request.indexer.get_entity(self.entity_id,
+        metric = pecan.request.indexer.get_metric(self.metric_id,
                                                   details=details)
-        if not entity:
-            pecan.abort(404, storage.EntityDoesNotExist(self.entity_id))
+        if not metric:
+            pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
 
         if details:
-            entity['archive_policy'] = (
+            metric['archive_policy'] = (
                 ArchivePolicyItem.archive_policy_to_human_readable(
-                    entity['archive_policy']))
-        return entity
+                    metric['archive_policy']))
+        return metric
 
     @vexpose(Measures)
     def post_measures(self, body):
-        self.enforce_entity("post measures")
+        self.enforce_metric("post measures")
         try:
             pecan.request.storage.add_measures(
-                self.entity_id,
+                self.metric_id,
                 (storage.Measure(
                     m['timestamp'],
                     m['value']) for m in body))
-        except storage.EntityDoesNotExist as e:
+        except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
         except storage.NoDeloreanAvailable as e:
             pecan.abort(400,
                         "The measure for %s is too old considering the "
-                        "archive policy used by this entity. "
+                        "archive policy used by this metric. "
                         "It can only go back to %s."
                         % (e.bad_timestamp, e.first_timestamp))
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean'):
-        self.enforce_entity("get measures")
+        self.enforce_metric("get measures")
         if aggregation not in storage.AGGREGATION_TYPES:
             pecan.abort(400, "Invalid aggregation value %s, must be one of %s"
                         % (aggregation, str(storage.AGGREGATION_TYPES)))
@@ -342,42 +342,42 @@ class EntityController(rest.RestController):
             return [(timeutils.strtime(timestamp), offset, v)
                     for timestamp, offset, v
                     in pecan.request.storage.get_measures(
-                        self.entity_id, start, stop, aggregation)]
-        except storage.EntityDoesNotExist as e:
+                        self.metric_id, start, stop, aggregation)]
+        except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
 
     @pecan.expose()
     def delete(self):
         try:
-            pecan.request.storage.delete_entity(self.entity_id)
-        except storage.EntityDoesNotExist as e:
+            pecan.request.storage.delete_metric(self.metric_id)
+        except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
-        pecan.request.indexer.delete_entity(self.entity_id)
+        pecan.request.indexer.delete_metric(self.metric_id)
 
 
-EntitySchemaDefinition = {
+MetricSchemaDefinition = {
     voluptuous.Required('archive_policy'): six.text_type,
 }
 
 
-class EntitiesController(rest.RestController):
+class MetricsController(rest.RestController):
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
-        return EntityController(id), remainder
+        return MetricController(id), remainder
 
-    Entity = voluptuous.Schema(EntitySchemaDefinition)
+    Metric = voluptuous.Schema(MetricSchemaDefinition)
 
     @staticmethod
-    def create_entity(archive_policy, user_id, project_id):
+    def create_metric(archive_policy, user_id, project_id):
         id = uuid.uuid4()
         policy = pecan.request.indexer.get_archive_policy(archive_policy)
         if policy is None:
             pecan.abort(400, "Unknown archive policy %s" % archive_policy)
-        pecan.request.indexer.create_resource('entity', id,
+        pecan.request.indexer.create_resource('metric', id,
                                               user_id, project_id,
                                               archive_policy=policy['name'])
-        pecan.request.storage.create_entity(
+        pecan.request.storage.create_metric(
             str(id),
             policy['back_window'],
             [ArchivePolicyItem(**d).to_dict()
@@ -385,13 +385,13 @@ class EntitiesController(rest.RestController):
         )
         return id
 
-    @vexpose(Entity, 'json')
+    @vexpose(Metric, 'json')
     def post(self, body):
         # TODO(jd) Use policy to limit what values the user can use as
         # 'archive'?
         user, project = get_user_and_project()
-        id = self.create_entity(body['archive_policy'], user, project)
-        set_resp_location_hdr("/v1/entity/" + str(id))
+        id = self.create_metric(body['archive_policy'], user, project)
+        set_resp_location_hdr("/v1/metric/" + str(id))
         pecan.response.status = 201
         return {"id": str(id),
                 "archive_policy": str(body['archive_policy'])}
@@ -404,13 +404,13 @@ def UUID(value):
         raise ValueError(e)
 
 
-Entities = voluptuous.Schema({
+Metrics = voluptuous.Schema({
     six.text_type: voluptuous.Any(UUID,
-                                  EntitiesController.Entity),
+                                  MetricsController.Metric),
 })
 
 
-class NamedEntityController(rest.RestController):
+class NamedMetricController(rest.RestController):
     def __init__(self, resource_id, resource_type):
         self.resource_id = resource_id
         self.resource_type = resource_type
@@ -422,29 +422,29 @@ class NamedEntityController(rest.RestController):
         # heavier.
         resource = pecan.request.indexer.get_resource(
             'generic', self.resource_id)
-        if name in resource['entities']:
-            return EntityController(resource['entities'][name]), remainder
+        if name in resource['metrics']:
+            return MetricController(resource['metrics'][name]), remainder
         pecan.abort(404)
 
-    @vexpose(Entities)
+    @vexpose(Metrics)
     def post(self, body):
         user, project = get_user_and_project()
-        entities = convert_entity_list(body, user, project)
+        metrics = convert_metric_list(body, user, project)
         try:
             pecan.request.indexer.update_resource(
-                self.resource_type, self.resource_id, entities=entities,
-                append_entities=True)
-        except (indexer.NoSuchEntity, ValueError) as e:
+                self.resource_type, self.resource_id, metrics=metrics,
+                append_metrics=True)
+        except (indexer.NoSuchMetric, ValueError) as e:
             pecan.abort(400, e)
-        except indexer.NamedEntityAlreadyExists as e:
+        except indexer.NamedMetricAlreadyExists as e:
             pecan.abort(409, e)
         except indexer.NoSuchResource as e:
             pecan.abort(404, e)
 
 
-Entities = voluptuous.Schema({
+Metrics = voluptuous.Schema({
     six.text_type: voluptuous.Any(UUID,
-                                  EntitiesController.Entity),
+                                  MetricsController.Metric),
 })
 
 
@@ -455,7 +455,7 @@ def ResourceSchema(schema):
         'ended_at': Timestamp,
         voluptuous.Required('user_id'): UUID,
         voluptuous.Required('project_id'): UUID,
-        'entities': Entities,
+        'metrics': Metrics,
     }
     base_schema.update(schema)
     return voluptuous.Schema(base_schema)
@@ -463,7 +463,7 @@ def ResourceSchema(schema):
 
 def ResourcePatchSchema(schema):
     base_schema = {
-        'entities': Entities,
+        'metrics': Metrics,
         'ended_at': Timestamp,
     }
     base_schema.update(schema)
@@ -477,7 +477,7 @@ class GenericResourceController(rest.RestController):
 
     def __init__(self, id):
         self.id = id
-        self.entity = NamedEntityController(id, self._resource_type)
+        self.metric = NamedMetricController(id, self._resource_type)
 
     @pecan.expose('json')
     def get(self):
@@ -502,14 +502,14 @@ class GenericResourceController(rest.RestController):
             pecan.abort(404)
 
         try:
-            if 'entities' in body:
+            if 'metrics' in body:
                 user, project = get_user_and_project()
-                body['entities'] = convert_entity_list(
-                    body['entities'], user, project)
+                body['metrics'] = convert_metric_list(
+                    body['metrics'], user, project)
             pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
-        except (indexer.NoSuchEntity, ValueError) as e:
+        except (indexer.NoSuchMetric, ValueError) as e:
             pecan.abort(400, e)
         except indexer.NoSuchResource as e:
             pecan.abort(404, e)
@@ -538,8 +538,8 @@ class InstanceResourceController(GenericResourceController):
     })
 
 
-class EntityResourceController(GenericResourceController):
-    _resource_type = 'entity'
+class MetricResourceController(GenericResourceController):
+    _resource_type = 'metric'
 
     read_only = True
 
@@ -562,8 +562,8 @@ class GenericResourcesController(rest.RestController):
         # inheritance
         body = deserialize(self.Resource)
         user, project = get_user_and_project()
-        body['entities'] = convert_entity_list(
-            body.get('entities', {}), user, project)
+        body['metrics'] = convert_metric_list(
+            body.get('metrics', {}), user, project)
         rid = body['id']
         del body['id']
         try:
@@ -629,25 +629,25 @@ class InstancesResourcesController(GenericResourcesController):
     })
 
 
-class EntitiesResourcesController(GenericResourcesController):
-    _resource_type = 'entity'
-    _resource_rest_class = EntityResourceController
+class MetricsResourcesController(GenericResourcesController):
+    _resource_type = 'metric'
+    _resource_rest_class = MetricResourceController
 
     read_only = True
 
-    Resource = ResourceSchema(EntitySchemaDefinition)
+    Resource = ResourceSchema(MetricSchemaDefinition)
 
 
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
-    entity = EntitiesResourcesController()
+    metric = MetricsResourcesController()
     instance = InstancesResourcesController()
     swift_account = SwiftAccountsResourcesController()
 
 
 class V1Controller(object):
     archive_policy = ArchivePoliciesController()
-    entity = EntitiesController()
+    metric = MetricsController()
     resource = ResourcesController()
 
 

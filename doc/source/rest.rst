@@ -10,21 +10,21 @@ middleware. Therefore you must authenticate using Keystone to use the API and
 provide an `X-Auth-Token` header with a valid token for each request sent to
 Gnocchi.
 
-Entities
-========
+Metrics
+=======
 
-Gnocchi provides a resource type that is called *entity*. An entity designates
+Gnocchi provides a resource type that is called *metric*. A metric designates
 any thing that can be measured: the CPU usage of a server, the temperature of a
 room or the number of bytes sent by a network interface.
 
-An entity only has a few properties: a UUID to identify it, and the archive
+A metric only has a few properties: a UUID to identify it, and the archive
 policy that will be used to store and aggregate the measures.
 
-To create an entity, the following API request should be used:
+To create a metric, the following API request should be used:
 
 ::
 
-  ▶ POST /v1/entity
+  ▶ POST /v1/metric
     Content-Type: application/json
 
     {
@@ -32,18 +32,18 @@ To create an entity, the following API request should be used:
     }
 
   ◀ HTTP/1.1 201 Created
-    Location: http://localhost:8080/v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
+    Location: http://localhost:8080/v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
     Content-Type: application/json
 
     {
       "archive_policy": "medium"
     }
 
-Once created, you can retrieve the entity information:
+Once created, you can retrieve the metric information:
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
 
   ◀ HTTP/1.1 200 Ok
     Content-Type: application/json
@@ -57,7 +57,7 @@ to this request:
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03?details=true
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03?details=true
 
   ◀ HTTP/1.1 200 Ok
     Content-Type: application/json
@@ -90,7 +90,7 @@ It is also possible to send the *details* parameter in the *Accept* header:
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03
     Accept: application/json; details=true
 
   ◀ HTTP/1.1 200 Ok
@@ -119,11 +119,11 @@ It is also possible to send the *details* parameter in the *Accept* header:
       }
     }
 
-It is possible to send metrics to the entity:
+It is possible to send metrics to the metric:
 
 ::
 
-  ▶ POST /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures
+  ▶ POST /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures
     Content-Type: application/json
 
     [
@@ -149,7 +149,7 @@ status code. It is possible to provide any number of measures.
 .. IMPORTANT::
 
    While it is possible to send any number of (timestamp, value), it is still
-   needed to honor constraints defined by the archive policy used by the entity,
+   needed to honor constraints defined by the archive policy used by the metric,
    such as the maximum timespan.
 
 
@@ -158,7 +158,7 @@ endpoint:
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures
 
   ◀ HTTP/1.1 200 OK
     Content-Type: application/json
@@ -180,7 +180,7 @@ timestamp:
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures?start=2014-10-06T14:34
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures?start=2014-10-06T14:34
 
   ◀ HTTP/1.1 200 OK
     Content-Type: application/json
@@ -195,7 +195,7 @@ method. It is possible to request for any other method by specifying the
 
 ::
 
-  ▶ GET /v1/entity/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures?aggregation=max
+  ▶ GET /v1/metric/125F6A9F-D8DB-424D-BFF2-A5F142E2DC03/measures?aggregation=max
 
   ◀ HTTP/1.1 200 OK
     Content-Type: application/json
@@ -211,7 +211,7 @@ The list of aggregation method available is: *mean*, *sum*, *last*, *max*,
 Archive Policy
 ==============
 
-When sending measures for an entity to Gnocchi, the values are dynamically
+When sending measures for a metric to Gnocchi, the values are dynamically
 aggregated. That means that Gnocchi does not store all sent measures, but
 aggregates them over a certain period of time. Gnocchi provides several
 aggregation methods (mean, min, max, sum…) that are builtin.
@@ -394,7 +394,7 @@ to describe an OpenStack instance as managed by Nova_.
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm",
-      "entities": {}
+      "metrics": {}
     }
 
   ◀ HTTP/1.1 201 Created
@@ -411,7 +411,7 @@ to describe an OpenStack instance as managed by Nova_.
       "display_name": "myvm",
       "started_at": "2014-10-06T14:34:00",
       "ended_at": null,
-      "entities": {}
+      "metrics": {}
     }
 
 
@@ -438,7 +438,7 @@ time:
       "display_name": "myvm",
       "started_at": "2014-10-06T14:34:00",
       "ended_at": null,
-      "entities": {}
+      "metrics": {}
     }
 
 
@@ -469,7 +469,7 @@ modified fields:
       "display_name": "myvm",
       "started_at": "2014-10-06T14:34:00",
       "ended_at": null,
-      "entities": {}
+      "metrics": {}
     }
 
 
@@ -500,7 +500,7 @@ all types of resources, or by filtering on their resource type:
        "type": "instance",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      },
      {
        "id": "63F07754-F52D-4321-A422-138D019E0EF1",
@@ -509,7 +509,7 @@ all types of resources, or by filtering on their resource type:
        "type": "swift_account",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      }
     ]
 
@@ -537,7 +537,7 @@ resource type endpoint:
        "display_name": "myvm",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      }
     ]
 
@@ -563,7 +563,7 @@ or using `details=true` in the query parameter:
        "display_name": "myvm",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      },
      {
        "id": "63F07754-F52D-4321-A422-138D019E0EF1",
@@ -572,7 +572,7 @@ or using `details=true` in the query parameter:
        "type": "swift_account",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      }
     ]
 
@@ -598,13 +598,13 @@ values:
        "display_name": "myvm",
        "started_at": "2014-10-06T14:34:00",
        "ended_at": null,
-       "entities": {}
+       "metrics": {}
      }
     ]
 
-Each resource can be linked to any number of entities. The `entities` attributes
+Each resource can be linked to any number of metrics. The `metrics` attributes
 is a key/value field where the key is the name of the relationship and the value
-is an entity:
+is a metric:
 
 ::
 
@@ -619,7 +619,7 @@ is an entity:
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm",
-      "entities": {"cpu.util": "73CFA91B-F868-4FC1-BA6B-9164570AEAA1"}
+      "metrics": {"cpu.util": "73CFA91B-F868-4FC1-BA6B-9164570AEAA1"}
     }
 
   ◀ HTTP/1.1 201 Created
@@ -636,10 +636,10 @@ is an entity:
       "display_name": "myvm",
       "started_at": "2014-10-06T14:34:00",
       "ended_at": null,
-      "entities": {"cpu.util": "73CFA91B-F868-4FC1-BA6B-9164570AEAA1"}
+      "metrics": {"cpu.util": "73CFA91B-F868-4FC1-BA6B-9164570AEAA1"}
     }
 
-It's also possible to create entities dynamically while creating a resource:
+It's also possible to create metrics dynamically while creating a resource:
 
 ::
 
@@ -654,7 +654,7 @@ It's also possible to create entities dynamically while creating a resource:
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm",
-      "entities": {"cpu.util": {"archive_policy": "medium"}}
+      "metrics": {"cpu.util": {"archive_policy": "medium"}}
     }
 
   ◀ HTTP/1.1 201 Created
@@ -671,16 +671,16 @@ It's also possible to create entities dynamically while creating a resource:
       "display_name": "myvm",
       "started_at": "2014-10-06T14:34:00",
       "ended_at": null,
-      "entities": {"cpu.util": "2B9D2EAD-E14D-40C8-B50A-A94841F64D92"}
+      "metrics": {"cpu.util": "2B9D2EAD-E14D-40C8-B50A-A94841F64D92"}
     }
 
 
-The entity associated with a resource an be accessed and manipulated using the
-usual `/v1/entity` endpoint or using the named relationship with the resource:
+The metric associated with a resource an be accessed and manipulated using the
+usual `/v1/metric` endpoint or using the named relationship with the resource:
 
 ::
 
-  ▶ GET /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/entity/cpu.util/measures?start=2014-10-06T14:34
+  ▶ GET /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures?start=2014-10-06T14:34
 
   ◀ HTTP/1.1 200 OK
     Content-Type: application/json
@@ -689,11 +689,11 @@ usual `/v1/entity` endpoint or using the named relationship with the resource:
       ["2014-10-06T14:34:00", 60.0, 7]
     ]
 
-The same endpoint can be used to append entities to a resource:
+The same endpoint can be used to append metrics to a resource:
 
 ::
 
-  ▶ POST /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/entity
+  ▶ POST /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/metric
     Content-Type: application/json
 
     [

@@ -100,8 +100,8 @@ class GnocchiBase(models.ModelBase):
     pass
 
 
-class ResourceEntity(Base, GnocchiBase):
-    __tablename__ = 'resource_entity'
+class ResourceMetric(Base, GnocchiBase):
+    __tablename__ = 'resource_metric'
     __table_args__ = (
         sqlalchemy.UniqueConstraint('resource_id', 'name', name="name_unique"),
         COMMON_TABLES_ARGS,
@@ -111,8 +111,8 @@ class ResourceEntity(Base, GnocchiBase):
                                     sqlalchemy.ForeignKey('resource.id',
                                                           ondelete="CASCADE"),
                                     primary_key=True)
-    entity_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                  sqlalchemy.ForeignKey('entity.id',
+    metric_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                                  sqlalchemy.ForeignKey('metric.id',
                                                         ondelete="CASCADE"),
                                   primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
@@ -128,7 +128,7 @@ class Resource(Base, GnocchiBase):
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
-    type = sqlalchemy.Column(sqlalchemy.Enum('entity', 'generic', 'instance',
+    type = sqlalchemy.Column(sqlalchemy.Enum('metric', 'generic', 'instance',
                                              'swift_account',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
@@ -165,10 +165,10 @@ class ArchivePolicy(Base, GnocchiBase):
     definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
 
 
-class Entity(Resource):
-    __tablename__ = 'entity'
+class Metric(Resource):
+    __tablename__ = 'metric'
     __table_args__ = (
-        sqlalchemy.Index('ix_entity_id', 'id'),
+        sqlalchemy.Index('ix_metric_id', 'id'),
         COMMON_TABLES_ARGS,
     )
 
@@ -184,7 +184,7 @@ class Entity(Resource):
 
 
 class MeasurableResource(Resource):
-    entities = sqlalchemy.orm.relationship(ResourceEntity)
+    metrics = sqlalchemy.orm.relationship(ResourceMetric)
 
 
 class Instance(MeasurableResource):
@@ -222,7 +222,7 @@ class SwiftAccount(MeasurableResource):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
-        'entity': Entity,
+        'metric': Metric,
         'generic': MeasurableResource,
         'instance': Instance,
         'swift_account': SwiftAccount,
@@ -257,19 +257,19 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if ap:
             return dict(ap)
 
-    def get_entity(self, uuid, details=False):
+    def get_metric(self, uuid, details=False):
         session = self.engine_facade.get_session()
         if details:
-            entity, archive_policy = session.query(
-                Entity, ArchivePolicy).filter(
-                    Entity.id == uuid).filter(
-                        ArchivePolicy.name == Entity.archive_policy).first()
-            entity['archive_policy'] = self._resource_to_dict(archive_policy)
+            metric, archive_policy = session.query(
+                Metric, ArchivePolicy).filter(
+                    Metric.id == uuid).filter(
+                        ArchivePolicy.name == Metric.archive_policy).first()
+            metric['archive_policy'] = self._resource_to_dict(archive_policy)
         else:
-            entity = session.query(Entity).get(uuid)
+            metric = session.query(Metric).get(uuid)
 
-        if entity:
-            return self._resource_to_dict(entity)
+        if metric:
+            return self._resource_to_dict(metric)
 
     def create_archive_policy(self, name, back_window, definition):
         ap = ArchivePolicy(name=name, back_window=back_window,
@@ -285,7 +285,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def create_resource(self, resource_type, id,
                         created_by_user_id, created_by_project_id,
                         user_id=None, project_id=None,
-                        started_at=None, ended_at=None, entities=None,
+                        started_at=None, ended_at=None, metrics=None,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
         if (started_at is not None
@@ -317,18 +317,18 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceValueError(r.type,
                                                  ex.key,
                                                  getattr(r, ex.key))
-            if entities is None:
-                entities = {}
-            for name, e in six.iteritems(entities):
-                session.add(ResourceEntity(resource_id=r.id,
-                                           entity_id=e,
+            if metrics is None:
+                metrics = {}
+            for name, e in six.iteritems(metrics):
+                session.add(ResourceMetric(resource_id=r.id,
+                                           metric_id=e,
                                            name=name))
                 try:
                     session.flush()
                 except exception.DBReferenceError as ex:
-                    if ex.table == 'resource_entity':
-                        if ex.key == 'entity_id':
-                            raise indexer.NoSuchEntity(e)
+                    if ex.table == 'resource_metric':
+                        if ex.key == 'metric_id':
+                            raise indexer.NoSuchMetric(e)
                         if ex.key == 'resource_id':
                             raise indexer.NoSuchResource(r.id)
                     raise
@@ -344,13 +344,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if isinstance(v, uuid.UUID):
                 r[k] = six.text_type(v)
         if isinstance(resource, MeasurableResource):
-            r['entities'] = dict((k.name, str(k.entity_id))
-                                 for k in resource.entities)
+            r['metrics'] = dict((k.name, str(k.metric_id))
+                                for k in resource.metrics)
         return r
 
     def update_resource(self, resource_type,
-                        uuid, ended_at=_marker, entities=_marker,
-                        append_entities=False,
+                        uuid, ended_at=_marker, metrics=_marker,
+                        append_metrics=False,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
@@ -381,25 +381,25 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         raise indexer.ResourceAttributeError(
                             r.type, attribute)
 
-            if entities is not _marker:
-                if not append_entities:
-                    session.query(ResourceEntity).filter(
-                        ResourceEntity.resource_id == uuid).delete()
-                for name, eid in six.iteritems(entities):
+            if metrics is not _marker:
+                if not append_metrics:
+                    session.query(ResourceMetric).filter(
+                        ResourceMetric.resource_id == uuid).delete()
+                for name, eid in six.iteritems(metrics):
                     with session.begin(subtransactions=True):
-                        session.add(ResourceEntity(resource_id=uuid,
-                                                   entity_id=eid,
+                        session.add(ResourceMetric(resource_id=uuid,
+                                                   metric_id=eid,
                                                    name=name))
                         try:
                             session.flush()
                         except exception.DBReferenceError as e:
-                            if e.key == 'entity_id':
-                                raise indexer.NoSuchEntity(eid)
+                            if e.key == 'metric_id':
+                                raise indexer.NoSuchMetric(eid)
                             if e.key == 'resource_id':
                                 raise indexer.NoSuchResource(uuid)
                             raise
                         except exception.DBDuplicateEntry as e:
-                            raise indexer.NamedEntityAlreadyExists(name)
+                            raise indexer.NamedMetricAlreadyExists(name)
 
         return self._resource_to_dict(r)
 
@@ -458,7 +458,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         return [self._resource_to_dict(r) for r in all_resources]
 
-    def delete_entity(self, id):
+    def delete_metric(self, id):
         session = self.engine_facade.get_session()
-        session.query(Entity).filter(Entity.id == id).delete()
+        session.query(Metric).filter(Metric.id == id).delete()
         session.flush()

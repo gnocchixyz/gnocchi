@@ -59,38 +59,38 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
 
-    def _create_entity_container(self, entity):
+    def _create_metric_container(self, metric):
         # TODO(jd) A container per user in their account?
         resp = {}
-        self.swift.put_container(entity, response_dict=resp)
+        self.swift.put_container(metric, response_dict=resp)
         # put_container() should return 201 Created; if it returns 204, that
-        # means the entity was already created!
+        # means the metric was already created!
         if resp['status'] == 204:
-            raise storage.EntityAlreadyExists(entity)
+            raise storage.MetricAlreadyExists(metric)
 
-    def _store_entity_measures(self, entity, aggregation, data):
-        self.swift.put_object(entity, aggregation, data)
+    def _store_metric_measures(self, metric, aggregation, data):
+        self.swift.put_object(metric, aggregation, data)
 
-    def delete_entity(self, entity):
+    def delete_metric(self, metric):
         try:
             for aggregation in self.aggregation_types:
                 try:
-                    self.swift.delete_object(entity, aggregation)
+                    self.swift.delete_object(metric, aggregation)
                 except swclient.ClientException as e:
                     if e.http_status != 404:
                         raise
 
-            self.swift.delete_container(entity)
+            self.swift.delete_container(metric)
         except swclient.ClientException as e:
             if e.http_status == 404:
-                raise storage.EntityDoesNotExist(entity)
+                raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _get_measures(self, entity, aggregation):
+    def _get_measures(self, metric, aggregation):
         try:
-            headers, contents = self.swift.get_object(entity, aggregation)
+            headers, contents = self.swift.get_object(metric, aggregation)
         except swclient.ClientException as e:
             if e.http_status == 404:
-                raise storage.EntityDoesNotExist(entity)
+                raise storage.MetricDoesNotExist(metric)
             raise
         return contents

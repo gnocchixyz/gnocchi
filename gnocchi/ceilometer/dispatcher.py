@@ -47,7 +47,7 @@ dispatcher_opts = [
     cfg.StrOpt('archive_policy',
                default="low",
                help='The archive policy to use when the dispatcher '
-               'create a new entity.')
+               'create a new metric.')
 ]
 
 cfg.CONF.register_opts(dispatcher_opts, group="dispatcher_gnocchi")
@@ -58,11 +58,11 @@ class UnexpectedWorkflowError(Exception):
     pass
 
 
-class NoSuchEntity(Exception):
+class NoSuchMetric(Exception):
     pass
 
 
-class EntityAlreadyExists(Exception):
+class MetricAlreadyExists(Exception):
     pass
 
 
@@ -131,7 +131,7 @@ class GnocchiDispatcher(dispatcher.Base):
         data = [s for s in data if not self._is_gnocchi_activity(s)]
 
         # FIXME(sileht): This method bulk the processing of samples
-        # grouped by resource_id and entity_name but this is not
+        # grouped by resource_id and metric_name but this is not
         # efficient yet because the data received here doesn't often
         # contains a lot of different kind of samples
         # So perhaps the next step will be to pool the received data from
@@ -143,14 +143,14 @@ class GnocchiDispatcher(dispatcher.Base):
         for resource_id, samples_of_resource in resource_grouped_samples:
             resource_need_to_be_updated = True
 
-            entity_grouped_samples = itertools.groupby(
+            metric_grouped_samples = itertools.groupby(
                 list(samples_of_resource),
                 key=operator.itemgetter('counter_name'))
-            for entity_name, samples in entity_grouped_samples:
+            for metric_name, samples in metric_grouped_samples:
                 for ext in self.mgmr:
-                    if entity_name in ext.obj.get_entities_names():
+                    if metric_name in ext.obj.get_metrics_names():
                         self._process_samples(
-                            ext, resource_id, entity_name, list(samples),
+                            ext, resource_id, metric_name, list(samples),
                             resource_need_to_be_updated)
 
                 # FIXME(sileht): Does it reasonable to skip the resource
@@ -162,7 +162,7 @@ class GnocchiDispatcher(dispatcher.Base):
                 # resource_need_to_be_updated = False
 
     @log_and_ignore_unexpected_workflow_error
-    def _process_samples(self, ext, resource_id, entity_name, samples,
+    def _process_samples(self, ext, resource_id, metric_name, samples,
                          resource_need_to_be_updated):
 
         resource_type = ext.name
@@ -171,23 +171,23 @@ class GnocchiDispatcher(dispatcher.Base):
                               for sample in samples]
 
         try:
-            self._post_measure(resource_type, resource_id, entity_name,
+            self._post_measure(resource_type, resource_id, metric_name,
                                measure_attributes)
-        except NoSuchEntity:
+        except NoSuchMetric:
             # NOTE(sileht): we try first to create the resource, because
-            # they more chance that the resource doesn't exists than the entity
+            # they more chance that the resource doesn't exists than the metric
             # is missing, the should be reduce the number of resource API call
             resource_attributes = self._get_resource_attributes(
-                ext, resource_id, entity_name, samples)
+                ext, resource_id, metric_name, samples)
             try:
                 self._create_resource(resource_type, resource_id,
                                       resource_attributes)
             except ResourceAlreadyExists:
                 try:
-                    self._create_entity(resource_type, resource_id,
-                                        entity_name)
-                except EntityAlreadyExists:
-                    # NOTE(sileht): Just ignore the entity have been created in
+                    self._create_metric(resource_type, resource_id,
+                                        metric_name)
+                except MetricAlreadyExists:
+                    # NOTE(sileht): Just ignore the metric have been created in
                     # the meantime.
                     pass
             else:
@@ -198,16 +198,16 @@ class GnocchiDispatcher(dispatcher.Base):
             # NOTE(sileht): we retry to post the measure but if it fail we
             # don't catch the exception to just log it and continue to process
             # other samples
-            self._post_measure(resource_type, resource_id, entity_name,
+            self._post_measure(resource_type, resource_id, metric_name,
                                measure_attributes)
 
         if resource_need_to_be_updated:
             resource_attributes = self._get_resource_attributes(
-                ext, resource_id, entity_name, samples, for_update=True)
+                ext, resource_id, metric_name, samples, for_update=True)
             self._update_resource(resource_type, resource_id,
                                   resource_attributes)
 
-    def _get_resource_attributes(self, ext, resource_id, entity_name, samples,
+    def _get_resource_attributes(self, ext, resource_id, metric_name, samples,
                                  for_update=False):
         # FIXME(sileht): Should I merge attibutes of all samples ?
         # Or keep only the last one is sufficient ?
@@ -217,39 +217,39 @@ class GnocchiDispatcher(dispatcher.Base):
             attributes["id"] = resource_id
             attributes["user_id"] = samples[-1]['user_id']
             attributes["project_id"] = samples[-1]['project_id']
-            attributes["entities"] = dict(
-                (entity_name, self.gnocchi_archive_policy)
-                for entity_name in ext.obj.get_entities_names()
+            attributes["metrics"] = dict(
+                (metric_name, self.gnocchi_archive_policy)
+                for metric_name in ext.obj.get_metrics_names()
             )
         return attributes
 
-    def _post_measure(self, resource_type, resource_id, entity_name,
+    def _post_measure(self, resource_type, resource_id, metric_name,
                       measure_attributes):
-        r = requests.post("%s/v1/resource/%s/%s/entity/%s/measures"
+        r = requests.post("%s/v1/resource/%s/%s/metric/%s/measures"
                           % (self.gnocchi_url, resource_type, resource_id,
-                             entity_name),
+                             metric_name),
                           headers=self._get_headers(),
                           data=json.dumps(measure_attributes))
         if r.status_code == 404:
-            LOG.debug(_("The entity %(entity_name)s of "
+            LOG.debug(_("The metric %(metric_name)s of "
                         "resource %(resource_id)s doesn't exists"
                         "%(status_code)d"),
-                      {'entity_name': entity_name,
+                      {'metric_name': metric_name,
                        'resource_id': resource_id,
                        'status_code': r.status_code})
-            raise NoSuchEntity
+            raise NoSuchMetric
         elif int(r.status_code / 100) != 2:
             raise UnexpectedWorkflowError(
-                _("Fail to post measure on entity %(entity_name)s of "
+                _("Fail to post measure on metric %(metric_name)s of "
                   "resource %(resource_id)s with status: "
                   "%(status_code)d: %(msg)s") %
-                {'entity_name': entity_name,
+                {'metric_name': metric_name,
                  'resource_id': resource_id,
                  'status_code': r.status_code,
                  'msg': r.text})
         else:
-            LOG.debug("Measure posted on entity %s of resource %s",
-                      entity_name, resource_id)
+            LOG.debug("Measure posted on metric %s of resource %s",
+                      metric_name, resource_id)
 
     def _create_resource(self, resource_type, resource_id,
                          resource_attributes):
@@ -289,30 +289,30 @@ class GnocchiDispatcher(dispatcher.Base):
         else:
             LOG.debug("Resource %s updated", resource_id)
 
-    def _create_entity(self, resource_type, resource_id, entity_name):
-        params = {entity_name: self.gnocchi_archive_policy}
-        r = requests.post("%s/v1/resource/%s/%s/entity"
+    def _create_metric(self, resource_type, resource_id, metric_name):
+        params = {metric_name: self.gnocchi_archive_policy}
+        r = requests.post("%s/v1/resource/%s/%s/metric"
                           % (self.gnocchi_url, resource_type,
                              resource_id),
                           headers=self._get_headers(),
                           data=json.dumps(params))
         if r.status_code == 409:
-            LOG.debug("Entity %s of resource %s already exists",
-                      entity_name, resource_id)
-            raise EntityAlreadyExists
+            LOG.debug("Metric %s of resource %s already exists",
+                      metric_name, resource_id)
+            raise MetricAlreadyExists
 
         elif int(r.status_code / 100) != 2:
             raise UnexpectedWorkflowError(
-                _("Fail to create entity %(entity_name)s of "
+                _("Fail to create metric %(metric_name)s of "
                   "resource %(resource_id)s with status: "
                   "%(status_code)d: %(msg)s") %
-                {'entity_name': entity_name,
+                {'metric_name': metric_name,
                  'resource_id': resource_id,
                  'status_code': r.status_code,
                  'msg': r.text})
         else:
-            LOG.debug("Entity %s of resource %s created",
-                      entity_name, resource_id)
+            LOG.debug("Metric %s of resource %s created",
+                      metric_name, resource_id)
 
     @staticmethod
     def record_events(events):

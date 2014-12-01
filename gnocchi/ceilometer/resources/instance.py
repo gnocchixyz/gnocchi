@@ -45,7 +45,7 @@ class Instance(base.ResourceBase):
         return params
 
     @staticmethod
-    def get_entities_names():
+    def get_metrics_names():
         return ['instance',
                 'disk.root.size',
                 'disk.ephemeral.size',

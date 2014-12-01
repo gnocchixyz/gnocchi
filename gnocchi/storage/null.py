@@ -21,15 +21,15 @@ from gnocchi import storage
 class NullStorage(storage.StorageDriver):
 
     def __init__(self, conf):
-        self.entities = {}
+        self.metrics = {}
 
-    def create_entity(self, entity, back_window, archive_policy):
-        if entity in self.entities:
-            raise storage.EntityAlreadyExists(entity)
-        self.entities[entity] = True
+    def create_metric(self, metric, back_window, archive_policy):
+        if metric in self.metrics:
+            raise storage.MetricAlreadyExists(metric)
+        self.metrics[metric] = True
 
-    def delete_entity(self, entity):
+    def delete_metric(self, metric):
         try:
-            del self.entities[entity]
+            del self.metrics[metric]
         except KeyError:
-            raise storage.EntityDoesNotExist(entity)
+            raise storage.MetricDoesNotExist(metric)

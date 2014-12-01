@@ -57,12 +57,12 @@ class UnknownResourceType(Exception):
         self.type = type
 
 
-class NoSuchEntity(Exception):
+class NoSuchMetric(Exception):
     """Error raised when an entitiy does not exist."""
-    def __init__(self, entity):
-        super(NoSuchEntity, self).__init__("Entity %s does not exist" %
-                                           str(entity))
-        self.entity = entity
+    def __init__(self, metric):
+        super(NoSuchMetric, self).__init__("Metric %s does not exist" %
+                                           str(metric))
+        self.metric = metric
 
 
 class NoSuchResource(Exception):
@@ -73,12 +73,12 @@ class NoSuchResource(Exception):
         self.resource = resource
 
 
-class NamedEntityAlreadyExists(Exception):
-    """Error raised when a named entity already exists."""
-    def __init__(self, entity):
-        super(NamedEntityAlreadyExists, self).__init__(
-            "Named entity %s already exists" % entity)
-        self.entity = entity
+class NamedMetricAlreadyExists(Exception):
+    """Error raised when a named metric already exists."""
+    def __init__(self, metric):
+        super(NamedMetricAlreadyExists, self).__init__(
+            "Named metric %s already exists" % metric)
+        self.metric = metric
 
 
 class ResourceAlreadyExists(Exception):
@@ -154,7 +154,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def get_entity(uuid, details=False):
+    def get_metric(uuid, details=False):
         raise exceptions.NotImplementedError
 
     @staticmethod
@@ -163,14 +163,14 @@ class IndexerDriver(object):
 
     @staticmethod
     def create_resource(resource_type, id, user_id, project_id,
-                        started_at=None, ended_at=None, entities=None,
+                        started_at=None, ended_at=None, metrics=None,
                         **kwargs):
         raise exceptions.NotImplementedError
 
     @staticmethod
     def update_resource(resource_type, uuid, ended_at=_marker,
-                        entities=_marker,
-                        append_entities=False,
+                        metrics=_marker,
+                        append_metrics=False,
                         **kwargs):
         raise exceptions.NotImplementedError
 
@@ -179,9 +179,9 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def create_entity(id):
+    def create_metric(id):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def delete_entity(id):
+    def delete_metric(id):
         raise exceptions.NotImplementedError

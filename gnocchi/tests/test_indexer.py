@@ -58,33 +58,33 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": six.text_type(project),
                           "ended_at": None,
                           "type": "generic",
-                          "entities": {}},
+                          "metrics": {}},
                          rc)
         rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
-        self.assertEqual(rc['entities'], rg['entities'])
+        self.assertEqual(rc['metrics'], rg['metrics'])
 
     def test_create_resource_unknown_attribute_fkey(self):
         r1 = uuid.uuid4()
         try:
-            self.index.create_resource('entity', r1,
+            self.index.create_resource('metric', r1,
                                        uuid.uuid4(), uuid.uuid4(),
                                        archive_policy="foobar")
         except indexer.ResourceValueError as e:
-            self.assertEqual('entity', e.resource_type)
+            self.assertEqual('metric', e.resource_type)
             self.assertEqual('archive_policy', e.attribute)
             self.assertEqual("foobar", e.value)
         else:
             self.fail("No exception raised")
 
-    def test_create_non_existent_entity(self):
+    def test_create_non_existent_metric(self):
         e = uuid.uuid4()
         try:
             self.index.create_resource(
                 'generic', uuid.uuid4(), uuid.uuid4(), uuid.uuid4(),
-                entities={"foo": e})
-        except indexer.NoSuchEntity as ex:
-            self.assertEqual(e, ex.entity)
+                metrics={"foo": e})
+        except indexer.NoSuchMetric as ex:
+            self.assertEqual(e, ex.metric)
         else:
             self.fail("Exception not raised")
 
@@ -122,11 +122,11 @@ class TestIndexerDriver(tests_base.TestCase):
                           "host": "foo",
                           "image_ref": "http://foo/bar",
                           "flavor_id": 1,
-                          "entities": {}},
+                          "metrics": {}},
                          rc)
         rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
-        self.assertEqual(rc['entities'], rg['entities'])
+        self.assertEqual(rc['metrics'], rg['metrics'])
 
     def test_create_instance(self):
         self._do_test_create_instance()
@@ -162,7 +162,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
-                          "entities": {}}, rc)
+                          "metrics": {}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
@@ -172,22 +172,22 @@ class TestIndexerDriver(tests_base.TestCase):
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
-                          "entities": {}}, r)
+                          "metrics": {}}, r)
 
-    def test_create_resource_with_entities(self):
+    def test_create_resource_with_metrics(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1,
+        self.index.create_resource('metric', e1,
                                    user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2,
+        self.index.create_resource('metric', e2,
                                    user, project,
                                    archive_policy="low")
         rc = self.index.create_resource('generic', r1, user, project,
-                                        entities={'foo': e1, 'bar': e2})
+                                        metrics={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
         del rc['started_at']
         self.assertEqual({"id": str(r1),
@@ -197,7 +197,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": six.text_type(project),
                           "ended_at": None,
                           "type": "generic",
-                          "entities": {'foo': str(e1), 'bar': str(e2)}}, rc)
+                          "metrics": {'foo': str(e1), 'bar': str(e2)}}, rc)
         r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
@@ -208,7 +208,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
-                          "entities": {'foo': str(e1), 'bar': str(e2)}}, r)
+                          "metrics": {'foo': str(e1), 'bar': str(e2)}}, r)
 
     def test_update_non_existent_resource_end_timestamp(self):
         r1 = uuid.uuid4()
@@ -238,7 +238,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "type": "generic",
-                          "entities": {}}, r)
+                          "metrics": {}}, r)
         self.index.update_resource(
             'generic',
             r1,
@@ -253,62 +253,62 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "type": "generic",
-                          "entities": {}}, r)
+                          "metrics": {}}, r)
 
-    def test_update_resource_entities(self):
+    def test_update_resource_metrics(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1, user, project,
+        self.index.create_resource('metric', e1, user, project,
                                    archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
-                                   entities={'foo': e1})
-        self.index.create_resource('entity', e2, user, project,
+                                   metrics={'foo': e1})
+        self.index.create_resource('metric', e2, user, project,
                                    archive_policy="low")
-        rc = self.index.update_resource('generic', r1, entities={'bar': e2})
+        rc = self.index.update_resource('generic', r1, metrics={'bar': e2})
         r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
 
-    def test_update_resource_entities_append(self):
+    def test_update_resource_metrics_append(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1, user, project,
+        self.index.create_resource('metric', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, user, project,
+        self.index.create_resource('metric', e2, user, project,
                                    archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
-                                   entities={'foo': e1})
-        rc = self.index.update_resource('generic', r1, entities={'bar': e2},
-                                        append_entities=True)
+                                   metrics={'foo': e1})
+        rc = self.index.update_resource('generic', r1, metrics={'bar': e2},
+                                        append_metrics=True)
         r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
-        self.assertIn('foo', rc['entities'])
-        self.assertIn('bar', rc['entities'])
+        self.assertIn('foo', rc['metrics'])
+        self.assertIn('bar', rc['metrics'])
 
-    def test_update_resource_entities_append_fail(self):
+    def test_update_resource_metrics_append_fail(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1, user, project,
+        self.index.create_resource('metric', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, user, project,
+        self.index.create_resource('metric', e2, user, project,
                                    archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
-                                   entities={'foo': e1})
+                                   metrics={'foo': e1})
 
-        self.assertRaises(indexer.NamedEntityAlreadyExists,
+        self.assertRaises(indexer.NamedMetricAlreadyExists,
                           self.index.update_resource,
-                          'generic', r1, entities={'foo': e2},
-                          append_entities=True)
+                          'generic', r1, metrics={'foo': e2},
+                          append_metrics=True)
         r = self.index.get_resource('generic', r1)
-        self.assertEqual(str(e1), r['entities']['foo'])
+        self.assertEqual(str(e1), r['metrics']['foo'])
 
     def test_update_resource_attribute(self):
         r1 = uuid.uuid4()
@@ -336,47 +336,47 @@ class TestIndexerDriver(tests_base.TestCase):
                           'instance',
                           r1, foo="bar")
 
-    def test_update_non_existent_entity(self):
+    def test_update_non_existent_metric(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         self.index.create_resource('generic', r1, uuid.uuid4(), uuid.uuid4())
-        self.assertRaises(indexer.NoSuchEntity,
+        self.assertRaises(indexer.NoSuchMetric,
                           self.index.update_resource,
                           'generic',
-                          r1, entities={'bar': e1})
+                          r1, metrics={'bar': e1})
 
     def test_update_non_existent_resource(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.index.create_resource('entity', e1, uuid.uuid4(), uuid.uuid4(),
+        self.index.create_resource('metric', e1, uuid.uuid4(), uuid.uuid4(),
                                    archive_policy="low")
         self.assertRaises(indexer.NoSuchResource,
                           self.index.update_resource,
                           'generic',
-                          r1, entities={'bar': e1})
+                          r1, metrics={'bar': e1})
 
-    def test_create_resource_with_non_existent_entities(self):
+    def test_create_resource_with_non_existent_metrics(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.assertRaises(indexer.NoSuchEntity,
+        self.assertRaises(indexer.NoSuchMetric,
                           self.index.create_resource,
                           'generic',
                           r1, uuid.uuid4(), uuid.uuid4(),
-                          entities={'foo': e1})
+                          metrics={'foo': e1})
 
-    def test_delete_entity(self):
+    def test_delete_metric(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1, user, project,
+        self.index.create_resource('metric', e1, user, project,
                                    archive_policy="low")
-        self.index.create_resource('entity', e2, user, project,
+        self.index.create_resource('metric', e2, user, project,
                                    archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
-                                   entities={'foo': e1, 'bar': e2})
-        self.index.delete_entity(e1)
+                                   metrics={'foo': e1, 'bar': e2})
+        self.index.delete_metric(e1)
         r = self.index.get_resource('generic', r1)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
@@ -387,7 +387,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "type": "generic",
-                          "entities": {'bar': str(e2)}}, r)
+                          "metrics": {'bar': str(e2)}}, r)
 
     def test_delete_instance(self):
         r1 = uuid.uuid4()
@@ -552,17 +552,17 @@ class TestIndexerDriver(tests_base.TestCase):
             ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
         self.assertEqual(len(resources), 0)
 
-    def test_get_entity(self):
+    def test_get_metric(self):
         e1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1,
+        self.index.create_resource('metric', e1,
                                    user, project,
                                    archive_policy="low")
 
-        entity = self.index.get_entity(e1)
-        self.assertIsNotNone(entity['started_at'])
-        del entity['started_at']
+        metric = self.index.get_metric(e1)
+        self.assertIsNotNone(metric['started_at'])
+        del metric['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": "low",
                           "created_by_user_id": six.text_type(user),
@@ -570,20 +570,20 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
-                          "type": "entity"},
-                         entity)
+                          "type": "metric"},
+                         metric)
 
-    def test_get_entity_with_details(self):
+    def test_get_metric_with_details(self):
         e1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('entity', e1,
+        self.index.create_resource('metric', e1,
                                    user, project,
                                    archive_policy="low")
 
-        entity = self.index.get_entity(e1, details=True)
-        self.assertIsNotNone(entity['started_at'])
-        del entity['started_at']
+        metric = self.index.get_metric(e1, details=True)
+        self.assertIsNotNone(metric['started_at'])
+        del metric['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": {
                               "back_window": 0,
@@ -597,9 +597,9 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": six.text_type(user),
                           "project_id": six.text_type(project),
                           "ended_at": None,
-                          "type": "entity"},
-                         entity)
+                          "type": "metric"},
+                         metric)
 
-    def test_get_entity_with_bad_uuid(self):
+    def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()
-        self.assertIsNone(self.index.get_entity(e1))
+        self.assertIsNone(self.index.get_metric(e1))

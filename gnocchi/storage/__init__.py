@@ -44,22 +44,22 @@ cfg.CONF.register_opts(OPTS, group="storage")
 Measure = collections.namedtuple('Measure', ['timestamp', 'value'])
 
 
-class EntityDoesNotExist(Exception):
-    """Error raised when this entity does not exist."""
+class MetricDoesNotExist(Exception):
+    """Error raised when this metric does not exist."""
 
-    def __init__(self, entity):
-        self.entity = entity
-        super(EntityDoesNotExist, self).__init__(
-            "Entity %s does not exist" % entity)
+    def __init__(self, metric):
+        self.metric = metric
+        super(MetricDoesNotExist, self).__init__(
+            "Metric %s does not exist" % metric)
 
 
-class EntityAlreadyExists(Exception):
-    """Error raised when this entity already exists."""
+class MetricAlreadyExists(Exception):
+    """Error raised when this metric already exists."""
 
-    def __init__(self, entity):
-        self.entity = entity
-        super(EntityAlreadyExists, self).__init__(
-            "Entity %s already exists" % entity)
+    def __init__(self, metric):
+        self.metric = metric
+        super(MetricAlreadyExists, self).__init__(
+            "Metric %s already exists" % metric)
 
 
 class NoDeloreanAvailable(Exception):
@@ -95,30 +95,30 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_entity(entity, back_window, archive_policy):
-        """Create an entity.
+    def create_metric(metric, back_window, archive_policy):
+        """Create an metric.
 
-        :param entity: The entity key.
+        :param metric: The metric key.
         :param back_window: Number of blocks to allow as back window.
         :param archive_policy: The archive policy to use.
         """
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def add_measures(entity, measures):
-        """Add a measure to an entity.
+    def add_measures(metric, measures):
+        """Add a measure to an metric.
 
-        :param entity: The entity measured.
+        :param metric: The metric measured.
         :param measures: The actual measures.
         """
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def get_measures(entity, from_timestamp=None, to_timestamp=None,
+    def get_measures(metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
-        """Add a measure to an entity.
+        """Add a measure to an metric.
 
-        :param entity: The entity measured.
+        :param metric: The metric measured.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
@@ -126,5 +126,5 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def delete_entity(entity):
+    def delete_metric(metric):
         raise exceptions.NotImplementedError

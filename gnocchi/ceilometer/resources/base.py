@@ -33,8 +33,8 @@ class ResourceBase(object):
         """
 
     @abc.abstractmethod
-    def get_entities_names(self):
-        """Return the entity handled by this resource.
+    def get_metrics_names(self):
+        """Return the metric handled by this resource.
 
-        :returns: list of entity names
+        :returns: list of metric names
         """

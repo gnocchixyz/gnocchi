@@ -297,7 +297,7 @@ class ArchivePolicyTest(RestTest):
             expect_errors=True,
             status=400)
 
-    def test_post_archive_policy_and_entity(self):
+    def test_post_archive_policy_and_metric(self):
         ap = str(uuid.uuid4())
         self.app.post_json(
             "/v1/archive_policy",
@@ -308,7 +308,7 @@ class ArchivePolicyTest(RestTest):
                     }]},
             status=201)
         self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": ap},
             status=201)
 
@@ -382,36 +382,36 @@ class ArchivePolicyTest(RestTest):
                  ]}, aps)
 
 
-class EntityTest(RestTest):
-    def test_post_entity(self):
-        result = self.app.post_json("/v1/entity",
+class MetricTest(RestTest):
+    def test_post_metric(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"},
                                     status=201)
         self.assertEqual("application/json", result.content_type)
-        entity = json.loads(result.text)
-        self.assertEqual("http://localhost/v1/entity/" + entity['id'],
+        metric = json.loads(result.text)
+        self.assertEqual("http://localhost/v1/metric/" + metric['id'],
                          result.headers['Location'])
-        self.assertEqual(entity['archive_policy'], "medium")
+        self.assertEqual(metric['archive_policy'], "medium")
 
-    def test_get_entity(self):
-        result = self.app.post_json("/v1/entity",
+    def test_get_metric(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"},
                                     status=201)
         self.assertEqual("application/json", result.content_type)
 
         result = self.app.get(result.headers['Location'], status=200)
-        entity = json.loads(result.text)
-        self.assertEqual(entity['archive_policy'], "medium")
+        metric = json.loads(result.text)
+        self.assertEqual(metric['archive_policy'], "medium")
 
-    def test_get_detailed_entity(self):
+    def test_get_detailed_metric(self):
         result = self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": "medium"},
             status=201)
 
         result = self.app.get(result.headers['Location'] + '?details=true',
                               status=200)
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         self.assertEqual(
             {"name": "medium",
              "back_window": 0,
@@ -419,11 +419,11 @@ class EntityTest(RestTest):
                  rest.ArchivePolicyItem(**d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
              ]},
-            entity['archive_policy'])
+            metric['archive_policy'])
 
-    def test_get_entity_with_detail_in_accept(self):
+    def test_get_metric_with_detail_in_accept(self):
         result = self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": "medium"},
             status=201)
 
@@ -432,7 +432,7 @@ class EntityTest(RestTest):
             headers={"Accept": "application/json; details=true"},
             status=200)
 
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         self.assertEqual(
             {"name": "medium",
              "back_window": 0,
@@ -440,11 +440,11 @@ class EntityTest(RestTest):
                  rest.ArchivePolicyItem(**d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
              ]},
-            entity['archive_policy'])
+            metric['archive_policy'])
 
-    def test_get_detailed_entity_with_bad_details(self):
+    def test_get_detailed_metric_with_bad_details(self):
         result = self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": "medium"},
             status=201)
 
@@ -455,9 +455,9 @@ class EntityTest(RestTest):
             b"Unrecognized value 'awesome', acceptable values are",
             result.body)
 
-    def test_get_entity_with_bad_detail_in_accept(self):
+    def test_get_metric_with_bad_detail_in_accept(self):
         result = self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": "medium"},
             status=201)
 
@@ -470,51 +470,51 @@ class EntityTest(RestTest):
             b"Unrecognized value 'awesome', acceptable values are",
             result.body)
 
-    def test_get_entity_with_wrong_entity_id(self):
-        fake_entity_id = uuid.uuid4()
-        result = self.app.get("/v1/entity/%s" % fake_entity_id, status=404)
-        self.assertIn("Entity %s does not exist" % fake_entity_id, result.text)
+    def test_get_metric_with_wrong_metric_id(self):
+        fake_metric_id = uuid.uuid4()
+        result = self.app.get("/v1/metric/%s" % fake_metric_id, status=404)
+        self.assertIn("Metric %s does not exist" % fake_metric_id, result.text)
 
-    def test_post_entity_wrong_archive_policy(self):
+    def test_post_metric_wrong_archive_policy(self):
         policy = str(uuid.uuid4())
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": policy},
                                     expect_errors=True,
                                     status=400)
         self.assertIn('Unknown archive policy %s' % policy, result.text)
 
-    def test_get_entity_as_resource(self):
+    def test_get_metric_as_resource(self):
         result = self.app.post_json(
-            "/v1/entity",
+            "/v1/metric",
             params={"archive_policy": "medium"},
             status=201)
         self.assertEqual("application/json", result.content_type)
-        entity = json.loads(result.text)
-        result = self.app.get("/v1/resource/entity/%s" % entity['id'])
-        self.assertDictContainsSubset(entity, json.loads(result.text))
+        metric = json.loads(result.text)
+        result = self.app.get("/v1/resource/metric/%s" % metric['id'])
+        self.assertDictContainsSubset(metric, json.loads(result.text))
 
-    def test_post_entity_as_resource(self):
-        self.app.post_json("/v1/resource/entity",
+    def test_post_metric_as_resource(self):
+        self.app.post_json("/v1/resource/metric",
                            params={"archive_policy": "medium"},
                            status=403)
 
-    def test_delete_entity(self):
-        result = self.app.post_json("/v1/entity",
+    def test_delete_metric(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.text)
-        result = self.app.delete("/v1/entity/" + entity['id'], status=204)
+        metric = json.loads(result.text)
+        result = self.app.delete("/v1/metric/" + metric['id'], status=204)
 
-    def test_delete_entity_non_existent(self):
+    def test_delete_metric_non_existent(self):
         e1 = str(uuid.uuid4())
-        result = self.app.delete("/v1/entity/" + e1,
+        result = self.app.delete("/v1/metric/" + e1,
                                  expect_errors=True,
                                  status=404)
         self.assertIn(
-            b"Entity " + e1.encode('ascii') + b" does not exist",
+            b"Metric " + e1.encode('ascii') + b" does not exist",
             result.body)
 
-    def test_post_entity_bad_archives(self):
-        result = self.app.post_json("/v1/entity",
+    def test_post_metric_bad_archives(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": 'foobar123'},
                                     expect_errors=True,
                                     status=400)
@@ -522,48 +522,48 @@ class EntityTest(RestTest):
         self.assertIn(b"Unknown archive policy foobar123", result.body)
 
     def test_add_measure(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             status=204)
 
     def test_add_measure_with_another_user(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         with self.app.use_another_user():
             self.app.post_json(
-                "/v1/entity/%s/measures" % entity['id'],
+                "/v1/metric/%s/measures" % metric['id'],
                 params=[{"timestamp": '2013-01-01 23:23:23',
                          "value": 1234.2}],
                 status=403)
 
-    def test_add_multiple_measures_per_entity(self):
-        result = self.app.post_json("/v1/entity",
+    def test_add_multiple_measures_per_metric(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "high"},
                                     status=201)
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         for x in range(5):
             result = self.app.post_json(
-                "/v1/entity/%s/measures" % entity['id'],
+                "/v1/metric/%s/measures" % metric['id'],
                 params=[{"timestamp": '2013-01-01 23:23:2%d' % x,
                          "value": 1234.2 + x}],
                 status=204)
 
-    def test_add_measure_no_such_entity(self):
+    def test_add_measure_no_such_metric(self):
         e1 = str(uuid.uuid4())
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % e1,
+            "/v1/metric/%s/measures" % e1,
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             expect_errors=True,
             status=404)
         self.assertIn(
-            b"Entity " + e1.encode('ascii') + b" does not exist",
+            b"Metric " + e1.encode('ascii') + b" does not exist",
             result.body)
 
     def test_add_measures_back_window(self):
@@ -578,36 +578,36 @@ class EntityTest(RestTest):
                         "points": 20,
                     }]},
             status=201)
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": ap_name})
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:30:23',
                      "value": 1234.2}],
             status=204)
         self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:29:23',
                      "value": 1234.2}],
             status=204)
         self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:28:23',
                      "value": 1234.2}],
             status=204)
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2012-01-01 23:27:23',
                      "value": 1234.2}],
             status=400)
         self.assertIn(
             b"The measure for 2012-01-01 23:27:23 is too old considering "
-            b"the archive policy used by this entity. "
+            b"the archive policy used by this metric. "
             b"It can only go back to 2013-01-01 23:28:00.",
             result.body)
 
-        ret = self.app.get("/v1/entity/%s/measures" % entity['id'])
+        ret = self.app.get("/v1/metric/%s/measures" % metric['id'])
         result = json.loads(ret.text)
         self.assertEqual(
             [[u'2013-01-01T23:28:00.000000', 60.0, 1234.2],
@@ -616,35 +616,35 @@ class EntityTest(RestTest):
             result)
 
     def test_add_measures_too_old(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "low"})
-        entity = json.loads(result.text)
+        metric = json.loads(result.text)
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             status=204)
 
         result = self.app.post_json(
-            "/v1/entity/%s/measures" % entity['id'],
+            "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2012-01-01 23:23:23',
                      "value": 1234.2}],
             expect_errors=True,
             status=400)
         self.assertIn(
             b"The measure for 2012-01-01 23:23:23 is too old considering "
-            b"the archive policy used by this entity. "
+            b"the archive policy used by this metric. "
             b"It can only go back to 2013-01-01 00:00:00",
             result.body)
 
     def test_get_measure(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "low"})
-        entity = json.loads(result.text)
-        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
-        ret = self.app.get("/v1/entity/%s/measures" % entity['id'], status=200)
+        ret = self.app.get("/v1/metric/%s/measures" % metric['id'], status=200)
         result = json.loads(ret.text)
         self.assertEqual(
             [[u'2013-01-01T00:00:00.000000', 86400.0, 1234.2],
@@ -653,42 +653,42 @@ class EntityTest(RestTest):
             result)
 
     def test_get_measure_with_another_user(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "low"})
-        entity = json.loads(result.text)
-        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
         with self.app.use_another_user():
-            self.app.get("/v1/entity/%s/measures" % entity['id'],
+            self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
 
     def test_get_measure_start(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.text)
-        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
                                     "value": 1234.2}])
         ret = self.app.get(
-            "/v1/entity/%s/measures?start=2013-01-01 23:23:20"
-            % entity['id'],
+            "/v1/metric/%s/measures?start=2013-01-01 23:23:20"
+            % metric['id'],
             status=200)
         result = json.loads(ret.text)
         self.assertEqual([['2013-01-01T23:23:23.000000', 1.0, 1234.2]],
                          result)
 
     def test_get_measure_stop(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "high"})
-        entity = json.loads(result.text)
-        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
                                     "value": 1234.2},
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 456}])
-        ret = self.app.get("/v1/entity/%s/measures"
-                           "?stop=2013-01-01 12:00:01" % entity['id'],
+        ret = self.app.get("/v1/metric/%s/measures"
+                           "?stop=2013-01-01 12:00:01" % metric['id'],
                            status=200)
         result = json.loads(ret.text)
         self.assertEqual(
@@ -698,10 +698,10 @@ class EntityTest(RestTest):
             result)
 
     def test_get_measure_aggregation(self):
-        result = self.app.post_json("/v1/entity",
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.text)
-        self.app.post_json("/v1/entity/%s/measures" % entity['id'],
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
                                     "value": 123.2},
                                    {"timestamp": '2013-01-01 12:00:03',
@@ -709,7 +709,7 @@ class EntityTest(RestTest):
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 1234.2}])
         ret = self.app.get(
-            "/v1/entity/%s/measures?aggregation=max" % entity['id'],
+            "/v1/metric/%s/measures?aggregation=max" % metric['id'],
             status=200)
         result = json.loads(ret.text)
         self.assertEqual([[u'2013-01-01T00:00:00.000000', 86400.0, 12345.2],
@@ -780,7 +780,7 @@ class ResourceTest(RestTest):
         self.resource['created_by_project_id'] = FakeMemcache.PROJECT_ID
         self.resource['type'] = self.resource_type
         self.resource['ended_at'] = None
-        self.resource['entities'] = {}
+        self.resource['metrics'] = {}
 
     def test_post_resource(self):
         result = self.app.post_json(
@@ -852,59 +852,59 @@ class ResourceTest(RestTest):
         result = json.loads(result.text)
         self.assertEqual(self.resource, result)
 
-    def test_get_resource_named_entity(self):
-        self.attributes['entities'] = {'foo': {'archive_policy': "high"}}
+    def test_get_resource_named_metric(self):
+        self.attributes['metrics'] = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         self.app.get("/v1/resource/"
                      + self.resource_type
                      + "/"
                      + self.attributes['id']
-                     + "/entity/foo/measures",
+                     + "/metric/foo/measures",
                      status=200)
 
-    def test_delete_resource_named_entity(self):
-        self.attributes['entities'] = {'foo': {'archive_policy': "high"}}
+    def test_delete_resource_named_metric(self):
+        self.attributes['metrics'] = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         self.app.delete("/v1/resource/"
                         + self.resource_type
                         + "/"
                         + self.attributes['id']
-                        + "/entity/foo",
+                        + "/metric/foo",
                         status=204)
         self.app.delete("/v1/resource/"
                         + self.resource_type
                         + "/"
                         + self.attributes['id']
-                        + "/entity/foo/measures",
+                        + "/metric/foo/measures",
                         expect_errors=True,
                         status=404)
 
-    def test_get_resource_unknown_named_entity(self):
+    def test_get_resource_unknown_named_metric(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         self.app.get("/v1/resource/"
                      + self.resource_type
                      + "/"
                      + self.attributes['id']
-                     + "/entity/foo",
+                     + "/metric/foo",
                      expect_errors=True,
                      status=404)
 
-    def test_post_append_entities_already_exists(self):
+    def test_post_append_metrics_already_exists(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
 
-        entities = {'foo': {'archive_policy': "high"}}
+        metrics = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
-                           + "/" + self.attributes['id'] + "/entity",
-                           params=entities, status=204)
-        entities = {'foo': {'archive_policy': "low"}}
+                           + "/" + self.attributes['id'] + "/metric",
+                           params=metrics, status=204)
+        metrics = {'foo': {'archive_policy': "low"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id']
-                           + "/entity",
-                           params=entities,
+                           + "/metric",
+                           params=metrics,
                            expect_errors=True,
                            status=409)
 
@@ -912,43 +912,43 @@ class ResourceTest(RestTest):
                               + self.resource_type + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertTrue(uuid.UUID(result['entities']['foo']))
+        self.assertTrue(uuid.UUID(result['metrics']['foo']))
 
-    def test_post_append_entities(self):
+    def test_post_append_metrics(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
 
-        entities = {'foo': {'archive_policy': "high"}}
+        metrics = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
-                           + "/" + self.attributes['id'] + "/entity",
-                           params=entities, status=204)
+                           + "/" + self.attributes['id'] + "/metric",
+                           params=metrics, status=204)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertTrue(uuid.UUID(result['entities']['foo']))
+        self.assertTrue(uuid.UUID(result['metrics']['foo']))
 
-    def test_patch_resource_entities(self):
+    def test_patch_resource_metrics(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
         r = json.loads(result.text)
-        new_entities = {'foo': {'archive_policy': "medium"}}
+        new_metrics = {'foo': {'archive_policy': "medium"}}
         self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
-            params={'entities': new_entities},
+            params={'metrics': new_metrics},
             status=204)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertTrue(uuid.UUID(result['entities']['foo']))
-        del result['entities']
-        del r['entities']
+        self.assertTrue(uuid.UUID(result['metrics']['foo']))
+        del result['metrics']
+        del r['metrics']
         self.assertEqual(r, result)
 
-    def test_patch_resource_non_existent_entities(self):
+    def test_patch_resource_non_existent_metrics(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
                            status=201)
@@ -958,16 +958,16 @@ class ResourceTest(RestTest):
             + self.resource_type
             + "/"
             + self.attributes['id'],
-            params={'entities': {'foo': e1}},
+            params={'metrics': {'foo': e1}},
             expect_errors=True,
             status=400)
-        self.assertIn("Entity %s does not exist" % e1, result.text)
+        self.assertIn("Metric %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
                               + self.resource_type
                               + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertEqual(result['entities'], {})
+        self.assertEqual(result['metrics'], {})
 
     def test_patch_resource_attributes(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1006,10 +1006,10 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
             params={'ended_at': "2044-05-05 23:23:23",
-                    'entities': {"foo": e1}},
+                    'metrics': {"foo": e1}},
             expect_errors=True,
             status=400)
-        self.assertIn("Entity %s does not exist" % e1, result.text)
+        self.assertIn("Metric %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
@@ -1072,11 +1072,11 @@ class ResourceTest(RestTest):
                       + repr(u'id').encode('ascii') + b"]",
                       result.body)
 
-    def test_post_resource_with_entities(self):
-        result = self.app.post_json("/v1/entity",
+    def test_post_resource_with_metrics(self):
+        result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"})
-        entity = json.loads(result.text)
-        self.attributes['entities'] = {"foo": entity['id']}
+        metric = json.loads(result.text)
+        self.attributes['metrics'] = {"foo": metric['id']}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
@@ -1085,11 +1085,11 @@ class ResourceTest(RestTest):
                          + self.resource_type + "/"
                          + self.attributes['id'],
                          result.headers['Location'])
-        self.resource['entities'] = self.attributes['entities']
+        self.resource['metrics'] = self.attributes['metrics']
         self.assertEqual(resource, self.resource)
 
-    def test_post_resource_with_null_entities(self):
-        self.attributes['entities'] = {"foo": {"archive_policy": "low"}}
+    def test_post_resource_with_null_metrics(self):
+        self.attributes['metrics'] = {"foo": {"archive_policy": "low"}}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
@@ -1099,8 +1099,8 @@ class ResourceTest(RestTest):
                          + self.attributes['id'],
                          result.headers['Location'])
         self.assertEqual(resource["id"], self.attributes['id'])
-        entity_id = uuid.UUID(resource['entities']['foo'])
-        result = self.app.get("/v1/entity/" + str(entity_id) + "/measures",
+        metric_id = uuid.UUID(resource['metrics']['foo'])
+        result = self.app.get("/v1/metric/" + str(metric_id) + "/measures",
                               status=200)
 
     def test_list_resources_with_null_field(self):

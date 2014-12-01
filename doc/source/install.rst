@@ -28,7 +28,7 @@ options you want to change and configure:
 +---------------------+--------------------------------------------------------+
 | Option name         | Help                                                   |
 +=====================+========================================================+
-| storage.driver      | The storage driver for entities, Swift by default.     |
+| storage.driver      | The storage driver for metrics, Swift by default.      |
 +---------------------+--------------------------------------------------------+
 | indexer.driver      | The indexer driver, SQLAlchemy by default.             |
 +---------------------+--------------------------------------------------------+

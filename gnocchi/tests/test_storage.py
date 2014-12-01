@@ -32,28 +32,28 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, null.NullStorage)
 
-    def test_create_entity(self):
-        self.storage.create_entity("foo", 0, self.archive_policies['low'])
+    def test_create_metric(self):
+        self.storage.create_metric("foo", 0, self.archive_policies['low'])
 
-    def test_create_entity_already_exists(self):
-        self.storage.create_entity("foo", 0, self.archive_policies['low'])
-        self.assertRaises(storage.EntityAlreadyExists,
-                          self.storage.create_entity,
+    def test_create_metric_already_exists(self):
+        self.storage.create_metric("foo", 0, self.archive_policies['low'])
+        self.assertRaises(storage.MetricAlreadyExists,
+                          self.storage.create_metric,
                           "foo", 0, self.archive_policies['low'])
 
-    def test_delete_empty_entity(self):
-        self.storage.create_entity("foo", 0, self.archive_policies['low'])
-        self.storage.delete_entity("foo")
+    def test_delete_empty_metric(self):
+        self.storage.create_metric("foo", 0, self.archive_policies['low'])
+        self.storage.delete_metric("foo")
 
-    def test_delete_nonempty_entity(self):
-        self.storage.create_entity("foo", 0, self.archive_policies['low'])
+    def test_delete_nonempty_metric(self):
+        self.storage.create_metric("foo", 0, self.archive_policies['low'])
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
-        self.storage.delete_entity("foo")
+        self.storage.delete_metric("foo")
 
     def test_add_and_get_measures(self):
-        self.storage.create_entity("foo", 0, self.archive_policies['low'])
+        self.storage.create_metric("foo", 0, self.archive_policies['low'])
         self.storage.add_measures('foo', [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),
@@ -99,7 +99,7 @@ class TestStorageDriver(tests_base.TestCase):
             from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2)))
 
-    def test_get_measure_unknown_entity(self):
-        self.assertRaises(storage.EntityDoesNotExist,
+    def test_get_measure_unknown_metric(self):
+        self.assertRaises(storage.MetricDoesNotExist,
                           self.storage.get_measures,
                           'foo', 0)

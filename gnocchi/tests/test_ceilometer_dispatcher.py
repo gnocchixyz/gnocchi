@@ -162,29 +162,29 @@ class DispatcherWorkflowTest(testtools.TestCase,
                 'flavor_id': 1234,
                 'display_name': 'myinstance',
             },
-            entity_names=[
+            metric_names=[
                 'instance', 'disk.root.size', 'disk.ephemeral.size',
                 'memory', 'vcpus'],
             resource_type='instance')),
     ]
 
     worflow_scenarios = [
-        ('normal_workflow', dict(measure=204, post_resource=None, entity=None,
+        ('normal_workflow', dict(measure=204, post_resource=None, metric=None,
                                  measure_retry=None, patch_resource=204)),
-        ('new_resource', dict(measure=404, post_resource=204, entity=None,
+        ('new_resource', dict(measure=404, post_resource=204, metric=None,
                               measure_retry=204, patch_resource=None)),
-        ('new_resource_fail', dict(measure=404, post_resource=500, entity=None,
+        ('new_resource_fail', dict(measure=404, post_resource=500, metric=None,
                                    measure_retry=None, patch_resource=None)),
         ('resource_update_fail', dict(measure=204, post_resource=None,
-                                      entity=None, measure_retry=None,
+                                      metric=None, measure_retry=None,
                                       patch_resource=500)),
-        ('new_entity', dict(measure=404, post_resource=409, entity=204,
+        ('new_metric', dict(measure=404, post_resource=409, metric=204,
                             measure_retry=204, patch_resource=204)),
-        ('new_entity_fail', dict(measure=404, post_resource=409, entity=500,
+        ('new_metric_fail', dict(measure=404, post_resource=409, metric=500,
                                  measure_retry=None, patch_resource=None)),
-        ('retry_fail', dict(measure=404, post_resource=409, entity=409,
+        ('retry_fail', dict(measure=404, post_resource=409, metric=409,
                             measure_retry=500, patch_resource=None)),
-        ('measure_fail', dict(measure=500, post_resource=None, entity=None,
+        ('measure_fail', dict(measure=500, post_resource=None, metric=None,
                               measure_retry=None, patch_resource=None)),
     ]
 
@@ -213,7 +213,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
             'url': 'http://localhost:8041/v1/resource',
             'resource_id': self.sample['resource_id'],
             'resource_type': self.resource_type,
-            'entity_name': self.sample['counter_name']
+            'metric_name': self.sample['counter_name']
         }
         headers = {'Content-Type': 'application/json',
                    'X-Auth-Token': 'fake_token'}
@@ -224,7 +224,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
 
         expected_calls.append(mock.call.post(
             "%(url)s/%(resource_type)s/%(resource_id)s/"
-            "entity/%(entity_name)s/measures" % url_params,
+            "metric/%(metric_name)s/measures" % url_params,
             headers=headers,
             data=json_matcher(self.measures_attributes))
         )
@@ -234,9 +234,9 @@ class DispatcherWorkflowTest(testtools.TestCase,
             attributes = self.postable_attributes.copy()
             attributes.update(self.patchable_attributes)
             attributes['id'] = self.sample['resource_id']
-            attributes['entities'] = dict((entity_name,
-                                           {'archive_policy': 'low'})
-                                          for entity_name in self.entity_names)
+            attributes['metrics'] = dict((metric_name,
+                                          {'archive_policy': 'low'})
+                                         for metric_name in self.metric_names)
             expected_calls.append(mock.call.post(
                 "%(url)s/%(resource_type)s" % url_params,
                 headers=headers,
@@ -244,19 +244,19 @@ class DispatcherWorkflowTest(testtools.TestCase,
             )
             post_responses.append(MockResponse(self.post_resource))
 
-        if self.entity:
+        if self.metric:
             expected_calls.append(mock.call.post(
-                "%(url)s/%(resource_type)s/%(resource_id)s/entity"
+                "%(url)s/%(resource_type)s/%(resource_id)s/metric"
                 % url_params, headers=headers,
                 data=json_matcher({self.sample['counter_name']:
                                    {'archive_policy': 'low'}})
             ))
-            post_responses.append(MockResponse(self.entity))
+            post_responses.append(MockResponse(self.metric))
 
         if self.measure_retry:
             expected_calls.append(mock.call.post(
                 "%(url)s/%(resource_type)s/%(resource_id)s/"
-                "entity/%(entity_name)s/measures" % url_params,
+                "metric/%(metric_name)s/measures" % url_params,
                 headers=headers,
                 data=json_matcher(self.measures_attributes))
             )
@@ -278,7 +278,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
         # Check that the last log message is the expected one
         if self.measure == 500 or self.measure_retry == 500:
             logger.error.assert_called_with(
-                "Fail to post measure on entity %s of resource %s "
+                "Fail to post measure on metric %s of resource %s "
                 "with status: %d: Internal Server Error" %
                 (self.sample['counter_name'],
                  self.sample['resource_id'],
@@ -291,9 +291,9 @@ class DispatcherWorkflowTest(testtools.TestCase,
                 (self.sample['resource_id'],
                  'update' if self.patch_resource else 'creation',
                  500))
-        elif self.entity == 500:
+        elif self.metric == 500:
             logger.error.assert_called_with(
-                "Fail to create entity %s of resource %s "
+                "Fail to create metric %s of resource %s "
                 "with status: %d: Internal Server Error" %
                 (self.sample['counter_name'],
                  self.sample['resource_id'],
@@ -303,7 +303,7 @@ class DispatcherWorkflowTest(testtools.TestCase,
                 'Resource %s updated', self.sample['resource_id'])
         else:
             logger.debug.assert_called_with(
-                "Measure posted on entity %s of resource %s",
+                "Measure posted on metric %s of resource %s",
                 self.sample['counter_name'],
                 self.sample['resource_id'])
 

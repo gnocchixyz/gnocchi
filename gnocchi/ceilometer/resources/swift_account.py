@@ -29,7 +29,7 @@ class SwiftAccount(base.ResourceBase):
         return {}
 
     @staticmethod
-    def get_entities_names():
+    def get_metrics_names():
         return ['storage.objects.incoming.bytes',
                 'storage.objects.outgoing.bytes',
                 'storage.api.request',

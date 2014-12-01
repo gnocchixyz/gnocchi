@@ -46,11 +46,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         self.coord.stop()
 
     @staticmethod
-    def _create_entity_container(entity):
+    def _create_metric_container(metric):
         pass
 
-    def create_entity(self, entity, back_window, archive_policy):
-        self._create_entity_container(entity)
+    def create_metric(self, metric, back_window, archive_policy):
+        self._create_metric_container(metric)
         for aggregation in self.aggregation_types:
             # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
             # each archive isn't the most efficient way of doing things. We
@@ -62,30 +62,30 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                  for v in archive_policy],
                 back_window=back_window,
                 aggregation_method=aggregation)
-            self._store_entity_measures(entity, aggregation,
+            self._store_metric_measures(metric, aggregation,
                                         archive.serialize())
 
     @staticmethod
-    def _get_measures(entity, aggregation):
+    def _get_measures(metric, aggregation):
         raise NotImplementedError
 
     @staticmethod
-    def _store_entity_measures(entity, aggregation, data):
+    def _store_metric_measures(metric, aggregation, data):
         raise NotImplementedError
 
-    def get_measures(self, entity, from_timestamp=None, to_timestamp=None,
+    def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
-        contents = self._get_measures(entity, aggregation)
+        contents = self._get_measures(metric, aggregation)
         archive = carbonara.TimeSerieArchive.unserialize(contents)
         return archive.fetch(from_timestamp, to_timestamp)
 
-    def _add_measures(self, aggregation, entity, measures, exceptions):
+    def _add_measures(self, aggregation, metric, measures, exceptions):
         try:
-            lock_name = (b"gnocchi-" + entity.encode('ascii')
+            lock_name = (b"gnocchi-" + metric.encode('ascii')
                          + b"-" + aggregation.encode('ascii'))
             lock = self.coord.get_lock(lock_name)
             with lock:
-                contents = self._get_measures(entity, aggregation)
+                contents = self._get_measures(metric, aggregation)
                 archive = carbonara.TimeSerieArchive.unserialize(contents)
                 try:
                     archive.set_values([(m.timestamp, m.value)
@@ -93,13 +93,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 except carbonara.NoDeloreanAvailable as e:
                     raise storage.NoDeloreanAvailable(e.first_timestamp,
                                                       e.bad_timestamp)
-                self._store_entity_measures(entity, aggregation,
+                self._store_metric_measures(metric, aggregation,
                                             archive.serialize())
         except Exception as e:
             exceptions.put(e)
             return
 
-    def add_measures(self, entity, measures):
+    def add_measures(self, metric, measures):
         # We are going to iterate multiple time over measures, so if it's a
         # generator we need to build a list out of it right now.
         measures = list(measures)
@@ -107,7 +107,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         exceptions = six.moves.queue.Queue()
         for aggregation in self.aggregation_types:
             t = threading.Thread(target=self._add_measures,
-                                 args=(aggregation, entity,
+                                 args=(aggregation, metric,
                                        measures, exceptions))
             t.start()
             threads.append(t)

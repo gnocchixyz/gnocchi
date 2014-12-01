@@ -39,35 +39,35 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
 
-    def _create_entity_container(self, entity):
-        path = os.path.join(self.basepath, entity)
+    def _create_metric_container(self, metric):
+        path = os.path.join(self.basepath, metric)
         try:
             os.mkdir(path, 0o750)
         except OSError as e:
             if e.errno == errno.EEXIST:
-                raise storage.EntityAlreadyExists(entity)
+                raise storage.MetricAlreadyExists(metric)
             raise
 
-    def _store_entity_measures(self, entity, aggregation, data):
-        path = os.path.join(self.basepath, entity, aggregation)
+    def _store_metric_measures(self, metric, aggregation, data):
+        path = os.path.join(self.basepath, metric, aggregation)
         with open(path, 'wb') as aggregation_file:
             aggregation_file.write(data)
 
-    def delete_entity(self, entity):
-        path = os.path.join(self.basepath, entity)
+    def delete_metric(self, metric):
+        path = os.path.join(self.basepath, metric)
         try:
             shutil.rmtree(path)
         except OSError as e:
             if e.errno == errno.ENOENT:
-                raise storage.EntityDoesNotExist(entity)
+                raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _get_measures(self, entity, aggregation):
-        path = os.path.join(self.basepath, entity, aggregation)
+    def _get_measures(self, metric, aggregation):
+        path = os.path.join(self.basepath, metric, aggregation)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()
         except IOError as e:
             if e.errno == errno.ENOENT:
-                raise storage.EntityDoesNotExist(entity)
+                raise storage.MetricDoesNotExist(metric)
             raise
