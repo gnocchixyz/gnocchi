@@ -5,10 +5,10 @@
 Authentication
 ==============
 
-By default, the `api.middleware` configuration option is set to use the Keystone
-middleware. Therefore you must authenticate using Keystone to use the API and
-provide an `X-Auth-Token` header with a valid token for each request sent to
-Gnocchi.
+By default, the `api.middleware` configuration option is set to use the
+Keystone middleware. Therefore you must authenticate using Keystone to use the
+API and provide an `X-Auth-Token` header with a valid token for each request
+sent to Gnocchi.
 
 Metrics
 =======
@@ -233,15 +233,15 @@ aggregation methods (mean, min, max, sum…) that are builtin.
 An archive policy is defined by a list of items in the `definition` field. Each
 item is composed of the timespan and the level of precision that must be kept
 when aggregating data, determined using at least 2 of the `points`,
-`granularity` and `timespan` fields. For example, an item might be defined as 12
-points over 1 hour (one point every 5 minutes), or 1 point every 1 hour over 1
-day (24 points).
+`granularity` and `timespan` fields. For example, an item might be defined
+as 12 points over 1 hour (one point every 5 minutes), or 1 point every 1 hour
+over 1 day (24 points).
 
 By default, new measures can only be processed if they have timestamps in the
 future or part of the last aggregation period. The window size is based on the
 largest granularity defined in the archive policy definition. To enlarge this
-window size, the `back_window` field can be used to set the number of periods to
-keep so it is possible to process measures that are older than the last
+window size, the `back_window` field can be used to set the number of periods
+to keep so it is possible to process measures that are older than the last
 timestamp period boundary.
 
 For example, if an archive policy is defined with coarsest aggregation of 1
@@ -429,8 +429,8 @@ to describe an OpenStack instance as managed by Nova_.
     }
 
 
-All specialized types have their own optional and mandatory attributes, but they
-all include attributes from the generic type as well.
+All specialized types have their own optional and mandatory attributes,
+but they all include attributes from the generic type as well.
 
 To retrieve a resource by its URL provided by the `Location` header at creation
 time:
@@ -617,8 +617,8 @@ values:
     ]
 
 Each resource can be linked to any number of metrics. The `metrics` attributes
-is a key/value field where the key is the name of the relationship and the value
-is a metric:
+is a key/value field where the key is the name of the relationship and
+the value is a metric:
 
 ::
 
