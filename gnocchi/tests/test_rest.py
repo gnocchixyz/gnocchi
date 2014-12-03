@@ -122,6 +122,10 @@ class RestTest(tests_base.TestCase):
         self.assertEqual(b"Nom nom nom.", result.body)
         self.assertEqual("text/plain", result.content_type)
 
+    @staticmethod
+    def runTest():
+        pass
+
 
 class ArchivePolicyTest(RestTest):
     def test_post_archive_policy(self):

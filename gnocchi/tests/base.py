@@ -195,16 +195,20 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             self.index.upgrade()
 
         self.archive_policies = {}
-        for name, definition in six.iteritems(self.ARCHIVE_POLICIES):
-            # Create basic archive policies
-            try:
-                self.archive_policies[name] = self.index.create_archive_policy(
-                    name=name,
-                    back_window=0,
-                    definition=definition)['definition']
-            except indexer.ArchivePolicyAlreadyExists:
-                self.archive_policies[name] = self.index.get_archive_policy(
-                    name)['definition']
+        # Used in gnocchi.gendoc
+        if not getattr(self, "skip_archive_policies_creation", False):
+            for name, definition in six.iteritems(self.ARCHIVE_POLICIES):
+                # Create basic archive policies
+                try:
+                    self.archive_policies[
+                        name] = self.index.create_archive_policy(
+                            name=name,
+                            back_window=0,
+                            definition=definition)['definition']
+                except indexer.ArchivePolicyAlreadyExists:
+                    self.archive_policies[
+                        name] = self.index.get_archive_policy(
+                        name)['definition']
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',

@@ -86,8 +86,8 @@ def deserialize(schema):
             pecan.request.headers.get('Content-Type'))
         params = json.loads(pecan.request.body.decode(
             options.get('charset', 'ascii')))
-    except Exception:
-        pecan.abort(400, "Unable to decode body")
+    except Exception as e:
+        pecan.abort(400, "Unable to decode body" + str(e))
     try:
         return schema(params)
     except voluptuous.Error as e:
