@@ -366,7 +366,6 @@ class ArchivePolicyTest(RestTest):
 
     def test_get_archive_policy_non_existent(self):
         self.app.get("/v1/archive_policy/" + str(uuid.uuid4()),
-                     expect_errors=True,
                      status=404)
 
     def test_list_archive_policy(self):
