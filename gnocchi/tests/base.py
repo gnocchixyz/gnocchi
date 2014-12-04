@@ -56,6 +56,66 @@ def _skip_decorator(func):
     return skip_if_not_implemented
 
 
+class FakeRadosModule(object):
+    class ObjectNotFound(Exception):
+        pass
+
+    class ioctx(object):
+        def __init__(self, kvs):
+            self.kvs = kvs
+
+        def __enter__(self):
+            return self
+
+        @staticmethod
+        def __exit__(exc_type, exc_value, traceback):
+            pass
+
+        def close(self):
+            pass
+
+        def write_full(self, key, value):
+            self.kvs[key] = value
+
+        def stat(self, key):
+            if key not in self.kvs:
+                raise FakeRadosModule.ObjectNotFound
+            else:
+                return (1024, "timestamp")
+
+        def read(self, key, length=8192, offset=0):
+            if key not in self.kvs:
+                raise FakeRadosModule.ObjectNotFound
+            else:
+                return self.kvs[key][offset:offset+length]
+
+        def remove_object(self, key):
+            if key not in self.kvs:
+                raise FakeRadosModule.ObjectNotFound
+            del self.kvs[key]
+
+    class FakeRados(object):
+        def __init__(self, kvs):
+            self.kvs = kvs
+
+        @staticmethod
+        def connect():
+            pass
+
+        @staticmethod
+        def shutdown():
+            pass
+
+        def open_ioctx(self, pool):
+            return FakeRadosModule.ioctx(self.kvs)
+
+    def __init__(self):
+        self.kvs = {}
+
+    def Rados(self, *args, **kwargs):
+        return FakeRadosModule.FakeRados(self.kvs)
+
+
 class FakeSwiftClient(object):
     def __init__(self, *args, **kwargs):
         self.kvs = {}
@@ -173,6 +233,7 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         ('null', dict(storage_engine='null')),
         ('swift', dict(storage_engine='swift')),
         ('file', dict(storage_engine='file')),
+        ('ceph', dict(storage_engine='ceph')),
     ]
 
     scenarios = testscenarios.multiply_scenarios(storage_backends,
@@ -239,6 +300,9 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',
             FakeSwiftClient))
+
+        self.useFixture(mockpatch.Patch('gnocchi.storage.ceph.rados',
+                                        FakeRadosModule()))
 
         if self.storage_engine == 'file':
             self.conf.import_opt('file_basepath',

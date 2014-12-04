@@ -38,6 +38,9 @@ options you want to change and configure:
 | storage.swift_*     | Configuration options to access Swift             |
 |                     | if you use the Swift storage driver.              |
 +---------------------+---------------------------------------------------+
+| storage.ceph_*      | Configuration options to access Ceph              |
+|                     | if you use the Ceph storage driver.               |
++---------------------+---------------------------------------------------+
 
 
 Indexer Initialization
