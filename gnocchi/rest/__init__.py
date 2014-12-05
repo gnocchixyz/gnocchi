@@ -612,7 +612,7 @@ class GenericResourcesController(rest.RestController):
             resource = pecan.request.indexer.create_resource(
                 self._resource_type, rid, user, project,
                 **body)
-        except ValueError as e:
+        except (ValueError, indexer.NoSuchMetric) as e:
             pecan.abort(400, e)
         except indexer.ResourceAlreadyExists as e:
             pecan.abort(409, e)
