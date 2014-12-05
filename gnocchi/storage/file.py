@@ -38,6 +38,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
+        self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
 
     def _create_metric_container(self, metric):
         path = os.path.join(self.basepath, metric)

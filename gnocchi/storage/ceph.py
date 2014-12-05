@@ -16,6 +16,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
+import ctypes
+import errno
+import time
+
 from oslo.config import cfg
 from oslo.utils import importutils
 
@@ -60,6 +65,41 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  conf=options)
         self.rados.connect()
 
+    @contextlib.contextmanager
+    def _lock(self, metric, aggregation):
+        # NOTE(sileht): current stable python binding (0.80.X) doesn't
+        # have rados_lock_XXX method, so do ourself the call with ctypes
+        #
+        # https://github.com/ceph/ceph/commit/f5bf75fa4109b6449a88c7ffdce343cf4691a4f9
+        # When ^^ is released, we can drop this code and directly use:
+        # - ctx.lock_exclusive(name, 'lock', 'gnocchi')
+        # - ctx.unlock(name, 'lock', 'gnocchi')
+        name = self._get_object_name(metric, aggregation)
+        with self._get_ioctx() as ctx:
+            while True:
+                ret = rados.run_in_thread(
+                    ctx.librados.rados_lock_exclusive,
+                    (ctx.io, ctypes.c_char_p(name.encode('ascii')),
+                     ctypes.c_char_p(b"lock"),
+                     ctypes.c_char_p(b"gnocchi"),
+                     ctypes.c_char_p(b""), None, ctypes.c_int8(0)))
+                if ret in [errno.EBUSY, errno.EEXIST]:
+                    time.sleep(0.1)
+                elif ret < 0:
+                    rados.make_ex(ret, "Error while getting lock of %s" % name)
+                else:
+                    break
+            try:
+                yield
+            finally:
+                ret = rados.run_in_thread(
+                    ctx.librados.rados_unlock,
+                    (ctx.io, ctypes.c_char_p(name.encode('ascii')),
+                     ctypes.c_char_p(b"lock"), ctypes.c_char_p(b"gnocchi")))
+                if ret < 0:
+                    rados.make_ex(ret,
+                                  "Error while releasing lock of %s" % name)
+
     def _get_ioctx(self):
         return self.rados.open_ioctx(self.pool)
 
@@ -72,11 +112,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         name = self._get_object_name(metric, aggregation)
         with self._get_ioctx() as ioctx:
             try:
-                ioctx.stat(name)
+                size, mtime = ioctx.stat(name)
+                # NOTE(sileht: the object have been created by
+                # the lock code
+                if size == 0:
+                    return
             except rados.ObjectNotFound:
-                pass
-            else:
-                raise storage.MetricAlreadyExists(metric)
+                return
+            raise storage.MetricAlreadyExists(metric)
 
     def _store_metric_measures(self, metric, aggregation, data):
         name = self._get_object_name(metric, aggregation)
@@ -104,6 +147,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                         break
                     content += data
                     offset += len(content)
+                if len(content) == 0:
+                    # NOTE(sileht: the object have been created by
+                    # the lock code
+                    raise storage.MetricDoesNotExist(metric)
                 return content
         except rados.ObjectNotFound:
             raise storage.MetricDoesNotExist(metric)

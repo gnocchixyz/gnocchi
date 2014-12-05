@@ -58,6 +58,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             user=conf.swift_user,
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
+        self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
 
     def _create_metric_container(self, metric):
         # TODO(jd) A container per user in their account?
