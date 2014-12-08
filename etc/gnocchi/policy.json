@@ -4,6 +4,7 @@
 
     "get archive policy": "",
     "list archive policy": "",
+    "create archive policy": "role:admin",
 
     "create metric": "",
     "delete metric": "rule:admin_or_creator",
