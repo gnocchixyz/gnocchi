@@ -266,6 +266,7 @@ class ArchivePoliciesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self):
+        enforce("list archive policy", {})
         return list(map(ArchivePolicyItem.archive_policy_to_human_readable,
                         pecan.request.indexer.list_archive_policies()))
 
