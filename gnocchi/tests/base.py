@@ -21,11 +21,11 @@ import uuid
 
 import fixtures
 from oslo.config import fixture as config_fixture
+from oslotest import base
 from oslotest import mockpatch
 import six
 from swiftclient import exceptions as swexc
 import testscenarios
-import testtools
 from testtools import testcase
 from tooz import coordination
 
@@ -100,7 +100,7 @@ class FakeSwiftClient(object):
 
 
 @six.add_metaclass(SkipNotImplementedMeta)
-class TestCase(testtools.TestCase, testscenarios.TestWithScenarios):
+class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
 
     ARCHIVE_POLICIES = {
         'low': [
