@@ -20,10 +20,10 @@ import uuid
 
 import mock
 from oslo.config import fixture as config_fixture
+from oslotest import base
 from oslotest import mockpatch
 import requests
 import testscenarios
-import testtools
 
 from gnocchi.ceilometer import dispatcher
 
@@ -42,7 +42,7 @@ class json_matcher(object):
         return "<json_matcher \"%s\">" % self.ref
 
 
-class DispatcherTest(testtools.TestCase):
+class DispatcherTest(base.BaseTestCase):
     def setUp(self):
         super(DispatcherTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
@@ -128,7 +128,7 @@ class MockResponse(mock.NonCallableMock):
                                            text=text)
 
 
-class DispatcherWorkflowTest(testtools.TestCase,
+class DispatcherWorkflowTest(base.BaseTestCase,
                              testscenarios.TestWithScenarios):
 
     sample_scenarios = [

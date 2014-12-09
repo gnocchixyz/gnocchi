@@ -17,14 +17,14 @@
 # under the License.
 import datetime
 
+from oslotest import base
 import pandas
 import six
-import testtools
 
 from gnocchi import carbonara
 
 
-class TestBoundTimeSerie(testtools.TestCase):
+class TestBoundTimeSerie(base.BaseTestCase):
     def test_base(self):
         carbonara.BoundTimeSerie([datetime.datetime(2014, 1, 1, 12, 0, 0),
                                   datetime.datetime(2014, 1, 1, 12, 0, 4),
@@ -69,7 +69,7 @@ class TestBoundTimeSerie(testtools.TestCase):
         self.assertEqual(len(ts), 2)
 
 
-class TestAggregatedTimeSerie(testtools.TestCase):
+class TestAggregatedTimeSerie(base.BaseTestCase):
 
     def test_base(self):
         carbonara.AggregatedTimeSerie(
@@ -164,7 +164,7 @@ class TestAggregatedTimeSerie(testtools.TestCase):
         self.assertEqual(ts, carbonara.AggregatedTimeSerie.unserialize(s))
 
 
-class TestTimeSerieArchive(testtools.TestCase):
+class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_fetch(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
