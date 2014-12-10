@@ -2,6 +2,12 @@
     "admin_or_creator": "role:admin or created_by_project_id:%(project_id)s",
     "owner": "project_id:%(project_id)s",
 
+    "create resource": "",
+    "get resource": "rule:admin_or_creator or rule:owner",
+    "update resource": "rule:admin_or_creator",
+    "delete resource": "rule:admin_or_creator",
+    "list resource": "",
+
     "get archive policy": "",
     "list archive policy": "",
     "create archive policy": "role:admin",

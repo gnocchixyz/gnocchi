@@ -912,6 +912,17 @@ class ResourceTest(RestTest):
         result = json.loads(result.text)
         self.assertEqual(self.resource, result)
 
+    def test_get_resource_unauthorized(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes,
+                           status=201)
+        with self.app.use_another_user():
+            self.app.get("/v1/resource/"
+                         + self.resource_type
+                         + "/"
+                         + self.attributes['id'],
+                         status=403)
+
     def test_get_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1044,6 +1055,17 @@ class ResourceTest(RestTest):
         for k, v in six.iteritems(self.patchable_attributes):
             self.assertEqual(v, result[k])
 
+    def test_patch_resource_attributes_unauthorized(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes,
+                           status=201)
+        with self.app.use_another_user():
+            self.app.patch_json(
+                "/v1/resource/" + self.resource_type
+                + "/" + self.attributes['id'],
+                params=self.patchable_attributes,
+                status=403)
+
     def test_patch_resource_ended_at_before_started_at(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
@@ -1111,6 +1133,14 @@ class ResourceTest(RestTest):
         self.app.delete("/v1/resource/" + self.resource_type + "/"
                         + self.attributes['id'],
                         status=204)
+
+    def test_delete_resource_unauthoeized(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        with self.app.use_another_user():
+            self.app.delete("/v1/resource/" + self.resource_type + "/"
+                            + self.attributes['id'],
+                            status=403)
 
     def test_delete_resource_non_existent(self):
         result = self.app.delete("/v1/resource/" + self.resource_type + "/"
