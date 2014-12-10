@@ -441,6 +441,20 @@ class MetricsController(rest.RestController):
         return {"id": str(id),
                 "archive_policy": str(body['archive_policy'])}
 
+    @pecan.expose('json')
+    def get_all(self):
+        attrfilter = {}
+        try:
+            enforce("list all metric", {})
+        except webob.exc.HTTPForbidden:
+            enforce("list resource", {})
+            (attrfilter['user_id'],
+             attrfilter['project_id']) = get_user_and_project()
+
+        return pecan.request.indexer.list_resources(
+            'metric',
+            attributes_filter=attrfilter)
+
 
 def UUID(value):
     try:

@@ -408,9 +408,6 @@ class MetricTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(metric['archive_policy'], "medium")
 
-    def test_get_metric_empty(self):
-        self.app.get("/v1/metric/", status=404)
-
     def test_get_metric(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"},
@@ -530,6 +527,26 @@ class MetricTest(RestTest):
         metric = json.loads(result.text)
         result = self.app.get("/v1/resource/metric/%s" % metric['id'])
         self.assertDictContainsSubset(metric, json.loads(result.text))
+
+    def test_list_metric(self):
+        result = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy": "medium"},
+            status=201)
+        metric = json.loads(result.text)
+        result = self.app.get("/v1/metric")
+        self.assertIn(metric['id'],
+                      [r['id'] for r in json.loads(result.text)])
+
+    def test_list_metric_as_resource(self):
+        result = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy": "medium"},
+            status=201)
+        metric = json.loads(result.text)
+        result = self.app.get("/v1/resource/metric")
+        self.assertIn(metric['id'],
+                      [r['id'] for r in json.loads(result.text)])
 
     def test_post_metric_as_resource(self):
         self.app.post_json("/v1/resource/metric",
