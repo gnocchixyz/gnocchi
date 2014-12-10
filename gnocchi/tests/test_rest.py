@@ -1422,4 +1422,25 @@ class ResourceTest(RestTest):
                 "/v1/resource/generic",
                 headers={"Accept": "application/json; details=true"}))
 
+
+class GenericResourceTest(RestTest):
+    def test_list_resources_tied_to_user(self):
+        resource_id = str(uuid.uuid4())
+        self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": resource_id,
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+            })
+
+        with self.app.use_another_user():
+            result = self.app.get("/v1/resource/generic")
+            resources = json.loads(result.text)
+            for resource in resources:
+                if resource['id'] == resource_id:
+                    self.fail("Resource found")
+
+
 ResourceTest.generate_scenarios()

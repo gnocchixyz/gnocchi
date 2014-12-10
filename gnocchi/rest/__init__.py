@@ -30,6 +30,7 @@ import six
 from six.moves.urllib import parse as urllib_parse
 from stevedore import extension
 import voluptuous
+import webob.exc
 import werkzeug.http
 
 from gnocchi import aggregates
@@ -645,9 +646,16 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
-        enforce("list resource", {
-            "resource_type": self._resource_type,
-        })
+        try:
+            enforce("list all resource", {
+                "resource_type": self._resource_type,
+            })
+        except webob.exc.HTTPForbidden:
+            enforce("list resource", {
+                "resource_type": self._resource_type,
+            })
+            kwargs['user_id'], kwargs['project_id'] = get_user_and_project()
+
         started_after = kwargs.pop('started_after', None)
         ended_before = kwargs.pop('ended_before', None)
         details = get_details(kwargs)

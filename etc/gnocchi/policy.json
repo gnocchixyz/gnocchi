@@ -7,6 +7,7 @@
     "update resource": "rule:admin_or_creator",
     "delete resource": "rule:admin_or_creator",
     "list resource": "",
+    "list all resource": "role:admin",
 
     "get archive policy": "",
     "list archive policy": "",
