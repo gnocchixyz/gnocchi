@@ -206,6 +206,24 @@ The same endpoint can be used to append metrics to a resource:
 
 .. _Nova: http://launchpad.net/nova
 
+Aggregation across metrics
+==========================
+
+Gnocchi allows to do on-the-fly aggregation of already aggregated data of
+metrics. This can be done by filtering on resource attributes like this:
+
+{{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
+
+It can also be done by providing the list of metrics to aggregate:
+
+{{ scenarios['get-across-metrics-measures-by-metric-ids']['doc'] }}
+
+.. Note::
+
+   This aggregation is done against the aggregates built and updated for
+   a metric when new measurements are posted in Gnocchi. Therefore the aggregate
+   of this already aggregated data may not have sense for certain kind of
+   aggregation method (e.g. stdev).
 
 Timestamp format
 ================
