@@ -135,7 +135,8 @@ class StorageDriver(object):
 
     @staticmethod
     def get_cross_metric_measures(metrics, from_timestamp=None,
-                                  to_timestamp=None, aggregation='mean'):
+                                  to_timestamp=None, aggregation='mean',
+                                  needed_overlap=None):
         """Get aggregated measures of multiple entities.
 
         :param entities: The entities measured to aggregate.
