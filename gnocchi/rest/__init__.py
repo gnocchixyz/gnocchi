@@ -262,6 +262,7 @@ class ArchivePoliciesController(rest.RestController):
         ap = pecan.request.indexer.get_archive_policy(id)
         if ap:
             return ArchivePolicyItem.archive_policy_to_human_readable(ap)
+        pecan.abort(404)
 
     @pecan.expose('json')
     def get_all(self):
