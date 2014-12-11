@@ -17,7 +17,8 @@ mysqld --datadir=${MYSQL_DATA} --pid-file=${MYSQL_DATA}/mysql.pid --socket=${MYS
 wait_for_line "mysqld: ready for connections." ${MYSQL_DATA}/out
 export GNOCCHI_TEST_MYSQL_URL="mysql://root@localhost/test?unix_socket=${MYSQL_DATA}/mysql.socket&charset=utf8"
 mysql -S ${MYSQL_DATA}/mysql.socket -e 'CREATE DATABASE test;'
-python setup.py testr --slowest --testr-args="$*"
+
+$*
 
 ret=$?
 kill $(jobs -p)
