@@ -146,6 +146,18 @@ class ArchivePolicyTest(RestTest):
             "timespan": "0:20:00",
         }], ap['definition'])
 
+    def test_post_archive_policy_as_non_admin(self):
+        with self.app.use_another_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": str(uuid.uuid4()),
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                status=403)
+
     def test_post_archive_policy_infinite_points(self):
         name = str(uuid.uuid4())
         result = self.app.post_json(

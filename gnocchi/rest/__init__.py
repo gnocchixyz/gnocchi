@@ -246,7 +246,7 @@ class ArchivePoliciesController(rest.RestController):
                 ArchivePolicyItem(**ap_def)
             except ValueError as e:
                 pecan.abort(400, e)
-        # TODO(jd) Use RBAC policy to limit which user can create a policy
+        enforce("create archive policy", body)
         try:
             ap = pecan.request.indexer.create_archive_policy(**body)
         except indexer.ArchivePolicyAlreadyExists as e:
