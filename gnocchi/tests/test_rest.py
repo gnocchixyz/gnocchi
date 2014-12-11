@@ -847,6 +847,16 @@ class ResourceTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(resource, self.resource)
 
+    def test_post_resource_with_invalid_metric(self):
+        metric_id = str(uuid.uuid4())
+        self.attributes['metrics'] = {"foo": metric_id}
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes,
+            status=400)
+        self.assertIn("Metric %s does not exist" % metric_id,
+                      result.text)
+
     def test_post_resource_already_exist(self):
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
