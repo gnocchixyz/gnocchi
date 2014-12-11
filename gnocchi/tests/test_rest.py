@@ -392,6 +392,9 @@ class MetricTest(RestTest):
                          result.headers['Location'])
         self.assertEqual(metric['archive_policy'], "medium")
 
+    def test_get_metric_empty(self):
+        self.app.get("/v1/metric/", status=404)
+
     def test_get_metric(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": "medium"},

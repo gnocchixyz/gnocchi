@@ -394,6 +394,9 @@ class MetricsController(rest.RestController):
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
+        # That's triggered when accessing /v1/metric/
+        if id is "":
+            pecan.abort(404)
         return MetricController(id), remainder
 
     Metric = voluptuous.Schema(MetricSchemaDefinition)
