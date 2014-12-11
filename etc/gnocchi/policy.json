@@ -3,6 +3,7 @@
     "owner": "project_id:%(project_id)s",
 
     "get archive policy": "",
+    "list archive policy": "",
 
     "create metric": "",
     "delete metric": "rule:admin_or_creator",
