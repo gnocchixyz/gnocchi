@@ -158,6 +158,15 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+    def create_metric(id, created_by_user_id, created_by_project_id,
+                      archive_policy):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def list_metrics(user_id=None, project_id=None):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
     def create_archive_policy(name, back_window, definition):
         raise exceptions.NotImplementedError
 
@@ -176,10 +185,6 @@ class IndexerDriver(object):
 
     @staticmethod
     def delete_resource(uuid):
-        raise exceptions.NotImplementedError
-
-    @staticmethod
-    def create_metric(id):
         raise exceptions.NotImplementedError
 
     @staticmethod

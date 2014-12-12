@@ -44,6 +44,18 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.ArchivePolicyAlreadyExists,
                           self.index.create_archive_policy, "high", 0, {})
 
+    def test_create_metric(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        m = self.index.create_metric(r1, user, project, "low")
+        self.assertEqual({"id": str(r1),
+                          "created_by_user_id": six.text_type(user),
+                          "created_by_project_id": six.text_type(project),
+                          "archive_policy": "low"}, m)
+        m2 = self.index.get_metric(r1)
+        self.assertEqual(m, m2)
+
     def test_create_resource(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
@@ -63,19 +75,6 @@ class TestIndexerDriver(tests_base.TestCase):
         rg = self.index.get_resource('generic', r1)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['metrics'], rg['metrics'])
-
-    def test_create_resource_unknown_attribute_fkey(self):
-        r1 = uuid.uuid4()
-        try:
-            self.index.create_resource('metric', r1,
-                                       uuid.uuid4(), uuid.uuid4(),
-                                       archive_policy="foobar")
-        except indexer.ResourceValueError as e:
-            self.assertEqual('metric', e.resource_type)
-            self.assertEqual('archive_policy', e.attribute)
-            self.assertEqual("foobar", e.value)
-        else:
-            self.fail("No exception raised")
 
     def test_create_non_existent_metric(self):
         e = uuid.uuid4()
@@ -180,12 +179,12 @@ class TestIndexerDriver(tests_base.TestCase):
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1,
-                                   user, project,
-                                   archive_policy="low")
-        self.index.create_resource('metric', e2,
-                                   user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1,
+                                 user, project,
+                                 archive_policy="low")
+        self.index.create_metric(e2,
+                                 user, project,
+                                 archive_policy="low")
         rc = self.index.create_resource('generic', r1, user, project,
                                         metrics={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
@@ -261,12 +260,12 @@ class TestIndexerDriver(tests_base.TestCase):
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1, user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1, user, project,
+                                 archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
                                    metrics={'foo': e1})
-        self.index.create_resource('metric', e2, user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e2, user, project,
+                                 archive_policy="low")
         rc = self.index.update_resource('generic', r1, metrics={'bar': e2})
         r = self.index.get_resource('generic', r1)
         self.assertEqual(rc, r)
@@ -277,10 +276,10 @@ class TestIndexerDriver(tests_base.TestCase):
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1, user, project,
-                                   archive_policy="low")
-        self.index.create_resource('metric', e2, user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1, user, project,
+                                 archive_policy="low")
+        self.index.create_metric(e2, user, project,
+                                 archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
                                    metrics={'foo': e1})
         rc = self.index.update_resource('generic', r1, metrics={'bar': e2},
@@ -296,10 +295,10 @@ class TestIndexerDriver(tests_base.TestCase):
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1, user, project,
-                                   archive_policy="low")
-        self.index.create_resource('metric', e2, user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1, user, project,
+                                 archive_policy="low")
+        self.index.create_metric(e2, user, project,
+                                 archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
                                    metrics={'foo': e1})
 
@@ -348,8 +347,8 @@ class TestIndexerDriver(tests_base.TestCase):
     def test_update_non_existent_resource(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
-        self.index.create_resource('metric', e1, uuid.uuid4(), uuid.uuid4(),
-                                   archive_policy="low")
+        self.index.create_metric(e1, uuid.uuid4(), uuid.uuid4(),
+                                 archive_policy="low")
         self.assertRaises(indexer.NoSuchResource,
                           self.index.update_resource,
                           'generic',
@@ -370,10 +369,10 @@ class TestIndexerDriver(tests_base.TestCase):
         e2 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1, user, project,
-                                   archive_policy="low")
-        self.index.create_resource('metric', e2, user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1, user, project,
+                                 archive_policy="low")
+        self.index.create_metric(e2, user, project,
+                                 archive_policy="low")
         self.index.create_resource('generic', r1, user, project,
                                    metrics={'foo': e1, 'bar': e2})
         self.index.delete_metric(e1)
@@ -575,34 +574,26 @@ class TestIndexerDriver(tests_base.TestCase):
         e1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1,
-                                   user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1,
+                                 user, project,
+                                 archive_policy="low")
 
         metric = self.index.get_metric(e1)
-        self.assertIsNotNone(metric['started_at'])
-        del metric['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": "low",
                           "created_by_user_id": six.text_type(user),
-                          "created_by_project_id": six.text_type(project),
-                          "user_id": None,
-                          "project_id": None,
-                          "ended_at": None,
-                          "type": "metric"},
+                          "created_by_project_id": six.text_type(project)},
                          metric)
 
     def test_get_metric_with_details(self):
         e1 = uuid.uuid4()
         user = uuid.uuid4()
         project = uuid.uuid4()
-        self.index.create_resource('metric', e1,
-                                   user, project,
-                                   archive_policy="low")
+        self.index.create_metric(e1,
+                                 user, project,
+                                 archive_policy="low")
 
         metric = self.index.get_metric(e1, details=True)
-        self.assertIsNotNone(metric['started_at'])
-        del metric['started_at']
         self.assertEqual({"id": str(e1),
                           "archive_policy": {
                               "back_window": 0,
@@ -612,11 +603,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                   {u'granularity': 86400, u'points': 30}],
                               "name": "low"},
                           "created_by_user_id": six.text_type(user),
-                          "created_by_project_id": six.text_type(project),
-                          "user_id": None,
-                          "project_id": None,
-                          "ended_at": None,
-                          "type": "metric"},
+                          "created_by_project_id": six.text_type(project)},
                          metric)
 
     def test_get_metric_with_bad_uuid(self):

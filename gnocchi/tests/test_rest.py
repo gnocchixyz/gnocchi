@@ -427,17 +427,6 @@ class MetricTest(RestTest):
         with self.app.use_another_user():
             self.app.get(result.headers['Location'], status=403)
 
-    def test_get_metric_with_concerned_user(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={
-                "archive_policy": "low",
-                "user_id": FakeMemcache.USER_ID_2,
-                "project_id": FakeMemcache.PROJECT_ID_2,
-            })
-        with self.app.use_another_user():
-            self.app.get(result.headers['Location'])
-
     def test_get_detailed_metric(self):
         result = self.app.post_json(
             "/v1/metric",
@@ -518,16 +507,6 @@ class MetricTest(RestTest):
                                     status=400)
         self.assertIn('Unknown archive policy %s' % policy, result.text)
 
-    def test_get_metric_as_resource(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy": "medium"},
-            status=201)
-        self.assertEqual("application/json", result.content_type)
-        metric = json.loads(result.text)
-        result = self.app.get("/v1/resource/metric/%s" % metric['id'])
-        self.assertDictContainsSubset(metric, json.loads(result.text))
-
     def test_list_metric(self):
         result = self.app.post_json(
             "/v1/metric",
@@ -537,21 +516,6 @@ class MetricTest(RestTest):
         result = self.app.get("/v1/metric")
         self.assertIn(metric['id'],
                       [r['id'] for r in json.loads(result.text)])
-
-    def test_list_metric_as_resource(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy": "medium"},
-            status=201)
-        metric = json.loads(result.text)
-        result = self.app.get("/v1/resource/metric")
-        self.assertIn(metric['id'],
-                      [r['id'] for r in json.loads(result.text)])
-
-    def test_post_metric_as_resource(self):
-        self.app.post_json("/v1/resource/metric",
-                           params={"archive_policy": "medium"},
-                           status=403)
 
     def test_delete_metric(self):
         result = self.app.post_json("/v1/metric",
@@ -724,27 +688,6 @@ class MetricTest(RestTest):
         with self.app.use_another_user():
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
-
-    def test_get_measure_with_a_concerned_user(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={
-                "archive_policy": "low",
-                "user_id": FakeMemcache.USER_ID_2,
-                "project_id": FakeMemcache.PROJECT_ID_2,
-            })
-        metric = json.loads(result.text)
-        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": '2013-01-01 23:23:23',
-                                    "value": 1234.2}])
-        with self.app.use_another_user():
-            ret = self.app.get("/v1/metric/%s/measures" % metric['id'])
-            result = json.loads(ret.text)
-            self.assertEqual(
-                [[u'2013-01-01T00:00:00.000000', 86400.0, 1234.2],
-                 [u'2013-01-01T23:00:00.000000', 3600.0, 1234.2],
-                 [u'2013-01-01T23:20:00.000000', 300.0, 1234.2]],
-                result)
 
     def test_get_measure_start(self):
         result = self.app.post_json("/v1/metric",

@@ -419,10 +419,9 @@ class MetricsController(rest.RestController):
         policy = pecan.request.indexer.get_archive_policy(archive_policy)
         if policy is None:
             pecan.abort(400, "Unknown archive policy %s" % archive_policy)
-        pecan.request.indexer.create_resource(
-            'metric', id,
+        pecan.request.indexer.create_metric(
+            id,
             created_by_user_id, created_by_project_id,
-            user_id, project_id,
             archive_policy=policy['name'])
         pecan.request.storage.create_metric(
             str(id),
@@ -443,17 +442,15 @@ class MetricsController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self):
-        attrfilter = {}
         try:
             enforce("list all metric", {})
         except webob.exc.HTTPForbidden:
             enforce("list resource", {})
-            (attrfilter['user_id'],
-             attrfilter['project_id']) = get_user_and_project()
-
-        return pecan.request.indexer.list_resources(
-            'metric',
-            attributes_filter=attrfilter)
+            user_id, project_id = get_user_and_project()
+        else:
+            user_id, project_id = None, None
+        return pecan.request.indexer.list_metrics(
+            user_id, project_id)
 
 
 def UUID(value):
@@ -560,8 +557,6 @@ class GenericResourceController(rest.RestController):
             "resource_type": self._resource_type,
             "resource_id": self.id,
         })
-        if getattr(self, "read_only", False):
-            pecan.abort(403, "Unable to patch resource")
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.ResourcePatch)
@@ -613,12 +608,6 @@ class InstanceResourceController(GenericResourceController):
     })
 
 
-class MetricResourceController(GenericResourceController):
-    _resource_type = 'metric'
-
-    read_only = True
-
-
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -634,8 +623,6 @@ class GenericResourcesController(rest.RestController):
         enforce("create resource", {
             "resource_type": self._resource_type,
         })
-        if getattr(self, "read_only", False):
-            pecan.abort(403, "Unable to create resource")
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.Resource)
@@ -717,18 +704,8 @@ class InstancesResourcesController(GenericResourcesController):
     })
 
 
-class MetricsResourcesController(GenericResourcesController):
-    _resource_type = 'metric'
-    _resource_rest_class = MetricResourceController
-
-    read_only = True
-
-    Resource = ResourceSchema(MetricSchemaDefinition)
-
-
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
-    metric = MetricsResourcesController()
     instance = InstancesResourcesController()
     swift_account = SwiftAccountsResourcesController()
 

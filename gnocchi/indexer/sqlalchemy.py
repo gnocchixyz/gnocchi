@@ -116,7 +116,7 @@ class ResourceMetric(Base, GnocchiBase):
                                                         ondelete="CASCADE"),
                                   primary_key=True)
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    resources = sqlalchemy.orm.relationship('MeasurableResource')
+    resources = sqlalchemy.orm.relationship('Resource')
 
 
 class Resource(Base, GnocchiBase):
@@ -138,8 +138,7 @@ class Resource(Base, GnocchiBase):
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False),
         nullable=False)
-    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
-    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+    metrics = sqlalchemy.orm.relationship(ResourceMetric)
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -149,6 +148,8 @@ class Resource(Base, GnocchiBase):
                                    # integer…
                                    default=datetime.datetime.utcnow)
     ended_at = sqlalchemy.Column(PreciseTimestamp)
+    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
 
 
 class ArchivePolicy(Base, GnocchiBase):
@@ -163,7 +164,7 @@ class ArchivePolicy(Base, GnocchiBase):
     definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
 
 
-class Metric(Resource):
+class Metric(Base, GnocchiBase):
     __tablename__ = 'metric'
     __table_args__ = (
         sqlalchemy.Index('ix_metric_id', 'id'),
@@ -171,21 +172,21 @@ class Metric(Resource):
     )
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           sqlalchemy.ForeignKey('resource.id',
-                                                 ondelete="CASCADE"),
                            primary_key=True)
     archive_policy = sqlalchemy.Column(
         sqlalchemy.String(255),
         sqlalchemy.ForeignKey('archive_policy.name',
                               ondelete="RESTRICT"),
         nullable=False)
+    created_by_user_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
+    created_by_project_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
 
 
-class MeasurableResource(Resource):
-    metrics = sqlalchemy.orm.relationship(ResourceMetric)
-
-
-class Instance(MeasurableResource):
+class Instance(Resource):
     __tablename__ = 'instance'
     __table_args__ = (
         sqlalchemy.Index('ix_instance_id', 'id'),
@@ -204,7 +205,7 @@ class Instance(MeasurableResource):
     server_group = sqlalchemy.Column(sqlalchemy.String(255))
 
 
-class SwiftAccount(MeasurableResource):
+class SwiftAccount(Resource):
     __tablename__ = 'swift_account'
     __table_args__ = (
         sqlalchemy.Index('ix_swift_account_id', 'id'),
@@ -220,8 +221,7 @@ class SwiftAccount(MeasurableResource):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     # TODO(jd) Use stevedore instead to allow extending?
     _RESOURCE_CLASS_MAPPER = {
-        'metric': Metric,
-        'generic': MeasurableResource,
+        'generic': Resource,
         'instance': Instance,
         'swift_account': SwiftAccount,
     }
@@ -280,6 +280,26 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.ArchivePolicyAlreadyExists(name)
         return dict(ap)
 
+    def create_metric(self, id, created_by_user_id, created_by_project_id,
+                      archive_policy):
+        m = Metric(id=id,
+                   created_by_user_id=created_by_user_id,
+                   created_by_project_id=created_by_project_id,
+                   archive_policy=archive_policy)
+        session = self.engine_facade.get_session()
+        session.add(m)
+        session.flush()
+        return self._resource_to_dict(m)
+
+    def list_metrics(self, user_id=None, project_id=None):
+        session = self.engine_facade.get_session()
+        q = session.query(Metric)
+        if user_id is not None:
+            q = q.filter(user_id=user_id)
+        if project_id is not None:
+            q = q.filter(project_id=project_id)
+        return [self._resource_to_dict(m) for m in q.all()]
+
     def create_resource(self, resource_type, id,
                         created_by_user_id, created_by_project_id,
                         user_id=None, project_id=None,
@@ -337,7 +357,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         for k, v in six.iteritems(r):
             if isinstance(v, uuid.UUID):
                 r[k] = six.text_type(v)
-        if isinstance(resource, MeasurableResource):
+        if isinstance(resource, Resource):
             r['metrics'] = dict((k.name, str(k.metric_id))
                                 for k in resource.metrics)
         return r
