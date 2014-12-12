@@ -1,6 +1,5 @@
 babel
 iso8601
-lockfile>=0.9.1
 netaddr
 oslo.config>=1.4.0.0a1
 oslo.db>=0.5.0
