@@ -44,6 +44,30 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.ArchivePolicyAlreadyExists,
                           self.index.create_archive_policy, "high", 0, {})
 
+    def test_delete_archive_policy(self):
+        ap = str(uuid.uuid4())
+        self.index.create_archive_policy(ap, 0, {})
+        self.index.delete_archive_policy(ap)
+        self.assertRaises(indexer.NoSuchArchivePolicy,
+                          self.index.delete_archive_policy,
+                          ap)
+        self.assertRaises(indexer.NoSuchArchivePolicy,
+                          self.index.delete_archive_policy,
+                          str(uuid.uuid4()))
+        self.index.create_archive_policy(ap, 0,
+                                         self.ARCHIVE_POLICIES['low'])
+        metric_id = uuid.uuid4()
+        self.index.create_metric(metric_id, uuid.uuid4(),
+                                 uuid.uuid4(), ap)
+        self.assertRaises(indexer.ArchivePolicyInUse,
+                          self.index.delete_archive_policy,
+                          ap)
+        self.index.delete_metric(metric_id)
+        self.index.delete_archive_policy(ap)
+        self.assertRaises(indexer.NoSuchArchivePolicy,
+                          self.index.delete_archive_policy,
+                          ap)
+
     def test_create_metric(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()

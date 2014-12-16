@@ -73,6 +73,23 @@ class NoSuchResource(Exception):
         self.resource = resource
 
 
+class NoSuchArchivePolicy(Exception):
+    """Error raised when an archive policy does not exist."""
+    def __init__(self, archive_policy):
+        super(NoSuchArchivePolicy, self).__init__(
+            "Archive policy %s does not exist" %
+            str(archive_policy))
+        self.archive_policy = archive_policy
+
+
+class ArchivePolicyInUse(Exception):
+    """Error raised when an archive policy is still being used."""
+    def __init__(self, archive_policy):
+        super(ArchivePolicyInUse, self).__init__(
+            "Archive policy %s is still in use" % archive_policy)
+        self.archive_policy = archive_policy
+
+
 class NamedMetricAlreadyExists(Exception):
     """Error raised when a named metric already exists."""
     def __init__(self, metric):
@@ -151,6 +168,10 @@ class IndexerDriver(object):
 
     @staticmethod
     def get_archive_policy(name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def delete_archive_policy(name):
         raise exceptions.NotImplementedError
 
     @staticmethod

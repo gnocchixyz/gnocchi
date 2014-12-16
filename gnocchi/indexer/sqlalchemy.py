@@ -255,6 +255,18 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if ap:
             return dict(ap)
 
+    def delete_archive_policy(self, name):
+        session = self.engine_facade.get_session()
+        try:
+            if session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == name).delete() == 0:
+                raise indexer.NoSuchArchivePolicy(name)
+        except exception.DBError as e:
+            # TODO(jd) Add an exception in oslo.db to match foreign key
+            # violations
+            if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
+                raise indexer.ArchivePolicyInUse(name)
+
     def get_metric(self, uuid, details=False):
         session = self.engine_facade.get_session()
         if details:
