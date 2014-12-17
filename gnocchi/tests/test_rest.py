@@ -122,6 +122,12 @@ class RestTest(tests_base.TestCase):
         self.assertEqual(b"Nom nom nom.", result.body)
         self.assertEqual("text/plain", result.content_type)
 
+    def test_deserialize_force_json(self):
+        self.app.post(
+            "/v1/archive_policy",
+            params="foo",
+            status=415)
+
     @staticmethod
     def runTest():
         pass
