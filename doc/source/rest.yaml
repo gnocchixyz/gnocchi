@@ -24,6 +24,29 @@
 - name: list-archive-policy
   request: GET /v1/archive_policy HTTP/1.1
 
+- name: create-archive-policy-to-delete
+  request: |
+    POST /v1/archive_policy HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "medium",
+      "back_window": 0,
+      "definition": [
+        {
+          "granularity": "1s",
+          "timespan": "1 hour"
+        },
+        {
+          "points": 48,
+          "timespan": "1 day"
+        }
+      ]
+    }
+
+- name: delete-archive-policy
+  request: DELETE /v1/archive_policy/{{ scenarios['create-archive-policy-to-delete']['response'].json['name'] }} HTTP/1.1
+
 - name: create-metric
   request: |
     POST /v1/metric HTTP/1.1

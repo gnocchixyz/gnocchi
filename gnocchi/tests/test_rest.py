@@ -380,6 +380,46 @@ class ArchivePolicyTest(RestTest):
              ]},
             ap)
 
+    def test_delete_archive_policy(self):
+        params = {"name": str(uuid.uuid4()),
+                  "back_window": 1,
+                  "definition": [{
+                      "granularity": "10s",
+                      "points": 20,
+                  }]}
+        self.app.post_json(
+            "/v1/archive_policy",
+            params=params)
+        self.app.delete("/v1/archive_policy/%s" % params['name'],
+                        status=204)
+
+    def test_delete_archive_policy_non_existent(self):
+        ap = str(uuid.uuid4())
+        result = self.app.delete("/v1/archive_policy/%s" % ap,
+                                 status=400)
+        self.assertIn(
+            b"Archive policy " + ap.encode('ascii') + b" does not exist",
+            result.body)
+
+    def test_delete_archive_policy_in_use(self):
+        ap = str(uuid.uuid4())
+        params = {"name": ap,
+                  "back_window": 1,
+                  "definition": [{
+                      "granularity": "10s",
+                      "points": 20,
+                  }]}
+        self.app.post_json(
+            "/v1/archive_policy",
+            params=params)
+        self.app.post_json("/v1/metric",
+                           params={"archive_policy": ap})
+        result = self.app.delete("/v1/archive_policy/%s" % ap,
+                                 status=400)
+        self.assertIn(
+            b"Archive policy " + ap.encode('ascii') + b" is still in use",
+            result.body)
+
     def test_get_archive_policy_non_existent(self):
         self.app.get("/v1/archive_policy/" + str(uuid.uuid4()),
                      status=404)
