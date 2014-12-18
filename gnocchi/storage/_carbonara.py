@@ -16,15 +16,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import random
-import threading
 import uuid
 
+import futures
 import pandas
-import six.moves.queue
 from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
+
+# TODO(sileht): make it configurable ?
+DEFAULT_MAX_WORKERS = 10
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):
@@ -75,44 +77,52 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
-        contents = self._get_measures(metric, aggregation)
-        archive = carbonara.TimeSerieArchive.unserialize(contents)
+        archive = self._get_measures_archive(metric, aggregation)
         return archive.fetch(from_timestamp, to_timestamp)
 
-    def _add_measures(self, aggregation, metric, measures, exceptions):
-        try:
-            lock_name = (b"gnocchi-" + metric.encode('ascii')
-                         + b"-" + aggregation.encode('ascii'))
-            lock = self.coord.get_lock(lock_name)
-            with lock:
-                contents = self._get_measures(metric, aggregation)
-                archive = carbonara.TimeSerieArchive.unserialize(contents)
-                try:
-                    archive.set_values([(m.timestamp, m.value)
-                                        for m in measures])
-                except carbonara.NoDeloreanAvailable as e:
-                    raise storage.NoDeloreanAvailable(e.first_timestamp,
-                                                      e.bad_timestamp)
-                self._store_metric_measures(metric, aggregation,
-                                            archive.serialize())
-        except Exception as e:
-            exceptions.put(e)
-            return
+    def _get_measures_archive(self, metric, aggregation):
+        contents = self._get_measures(metric, aggregation)
+        return carbonara.TimeSerieArchive.unserialize(contents)
+
+    def _add_measures(self, aggregation, metric, measures):
+        lock_name = (b"gnocchi-" + metric.encode('ascii')
+                     + b"-" + aggregation.encode('ascii'))
+        lock = self.coord.get_lock(lock_name)
+        with lock:
+            contents = self._get_measures(metric, aggregation)
+            archive = carbonara.TimeSerieArchive.unserialize(contents)
+            try:
+                archive.set_values([(m.timestamp, m.value)
+                                    for m in measures])
+            except carbonara.NoDeloreanAvailable as e:
+                raise storage.NoDeloreanAvailable(e.first_timestamp,
+                                                  e.bad_timestamp)
+            self._store_metric_measures(metric, aggregation,
+                                        archive.serialize())
 
     def add_measures(self, metric, measures):
         # We are going to iterate multiple time over measures, so if it's a
         # generator we need to build a list out of it right now.
         measures = list(measures)
-        threads = []
-        exceptions = six.moves.queue.Queue()
-        for aggregation in self.aggregation_types:
-            t = threading.Thread(target=self._add_measures,
-                                 args=(aggregation, metric,
-                                       measures, exceptions))
-            t.start()
-            threads.append(t)
-        for t in threads:
-            t.join()
-        if not exceptions.empty():
-            # Only raise the first one, not much choice
-            raise exceptions.get()
+        self._map_in_tread(self._add_measures,
+                           list((aggregation, metric, measures)
+                                for aggregation in self.aggregation_types),
+                           workers=len(self.aggregation_types))
+
+    def get_cross_metric_measures(self, metrics, from_timestamp=None,
+                                  to_timestamp=None, aggregation='mean'):
+
+        tss = self._map_in_tread(self._get_measures_archive,
+                                 [(metric, aggregation) for metric in metrics])
+        try:
+            return carbonara.TimeSerieArchive.aggregated(
+                tss, from_timestamp, to_timestamp, aggregation)
+        except carbonara.UnAggregableTimeseries as e:
+            raise storage.MetricUnaggregatable(metrics, e.reason)
+
+    @staticmethod
+    def _map_in_tread(method, list_of_args, workers=DEFAULT_MAX_WORKERS):
+        # We use 'list' to iterate all threads here to raise the first
+        # exception now , not much choice
+        with futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            return list(executor.map(lambda args: method(*args), list_of_args))

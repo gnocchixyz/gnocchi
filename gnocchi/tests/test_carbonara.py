@@ -393,3 +393,156 @@ class TestTimeSerieArchive(base.BaseTestCase):
                              e.first_timestamp)
         else:
             self.fail("No exception raised")
+
+    def test_aggregated_nominal(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 10),
+             (pandas.tseries.offsets.Minute(5), 6)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 10),
+             (pandas.tseries.offsets.Minute(5), 6)])
+
+        tsc1.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
+            (datetime.datetime(2014, 1, 1, 11, 47, 34), 8),
+            (datetime.datetime(2014, 1, 1, 11, 50, 54), 50),
+            (datetime.datetime(2014, 1, 1, 11, 54, 45), 4),
+            (datetime.datetime(2014, 1, 1, 11, 56, 49), 4),
+            (datetime.datetime(2014, 1, 1, 11, 57, 22), 6),
+            (datetime.datetime(2014, 1, 1, 11, 58, 22), 5),
+            (datetime.datetime(2014, 1, 1, 12, 1, 4), 4),
+            (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
+            (datetime.datetime(2014, 1, 1, 12, 2, 1), 15),
+            (datetime.datetime(2014, 1, 1, 12, 2, 12), 1),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 3),
+            (datetime.datetime(2014, 1, 1, 12, 4, 9), 7),
+            (datetime.datetime(2014, 1, 1, 12, 5, 1), 15),
+            (datetime.datetime(2014, 1, 1, 12, 5, 12), 1),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 3),
+        ])
+
+        tsc2.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 46, 4), 6),
+            (datetime.datetime(2014, 1, 1, 11, 47, 34), 5),
+            (datetime.datetime(2014, 1, 1, 11, 50, 54), 51),
+            (datetime.datetime(2014, 1, 1, 11, 54, 45), 5),
+            (datetime.datetime(2014, 1, 1, 11, 56, 49), 5),
+            (datetime.datetime(2014, 1, 1, 11, 57, 22), 7),
+            (datetime.datetime(2014, 1, 1, 11, 58, 22), 5),
+            (datetime.datetime(2014, 1, 1, 12, 1, 4), 5),
+            (datetime.datetime(2014, 1, 1, 12, 1, 9), 8),
+            (datetime.datetime(2014, 1, 1, 12, 2, 1), 10),
+            (datetime.datetime(2014, 1, 1, 12, 2, 12), 2),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 4, 9), 4),
+            (datetime.datetime(2014, 1, 1, 12, 5, 1), 10),
+            (datetime.datetime(2014, 1, 1, 12, 5, 12), 1),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 1),
+        ])
+
+        output = carbonara.TimeSerieArchive.aggregated([tsc1, tsc2])
+        self.assertEqual([
+            (pandas.Timestamp('2014-01-01 11:45:00'), 300.0, 5.75),
+            (pandas.Timestamp('2014-01-01 11:50:00'), 300.0, 27.5),
+            (pandas.Timestamp('2014-01-01 11:54:00'), 60.0, 4.5),
+            (pandas.Timestamp('2014-01-01 11:56:00'), 60.0, 4.5),
+            (pandas.Timestamp('2014-01-01 11:57:00'), 60.0, 6.5),
+            (pandas.Timestamp('2014-01-01 11:58:00'), 60.0, 5.0),
+            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 6.0),
+            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 7.0),
+            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.5),
+            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 5.5),
+            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 6.75),
+            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 2.0),
+        ], output)
+
+    def test_aggregated_different_archive(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 50),
+             (pandas.tseries.offsets.Minute(2), 24)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(3), 50),
+             (pandas.tseries.offsets.Minute(5), 24)])
+
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.TimeSerieArchive.aggregated,
+                          [tsc1, tsc2])
+
+    def test_aggregated_different_archive_no_overlap(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 50),
+             (pandas.tseries.offsets.Minute(2), 24)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 50)])
+
+        tsc1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4)])
+        tsc2.set_values([(datetime.datetime(2014, 1, 1, 9, 1, 4), 4)])
+
+        dtfrom = datetime.datetime(2014, 1, 1, 11, 0, 0)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.TimeSerieArchive.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom)
+
+    def test_aggregated_different_archive_no_enough_overlap(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 50),
+             (pandas.tseries.offsets.Minute(2), 24)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 50)])
+
+        tsc1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
+                         (datetime.datetime(2014, 1, 1, 12, 46, 4), 5),
+                         (datetime.datetime(2014, 1, 1, 15, 46, 4), 8),
+                         (datetime.datetime(2014, 1, 1, 17, 46, 4), 9),
+                         (datetime.datetime(2014, 1, 1, 18, 46, 4), 1)])
+        tsc2.set_values([(datetime.datetime(2014, 1, 1, 3, 1, 4), 5),
+                         (datetime.datetime(2014, 1, 1, 9, 1, 4), 9),
+                         (datetime.datetime(2014, 1, 1, 11, 46, 4), 2)])
+
+        dtfrom = datetime.datetime(2014, 1, 1, 11, 0, 0)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.TimeSerieArchive.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom)
+
+    def test_aggregated_different_archive_overlap(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 10),
+             (pandas.tseries.offsets.Minute(10), 6)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(pandas.tseries.offsets.Minute(1), 10)])
+
+        # NOTE(sileht): minute 8 is missing in both and
+        # minute 7 in tsc2 too, but it looks like we have
+        # enough point to do the aggregation
+        tsc1.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 0, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 3),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 3),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 10),
+            (datetime.datetime(2014, 1, 1, 12, 9, 0), 2),
+        ])
+
+        tsc2.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 3),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 3),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 9, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 11, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 12, 0), 2),
+        ])
+
+        dtfrom = datetime.datetime(2014, 1, 1, 12, 0, 0)
+        dtto = datetime.datetime(2014, 1, 1, 12, 10, 0)
+
+        # TODO(sileht): This should pass in certain case
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.TimeSerieArchive.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom,
+                          to_timestamp=dtto)

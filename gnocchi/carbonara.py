@@ -33,6 +33,13 @@ class NoDeloreanAvailable(Exception):
             "%s is before %s" % (bad_timestamp, first_timestamp))
 
 
+class UnAggregableTimeseries(Exception):
+    """Error raised when timeseries cannot be aggregated."""
+    def __init__(self, reason):
+        self.reason = reason
+        super(UnAggregableTimeseries, self).__init__(reason)
+
+
 class TimeSerie(object):
 
     def __init__(self, timestamps=None, values=None):
@@ -298,7 +305,8 @@ class TimeSerieArchive(object):
                        aggregation_method=aggregation_method)
                     for sampling, size in definitions])
 
-    def fetch(self, from_timestamp=None, to_timestamp=None):
+    def fetch(self, from_timestamp=None, to_timestamp=None,
+              timeserie_filter=None):
         """Fetch aggregated time value.
 
         Returns a sorted list of tuples (timestamp, granularity, value).
@@ -306,6 +314,8 @@ class TimeSerieArchive(object):
         result = []
         end_timestamp = to_timestamp
         for ts in self.agg_timeseries:
+            if timeserie_filter and not timeserie_filter(ts):
+                continue
             if result:
                 # Change to_timestamp not to override more precise points we
                 # already have
@@ -355,3 +365,55 @@ class TimeSerieArchive(object):
 
     def serialize(self):
         return msgpack.dumps(self.to_dict())
+
+    @staticmethod
+    def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
+                   aggregation='mean'):
+        index = ['timestamp', 'granularity']
+        columns = ['timestamp', 'granularity', 'value']
+        dataframes = []
+
+        granularities = [set(ts.sampling for ts in timeserie.agg_timeseries)
+                         for timeserie in timeseries]
+        granularities = granularities[0].intersection(*granularities[1:])
+        if len(granularities) == 0:
+            raise UnAggregableTimeseries('No granularity match')
+
+        for timeserie in timeseries:
+            timeserie_raw = timeserie.fetch(
+                from_timestamp, to_timestamp,
+                lambda ts: ts.sampling in granularities)
+
+            if timeserie_raw:
+                dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
+                dataframe = dataframe.set_index(index)
+                dataframes.append(dataframe)
+
+        if not dataframes:
+            return []
+
+        points_count = pandas.concat(dataframes).groupby(
+            level='timestamp').count()
+        maximum = len(points_count)
+        minimum = len(points_count[points_count < len(timeseries)].dropna())
+        percent_of_overlap = float(maximum - minimum) * 100.0 / float(maximum)
+        if percent_of_overlap < 100.0:
+            # TODO(sileht): allows a certain percent of missing datapoint
+            raise UnAggregableTimeseries('Less than %f%% of datapoints '
+                                         'overlap in this timespan (%.2f%%)' %
+                                         (100.0,
+                                          percent_of_overlap))
+
+        grouped = pandas.concat(dataframes).groupby(level=index)
+        # NOTE(sileht): this call the aggregation method on already
+        # aggregated values, for some kind of aggregation this can
+        # result can looks wierd, but this is the best we can do
+        # because we don't have anymore the raw datapoints in those case.
+        # FIXME(sileht): so should we bailout is case of stddev and median ?
+        agg_timeserie = getattr(grouped, aggregation)()
+        points = (agg_timeserie.dropna().reset_index()
+                  .sort(['granularity', 'timestamp'], ascending=[0, 1])
+                  .itertuples())
+        points = [(timestamp, granularity, value)
+                  for __, timestamp, granularity, value in points]
+        return points
