@@ -83,13 +83,15 @@ def get_user_and_project():
 
 
 def deserialize(schema):
+    mime_type, options = werkzeug.http.parse_options_header(
+        pecan.request.headers.get('Content-Type'))
+    if mime_type != "application/json":
+        pecan.abort(415)
     try:
-        type, options = werkzeug.http.parse_options_header(
-            pecan.request.headers.get('Content-Type'))
         params = json.loads(pecan.request.body.decode(
             options.get('charset', 'ascii')))
     except Exception as e:
-        pecan.abort(400, "Unable to decode body" + str(e))
+        pecan.abort(400, "Unable to decode body: " + str(e))
     try:
         return schema(params)
     except voluptuous.Error as e:
