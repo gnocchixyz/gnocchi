@@ -100,23 +100,44 @@ class GnocchiBase(models.ModelBase):
     pass
 
 
-class ResourceMetric(Base, GnocchiBase):
-    __tablename__ = 'resource_metric'
+class ArchivePolicy(Base, GnocchiBase):
+    __tablename__ = 'archive_policy'
     __table_args__ = (
-        sqlalchemy.UniqueConstraint('resource_id', 'name', name="name_unique"),
+        sqlalchemy.Index('ix_archive_policy_name', 'name'),
         COMMON_TABLES_ARGS,
     )
 
+    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
+    back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
+
+
+class Metric(Base, GnocchiBase):
+    __tablename__ = 'metric'
+    __table_args__ = (
+        sqlalchemy.Index('ix_metric_id', 'id'),
+        sqlalchemy.UniqueConstraint("resource_id", "name",
+                                    name="uniq_metric0resource_id0name"),
+        COMMON_TABLES_ARGS,
+    )
+
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           primary_key=True)
+    archive_policy = sqlalchemy.Column(
+        sqlalchemy.String(255),
+        sqlalchemy.ForeignKey('archive_policy.name',
+                              ondelete="RESTRICT"),
+        nullable=False)
+    created_by_user_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
+    created_by_project_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        nullable=False)
     resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
-                                                          ondelete="CASCADE"),
-                                    primary_key=True)
-    metric_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                  sqlalchemy.ForeignKey('metric.id',
-                                                        ondelete="CASCADE"),
-                                  primary_key=True)
-    name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    resources = sqlalchemy.orm.relationship('Resource')
+                                                          ondelete="CASCADE"))
+    name = sqlalchemy.Column(sqlalchemy.String(255))
 
 
 class Resource(Base, GnocchiBase):
@@ -138,7 +159,7 @@ class Resource(Base, GnocchiBase):
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False),
         nullable=False)
-    metrics = sqlalchemy.orm.relationship(ResourceMetric)
+    metrics = sqlalchemy.orm.relationship(Metric)
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -150,40 +171,6 @@ class Resource(Base, GnocchiBase):
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
-
-
-class ArchivePolicy(Base, GnocchiBase):
-    __tablename__ = 'archive_policy'
-    __table_args__ = (
-        sqlalchemy.Index('ix_archive_policy_name', 'name'),
-        COMMON_TABLES_ARGS,
-    )
-
-    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
-    back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
-
-
-class Metric(Base, GnocchiBase):
-    __tablename__ = 'metric'
-    __table_args__ = (
-        sqlalchemy.Index('ix_metric_id', 'id'),
-        COMMON_TABLES_ARGS,
-    )
-
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           primary_key=True)
-    archive_policy = sqlalchemy.Column(
-        sqlalchemy.String(255),
-        sqlalchemy.ForeignKey('archive_policy.name',
-                              ondelete="RESTRICT"),
-        nullable=False)
-    created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
-    created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
 
 
 class Instance(Resource):
@@ -293,11 +280,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return dict(ap)
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
-                      archive_policy):
+                      archive_policy,
+                      name=None, resource_id=None):
         m = Metric(id=id,
                    created_by_user_id=created_by_user_id,
                    created_by_project_id=created_by_project_id,
-                   archive_policy=archive_policy)
+                   archive_policy=archive_policy,
+                   name=name,
+                   resource_id=resource_id)
         session = self.engine_facade.get_session()
         session.add(m)
         session.flush()
@@ -343,21 +333,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceValueError(r.type,
                                                  ex.key,
                                                  getattr(r, ex.key))
-            if metrics is None:
-                metrics = {}
-            for name, e in six.iteritems(metrics):
-                session.add(ResourceMetric(resource_id=r.id,
-                                           metric_id=e,
-                                           name=name))
-                try:
-                    session.flush()
-                except exception.DBReferenceError as ex:
-                    if ex.table == 'resource_metric':
-                        if ex.key == 'metric_id':
-                            raise indexer.NoSuchMetric(e)
-                        if ex.key == 'resource_id':
-                            raise indexer.NoSuchResource(r.id)
-                    raise
+            if metrics is not None:
+                self._set_metrics_for_resource(session, id, metrics)
 
         return self._resource_to_dict(r)
 
@@ -370,8 +347,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if isinstance(v, uuid.UUID):
                 r[k] = six.text_type(v)
         if isinstance(resource, Resource):
-            r['metrics'] = dict((k.name, str(k.metric_id))
-                                for k in resource.metrics)
+            r['metrics'] = dict((m['name'], six.text_type(m['id']))
+                                for m in resource.metrics)
         return r
 
     def update_resource(self, resource_type,
@@ -409,25 +386,24 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
             if metrics is not _marker:
                 if not append_metrics:
-                    session.query(ResourceMetric).filter(
-                        ResourceMetric.resource_id == uuid).delete()
-                for name, eid in six.iteritems(metrics):
-                    with session.begin(subtransactions=True):
-                        session.add(ResourceMetric(resource_id=uuid,
-                                                   metric_id=eid,
-                                                   name=name))
-                        try:
-                            session.flush()
-                        except exception.DBReferenceError as e:
-                            if e.key == 'metric_id':
-                                raise indexer.NoSuchMetric(eid)
-                            if e.key == 'resource_id':
-                                raise indexer.NoSuchResource(uuid)
-                            raise
-                        except exception.DBDuplicateEntry as e:
-                            raise indexer.NamedMetricAlreadyExists(name)
+                    session.query(Metric).filter(
+                        Metric.resource_id == uuid).update(
+                            {"resource_id": None})
+                self._set_metrics_for_resource(session, uuid, metrics)
 
         return self._resource_to_dict(r)
+
+    def _set_metrics_for_resource(self, session, resource_id, metrics):
+        for name, metric_id in six.iteritems(metrics):
+            # TODO(jd) Check for permissions!
+            try:
+                update = session.query(Metric).filter(
+                    Metric.id == metric_id).update(
+                        {"resource_id": resource_id, "name": name})
+            except exception.DBDuplicateEntry:
+                raise indexer.NamedMetricAlreadyExists(name)
+            if update == 0:
+                raise indexer.NoSuchMetric(metric_id)
 
     def delete_resource(self, id):
         session = self.engine_facade.get_session()

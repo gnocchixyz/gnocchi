@@ -180,7 +180,7 @@ class IndexerDriver(object):
 
     @staticmethod
     def create_metric(id, created_by_user_id, created_by_project_id,
-                      archive_policy):
+                      archive_policy, name=None, resource_id=None):
         raise exceptions.NotImplementedError
 
     @staticmethod

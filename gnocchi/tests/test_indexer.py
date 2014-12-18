@@ -76,7 +76,9 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(r1),
                           "created_by_user_id": six.text_type(user),
                           "created_by_project_id": six.text_type(project),
-                          "archive_policy": "low"}, m)
+                          "archive_policy": "low",
+                          "name": None,
+                          "resource_id": None}, m)
         m2 = self.index.get_metric(r1)
         self.assertEqual(m, m2)
 
@@ -606,7 +608,9 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual({"id": str(e1),
                           "archive_policy": "low",
                           "created_by_user_id": six.text_type(user),
-                          "created_by_project_id": six.text_type(project)},
+                          "created_by_project_id": six.text_type(project),
+                          "name": None,
+                          "resource_id": None},
                          metric)
 
     def test_get_metric_with_details(self):
@@ -627,7 +631,9 @@ class TestIndexerDriver(tests_base.TestCase):
                                   {u'granularity': 86400, u'points': 30}],
                               "name": "low"},
                           "created_by_user_id": six.text_type(user),
-                          "created_by_project_id": six.text_type(project)},
+                          "created_by_project_id": six.text_type(project),
+                          "name": None,
+                          "resource_id": None},
                          metric)
 
     def test_get_metric_with_bad_uuid(self):
