@@ -1,6 +1,7 @@
 babel
 iso8601
 netaddr
+numpy
 oslo.config>=1.4.0.0a1
 oslo.db>=0.5.0
 oslo.serialization>=1.0.0

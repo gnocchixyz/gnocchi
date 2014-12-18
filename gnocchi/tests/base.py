@@ -24,6 +24,7 @@ from oslo.config import fixture as config_fixture
 from oslotest import base
 from oslotest import mockpatch
 import six
+from stevedore import extension
 from swiftclient import exceptions as swexc
 import testscenarios
 from testtools import testcase
@@ -229,6 +230,10 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
 
         self.conf.set_override('driver', self.storage_engine, 'storage')
         self.storage = storage.get_driver(self.conf)
+
+        self.mgr = extension.ExtensionManager('gnocchi.aggregates',
+                                              invoke_on_load=True)
+        self.custom_agg = dict((x.name, x.obj) for x in self.mgr)
 
     def tearDown(self):
         self.index.disconnect()
