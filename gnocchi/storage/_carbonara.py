@@ -18,7 +18,7 @@
 import random
 import uuid
 
-import futures
+from concurrent import futures
 import pandas
 from tooz import coordination
 
