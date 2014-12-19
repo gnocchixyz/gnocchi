@@ -31,7 +31,7 @@ AGGREGATION_TYPES = ('mean', 'sum', 'last', 'max', 'min',
 
 OPTS = [
     cfg.StrOpt('driver',
-               default='swift',
+               default='file',
                help='Storage driver to use'),
     cfg.StrOpt('coordination_url',
                help='Coordination driver URL',
