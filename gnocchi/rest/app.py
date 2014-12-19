@@ -16,14 +16,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
 import socket
 from wsgiref import simple_server
 
+from flask import json as flask_json
 import netaddr
 from oslo.config import cfg
 from oslo.utils import importutils
 from oslo_serialization import jsonutils
 import pecan
+from pecan import templating
+from werkzeug import wsgi
 
 from gnocchi import indexer
 from gnocchi.openstack.common import log
@@ -80,6 +84,18 @@ class OsloJSONRenderer(object):
         return jsonutils.dumps(namespace)
 
 
+class GnocchiJinjaRenderer(templating.JinjaRenderer):
+    def __init__(self, *args, **kwargs):
+        super(GnocchiJinjaRenderer, self).__init__(*args, **kwargs)
+        self.env.filters['tojson'] = flask_json.tojson_filter
+
+    def render(self, template_path, namespace):
+        if not isinstance(namespace, dict):
+            namespace = dict(data=namespace)
+        return super(GnocchiJinjaRenderer, self).render(
+            template_path, namespace)
+
+
 PECAN_CONFIG = {
     'app': {
         'root': 'gnocchi.rest.RootController',
@@ -99,13 +115,23 @@ def setup_app(pecan_config=PECAN_CONFIG):
         i = indexer.get_driver(conf)
     i.connect()
 
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+
     app = pecan.make_app(
         pecan_config['app']['root'],
         debug=conf.api.pecan_debug,
         hooks=(DBHook(s, i),),
         guess_content_type_from_ext=False,
-        custom_renderers={'json': OsloJSONRenderer},
+        custom_renderers={'json': OsloJSONRenderer,
+                          'gnocchi_jinja': GnocchiJinjaRenderer},
+        default_renderer='gnocchi_jinja',
+        template_path=root_dir + "/templates",
     )
+
+    app = wsgi.SharedDataMiddleware(
+        app,
+        {"/static": root_dir + "/static"},
+        cache=not conf.api.pecan_debug)
 
     for middleware in reversed(pecan_config['conf'].api.middlewares):
         if not middleware:

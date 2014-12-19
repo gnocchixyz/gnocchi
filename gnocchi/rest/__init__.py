@@ -362,6 +362,7 @@ class MetricController(rest.RestController):
                         % (e.bad_timestamp, e.first_timestamp))
 
     @pecan.expose('json')
+    @pecan.expose('measures.j2')
     def get_measures(self, start=None, stop=None, aggregation='mean', **param):
         self.enforce_metric("get measures")
         if not (aggregation

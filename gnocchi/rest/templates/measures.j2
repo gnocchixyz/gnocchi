@@ -1,0 +1,64 @@
+{% extends "basic.j2" %}
+
+{% block head %}
+<link href="/static/css/c3.min.css" rel="stylesheet" type="text/css">
+{% endblock head %}
+
+{% block body %}
+<script src="/static/js/d3.min.js" charset="utf-8"></script>
+<script src="/static/js/c3.min.js"></script>
+<div class="container-fluid">
+  <div class="page-header">
+    <h1>Measures</h1>
+  </div>
+
+  <div id="chart"></div>
+
+</div>
+
+<script>
+
+$(function () {
+    var measures = {{ data|tojson }};
+
+    var x_line = measures.map(function (m) { return Date.parse(m[0]); });
+    x_line.unshift('x');
+
+    var metrics = measures.map(function (m) { return m[2]; });
+    metrics.unshift('Measure');
+
+    var chart = c3.generate({
+        bindto: '#chart',
+        data: {
+            x: 'x',
+            columns: [
+                x_line,
+                metrics,
+            ],
+            types: {
+                'Measure': 'bar',
+            },
+        },
+        axis: {
+            x: {
+                type: 'timeseries',
+                tick: {
+                    format: '%Y-%m-%d %H:%M:%S'
+                }
+            }
+        },
+        zoom: {
+            enabled: true
+        },
+        padding: {
+            left: 100,
+            right: 100,
+            top: 50,
+        },
+        size: {
+            height: 600
+        }
+    });
+});
+</script>
+{% endblock body %}

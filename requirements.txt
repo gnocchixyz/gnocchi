@@ -10,6 +10,7 @@ oslosphinx>=2.2.0  # Apache-2.0
 oslotest
 pandas
 pecan!=0.8
+flask
 python-swiftclient
 pytimeparse
 # pytimeparse misses this dep for now
