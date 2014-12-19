@@ -15,18 +15,25 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import multiprocessing
 import random
 import uuid
 
 from concurrent import futures
+from oslo.config import cfg
 import pandas
 from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
 
-# TODO(sileht): make it configurable ?
-DEFAULT_MAX_WORKERS = 10
+OPTS = [
+    cfg.IntOpt('aggregation_workers_number',
+               default=None,
+               help='Number of workers to run during adding new measures for '
+                    'pre-aggregation needs.'),
+]
+cfg.CONF.register_opts(OPTS, group="storage")
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):
@@ -37,9 +44,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             conf.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
         self.coord.start()
+        self.executor = futures.ThreadPoolExecutor(
+            max_workers=(conf.aggregation_workers_number or
+                         multiprocessing.cpu_count()))
         # NOTE(jd) So this is a (smart?) optimization: since we're going to
         # lock for each of this aggregation type, if we are using running
-        # Gnocchi with multiple processses, let's randomize what we iter
+        # Gnocchi with multiple processes, let's randomize what we iter
         # over so there are less chances we fight for the same lock!
 
         random.shuffle(self.aggregation_types)
@@ -104,25 +114,24 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         # We are going to iterate multiple time over measures, so if it's a
         # generator we need to build a list out of it right now.
         measures = list(measures)
-        self._map_in_tread(self._add_measures,
-                           list((aggregation, metric, measures)
-                                for aggregation in self.aggregation_types),
-                           workers=len(self.aggregation_types))
+        self._map_in_thread(self._add_measures,
+                            list((aggregation, metric, measures)
+                                 for aggregation in self.aggregation_types))
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean'):
 
-        tss = self._map_in_tread(self._get_measures_archive,
-                                 [(metric, aggregation) for metric in metrics])
+        tss = self._map_in_thread(self._get_measures_archive,
+                                  [(metric, aggregation)
+                                   for metric in metrics])
         try:
             return carbonara.TimeSerieArchive.aggregated(
                 tss, from_timestamp, to_timestamp, aggregation)
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
 
-    @staticmethod
-    def _map_in_tread(method, list_of_args, workers=DEFAULT_MAX_WORKERS):
+    def _map_in_thread(self, method, list_of_args):
         # We use 'list' to iterate all threads here to raise the first
         # exception now , not much choice
-        with futures.ThreadPoolExecutor(max_workers=workers) as executor:
-            return list(executor.map(lambda args: method(*args), list_of_args))
+        return list(self.executor.map(lambda args: method(*args),
+                                      list_of_args))
