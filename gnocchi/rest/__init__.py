@@ -280,7 +280,9 @@ class ArchivePoliciesController(rest.RestController):
     def delete(self, name):
         try:
             pecan.request.indexer.delete_archive_policy(name)
-        except (indexer.NoSuchArchivePolicy, indexer.ArchivePolicyInUse) as e:
+        except indexer.NoSuchArchivePolicy as e:
+            pecan.abort(404, e)
+        except indexer.ArchivePolicyInUse as e:
             pecan.abort(400, e)
 
 
@@ -676,7 +678,7 @@ class GenericResourceController(rest.RestController):
         try:
             pecan.request.indexer.delete_resource(self.id)
         except indexer.NoSuchResource as e:
-            pecan.abort(400, str(e))
+            pecan.abort(404, str(e))
 
 
 class SwiftAccountResourceController(GenericResourceController):

@@ -402,7 +402,7 @@ class ArchivePolicyTest(RestTest):
     def test_delete_archive_policy_non_existent(self):
         ap = str(uuid.uuid4())
         result = self.app.delete("/v1/archive_policy/%s" % ap,
-                                 status=400)
+                                 status=404)
         self.assertIn(
             b"Archive policy " + ap.encode('ascii') + b" does not exist",
             result.body)
@@ -1197,7 +1197,7 @@ class ResourceTest(RestTest):
                         + self.attributes['id'],
                         status=204)
 
-    def test_delete_resource_unauthoeized(self):
+    def test_delete_resource_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         with self.app.use_another_user():
@@ -1208,8 +1208,7 @@ class ResourceTest(RestTest):
     def test_delete_resource_non_existent(self):
         result = self.app.delete("/v1/resource/" + self.resource_type + "/"
                                  + self.attributes['id'],
-                                 expect_errors=True,
-                                 status=400)
+                                 status=404)
         self.assertIn(
             "Resource %s does not exist" % self.attributes['id'],
             result.text)
