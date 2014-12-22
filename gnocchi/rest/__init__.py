@@ -56,10 +56,29 @@ def enforce(rule, target):
         _ENFORCER = policy.Enforcer()
 
     headers = pecan.request.headers
+
+    # NOTE(jd) If user_id or project_id are UUID, try to convert them in the
+    # proper dashed format. It's indeed possible that a middleware passes
+    # theses UUID without the dash representation. It's valid, we can parse,
+    # but the policy module won't see the equality in the string
+    # representations.
+
+    user_id = headers.get("X-User-Id")
+    try:
+        user_id = six.text_type(uuid.UUID(user_id))
+    except Exception:
+        pass
+
+    project_id = headers.get("X-Project-Id")
+    try:
+        project_id = six.text_type(uuid.UUID(project_id))
+    except Exception:
+        pass
+
     creds = {
         'roles': headers.get("X-Roles", "").split(","),
-        'user_id': headers.get("X-User-Id"),
-        'project_id': headers.get("X-Project-Id"),
+        'user_id': user_id,
+        'project_id': project_id
     }
 
     if not _ENFORCER.enforce(rule, target, creds):
