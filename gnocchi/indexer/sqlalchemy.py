@@ -136,7 +136,7 @@ class Metric(Base, GnocchiBase):
         nullable=False)
     resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
-                                                          ondelete="CASCADE"))
+                                                          ondelete="SET NULL"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
 
 
