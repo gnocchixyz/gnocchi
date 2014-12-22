@@ -268,8 +268,8 @@ class ArchivePoliciesController(rest.RestController):
     @pecan.expose('json')
     def get_one(self, id):
         ap = pecan.request.indexer.get_archive_policy(id)
-        enforce("get archive policy", ap)
         if ap:
+            enforce("get archive policy", ap)
             return ArchivePolicyItem.archive_policy_to_human_readable(ap)
         pecan.abort(404)
 
@@ -576,10 +576,9 @@ class NamedMetricController(rest.RestController):
 
     @vexpose(Metrics)
     def post(self, body):
-        enforce("update resource", {
-            "resource_type": self.resource_type,
-            "resource_id": self.resource_id,
-        })
+        resource = pecan.request.indexer.get_resource(
+            self.resource_type, self.resource_id)
+        enforce("update resource", resource)
         user, project = get_user_and_project()
         metrics = convert_metric_list(body, user, project)
         try:
@@ -633,22 +632,18 @@ class GenericResourceController(rest.RestController):
 
     @pecan.expose('json')
     def get(self):
-        enforce("get resource", {
-            "resource_type": self._resource_type,
-            "resource_id": self.id,
-        })
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if resource:
+            enforce("get resource", resource)
             return resource
         pecan.abort(404)
 
     @pecan.expose()
     def patch(self):
-        enforce("update resource", {
-            "resource_type": self._resource_type,
-            "resource_id": self.id,
-        })
+        resource = pecan.request.indexer.get_resource(
+            self._resource_type, self.id)
+        enforce("update resource", resource)
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.ResourcePatch)
@@ -674,10 +669,9 @@ class GenericResourceController(rest.RestController):
 
     @pecan.expose()
     def delete(self):
-        enforce("delete resource", {
-            "resource_type": self._resource_type,
-            "resource_id": self.id,
-        })
+        resource = pecan.request.indexer.get_resource(
+            self._resource_type, self.id)
+        enforce("delete resource", resource)
         try:
             pecan.request.indexer.delete_resource(self.id)
         except indexer.NoSuchResource as e:
@@ -712,12 +706,14 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
-        enforce("create resource", {
-            "resource_type": self._resource_type,
-        })
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
         body = deserialize(self.Resource)
+        target = {
+            "resource_type": self._resource_type,
+        }
+        target.update(body)
+        enforce("create resource", target)
         user, project = get_user_and_project()
         body['metrics'] = convert_metric_list(
             body.get('metrics', {}), user, project)
