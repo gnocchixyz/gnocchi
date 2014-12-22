@@ -41,8 +41,10 @@ class FakeMemcache(object):
     PROJECT_ID = str(uuid.uuid4())
 
     VALID_TOKEN_2 = '4562138218392832'
-    USER_ID_2 = str(uuid.uuid4())
-    PROJECT_ID_2 = str(uuid.uuid4())
+    # We replace "-" to simulate a middleware that would send UUID in a non
+    # normalized format.
+    USER_ID_2 = str(uuid.uuid4()).replace("-", "")
+    PROJECT_ID_2 = str(uuid.uuid4()).replace("-", "")
 
     def get(self, key):
         dt = datetime.datetime(
@@ -990,6 +992,17 @@ class ResourceTest(RestTest):
                               + self.attributes['id'])
         result = json.loads(result.text)
         self.assertEqual(self.resource, result)
+
+    def test_get_resource_non_admin(self):
+        with self.app.use_another_user():
+            self.app.post_json("/v1/resource/" + self.resource_type,
+                               params=self.attributes,
+                               status=201)
+            self.app.get("/v1/resource/"
+                         + self.resource_type
+                         + "/"
+                         + self.attributes['id'],
+                         status=200)
 
     def test_get_resource_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
