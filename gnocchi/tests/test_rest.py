@@ -36,6 +36,10 @@ load_tests = testscenarios.load_tests_apply_scenarios
 
 
 class FakeMemcache(object):
+    VALID_TOKEN_ADMIN = '4562138218392830'
+    USER_ID_ADMIN = str(uuid.uuid4())
+    PROJECT_ID_ADMIN = str(uuid.uuid4())
+
     VALID_TOKEN = '4562138218392831'
     USER_ID = str(uuid.uuid4())
     PROJECT_ID = str(uuid.uuid4())
@@ -50,7 +54,20 @@ class FakeMemcache(object):
         dt = datetime.datetime(
             year=datetime.MAXYEAR, month=12, day=31,
             hour=23, minute=59, second=59)
-        if key == "tokens/%s" % self.VALID_TOKEN:
+        if key == "tokens/%s" % self.VALID_TOKEN_ADMIN:
+            return json.dumps(({'access': {
+                'token': {'id': self.VALID_TOKEN_ADMIN,
+                          'expires': timeutils.isotime(dt)},
+                'user': {
+                    'id': self.USER_ID_ADMIN,
+                    'name': 'adminusername',
+                    'tenantId': self.PROJECT_ID_ADMIN,
+                    'tenantName': 'myadmintenant',
+                    'roles': [
+                        {'name': 'admin'},
+                    ]},
+            }}, timeutils.isotime(dt)))
+        elif key == "tokens/%s" % self.VALID_TOKEN:
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN,
                           'expires': timeutils.isotime(dt)},
@@ -60,7 +77,7 @@ class FakeMemcache(object):
                     'tenantId': self.PROJECT_ID,
                     'tenantName': 'mytenant',
                     'roles': [
-                        {'name': 'admin'},
+                        {'name': 'member'},
                     ]},
             }}, timeutils.isotime(dt)))
         elif key == "tokens/%s" % self.VALID_TOKEN_2:
@@ -90,6 +107,15 @@ class TestingApp(webtest.TestApp):
         # Setup Keystone auth_token fake cache
         self.extra_environ.update({self.CACHE_NAME: FakeMemcache()})
         self.token = FakeMemcache.VALID_TOKEN
+
+    @contextlib.contextmanager
+    def use_admin_user(self):
+        old_token = self.token
+        self.token = FakeMemcache.VALID_TOKEN_ADMIN
+        try:
+            yield
+        finally:
+            self.token = old_token
 
     @contextlib.contextmanager
     def use_another_user(self):
@@ -138,15 +164,16 @@ class RestTest(tests_base.TestCase):
 class ArchivePolicyTest(RestTest):
     def test_post_archive_policy(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition":
-                    [{
-                        "granularity": "1 minute",
-                        "points": 20,
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -159,27 +186,27 @@ class ArchivePolicyTest(RestTest):
         }], ap['definition'])
 
     def test_post_archive_policy_as_non_admin(self):
-        with self.app.use_another_user():
-            self.app.post_json(
-                "/v1/archive_policy",
-                params={"name": str(uuid.uuid4()),
-                        "definition":
-                        [{
-                            "granularity": "1 minute",
-                            "points": 20,
-                        }]},
-                status=403)
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"name": str(uuid.uuid4()),
+                    "definition":
+                    [{
+                        "granularity": "1 minute",
+                        "points": 20,
+                    }]},
+            status=403)
 
     def test_post_archive_policy_infinite_points(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition":
-                    [{
-                        "granularity": "2 minutes",
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition":
+                        [{
+                            "granularity": "2 minutes",
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -193,31 +220,33 @@ class ArchivePolicyTest(RestTest):
 
     def test_post_archive_policy_invalid_multiple(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition":
-                    [{
-                        "granularity": "1 minute",
-                        "points": 20,
-                        "timespan": "3 hours",
-                    }]},
-            status=400)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                            "timespan": "3 hours",
+                        }]},
+                status=400)
         self.assertIn(u"timespan ≠ granularity × points".encode('utf-8'),
                       result.body)
 
     def test_post_archive_policy_unicode(self):
         name = u'æ' + str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition":
-                    [{
-                        "granularity": "1 minute",
-                        "points": 20,
-                    }]},
-            headers={'content-type': 'application/json; charset=UTF-8'},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                headers={'content-type': 'application/json; charset=UTF-8'},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
 
@@ -236,14 +265,15 @@ class ArchivePolicyTest(RestTest):
 
     def test_post_archive_policy_with_timespan(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition": [{
-                        "granularity": "10s",
-                        "timespan": "1 hour",
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition": [{
+                            "granularity": "10s",
+                            "timespan": "1 hour",
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -255,14 +285,15 @@ class ArchivePolicyTest(RestTest):
 
     def test_post_archive_policy_with_timespan_float_points(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition": [{
-                        "granularity": "7s",
-                        "timespan": "1 hour",
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition": [{
+                            "granularity": "7s",
+                            "timespan": "1 hour",
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -274,14 +305,15 @@ class ArchivePolicyTest(RestTest):
 
     def test_post_archive_policy_with_timespan_float_granularity(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition": [{
-                        "points": 1000,
-                        "timespan": "1 hour",
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition": [{
+                            "points": 1000,
+                            "timespan": "1 hour",
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -293,14 +325,15 @@ class ArchivePolicyTest(RestTest):
 
     def test_post_archive_policy_with_timespan_and_points(self):
         name = str(uuid.uuid4())
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": name,
-                    "definition": [{
-                        "points": 1800,
-                        "timespan": "1 hour",
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "definition": [{
+                            "points": 1800,
+                            "timespan": "1 hour",
+                        }]},
+                status=201)
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual("http://localhost/v1/archive_policy/" + name,
@@ -311,53 +344,54 @@ class ArchivePolicyTest(RestTest):
                            'timespan': '1:00:00'}], ap['definition'])
 
     def test_post_archive_policy_invalid_unit(self):
-        self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": str(uuid.uuid4()),
-                    "definition": [{
-                        "granularity": "10s",
-                        "timespan": "1 shenanigan",
-                    }]},
-            expect_errors=True,
-            status=400)
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": str(uuid.uuid4()),
+                        "definition": [{
+                            "granularity": "10s",
+                            "timespan": "1 shenanigan",
+                        }]},
+                status=400)
 
     def test_post_archive_policy_and_metric(self):
         ap = str(uuid.uuid4())
-        self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": ap,
-                    "definition": [{
-                        "granularity": "10s",
-                        "points": 20,
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": ap,
+                        "definition": [{
+                            "granularity": "10s",
+                            "points": 20,
+                        }]},
+                status=201)
         self.app.post_json(
             "/v1/metric",
             params={"archive_policy": ap},
             status=201)
 
     def test_post_archive_policy_wrong_value(self):
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": "somenewname",
-                    "definition": "foobar"},
-            expect_errors=True,
-            status=400)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": "somenewname",
+                        "definition": "foobar"},
+                status=400)
         self.assertIn(b'Invalid input: expected a list '
                       b'for dictionary value @ data['
                       + repr(u'definition').encode('ascii') + b"]",
                       result.body)
 
     def test_post_archive_already_exists(self):
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": "high",
-                    "definition": [{
-                        "granularity": "10s",
-                        "points": 20,
-                    }]},
-            expect_errors=True,
-            status=409)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": "high",
+                        "definition": [{
+                            "granularity": "10s",
+                            "points": 20,
+                        }]},
+                status=409)
         self.assertIn('Archive policy high already exists', result.text)
 
     def test_create_archive_policy_with_granularity_integer(self):
@@ -367,10 +401,11 @@ class ArchivePolicyTest(RestTest):
                       "granularity": 10,
                       "points": 20,
                   }]}
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params=params,
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params=params,
+                status=201)
         ap = json.loads(result.text)
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
@@ -383,10 +418,11 @@ class ArchivePolicyTest(RestTest):
                       "granularity": "10s",
                       "points": 20,
                   }]}
-        result = self.app.post_json(
-            "/v1/archive_policy",
-            params=params,
-            status=201)
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params=params,
+                status=201)
         ap = json.loads(result.text)
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
@@ -411,16 +447,18 @@ class ArchivePolicyTest(RestTest):
                       "granularity": "10s",
                       "points": 20,
                   }]}
-        self.app.post_json(
-            "/v1/archive_policy",
-            params=params)
-        self.app.delete("/v1/archive_policy/%s" % params['name'],
-                        status=204)
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params=params)
+            self.app.delete("/v1/archive_policy/%s" % params['name'],
+                            status=204)
 
     def test_delete_archive_policy_non_existent(self):
         ap = str(uuid.uuid4())
-        result = self.app.delete("/v1/archive_policy/%s" % ap,
-                                 status=404)
+        with self.app.use_admin_user():
+            result = self.app.delete("/v1/archive_policy/%s" % ap,
+                                     status=404)
         self.assertIn(
             b"Archive policy " + ap.encode('ascii') + b" does not exist",
             result.body)
@@ -433,20 +471,23 @@ class ArchivePolicyTest(RestTest):
                       "granularity": "10s",
                       "points": 20,
                   }]}
-        self.app.post_json(
-            "/v1/archive_policy",
-            params=params)
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params=params)
         self.app.post_json("/v1/metric",
                            params={"archive_policy": ap})
-        result = self.app.delete("/v1/archive_policy/%s" % ap,
-                                 status=400)
+        with self.app.use_admin_user():
+            result = self.app.delete("/v1/archive_policy/%s" % ap,
+                                     status=400)
         self.assertIn(
             b"Archive policy " + ap.encode('ascii') + b" is still in use",
             result.body)
 
     def test_get_archive_policy_non_existent(self):
-        self.app.get("/v1/archive_policy/" + str(uuid.uuid4()),
-                     status=404)
+        with self.app.use_admin_user():
+            self.app.get("/v1/archive_policy/" + str(uuid.uuid4()),
+                         status=404)
 
     def test_list_archive_policy(self):
         result = self.app.get("/v1/archive_policy")
@@ -658,16 +699,17 @@ class MetricTest(RestTest):
 
     def test_add_measures_back_window(self):
         ap_name = str(uuid.uuid4())
-        self.app.post_json(
-            "/v1/archive_policy",
-            params={"name": ap_name,
-                    "back_window": 2,
-                    "definition":
-                    [{
-                        "granularity": "1 minute",
-                        "points": 20,
-                    }]},
-            status=201)
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": ap_name,
+                        "back_window": 2,
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                status=201)
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy": ap_name})
         metric = json.loads(result.text)

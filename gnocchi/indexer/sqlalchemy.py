@@ -297,9 +297,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         q = session.query(Metric)
         if user_id is not None:
-            q = q.filter(user_id=user_id)
+            q = q.filter(Metric.created_by_user_id == user_id)
         if project_id is not None:
-            q = q.filter(project_id=project_id)
+            q = q.filter(Metric.created_by_project_id == project_id)
         return [self._resource_to_dict(m) for m in q.all()]
 
     def create_resource(self, resource_type, id,

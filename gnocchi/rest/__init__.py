@@ -662,6 +662,8 @@ class GenericResourceController(rest.RestController):
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
+        if not resource:
+            pecan.abort(404)
         enforce("update resource", resource)
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
@@ -690,6 +692,8 @@ class GenericResourceController(rest.RestController):
     def delete(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
+        if not resource:
+            pecan.abort(404, indexer.NoSuchResource(self.id))
         enforce("delete resource", resource)
         try:
             pecan.request.indexer.delete_resource(self.id)
@@ -762,7 +766,8 @@ class GenericResourcesController(rest.RestController):
             enforce("list resource", {
                 "resource_type": self._resource_type,
             })
-            kwargs['user_id'], kwargs['project_id'] = get_user_and_project()
+            (kwargs['created_by_user_id'],
+             kwargs['created_by_project_id']) = get_user_and_project()
 
         started_after = kwargs.pop('started_after', None)
         ended_before = kwargs.pop('ended_before', None)

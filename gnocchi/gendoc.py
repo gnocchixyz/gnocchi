@@ -129,7 +129,8 @@ def setup(app):
             else:
                 request.body = fake_file.read(clen)
         app.info("Doing request %s: %s" % (entry['name'], str(request)))
-        response = webapp.request(request)
+        with webapp.use_admin_user():
+            response = webapp.request(request)
         entry['response'] = response
         entry['doc'] = _format_request_reply(request, response)
     with open("doc/source/rest.j2", "r") as f:
