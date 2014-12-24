@@ -151,9 +151,12 @@ def Timespan(value):
     if value is None:
         raise ValueError("Invalid timespan")
     try:
-        seconds = timeparse.timeparse(six.text_type(value))
+        seconds = int(value)
     except Exception:
-        raise ValueError("Unable to parse timespan")
+        try:
+            seconds = timeparse.timeparse(six.text_type(value))
+        except Exception:
+            raise ValueError("Unable to parse timespan")
     if seconds is None:
         raise ValueError("Unable to parse timespan")
     if seconds <= 0:

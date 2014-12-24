@@ -358,6 +358,22 @@ class ArchivePolicyTest(RestTest):
             status=409)
         self.assertIn('Archive policy high already exists', result.text)
 
+    def test_create_archive_policy_with_granularity_integer(self):
+        params = {"name": str(uuid.uuid4()),
+                  "back_window": 0,
+                  "definition": [{
+                      "granularity": 10,
+                      "points": 20,
+                  }]}
+        result = self.app.post_json(
+            "/v1/archive_policy",
+            params=params,
+            status=201)
+        ap = json.loads(result.text)
+        params['definition'][0]['timespan'] = u'0:03:20'
+        params['definition'][0]['granularity'] = u'0:00:10'
+        self.assertEqual(params, ap)
+
     def test_create_archive_policy_with_back_window(self):
         params = {"name": str(uuid.uuid4()),
                   "back_window": 1,
