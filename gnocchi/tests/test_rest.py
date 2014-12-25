@@ -935,6 +935,7 @@ class ResourceTest(RestTest):
                 "server_group": "new_as_group",
             },
             resource_type='instance')),
+        # swift notifications contain UUID user_id
         ('swift_account', dict(
             attributes={
                 "started_at": "2014-01-03T02:02:02.000000",
@@ -945,6 +946,19 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02.000000",
             },
             resource_type='swift_account')),
+        # swift pollsters contain None user_id
+        ('swift_account_none_user', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02.000000",
+                "user_id": None,
+                "project_id": str(uuid.uuid4()),
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02.000000",
+            },
+            resource_type='swift_account')),
+        # TODO(dbelova): add tests with None project ID when we'll add kwapi,
+        # ipmi, hardware, etc. resources that are passed without project ID
     ]
 
     @classmethod
