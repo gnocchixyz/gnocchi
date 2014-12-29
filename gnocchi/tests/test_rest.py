@@ -621,6 +621,25 @@ class MetricTest(RestTest):
         result = self.app.get("/v1/metric")
         self.assertIn(metric['id'],
                       [r['id'] for r in json.loads(result.text)])
+        result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
+        self.assertIn(metric['id'],
+                      [r['id'] for r in json.loads(result.text)])
+
+    def test_list_metric_filter_as_admin(self):
+        result = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy": "medium"})
+        metric = json.loads(result.text)
+        with self.app.use_admin_user():
+            result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
+        self.assertIn(metric['id'],
+                      [r['id'] for r in json.loads(result.text)])
+
+    def test_list_metric_invalid_user(self):
+        result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID_2,
+                              status=403)
+        self.assertIn("Insufficient privileges to filter by user/project",
+                      result.text)
 
     def test_delete_metric(self):
         result = self.app.post_json("/v1/metric",

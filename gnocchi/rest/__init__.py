@@ -503,14 +503,21 @@ class MetricsController(rest.RestController):
                 "archive_policy": str(body['archive_policy'])}
 
     @pecan.expose('json')
-    def get_all(self):
+    def get_all(self, **kwargs):
         try:
             enforce("list all metric", {})
         except webob.exc.HTTPForbidden:
             enforce("list resource", {})
             user_id, project_id = get_user_and_project()
+            provided_user_id = kwargs.get('user_id')
+            provided_project_id = kwargs.get('project_id')
+            if ((provided_user_id and user_id != provided_user_id)
+               or (provided_project_id and project_id != provided_project_id)):
+                pecan.abort(
+                    403, "Insufficient privileges to filter by user/project")
         else:
-            user_id, project_id = None, None
+            user_id = kwargs.get('user_id')
+            project_id = kwargs.get('project_id')
         return pecan.request.indexer.list_metrics(
             user_id, project_id)
 
