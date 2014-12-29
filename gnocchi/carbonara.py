@@ -87,8 +87,9 @@ class TimeSerie(object):
 
     def to_dict(self):
         return {
-            'values': dict((six.text_type(k), float(v))
-                           for k, v
+            # NOTE(jd) Store up to the nanosecond
+            'values': dict((timestamp.value, float(v))
+                           for timestamp, v
                            in six.iteritems(self.ts[~self.ts.isnull()])),
         }
 
