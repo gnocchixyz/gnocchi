@@ -334,7 +334,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                  ex.key,
                                                  getattr(r, ex.key))
             if metrics is not None:
-                self._set_metrics_for_resource(session, id, metrics)
+                self._set_metrics_for_resource(session, id,
+                                               created_by_user_id,
+                                               created_by_project_id,
+                                               metrics)
 
         return self._resource_to_dict(r)
 
@@ -389,16 +392,21 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session.query(Metric).filter(
                         Metric.resource_id == uuid).update(
                             {"resource_id": None})
-                self._set_metrics_for_resource(session, uuid, metrics)
+                self._set_metrics_for_resource(session, uuid,
+                                               r.created_by_user_id,
+                                               r.created_by_project_id,
+                                               metrics)
 
         return self._resource_to_dict(r)
 
-    def _set_metrics_for_resource(self, session, resource_id, metrics):
+    def _set_metrics_for_resource(self, session, resource_id,
+                                  user_id, project_id, metrics):
         for name, metric_id in six.iteritems(metrics):
-            # TODO(jd) Check for permissions!
             try:
                 update = session.query(Metric).filter(
-                    Metric.id == metric_id).update(
+                    Metric.id == metric_id,
+                    Metric.created_by_user_id == user_id,
+                    Metric.created_by_project_id == project_id).update(
                         {"resource_id": resource_id, "name": name})
             except exception.DBDuplicateEntry:
                 raise indexer.NamedMetricAlreadyExists(name)
