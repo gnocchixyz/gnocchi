@@ -148,7 +148,7 @@ def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
         else:
             new_metrics[k] = str(MetricsController.create_metric(
                 created_by_user_id, created_by_project_id,
-                v['archive_policy']))
+                v['archive_policy_name']))
     return new_metrics
 
 
@@ -353,19 +353,21 @@ class MetricController(rest.RestController):
     }])
 
     def enforce_metric(self, rule):
-        metric = pecan.request.indexer.get_metric(self.metric_id)
-        if metric is None:
+        metrics = pecan.request.indexer.get_metrics((self.metric_id,))
+        if not metrics:
             pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
-        enforce(rule, metric)
+        enforce(rule, metrics[0])
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
         self.enforce_metric("get metric")
         details = get_details(kwargs)
-        metric = pecan.request.indexer.get_metric(self.metric_id,
-                                                  details=details)
-        if not metric:
+        metrics = pecan.request.indexer.get_metrics((self.metric_id,),
+                                                    details=details)
+        if not metrics:
             pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
+
+        metric = metrics[0]
 
         if details:
             metric['archive_policy'] = (
@@ -451,7 +453,7 @@ def UUID(value):
 MetricSchemaDefinition = {
     "user_id": UUID,
     "project_id": UUID,
-    voluptuous.Required('archive_policy'): six.text_type,
+    voluptuous.Required('archive_policy_name'): six.text_type,
 }
 
 
@@ -468,23 +470,23 @@ class MetricsController(rest.RestController):
 
     @staticmethod
     def create_metric(created_by_user_id, created_by_project_id,
-                      archive_policy,
+                      archive_policy_name,
                       user_id=None, project_id=None):
         enforce("create metric", {
             "created_by_user_id": created_by_user_id,
             "created_by_project_id": created_by_project_id,
             "user_id": user_id,
             "project_id": project_id,
-            "archive_policy": archive_policy,
+            "archive_policy_name": archive_policy_name,
         })
         id = uuid.uuid4()
-        policy = pecan.request.indexer.get_archive_policy(archive_policy)
+        policy = pecan.request.indexer.get_archive_policy(archive_policy_name)
         if policy is None:
-            pecan.abort(400, "Unknown archive policy %s" % archive_policy)
+            pecan.abort(400, "Unknown archive policy %s" % archive_policy_name)
         pecan.request.indexer.create_metric(
             id,
             created_by_user_id, created_by_project_id,
-            archive_policy=policy['name'])
+            archive_policy_name=policy['name'])
         pecan.request.storage.create_metric(
             str(id),
             policy['back_window'],
@@ -500,7 +502,7 @@ class MetricsController(rest.RestController):
         set_resp_location_hdr("/v1/metric/" + str(id))
         pecan.response.status = 201
         return {"id": str(id),
-                "archive_policy": str(body['archive_policy'])}
+                "archive_policy_name": str(body['archive_policy_name'])}
 
     @pecan.expose('json')
     def get_all(self, **kwargs):

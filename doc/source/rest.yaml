@@ -53,7 +53,7 @@
     Content-Type: application/json
 
     {
-      "archive_policy": "low"
+      "archive_policy_name": "low"
     }
 
 - name: get-metric
@@ -180,7 +180,7 @@
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm",
-      "metrics": {"cpu.util": {"archive_policy": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
+      "metrics": {"cpu.util": {"archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
     }
 
 - name: get-resource-named-metrics-measures
@@ -191,4 +191,4 @@
     POST /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric HTTP/1.1
     Content-Type: application/json
 
-    {"memory": {"archive_policy": "low"}}
+    {"memory": {"archive_policy_name": "low"}}
