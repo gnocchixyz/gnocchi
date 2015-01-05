@@ -322,6 +322,18 @@ class AggregatedMetricController(rest.RestController):
             pecan.abort(400, 'Invalid aggregation value %s, must be one of %s'
                         % (aggregation, str(storage.AGGREGATION_TYPES)))
 
+        # Check RBAC policy
+        metrics = pecan.request.indexer.get_metrics(self.metric_ids)
+        missing_metric_ids = (set(m['id'] for m in metrics)
+                              - set(self.metric_ids))
+        if missing_metric_ids:
+            # Return the first missing one in the error
+            pecan.abort(404, storage.MetricDoesNotExist(
+                missing_metric_ids[0]))
+
+        for metric in metrics:
+            enforce("get metric", metric)
+
         try:
             measures = pecan.request.storage.get_cross_metric_measures(
                 self.metric_ids, start, stop, aggregation)
