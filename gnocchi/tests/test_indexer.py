@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
+# Author: Julien Danjou <julien@danjou.info>
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -98,7 +98,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "type": "generic",
                           "metrics": {}},
                          rc)
-        rg = self.index.get_resource('generic', r1)
+        rg = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['metrics'], rg['metrics'])
 
@@ -149,7 +149,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "flavor_id": 1,
                           "metrics": {}},
                          rc)
-        rg = self.index.get_resource('generic', r1)
+        rg = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(str(rc['id']), rg['id'])
         self.assertEqual(rc['metrics'], rg['metrics'])
 
@@ -188,16 +188,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "type": "generic",
                           "metrics": {}}, rc)
-        r = self.index.get_resource('generic', r1)
-        self.assertEqual({"id": str(r1),
-                          "created_by_user_id": six.text_type(user),
-                          "created_by_project_id": six.text_type(project),
-                          "user_id": None,
-                          "project_id": None,
-                          "started_at": ts,
-                          "ended_at": None,
-                          "type": "generic",
-                          "metrics": {}}, r)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
+        self.assertEqual(rc, r)
 
     def test_create_resource_with_metrics(self):
         r1 = uuid.uuid4()
@@ -223,7 +215,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "type": "generic",
                           "metrics": {'foo': str(e1), 'bar': str(e2)}}, rc)
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -253,7 +245,7 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             r1,
             ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -268,7 +260,7 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             r1,
             ended_at=None)
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -293,7 +285,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.create_metric(e2, user, project,
                                  archive_policy_name="low")
         rc = self.index.update_resource('generic', r1, metrics={'bar': e2})
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(rc, r)
 
     def test_update_resource_metrics_append(self):
@@ -310,7 +302,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                    metrics={'foo': e1})
         rc = self.index.update_resource('generic', r1, metrics={'bar': e2},
                                         append_metrics=True)
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(rc, r)
         self.assertIn('foo', rc['metrics'])
         self.assertIn('bar', rc['metrics'])
@@ -332,7 +324,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           self.index.update_resource,
                           'generic', r1, metrics={'foo': e2},
                           append_metrics=True)
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(str(e1), r['metrics']['foo'])
 
     def test_update_resource_attribute(self):
@@ -345,8 +337,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                         host="foo",
                                         display_name="lol")
         rc = self.index.update_resource('instance', r1, host="bar")
-        r = self.index.get_resource('instance', r1)
-        rc['host'] = "bar"
+        r = self.index.get_resource('instance', r1, with_metrics=True)
         self.assertEqual(rc, r)
 
     def test_update_resource_unknown_attribute(self):
@@ -402,7 +393,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.create_resource('generic', r1, user, project,
                                    metrics={'foo': e1, 'bar': e2})
         self.index.delete_metric(e1)
-        r = self.index.get_resource('generic', r1)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
         del r['started_at']
         self.assertEqual({"id": str(r1),
@@ -422,7 +413,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                              image_ref="foo",
                                              host="dwq",
                                              display_name="foobar")
-        got = self.index.get_resource('instance', r1)
+        got = self.index.get_resource('instance', r1, with_metrics=True)
         self.assertEqual(created, got)
         self.index.delete_resource(r1)
         got = self.index.get_resource('instance', r1)

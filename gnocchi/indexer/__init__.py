@@ -152,7 +152,13 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def get_resource(resource_type, uuid):
+    def get_resource(resource_type, uuid, with_metrics=False):
+        """Get a resource from the indexer.
+
+        :param resource_type: The type of the resource to look for.
+        :param uuid: The UUID of the resource.
+        :param with_metrics: Whether to include metrics information.
+        """
         raise exceptions.NotImplementedError
 
     @staticmethod
