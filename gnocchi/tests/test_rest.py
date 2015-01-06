@@ -27,6 +27,7 @@ from six.moves.urllib import parse as urllib_parse
 import testscenarios
 import webtest
 
+from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
@@ -435,7 +436,8 @@ class ArchivePolicyTest(RestTest):
             {"name": "medium",
              "back_window": 0,
              "definition": [
-                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 archive_policy.ArchivePolicyItem(
+                     **d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
              ]},
             ap)
@@ -497,7 +499,8 @@ class ArchivePolicyTest(RestTest):
                 {"name": name,
                  "back_window": 0,
                  "definition": [
-                     rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                     archive_policy.ArchivePolicyItem(
+                         **d).to_human_readable_dict()
                      for d in definition
                  ]}, aps)
 
@@ -545,7 +548,8 @@ class MetricTest(RestTest):
             {"name": "medium",
              "back_window": 0,
              "definition": [
-                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 archive_policy.ArchivePolicyItem(
+                     **d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
              ]},
             metric['archive_policy'])
@@ -566,7 +570,8 @@ class MetricTest(RestTest):
             {"name": "medium",
              "back_window": 0,
              "definition": [
-                 rest.ArchivePolicyItem(**d).to_human_readable_dict()
+                 archive_policy.ArchivePolicyItem(
+                     **d).to_human_readable_dict()
                  for d in self.archive_policies['medium']
              ]},
             metric['archive_policy'])
