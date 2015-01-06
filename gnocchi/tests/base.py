@@ -30,6 +30,7 @@ import testscenarios
 from testtools import testcase
 from tooz import coordination
 
+from gnocchi import archive_policy
 from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi import storage
@@ -212,8 +213,8 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
                             definition=definition)['definition']
                 except indexer.ArchivePolicyAlreadyExists:
                     self.archive_policies[
-                        name] = self.index.get_archive_policy(
-                        name)['definition']
+                        name] = archive_policy.ArchivePolicy.from_dict(
+                            self.index.get_archive_policy(name))
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',

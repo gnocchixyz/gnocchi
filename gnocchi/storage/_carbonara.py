@@ -61,7 +61,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _create_metric_container(metric):
         pass
 
-    def create_metric(self, metric, back_window, archive_policy):
+    def create_metric(self, metric, archive_policy):
         self._create_metric_container(metric)
         for aggregation in self.aggregation_types:
             # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
@@ -70,9 +70,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # TODO(jd) We should not use Pandas here
             # – abstraction layer violation!
             archive = carbonara.TimeSerieArchive.from_definitions(
-                [(pandas.tseries.offsets.Second(v['granularity']), v['points'])
-                 for v in archive_policy],
-                back_window=back_window,
+                [(pandas.tseries.offsets.Second(v.granularity), v.points)
+                 for v in archive_policy.definition],
+                back_window=archive_policy.back_window,
                 aggregation_method=aggregation)
             self._store_metric_measures(metric, aggregation,
                                         archive.serialize())

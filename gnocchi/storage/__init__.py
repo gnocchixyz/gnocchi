@@ -106,11 +106,10 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_metric(metric, back_window, archive_policy):
+    def create_metric(metric, archive_policy):
         """Create an metric.
 
         :param metric: The metric key.
-        :param back_window: Number of blocks to allow as back window.
         :param archive_policy: The archive policy to use.
         """
         raise exceptions.NotImplementedError

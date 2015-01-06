@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -23,7 +23,7 @@ class NullStorage(storage.StorageDriver):
     def __init__(self, conf):
         self.metrics = {}
 
-    def create_metric(self, metric, back_window, archive_policy):
+    def create_metric(self, metric, archive_policy):
         if metric in self.metrics:
             raise storage.MetricAlreadyExists(metric)
         self.metrics[metric] = True

@@ -27,7 +27,6 @@ from six.moves.urllib import parse as urllib_parse
 import testscenarios
 import webtest
 
-from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
@@ -433,13 +432,7 @@ class ArchivePolicyTest(RestTest):
         result = self.app.get("/v1/archive_policy/medium")
         ap = json.loads(result.text)
         self.assertEqual(
-            {"name": "medium",
-             "back_window": 0,
-             "definition": [
-                 archive_policy.ArchivePolicyItem(
-                     **d).to_human_readable_dict()
-                 for d in self.archive_policies['medium']
-             ]},
+            self.archive_policies['medium'].to_human_readable_dict(),
             ap)
 
     def test_delete_archive_policy(self):
@@ -494,15 +487,8 @@ class ArchivePolicyTest(RestTest):
     def test_list_archive_policy(self):
         result = self.app.get("/v1/archive_policy")
         aps = json.loads(result.text)
-        for name, definition in six.iteritems(self.archive_policies):
-            self.assertIn(
-                {"name": name,
-                 "back_window": 0,
-                 "definition": [
-                     archive_policy.ArchivePolicyItem(
-                         **d).to_human_readable_dict()
-                     for d in definition
-                 ]}, aps)
+        for name, ap in six.iteritems(self.archive_policies):
+            self.assertIn(ap.to_human_readable_dict(), aps)
 
 
 class MetricTest(RestTest):
@@ -545,13 +531,7 @@ class MetricTest(RestTest):
                               status=200)
         metric = json.loads(result.text)
         self.assertEqual(
-            {"name": "medium",
-             "back_window": 0,
-             "definition": [
-                 archive_policy.ArchivePolicyItem(
-                     **d).to_human_readable_dict()
-                 for d in self.archive_policies['medium']
-             ]},
+            self.archive_policies['medium'].to_human_readable_dict(),
             metric['archive_policy'])
 
     def test_get_metric_with_detail_in_accept(self):
@@ -567,13 +547,7 @@ class MetricTest(RestTest):
 
         metric = json.loads(result.text)
         self.assertEqual(
-            {"name": "medium",
-             "back_window": 0,
-             "definition": [
-                 archive_policy.ArchivePolicyItem(
-                     **d).to_human_readable_dict()
-                 for d in self.archive_policies['medium']
-             ]},
+            self.archive_policies['medium'].to_human_readable_dict(),
             metric['archive_policy'])
 
     def test_get_detailed_metric_with_bad_details(self):
