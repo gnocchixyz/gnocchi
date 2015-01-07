@@ -175,12 +175,17 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def get_metric(uuid, details=False):
+    def get_metrics(uuids, details=False):
+        """Get metrics informations from the indexer.
+
+        :param uuids: A list of metric UUID.
+        :param details: Whether to return metrics details.
+        """
         raise exceptions.NotImplementedError
 
     @staticmethod
     def create_metric(id, created_by_user_id, created_by_project_id,
-                      archive_policy, name=None, resource_id=None):
+                      archive_policy_name, name=None, resource_id=None):
         raise exceptions.NotImplementedError
 
     @staticmethod

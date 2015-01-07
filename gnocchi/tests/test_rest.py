@@ -367,7 +367,7 @@ class ArchivePolicyTest(RestTest):
                 status=201)
         self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": ap},
+            params={"archive_policy_name": ap},
             status=201)
 
     def test_post_archive_policy_wrong_value(self):
@@ -476,7 +476,7 @@ class ArchivePolicyTest(RestTest):
                 "/v1/archive_policy",
                 params=params)
         self.app.post_json("/v1/metric",
-                           params={"archive_policy": ap})
+                           params={"archive_policy_name": ap})
         with self.app.use_admin_user():
             result = self.app.delete("/v1/archive_policy/%s" % ap,
                                      status=400)
@@ -505,27 +505,27 @@ class ArchivePolicyTest(RestTest):
 class MetricTest(RestTest):
     def test_post_metric(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"},
+                                    params={"archive_policy_name": "medium"},
                                     status=201)
         self.assertEqual("application/json", result.content_type)
         metric = json.loads(result.text)
         self.assertEqual("http://localhost/v1/metric/" + metric['id'],
                          result.headers['Location'])
-        self.assertEqual(metric['archive_policy'], "medium")
+        self.assertEqual(metric['archive_policy_name'], "medium")
 
     def test_get_metric(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"},
+                                    params={"archive_policy_name": "medium"},
                                     status=201)
         self.assertEqual("application/json", result.content_type)
 
         result = self.app.get(result.headers['Location'], status=200)
         metric = json.loads(result.text)
-        self.assertEqual(metric['archive_policy'], "medium")
+        self.assertEqual(metric['archive_policy_name'], "medium")
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"},
+                                    params={"archive_policy_name": "medium"},
                                     status=201)
         self.assertEqual("application/json", result.content_type)
 
@@ -535,7 +535,7 @@ class MetricTest(RestTest):
     def test_get_detailed_metric(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"},
+            params={"archive_policy_name": "medium"},
             status=201)
 
         result = self.app.get(result.headers['Location'] + '?details=true',
@@ -553,7 +553,7 @@ class MetricTest(RestTest):
     def test_get_metric_with_detail_in_accept(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"},
+            params={"archive_policy_name": "medium"},
             status=201)
 
         result = self.app.get(
@@ -574,7 +574,7 @@ class MetricTest(RestTest):
     def test_get_detailed_metric_with_bad_details(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"},
+            params={"archive_policy_name": "medium"},
             status=201)
 
         result = self.app.get(result.headers['Location'] + '?details=awesome',
@@ -587,7 +587,7 @@ class MetricTest(RestTest):
     def test_get_metric_with_bad_detail_in_accept(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"},
+            params={"archive_policy_name": "medium"},
             status=201)
 
         result = self.app.get(
@@ -607,7 +607,7 @@ class MetricTest(RestTest):
     def test_post_metric_wrong_archive_policy(self):
         policy = str(uuid.uuid4())
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": policy},
+                                    params={"archive_policy_name": policy},
                                     expect_errors=True,
                                     status=400)
         self.assertIn('Unknown archive policy %s' % policy, result.text)
@@ -615,7 +615,7 @@ class MetricTest(RestTest):
     def test_list_metric(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"},
+            params={"archive_policy_name": "medium"},
             status=201)
         metric = json.loads(result.text)
         result = self.app.get("/v1/metric")
@@ -628,7 +628,7 @@ class MetricTest(RestTest):
     def test_list_metric_filter_as_admin(self):
         result = self.app.post_json(
             "/v1/metric",
-            params={"archive_policy": "medium"})
+            params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         with self.app.use_admin_user():
             result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
@@ -643,13 +643,13 @@ class MetricTest(RestTest):
 
     def test_delete_metric(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         result = self.app.delete("/v1/metric/" + metric['id'], status=204)
 
     def test_delete_metric_another_user(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         with self.app.use_another_user():
             self.app.delete("/v1/metric/" + metric['id'], status=403)
@@ -664,16 +664,17 @@ class MetricTest(RestTest):
             result.body)
 
     def test_post_metric_bad_archives(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": 'foobar123'},
-                                    expect_errors=True,
-                                    status=400)
+        result = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy_name": 'foobar123'},
+            expect_errors=True,
+            status=400)
         self.assertEqual("text/plain", result.content_type)
         self.assertIn(b"Unknown archive policy foobar123", result.body)
 
     def test_add_measure(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "high"})
+                                    params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
         result = self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
@@ -683,7 +684,7 @@ class MetricTest(RestTest):
 
     def test_add_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "high"})
+                                    params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
         with self.app.use_another_user():
             self.app.post_json(
@@ -694,7 +695,7 @@ class MetricTest(RestTest):
 
     def test_add_multiple_measures_per_metric(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "high"},
+                                    params={"archive_policy_name": "high"},
                                     status=201)
         metric = json.loads(result.text)
         for x in range(5):
@@ -730,7 +731,7 @@ class MetricTest(RestTest):
                         }]},
                 status=201)
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": ap_name})
+                                    params={"archive_policy_name": ap_name})
         metric = json.loads(result.text)
         self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
@@ -768,7 +769,7 @@ class MetricTest(RestTest):
 
     def test_add_measures_too_old(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "low"})
+                                    params={"archive_policy_name": "low"})
         metric = json.loads(result.text)
         result = self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
@@ -790,7 +791,7 @@ class MetricTest(RestTest):
 
     def test_get_measure(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "low"})
+                                    params={"archive_policy_name": "low"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
@@ -805,7 +806,7 @@ class MetricTest(RestTest):
 
     def test_get_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "low"})
+                                    params={"archive_policy_name": "low"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
@@ -816,7 +817,7 @@ class MetricTest(RestTest):
 
     def test_get_measure_start(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "high"})
+                                    params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 23:23:23',
@@ -831,7 +832,7 @@ class MetricTest(RestTest):
 
     def test_get_measure_stop(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "high"})
+                                    params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
@@ -850,7 +851,7 @@ class MetricTest(RestTest):
 
     def test_get_measure_aggregation(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
@@ -870,7 +871,7 @@ class MetricTest(RestTest):
 
     def test_get_moving_average(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
@@ -902,7 +903,7 @@ class MetricTest(RestTest):
 
     def test_get_moving_average_invalid_window(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
                            params=[{"timestamp": '2013-01-01 12:00:00',
@@ -1015,7 +1016,7 @@ class ResourceTest(RestTest):
         with self.app.use_another_user():
             metric = self.app.post_json(
                 "/v1/metric",
-                params={'archive_policy': "high"})
+                params={'archive_policy_name': "high"})
         metric_id = json.loads(metric.text)['id']
         self.attributes['metrics'] = {"foo": metric_id}
         result = self.app.post_json(
@@ -1091,7 +1092,7 @@ class ResourceTest(RestTest):
                          status=403)
 
     def test_get_resource_named_metric(self):
-        self.attributes['metrics'] = {'foo': {'archive_policy': "high"}}
+        self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         self.app.get("/v1/resource/"
@@ -1102,7 +1103,7 @@ class ResourceTest(RestTest):
                      status=200)
 
     def test_delete_resource_named_metric(self):
-        self.attributes['metrics'] = {'foo': {'archive_policy': "high"}}
+        self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         self.app.delete("/v1/resource/"
@@ -1134,11 +1135,11 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
 
-        metrics = {'foo': {'archive_policy': "high"}}
+        metrics = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id'] + "/metric",
                            params=metrics, status=204)
-        metrics = {'foo': {'archive_policy': "low"}}
+        metrics = {'foo': {'archive_policy_name': "low"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id']
                            + "/metric",
@@ -1156,7 +1157,7 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
 
-        metrics = {'foo': {'archive_policy': "high"}}
+        metrics = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id'] + "/metric",
                            params=metrics, status=204)
@@ -1172,7 +1173,7 @@ class ResourceTest(RestTest):
         with self.app.use_another_user():
             metric = self.app.post_json(
                 "/v1/metric",
-                params={'archive_policy': "high"})
+                params={'archive_policy_name': "high"})
         metric_id = json.loads(metric.text)['id']
         result = self.app.post_json("/v1/resource/" + self.resource_type
                                     + "/" + self.attributes['id'] + "/metric",
@@ -1185,7 +1186,7 @@ class ResourceTest(RestTest):
                                     params=self.attributes,
                                     status=201)
         r = json.loads(result.text)
-        new_metrics = {'foo': {'archive_policy': "medium"}}
+        new_metrics = {'foo': {'archive_policy_name': "medium"}}
         self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
@@ -1204,8 +1205,9 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         with self.app.use_another_user():
-            result = self.app.post_json("/v1/metric",
-                                        params={'archive_policy': "medium"})
+            result = self.app.post_json(
+                "/v1/metric",
+                params={'archive_policy_name': "medium"})
         metric_id = json.loads(result.text)['id']
         result = self.app.patch_json(
             "/v1/resource/"
@@ -1366,7 +1368,7 @@ class ResourceTest(RestTest):
 
     def test_post_resource_with_metrics(self):
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         self.attributes['metrics'] = {"foo": metric['id']}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1381,7 +1383,7 @@ class ResourceTest(RestTest):
         self.assertEqual(resource, self.resource)
 
     def test_post_resource_with_null_metrics(self):
-        self.attributes['metrics'] = {"foo": {"archive_policy": "low"}}
+        self.attributes['metrics'] = {"foo": {"archive_policy_name": "low"}}
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
@@ -1634,14 +1636,14 @@ class ResourceTest(RestTest):
             binary_kwargs['encoding'] = 'utf-8'
 
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "low"})
+                                    params={"archive_policy_name": "low"})
         metric1 = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric1['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
                                     "value": 16}])
 
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy":
+                                    params={"archive_policy_name":
                                             "no_granularity_match"})
         metric2 = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric2['id'],
@@ -1709,7 +1711,7 @@ class ResourceTest(RestTest):
             rest.LOGICAL_AND = '+'
 
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric1 = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric1['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',
@@ -1718,7 +1720,7 @@ class ResourceTest(RestTest):
                                     "value": 16}])
 
         result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy": "medium"})
+                                    params={"archive_policy_name": "medium"})
         metric2 = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric2['id'],
                            params=[{"timestamp": '2013-01-01 12:00:01',

@@ -123,11 +123,12 @@ class Metric(Base, GnocchiBase):
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
-    archive_policy = sqlalchemy.Column(
+    archive_policy_name = sqlalchemy.Column(
         sqlalchemy.String(255),
         sqlalchemy.ForeignKey('archive_policy.name',
                               ondelete="RESTRICT"),
         nullable=False)
+    archive_policy = sqlalchemy.orm.relationship(ArchivePolicy)
     created_by_user_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False),
         nullable=False)
@@ -254,19 +255,22 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
                 raise indexer.ArchivePolicyInUse(name)
 
-    def get_metric(self, uuid, details=False):
+    def get_metrics(self, uuids, details=False):
         session = self.engine_facade.get_session()
+        query = session.query(Metric).filter(Metric.id.in_(uuids))
         if details:
-            metric, archive_policy = session.query(
-                Metric, ArchivePolicy).filter(
-                    Metric.id == uuid).filter(
-                        ArchivePolicy.name == Metric.archive_policy).first()
-            metric['archive_policy'] = self._resource_to_dict(archive_policy)
-        else:
-            metric = session.query(Metric).get(uuid)
+            query = query.options(sqlalchemy.orm.joinedload(
+                Metric.archive_policy))
+            metrics = []
+            for m in query:
+                metric = self._resource_to_dict(m)
+                metric['archive_policy'] = self._resource_to_dict(
+                    m.archive_policy)
+                del metric['archive_policy_name']
+                metrics.append(metric)
+            return metrics
 
-        if metric:
-            return self._resource_to_dict(metric)
+        return list(map(self._resource_to_dict, query.all()))
 
     def create_archive_policy(self, name, back_window, definition):
         ap = ArchivePolicy(name=name, back_window=back_window,
@@ -280,12 +284,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return dict(ap)
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
-                      archive_policy,
+                      archive_policy_name,
                       name=None, resource_id=None):
         m = Metric(id=id,
                    created_by_user_id=created_by_user_id,
                    created_by_project_id=created_by_project_id,
-                   archive_policy=archive_policy,
+                   archive_policy_name=archive_policy_name,
                    name=name,
                    resource_id=resource_id)
         session = self.engine_facade.get_session()
