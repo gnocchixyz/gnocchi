@@ -343,17 +343,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                created_by_project_id,
                                                metrics)
 
-        return self._resource_to_dict(r)
+        return self._resource_to_dict(r, with_metrics=True)
 
     @staticmethod
-    def _resource_to_dict(resource):
+    def _resource_to_dict(resource, with_metrics=False):
         r = dict(resource)
         # FIXME(jd) Convert UUID to string; would be better if Pecan JSON
         # serializer could be patched to handle that.
         for k, v in six.iteritems(r):
             if isinstance(v, uuid.UUID):
                 r[k] = six.text_type(v)
-        if isinstance(resource, Resource):
+        if with_metrics and isinstance(resource, Resource):
             r['metrics'] = dict((m['name'], six.text_type(m['id']))
                                 for m in resource.metrics)
         return r
@@ -401,7 +401,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                r.created_by_project_id,
                                                metrics)
 
-        return self._resource_to_dict(r)
+        return self._resource_to_dict(r, with_metrics=True)
 
     def _set_metrics_for_resource(self, session, resource_id,
                                   user_id, project_id, metrics):
@@ -422,15 +422,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if session.query(Resource).filter(Resource.id == id).delete() == 0:
             raise indexer.NoSuchResource(id)
 
-    def get_resource(self, resource_type, uuid):
+    def get_resource(self, resource_type, uuid, with_metrics=False):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
             resource_cls).filter(
                 resource_cls.id == uuid)
+        if with_metrics:
+            q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
         r = q.first()
         if r:
-            return self._resource_to_dict(r)
+            return self._resource_to_dict(r, with_metrics)
 
     def list_resources(self, resource_type='generic',
                        started_after=None,
@@ -441,6 +443,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         q = session.query(
             resource_cls)
+        # Always include metrics
+        q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
         if started_after is not None:
             q = q.filter(resource_cls.started_at >= started_after)
         if ended_before is not None:
@@ -470,7 +474,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         else:
             all_resources = q.all()
 
-        return [self._resource_to_dict(r) for r in all_resources]
+        return [self._resource_to_dict(r, with_metrics=True)
+                for r in all_resources]
 
     def delete_metric(self, id):
         session = self.engine_facade.get_session()
