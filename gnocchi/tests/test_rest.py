@@ -1011,6 +1011,20 @@ class ResourceTest(RestTest):
         self.assertIn("Metric %s does not exist" % metric_id,
                       result.text)
 
+    def test_post_resource_with_metric_from_other_user(self):
+        with self.app.use_another_user():
+            metric = self.app.post_json(
+                "/v1/metric",
+                params={'archive_policy': "high"})
+        metric_id = json.loads(metric.text)['id']
+        self.attributes['metrics'] = {"foo": metric_id}
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes,
+            status=400)
+        self.assertIn("Metric %s does not exist" % metric_id,
+                      result.text)
+
     def test_post_resource_already_exist(self):
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
@@ -1152,6 +1166,20 @@ class ResourceTest(RestTest):
         result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
 
+    def test_post_append_metrics_created_by_different_user(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        with self.app.use_another_user():
+            metric = self.app.post_json(
+                "/v1/metric",
+                params={'archive_policy': "high"})
+        metric_id = json.loads(metric.text)['id']
+        result = self.app.post_json("/v1/resource/" + self.resource_type
+                                    + "/" + self.attributes['id'] + "/metric",
+                                    params={str(uuid.uuid4()): metric_id},
+                                    status=400)
+        self.assertIn("Metric %s does not exist" % metric_id, result.text)
+
     def test_patch_resource_metrics(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
@@ -1171,6 +1199,28 @@ class ResourceTest(RestTest):
         del result['metrics']
         del r['metrics']
         self.assertEqual(r, result)
+
+    def test_patch_resource_existent_metrics_from_another_user(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        with self.app.use_another_user():
+            result = self.app.post_json("/v1/metric",
+                                        params={'archive_policy': "medium"})
+        metric_id = json.loads(result.text)['id']
+        result = self.app.patch_json(
+            "/v1/resource/"
+            + self.resource_type
+            + "/"
+            + self.attributes['id'],
+            params={'metrics': {'foo': metric_id}},
+            status=400)
+        self.assertIn("Metric %s does not exist" % metric_id, result.text)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "/"
+                              + self.attributes['id'])
+        result = json.loads(result.text)
+        self.assertEqual(result['metrics'], {})
 
     def test_patch_resource_non_existent_metrics(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
