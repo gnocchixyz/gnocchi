@@ -507,7 +507,7 @@ class MetricsController(rest.RestController):
         try:
             enforce("list all metric", {})
         except webob.exc.HTTPForbidden:
-            enforce("list resource", {})
+            enforce("list metric", {})
             user_id, project_id = get_user_and_project()
             provided_user_id = kwargs.get('user_id')
             provided_project_id = kwargs.get('project_id')
