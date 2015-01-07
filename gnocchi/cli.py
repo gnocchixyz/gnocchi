@@ -30,3 +30,7 @@ def storage_dbsync():
 def api():
     service.prepare_service()
     app.build_server()
+
+
+def statsd():
+    statsd.start()
