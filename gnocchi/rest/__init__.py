@@ -360,7 +360,6 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
-        self.enforce_metric("get metric")
         details = get_details(kwargs)
         metrics = pecan.request.indexer.get_metrics((self.metric_id,),
                                                     details=details)
@@ -368,6 +367,7 @@ class MetricController(rest.RestController):
             pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
 
         metric = metrics[0]
+        enforce("get metric", metric)
 
         if details:
             metric['archive_policy'] = (
