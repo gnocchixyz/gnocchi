@@ -34,6 +34,7 @@ import webob.exc
 import werkzeug.http
 
 from gnocchi import aggregates
+from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.openstack.common import policy
 from gnocchi import storage
@@ -198,60 +199,6 @@ def get_details(params):
     return details
 
 
-class ArchivePolicyItem(object):
-    def __init__(self, granularity=None, points=None, timespan=None):
-        if (granularity is not None
-           and points is not None
-           and timespan is not None):
-            if timespan != granularity * points:
-                raise ValueError(
-                    u"timespan ≠ granularity × points")
-
-        if granularity is None:
-            if points is None or timespan is None:
-                raise ValueError(
-                    "At least two of granularity/points/timespan "
-                    "must be provided")
-            granularity = round(timespan / float(points))
-
-        if points is None:
-            if timespan is None:
-                self.timespan = None
-            else:
-                points = int(timespan / granularity)
-                self.timespan = granularity * points
-        else:
-            self.timespan = granularity * points
-
-        self.points = points
-        self.granularity = granularity
-
-    def to_dict(self):
-        return {
-            'timespan': self.timespan,
-            'granularity': self.granularity,
-            'points': self.points
-        }
-
-    def to_human_readable_dict(self):
-        """Return a dict representation with human readable values."""
-        return {
-            'timespan': six.text_type(
-                datetime.timedelta(seconds=self.timespan))
-            if self.timespan is not None
-            else None,
-            'granularity': six.text_type(
-                datetime.timedelta(seconds=self.granularity)),
-            'points': self.points,
-        }
-
-    @classmethod
-    def archive_policy_to_human_readable(cls, archive_policy):
-        archive_policy['definition'] = [cls(**d).to_human_readable_dict()
-                                        for d in archive_policy['definition']]
-        return archive_policy
-
-
 class ArchivePoliciesController(rest.RestController):
     ArchivePolicy = voluptuous.Schema({
         voluptuous.Required("name"): six.text_type,
@@ -268,11 +215,10 @@ class ArchivePoliciesController(rest.RestController):
     @vexpose(ArchivePolicy, 'json')
     def post(body):
         # Validate the data
-        for ap_def in body['definition']:
-            try:
-                ArchivePolicyItem(**ap_def)
-            except ValueError as e:
-                pecan.abort(400, e)
+        try:
+            archive_policy.ArchivePolicy.from_dict(body)
+        except ValueError as e:
+            pecan.abort(400, e)
         enforce("create archive policy", body)
         try:
             ap = pecan.request.indexer.create_archive_policy(**body)
@@ -282,21 +228,26 @@ class ArchivePoliciesController(rest.RestController):
         location = "/v1/archive_policy/" + ap['name']
         set_resp_location_hdr(location)
         pecan.response.status = 201
-        return ArchivePolicyItem.archive_policy_to_human_readable(ap)
+        return archive_policy.ArchivePolicy.from_dict(
+            ap).to_human_readable_dict()
 
     @pecan.expose('json')
     def get_one(self, id):
         ap = pecan.request.indexer.get_archive_policy(id)
         if ap:
             enforce("get archive policy", ap)
-            return ArchivePolicyItem.archive_policy_to_human_readable(ap)
+            return archive_policy.ArchivePolicy.from_dict(
+                ap).to_human_readable_dict()
         pecan.abort(404)
 
     @pecan.expose('json')
     def get_all(self):
         enforce("list archive policy", {})
-        return list(map(ArchivePolicyItem.archive_policy_to_human_readable,
-                        pecan.request.indexer.list_archive_policies()))
+        return [
+            archive_policy.ArchivePolicy.from_dict(
+                ap).to_human_readable_dict()
+            for ap in pecan.request.indexer.list_archive_policies()
+        ]
 
     @pecan.expose()
     def delete(self, name):
@@ -383,8 +334,9 @@ class MetricController(rest.RestController):
 
         if details:
             metric['archive_policy'] = (
-                ArchivePolicyItem.archive_policy_to_human_readable(
-                    metric['archive_policy']))
+                archive_policy.ArchivePolicy.from_dict(
+                    metric['archive_policy']
+                ).to_human_readable_dict())
         return metric
 
     @vexpose(Measures)
@@ -495,15 +447,15 @@ class MetricsController(rest.RestController):
         policy = pecan.request.indexer.get_archive_policy(archive_policy_name)
         if policy is None:
             pecan.abort(400, "Unknown archive policy %s" % archive_policy_name)
+        ap = archive_policy.ArchivePolicy.from_dict(policy)
         pecan.request.indexer.create_metric(
             id,
             created_by_user_id, created_by_project_id,
             archive_policy_name=policy['name'])
         pecan.request.storage.create_metric(
             str(id),
-            policy['back_window'],
-            [ArchivePolicyItem(**d).to_dict()
-             for d in policy['definition']],
+            ap.back_window,
+            [d.to_dict() for d in ap.definition],
         )
         return id
 
