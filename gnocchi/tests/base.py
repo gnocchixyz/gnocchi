@@ -206,15 +206,15 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             for name, definition in six.iteritems(self.ARCHIVE_POLICIES):
                 # Create basic archive policies
                 try:
-                    self.archive_policies[
+                    ap = self.archive_policies[
                         name] = self.index.create_archive_policy(
                             name=name,
                             back_window=0,
-                            definition=definition)['definition']
+                            definition=definition)
                 except indexer.ArchivePolicyAlreadyExists:
-                    self.archive_policies[
-                        name] = archive_policy.ArchivePolicy.from_dict(
-                            self.index.get_archive_policy(name))
+                    ap = self.index.get_archive_policy(name)
+                self.archive_policies[
+                    name] = archive_policy.ArchivePolicy.from_dict(ap)
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',
