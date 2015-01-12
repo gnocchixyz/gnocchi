@@ -109,7 +109,7 @@ class GnocchiDispatcher(dispatcher.Base):
 
         self.gnocchi_url = conf.dispatcher_gnocchi.url
         self.gnocchi_archive_policy = {
-            'archive_policy':
+            'archive_policy_name':
             cfg.CONF.dispatcher_gnocchi.archive_policy
         }
         self.mgmr = stevedore.dispatch.DispatchExtensionManager(
