@@ -216,12 +216,12 @@ class ArchivePoliciesController(rest.RestController):
     def post(body):
         # Validate the data
         try:
-            archive_policy.ArchivePolicy.from_dict(body)
+            ap = archive_policy.ArchivePolicy.from_dict(body)
         except ValueError as e:
             pecan.abort(400, e)
-        enforce("create archive policy", body)
+        enforce("create archive policy", ap.to_dict())
         try:
-            ap = pecan.request.indexer.create_archive_policy(**body)
+            ap = pecan.request.indexer.create_archive_policy(ap)
         except indexer.ArchivePolicyAlreadyExists as e:
             pecan.abort(409, e)
 

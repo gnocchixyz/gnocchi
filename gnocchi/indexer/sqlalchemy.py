@@ -272,15 +272,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         return list(map(self._resource_to_dict, query.all()))
 
-    def create_archive_policy(self, name, back_window, definition):
-        ap = ArchivePolicy(name=name, back_window=back_window,
-                           definition=definition)
+    def create_archive_policy(self, archive_policy):
+        ap = ArchivePolicy(name=archive_policy.name,
+                           back_window=archive_policy.back_window,
+                           definition=[d.to_dict()
+                                       for d in archive_policy.definition])
         session = self.engine_facade.get_session()
         session.add(ap)
         try:
             session.flush()
         except exception.DBDuplicateEntry:
-            raise indexer.ArchivePolicyAlreadyExists(name)
+            raise indexer.ArchivePolicyAlreadyExists(archive_policy.name)
         return dict(ap)
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,

@@ -105,34 +105,60 @@ class FakeSwiftClient(object):
 class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
 
     ARCHIVE_POLICIES = {
-        'low': [
-            # 5 minutes resolution for an hour
-            {"granularity": 300, "points": 12},
-            # 1 hour resolution for a day
-            {"granularity": 3600, "points": 24},
-            # 1 day resolution for a month
-            {"granularity": 3600 * 24, "points": 30},
-        ],
-        'medium': [
-            # 1 minute resolution for an hour
-            {"granularity": 60, "points": 60},
-            # 1 hour resolution for a week
-            {"granularity": 3600, "points": 7 * 24},
-            # 1 day resolution for a year
-            {"granularity": 3600 * 24, "points": 365},
-        ],
-        'high': [
-            # 1 second resolution for a day
-            {"granularity": 1, "points": 3600 * 24},
-            # 1 minute resolution for a month
-            {"granularity": 60, "points": 60 * 24 * 30},
-            # 1 hour resolution for a year
-            {"granularity": 3600, "points": 365 * 24},
-        ],
-        'no_granularity_match': [
-            # 2 second resolution for a day
-            {"granularity": 2, "points": 3600 * 24},
-        ],
+        'low': archive_policy.ArchivePolicy(
+            "low",
+            0,
+            [
+                # 5 minutes resolution for an hour
+                archive_policy.ArchivePolicyItem(
+                    granularity=300, points=12),
+                # 1 hour resolution for a day
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=24),
+                # 1 day resolution for a month
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600 * 24, points=30),
+            ],
+        ),
+        'medium': archive_policy.ArchivePolicy(
+            "medium",
+            0,
+            [
+                # 1 minute resolution for an hour
+                archive_policy.ArchivePolicyItem(
+                    granularity=60, points=60),
+                # 1 hour resolution for a week
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=7 * 24),
+                # 1 day resolution for a year
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600 * 24, points=365),
+            ],
+        ),
+        'high': archive_policy.ArchivePolicy(
+            "high",
+            0,
+            [
+                # 1 second resolution for a day
+                archive_policy.ArchivePolicyItem(
+                    granularity=1, points=3600 * 24),
+                # 1 minute resolution for a month
+                archive_policy.ArchivePolicyItem(
+                    granularity=60, points=60 * 24 * 30),
+                # 1 hour resolution for a year
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=365 * 24),
+            ],
+        ),
+        'no_granularity_match': archive_policy.ArchivePolicy(
+            "no_granularity_match",
+            0,
+            [
+                # 2 second resolution for a day
+                archive_policy.ArchivePolicyItem(
+                    granularity=2, points=3600 * 24),
+                ],
+        ),
     }
 
     indexer_backends = [
@@ -200,21 +226,15 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
 
-        self.archive_policies = {}
+        self.archive_policies = self.ARCHIVE_POLICIES
         # Used in gnocchi.gendoc
         if not getattr(self, "skip_archive_policies_creation", False):
-            for name, definition in six.iteritems(self.ARCHIVE_POLICIES):
+            for name, ap in six.iteritems(self.ARCHIVE_POLICIES):
                 # Create basic archive policies
                 try:
-                    ap = self.archive_policies[
-                        name] = self.index.create_archive_policy(
-                            name=name,
-                            back_window=0,
-                            definition=definition)
+                    self.index.create_archive_policy(ap)
                 except indexer.ArchivePolicyAlreadyExists:
-                    ap = self.index.get_archive_policy(name)
-                self.archive_policies[
-                    name] = archive_policy.ArchivePolicy.from_dict(ap)
+                    pass
 
         self.useFixture(mockpatch.Patch(
             'swiftclient.client.Connection',
