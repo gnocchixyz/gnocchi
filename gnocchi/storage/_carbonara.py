@@ -24,6 +24,7 @@ from oslo.config import cfg
 import pandas
 from tooz import coordination
 
+from gnocchi import archive_policy
 from gnocchi import carbonara
 from gnocchi import storage
 
@@ -39,7 +40,8 @@ cfg.CONF.register_opts(OPTS, group="storage")
 class CarbonaraBasedStorage(storage.StorageDriver):
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
-        self.aggregation_types = list(storage.AGGREGATION_TYPES)
+        self.aggregation_types = list(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
         self.coord = coordination.get_coordinator(
             conf.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
@@ -63,7 +65,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def create_metric(self, metric, archive_policy):
         self._create_metric_container(metric)
-        for aggregation in self.aggregation_types:
+        for aggregation in archive_policy.aggregation_methods:
             # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
             # each archive isn't the most efficient way of doing things. We
             # may want to store it as its own object.
@@ -116,7 +118,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         measures = list(measures)
         self._map_in_thread(self._add_measures,
                             list((aggregation, metric, measures)
-                                 for aggregation in self.aggregation_types))
+                                 for aggregation
+                                 in self.aggregation_types))
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean'):
