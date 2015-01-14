@@ -27,6 +27,7 @@ from six.moves.urllib import parse as urllib_parse
 import testscenarios
 import webtest
 
+from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
@@ -409,6 +410,10 @@ class ArchivePolicyTest(RestTest):
         ap = json.loads(result.text)
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
+        self.assertEqual(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(ap['aggregation_methods']))
+        del ap['aggregation_methods']
         self.assertEqual(params, ap)
 
     def test_create_archive_policy_with_back_window(self):
@@ -426,14 +431,21 @@ class ArchivePolicyTest(RestTest):
         ap = json.loads(result.text)
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
+        self.assertEqual(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(ap['aggregation_methods']))
+        del ap['aggregation_methods']
         self.assertEqual(params, ap)
 
     def test_get_archive_policy(self):
         result = self.app.get("/v1/archive_policy/medium")
         ap = json.loads(result.text)
-        self.assertEqual(
-            self.archive_policies['medium'].to_human_readable_dict(),
-            ap)
+        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
+        self.assertEqual(set(ap['aggregation_methods']),
+                         ap_dict['aggregation_methods'])
+        del ap['aggregation_methods']
+        del ap_dict['aggregation_methods']
+        self.assertEqual(ap_dict, ap)
 
     def test_delete_archive_policy(self):
         params = {"name": str(uuid.uuid4()),
@@ -487,6 +499,9 @@ class ArchivePolicyTest(RestTest):
     def test_list_archive_policy(self):
         result = self.app.get("/v1/archive_policy")
         aps = json.loads(result.text)
+        # Transform list to set
+        for ap in aps:
+            ap['aggregation_methods'] = set(ap['aggregation_methods'])
         for name, ap in six.iteritems(self.archive_policies):
             self.assertIn(ap.to_human_readable_dict(), aps)
 
@@ -530,9 +545,13 @@ class MetricTest(RestTest):
         result = self.app.get(result.headers['Location'] + '?details=true',
                               status=200)
         metric = json.loads(result.text)
-        self.assertEqual(
-            self.archive_policies['medium'].to_human_readable_dict(),
-            metric['archive_policy'])
+        ap = metric['archive_policy']
+        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
+        self.assertEqual(set(ap['aggregation_methods']),
+                         ap_dict['aggregation_methods'])
+        del ap['aggregation_methods']
+        del ap_dict['aggregation_methods']
+        self.assertEqual(ap_dict, ap)
 
     def test_get_metric_with_detail_in_accept(self):
         result = self.app.post_json(
@@ -544,11 +563,14 @@ class MetricTest(RestTest):
             result.headers['Location'],
             headers={"Accept": "application/json; details=true"},
             status=200)
-
         metric = json.loads(result.text)
-        self.assertEqual(
-            self.archive_policies['medium'].to_human_readable_dict(),
-            metric['archive_policy'])
+        ap = metric['archive_policy']
+        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
+        self.assertEqual(set(ap['aggregation_methods']),
+                         ap_dict['aggregation_methods'])
+        del ap['aggregation_methods']
+        del ap_dict['aggregation_methods']
+        self.assertEqual(ap_dict, ap)
 
     def test_get_detailed_metric_with_bad_details(self):
         result = self.app.post_json(
