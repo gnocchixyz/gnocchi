@@ -369,7 +369,8 @@ class TimeSerieArchive(object):
 
     @staticmethod
     def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
-                   aggregation='mean'):
+                   aggregation='mean', needed_percent_of_overlap=100.0):
+
         index = ['timestamp', 'granularity']
         columns = ['timestamp', 'granularity', 'value']
         dataframes = []
@@ -398,11 +399,10 @@ class TimeSerieArchive(object):
         maximum = len(points_count)
         minimum = len(points_count[points_count < len(timeseries)].dropna())
         percent_of_overlap = float(maximum - minimum) * 100.0 / float(maximum)
-        if percent_of_overlap < 100.0:
-            # TODO(sileht): allows a certain percent of missing datapoint
+        if percent_of_overlap < needed_percent_of_overlap:
             raise UnAggregableTimeseries('Less than %f%% of datapoints '
                                          'overlap in this timespan (%.2f%%)' %
-                                         (100.0,
+                                         (needed_percent_of_overlap,
                                           percent_of_overlap))
 
         grouped = pandas.concat(dataframes).groupby(level=index)

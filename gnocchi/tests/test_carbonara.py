@@ -541,8 +541,25 @@ class TestTimeSerieArchive(base.BaseTestCase):
         dtfrom = datetime.datetime(2014, 1, 1, 12, 0, 0)
         dtto = datetime.datetime(2014, 1, 1, 12, 10, 0)
 
-        # TODO(sileht): This should pass in certain case
+        # By default we require 100% of point that overlap
+        # so that fail
         self.assertRaises(carbonara.UnAggregableTimeseries,
                           carbonara.TimeSerieArchive.aggregated,
                           [tsc1, tsc2], from_timestamp=dtfrom,
                           to_timestamp=dtto)
+
+        # Retry with 80% and it works
+        output = carbonara.TimeSerieArchive.aggregated([
+            tsc1, tsc2], from_timestamp=dtfrom, to_timestamp=dtto,
+            needed_percent_of_overlap=80.0)
+
+        self.assertEqual([
+            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 3.0),
+            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 3.0),
+            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
+            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 4.0),
+            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 3.0),
+            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 5.0),
+            (pandas.Timestamp('2014-01-01 12:07:00'), 60.0, 10.0),
+            (pandas.Timestamp('2014-01-01 12:09:00'), 60.0, 2.0),
+        ], output)
