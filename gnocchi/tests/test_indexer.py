@@ -19,6 +19,7 @@ import uuid
 import six
 import testscenarios
 
+from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.indexer import null
 from gnocchi.tests import base as tests_base
@@ -40,31 +41,27 @@ class TestIndexerDriver(tests_base.TestCase):
         # NOTE(jd) This archive policy
         # is created by gnocchi.tests on setUp() :)
         self.assertRaises(indexer.ArchivePolicyAlreadyExists,
-                          self.index.create_archive_policy, "high", 0, {})
+                          self.index.create_archive_policy,
+                          archive_policy.ArchivePolicy("high", 0, {}))
 
     def test_delete_archive_policy(self):
-        ap = str(uuid.uuid4())
-        self.index.create_archive_policy(ap, 0, {})
-        self.index.delete_archive_policy(ap)
+        name = str(uuid.uuid4())
+        self.index.create_archive_policy(
+            archive_policy.ArchivePolicy(name, 0, {}))
+        self.index.delete_archive_policy(name)
         self.assertRaises(indexer.NoSuchArchivePolicy,
                           self.index.delete_archive_policy,
-                          ap)
+                          name)
         self.assertRaises(indexer.NoSuchArchivePolicy,
                           self.index.delete_archive_policy,
                           str(uuid.uuid4()))
-        self.index.create_archive_policy(ap, 0,
-                                         self.ARCHIVE_POLICIES['low'])
         metric_id = uuid.uuid4()
         self.index.create_metric(metric_id, uuid.uuid4(),
-                                 uuid.uuid4(), ap)
+                                 uuid.uuid4(), "low")
         self.assertRaises(indexer.ArchivePolicyInUse,
                           self.index.delete_archive_policy,
-                          ap)
+                          "low")
         self.index.delete_metric(metric_id)
-        self.index.delete_archive_policy(ap)
-        self.assertRaises(indexer.NoSuchArchivePolicy,
-                          self.index.delete_archive_policy,
-                          ap)
 
     def test_create_metric(self):
         r1 = uuid.uuid4()
@@ -615,9 +612,15 @@ class TestIndexerDriver(tests_base.TestCase):
                            "archive_policy": {
                                "back_window": 0,
                                "definition": [
-                                   {u'granularity': 300, u'points': 12},
-                                   {u'granularity': 3600, u'points': 24},
-                                   {u'granularity': 86400, u'points': 30}],
+                                   {'granularity': 300,
+                                    'points': 12,
+                                    'timespan': 3600},
+                                   {'granularity': 3600,
+                                    'points': 24,
+                                    'timespan': 86400},
+                                   {'granularity': 86400,
+                                    'points': 30,
+                                    'timespan': 2592000}],
                                "name": "low"},
                            "created_by_user_id": six.text_type(user),
                            "created_by_project_id": six.text_type(project),

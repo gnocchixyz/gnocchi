@@ -25,14 +25,14 @@ class ArchivePolicy(object):
     #               methods, where there is no longer just a single aggregate
     #               value to be stored per-period (e.g. ohlc)
     VALID_AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
-                                     'std', 'median', 'first'))
+                                     'std', 'median', 'first', 'count'))
 
     def __init__(self, name, back_window, definition,
                  aggregation_methods=set(("*",))):
         self.name = name
         self.back_window = back_window
         self.definition = definition
-        self.aggregation_methods = set(aggregation_methods)
+        self.aggregation_methods = aggregation_methods
 
     @property
     def aggregation_methods(self):
@@ -67,6 +67,14 @@ class ArchivePolicy(object):
                    d['back_window'],
                    [ArchivePolicyItem(**definition)
                     for definition in d['definition']])
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "back_window": self.back_window,
+            "definition": [d.to_dict()
+                           for d in self.definition],
+        }
 
     def to_human_readable_dict(self):
         return {
