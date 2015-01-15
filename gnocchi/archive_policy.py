@@ -20,10 +20,46 @@ import six
 
 
 class ArchivePolicy(object):
-    def __init__(self, name, back_window, definition):
+
+    # TODO(eglynn): figure out how to accommodate multi-valued aggregation
+    #               methods, where there is no longer just a single aggregate
+    #               value to be stored per-period (e.g. ohlc)
+    VALID_AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
+                                     'std', 'median', 'first'))
+
+    def __init__(self, name, back_window, definition,
+                 aggregation_methods=set(("*",))):
         self.name = name
         self.back_window = back_window
         self.definition = definition
+        self.aggregation_methods = set(aggregation_methods)
+
+    @property
+    def aggregation_methods(self):
+        if ('*' in self._aggregation_methods
+           or all(map(lambda s: s.startswith('-'),
+                      self._aggregation_methods))):
+            agg_methods = self.VALID_AGGREGATION_METHODS.copy()
+        else:
+            agg_methods = self._aggregation_methods
+
+        for entry in self._aggregation_methods:
+            if entry and entry[0] == '-':
+                agg_methods -= set((entry[1:],))
+
+        return agg_methods
+
+    @aggregation_methods.setter
+    def aggregation_methods(self, value):
+        value = set(value)
+        rest = (value
+                - self.VALID_AGGREGATION_METHODS
+                - set(('*',))
+                - set(map(lambda s: "-" + s, self.VALID_AGGREGATION_METHODS)))
+        if rest:
+            raise ValueError("Invalid value for aggregation_methods: %s" %
+                             rest)
+        self._aggregation_methods = value
 
     @classmethod
     def from_dict(cls, d):

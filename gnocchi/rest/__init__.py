@@ -269,9 +269,13 @@ class AggregatedMetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean'):
-        if aggregation not in storage.AGGREGATION_TYPES:
-            pecan.abort(400, 'Invalid aggregation value %s, must be one of %s'
-                        % (aggregation, str(storage.AGGREGATION_TYPES)))
+        if (aggregation
+           not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
+            pecan.abort(
+                400,
+                'Invalid aggregation value %s, must be one of %s'
+                % (aggregation,
+                   archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         # Check RBAC policy
         metrics = pecan.request.indexer.get_metrics(self.metric_ids)
@@ -360,13 +364,15 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean', **param):
         self.enforce_metric("get measures")
-        if not (aggregation in storage.AGGREGATION_TYPES or aggregation in
-                self.custom_agg):
+        if not (aggregation
+                in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
+                or aggregation in self.custom_agg):
             msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
                      or %(custom)s'''
-            pecan.abort(400, msg % dict(agg=aggregation,
-                                        std=str(storage.AGGREGATION_TYPES),
-                                        custom=str(self.custom_agg.keys())))
+            pecan.abort(400, msg % dict(
+                agg=aggregation,
+                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+                custom=str(self.custom_agg.keys())))
 
         if start is not None:
             try:
