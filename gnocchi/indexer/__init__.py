@@ -152,11 +152,11 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def get_resource(resource_type, uuid, with_metrics=False):
+    def get_resource(resource_type, resource_id, with_metrics=False):
         """Get a resource from the indexer.
 
         :param resource_type: The type of the resource to look for.
-        :param uuid: The UUID of the resource.
+        :param resource_id: The UUID of the resource.
         :param with_metrics: Whether to include metrics information.
         """
         raise exceptions.NotImplementedError
@@ -209,7 +209,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def update_resource(resource_type, uuid, ended_at=_marker,
+    def update_resource(resource_type, resource_id, ended_at=_marker,
                         metrics=_marker,
                         append_metrics=False,
                         **kwargs):

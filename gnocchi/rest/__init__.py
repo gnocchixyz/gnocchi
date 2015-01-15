@@ -280,12 +280,12 @@ class AggregatedMetricController(rest.RestController):
 
         # Check RBAC policy
         metrics = pecan.request.indexer.get_metrics(self.metric_ids)
-        missing_metric_ids = (set(m['id'] for m in metrics)
+        missing_metric_ids = (set(six.text_type(m['id']) for m in metrics)
                               - set(self.metric_ids))
         if missing_metric_ids:
-            # Return the first missing one in the error
+            # Return one of the missing one in the error
             pecan.abort(404, storage.MetricDoesNotExist(
-                missing_metric_ids[0]))
+                missing_metric_ids.pop()))
 
         for metric in metrics:
             enforce("get metric", metric)
@@ -722,7 +722,7 @@ class GenericResourcesController(rest.RestController):
             pecan.abort(409, e)
         set_resp_location_hdr("/v1/resource/"
                               + self._resource_type + "/"
-                              + resource['id'])
+                              + six.text_type(resource['id']))
         pecan.response.status = 201
         return resource
 

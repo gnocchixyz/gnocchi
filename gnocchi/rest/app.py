@@ -18,6 +18,7 @@
 
 import os
 import socket
+import uuid
 from wsgiref import simple_server
 
 from flask import json as flask_json
@@ -28,6 +29,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 import pecan
 from pecan import templating
+import six
 from werkzeug import wsgi
 
 from gnocchi import indexer
@@ -80,8 +82,15 @@ class OsloJSONRenderer(object):
         pass
 
     @staticmethod
-    def render(template_path, namespace):
-        return jsonutils.dumps(namespace)
+    def to_primitive(value, *args, **kwargs):
+        # TODO(jd): Remove that once oslo.serialization is released with
+        # https://review.openstack.org/#/c/147198/
+        if isinstance(value, uuid.UUID):
+            return six.text_type(value)
+        return jsonutils.to_primitive(value, *args, **kwargs)
+
+    def render(self, template_path, namespace):
+        return jsonutils.dumps(namespace, default=self.to_primitive)
 
 
 class GnocchiJinjaRenderer(templating.JinjaRenderer):
