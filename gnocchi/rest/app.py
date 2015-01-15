@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -22,6 +22,7 @@ from wsgiref import simple_server
 import netaddr
 from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_serialization import jsonutils
 import pecan
 
 from gnocchi import indexer
@@ -69,6 +70,16 @@ class DBHook(pecan.hooks.PecanHook):
         state.request.indexer = self.indexer
 
 
+class OsloJSONRenderer(object):
+    @staticmethod
+    def __init__(path, extra_vars):
+        pass
+
+    @staticmethod
+    def render(template_path, namespace):
+        return jsonutils.dumps(namespace)
+
+
 PECAN_CONFIG = {
     'app': {
         'root': 'gnocchi.rest.RootController',
@@ -93,6 +104,7 @@ def setup_app(pecan_config=PECAN_CONFIG):
         debug=conf.api.pecan_debug,
         hooks=(DBHook(s, i),),
         guess_content_type_from_ext=False,
+        custom_renderers={'json': OsloJSONRenderer},
     )
 
     for middleware in reversed(pecan_config['conf'].api.middlewares):

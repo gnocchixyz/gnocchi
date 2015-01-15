@@ -907,17 +907,17 @@ class ResourceTest(RestTest):
     resource_scenarios = [
         ('generic', dict(
             attributes={
-                "started_at": "2014-01-03 02:02:02",
+                "started_at": "2014-01-03T02:02:02.000000",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03 02:02:02",
+                "ended_at": "2014-01-03T02:02:02.000000",
             },
             resource_type='generic')),
         ('instance', dict(
             attributes={
-                "started_at": "2014-01-03 02:02:02",
+                "started_at": "2014-01-03T02:02:02.000000",
                 # NOTE(jd) We test this one without user_id/project_id!
                 # Just to test that use case. :)
                 "host": "foo",
@@ -927,7 +927,7 @@ class ResourceTest(RestTest):
                 "server_group": "as_group",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03 02:02:02",
+                "ended_at": "2014-01-03T02:02:02.000000",
                 "host": "fooz",
                 "image_ref": "imageref!z",
                 "flavor_id": 1234,
@@ -937,12 +937,12 @@ class ResourceTest(RestTest):
             resource_type='instance')),
         ('swift_account', dict(
             attributes={
-                "started_at": "2014-01-03 02:02:02",
+                "started_at": "2014-01-03T02:02:02.000000",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03 02:02:02",
+                "ended_at": "2014-01-03T02:02:02.000000",
             },
             resource_type='swift_account')),
     ]
@@ -1025,7 +1025,7 @@ class ResourceTest(RestTest):
             params=self.attributes,
             status=201)
         resource = json.loads(result.text)
-        self.assertEqual(u"2014-05-20 10:00:45.856219",
+        self.assertEqual(u"2014-05-20T10:00:45.856219",
                          resource['started_at'])
 
     def test_post_invalid_timestamp(self):
