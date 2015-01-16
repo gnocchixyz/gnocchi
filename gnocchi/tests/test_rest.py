@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -185,6 +185,43 @@ class ArchivePolicyTest(RestTest):
             "points": 20,
             "timespan": "0:20:00",
         }], ap['definition'])
+
+    def test_post_archive_policy_with_agg_methods(self):
+        name = str(uuid.uuid4())
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "aggregation_methods": ["mean"],
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual(['mean'], ap['aggregation_methods'])
+
+    def test_post_archive_policy_with_agg_methods_minus(self):
+        name = str(uuid.uuid4())
+        with self.app.use_admin_user():
+            result = self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": name,
+                        "aggregation_methods": ["-mean"],
+                        "definition":
+                        [{
+                            "granularity": "1 minute",
+                            "points": 20,
+                        }]},
+                status=201)
+        self.assertEqual("application/json", result.content_type)
+        ap = json.loads(result.text)
+        self.assertEqual(
+            (archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
+             - set(['mean'])),
+            set(ap['aggregation_methods']))
 
     def test_post_archive_policy_as_non_admin(self):
         self.app.post_json(
