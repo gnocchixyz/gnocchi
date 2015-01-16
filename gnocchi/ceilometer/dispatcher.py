@@ -23,9 +23,9 @@ import operator
 
 from ceilometer import dispatcher
 from ceilometer.i18n import _
-from ceilometer.openstack.common import log
 from keystoneclient.v2_0 import client as ksclient
 from oslo.config import cfg
+from oslo_log import log
 import requests
 import six
 import stevedore.dispatch

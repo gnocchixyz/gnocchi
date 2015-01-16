@@ -22,11 +22,11 @@ from wsgiref import simple_server
 import netaddr
 from oslo.config import cfg
 from oslo.utils import importutils
+from oslo_log import log
 from oslo_serialization import jsonutils
 import pecan
 
 from gnocchi import indexer
-from gnocchi.openstack.common import log
 from gnocchi import storage
 
 

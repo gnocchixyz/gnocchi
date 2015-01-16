@@ -16,8 +16,7 @@
 import logging
 
 from oslo.config import cfg
-
-from gnocchi.openstack.common import log
+from oslo_log import log
 
 LOG = log.getLogger(__name__)
 
