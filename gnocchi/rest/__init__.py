@@ -491,13 +491,6 @@ class MetricsController(rest.RestController):
             user_id, project_id)
 
 
-def UUID(value):
-    try:
-        return uuid.UUID(value)
-    except Exception as e:
-        raise ValueError(e)
-
-
 Metrics = voluptuous.Schema({
     six.text_type: voluptuous.Any(UUID,
                                   MetricsController.Metric),
