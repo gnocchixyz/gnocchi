@@ -33,6 +33,10 @@ OPTS = [
                default=None,
                help='Number of workers to run during adding new measures for '
                     'pre-aggregation needs.'),
+    cfg.StrOpt('coordination_url',
+               help='Coordination driver URL',
+               default="file:///var/lib/gnocchi/locks"),
+
 ]
 cfg.CONF.register_opts(OPTS, group="storage")
 

@@ -303,13 +303,20 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             pre_connect_func()
         self.index.connect()
 
+        self.conf.import_opt('coordination_url', 'gnocchi.storage._carbonara',
+                             'storage')
+        self.conf.set_override('coordination_url',
+                               os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+                               'storage')
+
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
         # checkfirst=True, so what we do here is we force the upgrade code
         # path to be sequential to avoid race conditions as the tests run in
         # parallel.
         self.coord = coordination.get_coordinator(
-            "ipc://", str(uuid.uuid4()).encode('ascii'))
+            os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+            str(uuid.uuid4()).encode('ascii'))
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
