@@ -205,3 +205,16 @@ The same endpoint can be used to append metrics to a resource:
 {{ scenarios['append-metrics-to-resource']['doc'] }}
 
 .. _Nova: http://launchpad.net/nova
+
+
+Timestamp format
+================
+
+Timestamps used in Gnocchi are always returned using the ISO 8601 format.
+Gnocchi is able to understand a few formats of timestamp when querying or
+creating resources, for example
+
+- "2014-01-01 12:12:34" or "2014-05-20T10:00:45.856219", ISO 8601 timestamps.
+- "10 minutes", which means "10 minutes from now".
+- "-2 days", which means "2 days ago".
+- 1421767030, a Unix epoch based timestamp.

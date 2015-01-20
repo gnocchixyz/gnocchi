@@ -135,7 +135,13 @@ def Timestamp(v):
     try:
         v = float(v)
     except (ValueError, TypeError):
-        return timeutils.normalize_time(iso8601.parse_date(v))
+        try:
+            return timeutils.normalize_time(iso8601.parse_date(v))
+        except iso8601.ParseError:
+            delta = timeparse.timeparse(v)
+            if delta is None:
+                raise ValueError("Unable to parse timestamp %s" % v)
+            return timeutils.utcnow() + datetime.timedelta(seconds=delta)
     return datetime.datetime.utcfromtimestamp(v)
 
 
@@ -294,7 +300,7 @@ class AggregatedMetricController(rest.RestController):
             measures = pecan.request.storage.get_cross_metric_measures(
                 self.metric_ids, start, stop, aggregation, needed_overlap)
             # Replace timestamp keys by their string versions
-            return [(timeutils.strtime(timestamp), offset, v)
+            return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
         except storage.MetricUnaggregatable:
             pecan.abort(400, "One of the metric to aggregated doesn't have "
@@ -398,7 +404,7 @@ class MetricController(rest.RestController):
                                                               start, stop,
                                                               aggregation)
             # Replace timestamp keys by their string versions
-            return [(timeutils.strtime(timestamp), offset, v)
+            return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
         except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
