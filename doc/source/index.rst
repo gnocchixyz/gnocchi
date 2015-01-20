@@ -9,6 +9,7 @@ The Gnocchi project procdes a REST interface to catalog and measure resources.
 
    basic
    install
+   devstack
    rest
    resource_types
 
