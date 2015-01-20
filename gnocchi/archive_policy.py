@@ -24,8 +24,10 @@ class ArchivePolicy(object):
     # TODO(eglynn): figure out how to accommodate multi-valued aggregation
     #               methods, where there is no longer just a single aggregate
     #               value to be stored per-period (e.g. ohlc)
-    VALID_AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
-                                     'std', 'median', 'first', 'count'))
+    VALID_AGGREGATION_METHODS = set(
+        ('mean', 'sum', 'last', 'max', 'min',
+         'std', 'median', 'first', 'count')).union(
+             set((str(i) + 'pct' for i in six.moves.range(1, 100))))
 
     # Set that contains all the above values + their minus equivalent (-mean)
     # and the "*" entry.
