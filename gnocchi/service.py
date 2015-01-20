@@ -23,5 +23,5 @@ LOG = log.getLogger(__name__)
 
 def prepare_service():
     cfg.CONF(project='gnocchi')
-    log.setup('gnocchi')
+    log.setup(cfg.CONF, 'gnocchi')
     cfg.CONF.log_opt_values(LOG, logging.DEBUG)
