@@ -84,6 +84,56 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])
 
+    def test_0_percentile(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='0pct')
+        self.assertRaises(AttributeError,
+                          ts.set_values,
+                          [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)])
+
+    def test_100_percentile(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='100pct')
+        self.assertRaises(AttributeError,
+                          ts.set_values,
+                          [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)])
+
+    def test_123_percentile(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='123pct')
+        self.assertRaises(AttributeError,
+                          ts.set_values,
+                          [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+                           (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)])
+
+    def test_74_percentile(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='74pct')
+        ts.set_values(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)])
+
+        self.assertEqual(1, len(ts))
+        self.assertEqual(5.48, ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+
+    def test_95_percentile(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='95pct')
+        ts.set_values(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)])
+
+        self.assertEqual(1, len(ts))
+        self.assertEqual(5.9000000000000004,
+                         ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+
     def test_different_length_in_timestamps_and_data(self):
         self.assertRaises(ValueError,
                           carbonara.AggregatedTimeSerie,
@@ -213,6 +263,56 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 7),
             (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 3.0),
         ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+
+    def test_fetch_agg_pct(self):
+        tsc = carbonara.TimeSerieArchive.from_definitions(
+            [(1, 3600 * 24),
+             (60, 24 * 60 * 30)],
+            aggregation_method='90pct')
+
+        # NOTE(jd) What's interesting in this test is that we lack a point for
+        # a second, so we have an interval with no value
+        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+                        (datetime.datetime(2014, 1, 1, 12, 0, 0, 123), 4),
+                        (datetime.datetime(2014, 1, 1, 12, 0, 2), 4)])
+
+        result = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
+        reference = [
+            (pandas.Timestamp('2014-01-01 12:00:00'),
+             60.0, 4),
+            (pandas.Timestamp('2014-01-01 12:00:00'),
+             1.0, 3.9),
+            (pandas.Timestamp('2014-01-01 12:00:02'),
+             1.0, 4)
+        ]
+
+        self.assertEqual(len(reference), len(result))
+
+        for ref, res in zip(reference, result):
+            self.assertEqual(ref[0], res[0])
+            self.assertEqual(ref[1], res[1])
+            # Rounding \o/
+            self.assertAlmostEqual(ref[2], res[2])
+
+        tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 2, 113), 110)])
+
+        result = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
+        reference = [
+            (pandas.Timestamp('2014-01-01 12:00:00'),
+             60.0, 78.2),
+            (pandas.Timestamp('2014-01-01 12:00:00'),
+             1.0, 3.9),
+            (pandas.Timestamp('2014-01-01 12:00:02'),
+             1.0, 99.4)
+        ]
+
+        self.assertEqual(len(reference), len(result))
+
+        for ref, res in zip(reference, result):
+            self.assertEqual(ref[0], res[0])
+            self.assertEqual(ref[1], res[1])
+            # Rounding \o/
+            self.assertAlmostEqual(ref[2], res[2])
 
     def test_fetch_agg_std(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(

@@ -16,9 +16,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """Time series data manipulation, better with pancetta."""
+import functools
 import operator
+import re
 
 import msgpack
+import numpy
 import pandas
 import six
 
@@ -179,6 +182,15 @@ class BoundTimeSerie(TimeSerie):
 
 class AggregatedTimeSerie(TimeSerie):
 
+    _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
+
+    @staticmethod
+    def _percentile(a, q):
+        # TODO(jd) Find a way to compute all the percentile in one pass as
+        # numpy can do numpy.percentile(a, q=[75, 90, 95])
+        if len(a) > 0:
+            return numpy.percentile(a, q)
+
     def __init__(self, timestamps=None, values=None,
                  max_size=None,
                  sampling=None, aggregation_method='mean'):
@@ -189,7 +201,17 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
         super(AggregatedTimeSerie, self).__init__(timestamps, values)
+
         self.aggregation_method = aggregation_method
+
+        m = self._AGG_METHOD_PCT_RE.match(aggregation_method)
+
+        if m:
+            self.aggregation_method_func = functools.partial(self._percentile,
+                                                             q=m.group(1))
+        else:
+            self.aggregation_method_func = aggregation_method
+
         self.sampling = pandas.tseries.frequencies.to_offset(sampling)
         self.max_size = max_size
 
@@ -240,7 +262,7 @@ class AggregatedTimeSerie(TimeSerie):
         if self.sampling:
             self.ts = self.ts[after:].resample(
                 self.sampling,
-                how=self.aggregation_method).combine_first(
+                how=self.aggregation_method_func).combine_first(
                     self.ts[:after][:-1])
 
     def update(self, ts):
@@ -436,7 +458,8 @@ class TimeSerieArchive(object):
         # aggregated values, for some kind of aggregation this can
         # result can looks wierd, but this is the best we can do
         # because we don't have anymore the raw datapoints in those case.
-        # FIXME(sileht): so should we bailout is case of stddev and median ?
+        # FIXME(sileht): so should we bailout is case of stddev, percentile
+        # and median?
         agg_timeserie = getattr(grouped, aggregation)()
         agg_timeserie = agg_timeserie.dropna().reset_index()
 
