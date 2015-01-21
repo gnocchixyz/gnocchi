@@ -27,9 +27,6 @@ OPTS = [
     cfg.StrOpt('driver',
                default='file',
                help='Storage driver to use'),
-    cfg.StrOpt('coordination_url',
-               help='Coordination driver URL',
-               default='ipc://'),
 ]
 
 cfg.CONF.register_opts(OPTS, group="storage")
