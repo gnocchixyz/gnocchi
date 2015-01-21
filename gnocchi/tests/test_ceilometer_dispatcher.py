@@ -82,7 +82,7 @@ class DispatcherTest(base.BaseTestCase):
         ks_client = mock.Mock(auth_token='fake_token')
         ks_client.users.find.return_value = 'gnocchi'
         self.useFixture(mockpatch.Patch(
-            'gnocchi.ceilometer.dispatcher.ksclient.Client',
+            'gnocchi.ceilometer.utils.ksclient.Client',
             return_value=ks_client))
 
     def test_extensions_load(self):
@@ -200,7 +200,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
         ks_client = mock.Mock(auth_token='fake_token')
         ks_client.users.find.return_value = 'gnocchi'
         self.useFixture(mockpatch.Patch(
-            'gnocchi.ceilometer.dispatcher.ksclient.Client',
+            'gnocchi.ceilometer.utils.ksclient.Client',
             return_value=ks_client))
 
         self.dispatcher = dispatcher.GnocchiDispatcher(self.conf.conf)

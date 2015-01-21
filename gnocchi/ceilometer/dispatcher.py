@@ -23,12 +23,13 @@ import operator
 
 from ceilometer import dispatcher
 from ceilometer.i18n import _
-from keystoneclient.v2_0 import client as ksclient
 from oslo.config import cfg
 from oslo_log import log
 import requests
 import six
 import stevedore.dispatch
+
+from gnocchi.ceilometer import utils
 
 LOG = log.getLogger(__name__)
 
@@ -51,7 +52,6 @@ dispatcher_opts = [
 ]
 
 cfg.CONF.register_opts(dispatcher_opts, group="dispatcher_gnocchi")
-cfg.CONF.import_group('service_credentials', 'ceilometer.service')
 
 
 class UnexpectedWorkflowError(Exception):
@@ -89,16 +89,7 @@ class GnocchiDispatcher(dispatcher.Base):
         self.filter_service_activity = (
             conf.dispatcher_gnocchi.filter_service_activity)
 
-        self._ks_client = ksclient.Client(
-            username=conf.service_credentials.os_username,
-            password=conf.service_credentials.os_password,
-            tenant_id=conf.service_credentials.os_tenant_id,
-            tenant_name=conf.service_credentials.os_tenant_name,
-            cacert=conf.service_credentials.os_cacert,
-            auth_url=conf.service_credentials.os_auth_url,
-            region_name=conf.service_credentials.os_region_name,
-            insecure=conf.service_credentials.insecure)
-
+        self._ks_client = utils.get_keystone_client()
         if self.filter_service_activity:
             try:
                 self.gnocchi_user_id = self._ks_client.users.find(
