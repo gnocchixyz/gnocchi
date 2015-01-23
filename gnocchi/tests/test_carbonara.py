@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -18,6 +18,7 @@
 import datetime
 
 from oslotest import base
+# TODO(jd) We shouldn't use pandas here
 import pandas
 import six
 
@@ -168,8 +169,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_fetch(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 10),
-             (pandas.tseries.offsets.Minute(5), 6)])
+            [(60, 10),
+             (300, 6)])
 
         tsc.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
@@ -218,8 +219,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_fetch_agg_std(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 60),
-             (pandas.tseries.offsets.Minute(5), 24)],
+            [(60, 60),
+             (300, 24)],
             aggregation_method='std')
 
         tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
@@ -250,8 +251,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_fetch_agg_max(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 60),
-             (pandas.tseries.offsets.Minute(5), 24)],
+            [(60, 60),
+             (300, 24)],
             aggregation_method='max')
 
         tsc.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
@@ -278,8 +279,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_serialize(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), None),
-             (pandas.tseries.offsets.Minute(5), None)])
+            [(60, None),
+             (300, None)])
         tsc.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
             (datetime.datetime(2014, 1, 1, 12, 1, 4), 5),
@@ -321,7 +322,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_truncation(self):
         ts = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), None)])
+            [(60, None)])
 
         for i in six.moves.range(1, 11):
             ts.set_values([
@@ -361,7 +362,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
         aggregate on.
         """
         ts = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Second(1), 60)])
+            [(1, 60)])
 
         ts.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 1, 2300), 1),
@@ -396,11 +397,11 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_aggregated_nominal(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 10),
-             (pandas.tseries.offsets.Minute(5), 6)])
+            [(60, 10),
+             (300, 6)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 10),
-             (pandas.tseries.offsets.Minute(5), 6)])
+            [(60, 10),
+             (300, 6)])
 
         tsc1.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
@@ -458,11 +459,11 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_aggregated_different_archive(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 50),
-             (pandas.tseries.offsets.Minute(2), 24)])
+            [(60, 50),
+             (120, 24)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(3), 50),
-             (pandas.tseries.offsets.Minute(5), 24)])
+            [(180, 50),
+             (300, 24)])
 
         self.assertRaises(carbonara.UnAggregableTimeseries,
                           carbonara.TimeSerieArchive.aggregated,
@@ -470,10 +471,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_aggregated_different_archive_no_overlap(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 50),
-             (pandas.tseries.offsets.Minute(2), 24)])
+            [(60, 50),
+             (120, 24)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 50)])
+            [(60, 50)])
 
         tsc1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4)])
         tsc2.set_values([(datetime.datetime(2014, 1, 1, 9, 1, 4), 4)])
@@ -485,10 +486,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_aggregated_different_archive_no_enough_overlap(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 50),
-             (pandas.tseries.offsets.Minute(2), 24)])
+            [(60, 50),
+             (120, 24)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 50)])
+            [(60, 50)])
 
         tsc1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
                          (datetime.datetime(2014, 1, 1, 12, 46, 4), 5),
@@ -506,10 +507,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_aggregated_different_archive_overlap(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 10),
-             (pandas.tseries.offsets.Minute(10), 6)])
+            [(60, 10),
+             (600, 6)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(pandas.tseries.offsets.Minute(1), 10)])
+            [(60, 10)])
 
         # NOTE(sileht): minute 8 is missing in both and
         # minute 7 in tsc2 too, but it looks like we have

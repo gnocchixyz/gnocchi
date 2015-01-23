@@ -21,7 +21,6 @@ import uuid
 
 from concurrent import futures
 from oslo.config import cfg
-import pandas
 from tooz import coordination
 
 from gnocchi import archive_policy
@@ -84,10 +83,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # TODO(jd) Having the TimeSerieArchive.full_res_timeserie duped in
             # each archive isn't the most efficient way of doing things. We
             # may want to store it as its own object.
-            # TODO(jd) We should not use Pandas here
-            # – abstraction layer violation!
             archive = carbonara.TimeSerieArchive.from_definitions(
-                [(pandas.tseries.offsets.Second(v.granularity), v.points)
+                [(v.granularity, v.points)
                  for v in archive_policy.definition],
                 back_window=archive_policy.back_window,
                 aggregation_method=aggregation)

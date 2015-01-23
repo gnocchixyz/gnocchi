@@ -299,12 +299,16 @@ class TimeSerieArchive(object):
         block_size = definitions[-1][0]
 
         # Limit the main timeserie to a timespan mapping
-        return cls(BoundTimeSerie(block_size=block_size,
-                                  back_window=back_window),
-                   [AggregatedTimeSerie(
-                       max_size=size, sampling=sampling,
-                       aggregation_method=aggregation_method)
-                    for sampling, size in definitions])
+        return cls(
+            BoundTimeSerie(
+                block_size=pandas.tseries.offsets.Second(block_size),
+                back_window=back_window),
+            [AggregatedTimeSerie(
+                max_size=size,
+                sampling=pandas.tseries.offsets.Second(sampling),
+                aggregation_method=aggregation_method)
+             for sampling, size in definitions]
+        )
 
     def fetch(self, from_timestamp=None, to_timestamp=None,
               timeserie_filter=None):
