@@ -16,7 +16,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import os
+import subprocess
+import tempfile
 
+import fixtures
 from oslotest import base
 # TODO(jd) We shouldn't use pandas here
 import pandas
@@ -564,3 +568,81 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:07:00'), 60.0, 10.0),
             (pandas.Timestamp('2014-01-01 12:09:00'), 60.0, 2.0),
         ], output)
+
+
+class CarbonaraCmd(base.BaseTestCase):
+
+    def setUp(self):
+        super(CarbonaraCmd, self).setUp()
+        self.useFixture(fixtures.NestedTempfile())
+
+    def test_create(self):
+        filename = tempfile.mktemp()
+        subp = subprocess.Popen(['carbonara-create',
+                                 '1,2',
+                                 filename],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = subp.communicate()
+        subp.wait()
+        os.stat(filename)
+        self.assertEqual(0, subp.returncode)
+        self.assertEqual(b"", out)
+
+    def test_dump(self):
+        filename = tempfile.mktemp()
+        subp = subprocess.Popen(['carbonara-create',
+                                 '1,2',
+                                 filename])
+        subp.wait()
+        subp = subprocess.Popen(['carbonara-dump',
+                                 filename],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = subp.communicate()
+        subp.wait()
+        self.assertIn(b"Back window", out)
+
+    def test_update(self):
+        filename = tempfile.mktemp()
+        subp = subprocess.Popen(['carbonara-create',
+                                 '2,2',
+                                 filename])
+        subp.wait()
+        subp = subprocess.Popen(['carbonara-update',
+                                 '2014-12-23 23:23:23,1',
+                                 '2014-12-23 23:23:24,10',
+                                 filename])
+        subp.wait()
+        subp = subprocess.Popen(['carbonara-update',
+                                 '2014-12-23 23:23:25,7',
+                                 filename])
+        subp.wait()
+
+        subp = subprocess.Popen(['carbonara-dump',
+                                 filename],
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = subp.communicate()
+        subp.wait()
+        self.assertEqual(u"""Aggregation method: mean
+Number of aggregated timeseries: 1
+Back window: 0 × 2s = 0s
+
+Number of full resolution measures: 2
++---------------------+-------+
+|      Timestamp      | Value |
++---------------------+-------+
+| 2014-12-23 23:23:24 |  10.0 |
+| 2014-12-23 23:23:25 |  7.0  |
++---------------------+-------+
+
+Aggregated timeserie #1: 2s × 2 = 0:00:04
+Number of measures: 2
++---------------------+-------+
+|      Timestamp      | Value |
++---------------------+-------+
+| 2014-12-23 23:23:22 |  1.0  |
+| 2014-12-23 23:23:24 |  8.5  |
++---------------------+-------+
+""", out.decode('utf-8'))

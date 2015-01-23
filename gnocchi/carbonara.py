@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -21,6 +21,10 @@ import operator
 import msgpack
 import pandas
 import six
+
+
+AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
+                           'std', 'median', 'first', 'count'))
 
 
 class NoDeloreanAvailable(Exception):
@@ -368,6 +372,10 @@ class TimeSerieArchive(object):
     def unserialize(cls, data):
         return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
 
+    @classmethod
+    def unserialize_from_file(cls, stream):
+        return cls.from_dict(msgpack.unpack(stream, encoding='utf-8'))
+
     def serialize(self):
         return msgpack.dumps(self.to_dict())
 
@@ -422,3 +430,128 @@ class TimeSerieArchive(object):
         points = [(timestamp, granularity, value)
                   for __, timestamp, granularity, value in points]
         return points
+
+
+import argparse
+import datetime
+
+import iso8601
+from oslo.utils import timeutils
+import prettytable
+
+
+def _definition(value):
+    result = value.split(",")
+    if len(result) != 2:
+        raise ValueError("Format is: seconds,points")
+    return int(result[0]), int(result[1])
+
+
+def create_archive_file():
+    parser = argparse.ArgumentParser(
+        description="Create a Carbonara file",
+    )
+    parser.add_argument("--aggregation-method",
+                        type=six.text_type,
+                        default="mean",
+                        choices=AGGREGATION_METHODS,
+                        help="aggregation method to use")
+    parser.add_argument("--back-window",
+                        type=int,
+                        default=0,
+                        help="back window to keep")
+    parser.add_argument("definition",
+                        type=_definition,
+                        nargs='+',
+                        help="archive definition as granularity,points")
+    parser.add_argument("filename",
+                        nargs=1,
+                        type=argparse.FileType(mode="wb"),
+                        help="File name to create")
+    args = parser.parse_args()
+    ts = TimeSerieArchive.from_definitions(args.definition,
+                                           args.aggregation_method,
+                                           args.back_window)
+    args.filename[0].write(ts.serialize())
+
+
+def dump_archive_file():
+    parser = argparse.ArgumentParser(
+        description="Dump a Carbonara file",
+    )
+    parser.add_argument("filename",
+                        nargs=1,
+                        type=argparse.FileType(mode="rb"),
+                        help="File name to read")
+    args = parser.parse_args()
+
+    ts = TimeSerieArchive.unserialize_from_file(args.filename[0])
+
+    print("Aggregation method: %s"
+          % (ts.agg_timeseries[0].aggregation_method))
+
+    print("Number of aggregated timeseries: %d" % len(ts.agg_timeseries))
+
+    print("Back window: %d × %ds = %ds"
+          % (ts.full_res_timeserie.back_window,
+             ts.full_res_timeserie.block_size.nanos / 1000000000,
+             ts.full_res_timeserie.back_window
+             * ts.full_res_timeserie.block_size.nanos / 1000000000))
+
+    print("\nNumber of full resolution measures: %d"
+          % len(ts.full_res_timeserie))
+    full_res_table = prettytable.PrettyTable(("Timestamp", "Value"))
+    for k, v in ts.full_res_timeserie.ts.iteritems():
+        full_res_table.add_row((k, v))
+    print(full_res_table.get_string())
+
+    for idx, agg_ts in enumerate(ts.agg_timeseries):
+        sampling = agg_ts.sampling.nanos / 1000000000
+        timespan = datetime.timedelta(seconds=sampling * agg_ts.max_size)
+        print("\nAggregated timeserie #%d: %ds × %d = %s"
+              % (idx + 1, sampling, agg_ts.max_size, timespan))
+        print("Number of measures: %d" % len(agg_ts))
+        table = prettytable.PrettyTable(("Timestamp", "Value"))
+        for k, v in agg_ts.ts.iteritems():
+            table.add_row((k, v))
+        print(table.get_string())
+
+
+def _timestamp_value(value):
+    result = value.split(",")
+    if len(result) != 2:
+        raise ValueError("Format is: timestamp,value")
+    try:
+        timestamp = float(result[0])
+    except (ValueError, TypeError):
+        timestamp = timeutils.normalize_time(iso8601.parse_date(result[0]))
+    else:
+        timestamp = datetime.datetime.utcfromtimestamp(timestamp)
+
+    return timestamp, float(result[1])
+
+
+def update_archive_file():
+    parser = argparse.ArgumentParser(
+        description="Insert values in a Carbonara file",
+    )
+    parser.add_argument("timestamp,value",
+                        nargs='+',
+                        type=_timestamp_value,
+                        help="Timestamp and value to set")
+    parser.add_argument("filename",
+                        nargs=1,
+                        type=argparse.FileType(mode="rb+"),
+                        help="File name to update")
+    args = parser.parse_args()
+
+    ts = TimeSerieArchive.unserialize_from_file(args.filename[0])
+
+    try:
+        ts.set_values(getattr(args, 'timestamp,value'))
+    except Exception as e:
+        print("E: %s: %s" % (e.__class__.__name__, e))
+        return 1
+
+    args.filename[0].seek(0)
+    args.filename[0].write(ts.serialize())
