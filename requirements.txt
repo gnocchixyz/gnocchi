@@ -1,4 +1,3 @@
-babel
 iso8601
 netaddr
 numpy
@@ -22,7 +21,6 @@ six
 sqlalchemy
 sqlalchemy-utils
 stevedore
-sysv_ipc>=0.6.8
 tooz>=0.4
 voluptuous
 werkzeug

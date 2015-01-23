@@ -18,9 +18,6 @@ mysqld --no-defaults --datadir=${MYSQL_DATA} --pid-file=${MYSQL_DATA}/mysql.pid 
 wait_for_line "mysqld: ready for connections." ${MYSQL_DATA}/out
 export GNOCCHI_TEST_MYSQL_URL="mysql://${USER}@localhost/${DATABASE_BASENAME}?unix_socket=${MYSQL_DATA}/mysql.socket&charset=utf8"
 
-mkdir $MYSQL_DATA/tooz
-export GNOCCHI_COORDINATION_URL="file:///$MYSQL_DATA/tooz"
-
 $*
 
 ret=$?

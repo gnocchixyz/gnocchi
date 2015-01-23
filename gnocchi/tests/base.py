@@ -291,6 +291,16 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             return os.path.join(root, project_file)
         return root
 
+    @classmethod
+    def setUpClass(cls):
+        super(TestCase, cls).setUpClass()
+        cls.tempdir = fixtures.TempDir()
+        cls.tempdir.setUp()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tempdir.cleanUp()
+
     def setUp(self):
         super(TestCase, self).setUp()
         self.conf = self.useFixture(config_fixture.Config()).conf
@@ -312,7 +322,7 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.conf.import_opt('coordination_url', 'gnocchi.storage._carbonara',
                              'storage')
         self.conf.set_override('coordination_url',
-                               os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+                               "file://" + self.tempdir.path,
                                'storage')
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
@@ -321,7 +331,7 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         # path to be sequential to avoid race conditions as the tests run in
         # parallel.
         self.coord = coordination.get_coordinator(
-            os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+            "file://" + self.tempdir.path,
             str(uuid.uuid4()).encode('ascii'))
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
@@ -348,9 +358,9 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             self.conf.import_opt('file_basepath',
                                  'gnocchi.storage.file',
                                  group='storage')
-            self.tempdir = self.useFixture(fixtures.TempDir())
+            tempdir = self.useFixture(fixtures.TempDir())
             self.conf.set_override('file_basepath',
-                                   self.tempdir.path,
+                                   tempdir.path,
                                    'storage')
 
         self.conf.set_override('driver', self.storage_engine, 'storage')
