@@ -741,9 +741,9 @@ class MetricTest(RestTest):
         ret = self.app.get("/v1/metric/%s/measures" % metric['id'])
         result = json.loads(ret.text)
         self.assertEqual(
-            [[u'2013-01-01T23:28:00.000000', 60.0, 1234.2],
-             [u'2013-01-01T23:29:00.000000', 60.0, 1234.2],
-             [u'2013-01-01T23:30:00.000000', 60.0, 1234.2]],
+            [[u'2013-01-01T23:28:00.000000Z', 60.0, 1234.2],
+             [u'2013-01-01T23:29:00.000000Z', 60.0, 1234.2],
+             [u'2013-01-01T23:30:00.000000Z', 60.0, 1234.2]],
             result)
 
     def test_add_measures_too_old(self):
@@ -778,9 +778,9 @@ class MetricTest(RestTest):
         ret = self.app.get("/v1/metric/%s/measures" % metric['id'], status=200)
         result = json.loads(ret.text)
         self.assertEqual(
-            [[u'2013-01-01T00:00:00.000000', 86400.0, 1234.2],
-             [u'2013-01-01T23:00:00.000000', 3600.0, 1234.2],
-             [u'2013-01-01T23:20:00.000000', 300.0, 1234.2]],
+            [[u'2013-01-01T00:00:00.000000Z', 86400.0, 1234.2],
+             [u'2013-01-01T23:00:00.000000Z', 3600.0, 1234.2],
+             [u'2013-01-01T23:20:00.000000Z', 300.0, 1234.2]],
             result)
 
     def test_get_measure_with_another_user(self):
@@ -806,8 +806,37 @@ class MetricTest(RestTest):
             % metric['id'],
             status=200)
         result = json.loads(ret.text)
-        self.assertEqual([['2013-01-01T23:23:23.000000', 1.0, 1234.2]],
+        self.assertEqual([['2013-01-01T23:23:23.000000Z', 1.0, 1234.2]],
                          result)
+
+    def test_get_measure_start_relative(self):
+        """Make sure the timestamps can be relative to now."""
+        # TODO(jd) Use a fixture as soon as there's one
+        timeutils.set_time_override()
+        self.addCleanup(timeutils.clear_time_override)
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "high"})
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
+                           params=[{"timestamp": timeutils.isotime(),
+                                    "value": 1234.2}])
+        ret = self.app.get(
+            "/v1/metric/%s/measures?start=-10 minutes"
+            % metric['id'],
+            status=200)
+        result = json.loads(ret.text)
+        now = timeutils.utcnow()
+        self.assertEqual([
+            [timeutils.isotime(now
+                               - datetime.timedelta(
+                                   seconds=now.second,
+                                   microseconds=now.microsecond),
+                               subsecond=True),
+             60.0, 1234.2],
+            [timeutils.isotime(now
+                               - datetime.timedelta(
+                                   microseconds=now.microsecond),
+                               subsecond=True), 1.0, 1234.2]], result)
 
     def test_get_measure_stop(self):
         result = self.app.post_json("/v1/metric",
@@ -823,9 +852,9 @@ class MetricTest(RestTest):
                            status=200)
         result = json.loads(ret.text)
         self.assertEqual(
-            [[u'2013-01-01T12:00:00.000000', 3600.0, 845.1],
-             [u'2013-01-01T12:00:00.000000', 60.0, 845.1],
-             [u'2013-01-01T12:00:00.000000', 1.0, 1234.2]],
+            [[u'2013-01-01T12:00:00.000000Z', 3600.0, 845.1],
+             [u'2013-01-01T12:00:00.000000Z', 60.0, 845.1],
+             [u'2013-01-01T12:00:00.000000Z', 1.0, 1234.2]],
             result)
 
     def test_get_measure_aggregation(self):
@@ -843,9 +872,9 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures?aggregation=max" % metric['id'],
             status=200)
         result = json.loads(ret.text)
-        self.assertEqual([[u'2013-01-01T00:00:00.000000', 86400.0, 12345.2],
-                          [u'2013-01-01T12:00:00.000000', 3600.0, 12345.2],
-                          [u'2013-01-01T12:00:00.000000', 60.0, 12345.2]],
+        self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 12345.2],
+                          [u'2013-01-01T12:00:00.000000Z', 3600.0, 12345.2],
+                          [u'2013-01-01T12:00:00.000000Z', 60.0, 12345.2]],
                          result)
 
     def test_get_moving_average(self):
@@ -868,7 +897,7 @@ class MetricTest(RestTest):
         ret = self.app.get(path % (metric['id'], 'moving-average', 120),
                            status=200)
         result = json.loads(ret.text)
-        expected = [[u'2013-01-01T12:00:00.000000', 120.0, 32.25]]
+        expected = [[u'2013-01-01T12:00:00.000000Z', 120.0, 32.25]]
         self.assertEqual(expected, result)
         ret = self.app.get(path % (metric['id'], 'moving-average', 90),
                            status=400)
@@ -1748,9 +1777,9 @@ class ResourceTest(RestTest):
         if self.resource_type == 'instance':
             self.assertEqual(200, result.status_code, result.text)
             measures = json.loads(result.text)
-            self.assertEqual([[u'2013-01-01T00:00:00.000000', 86400.0, 16.0],
-                              [u'2013-01-01T12:00:00.000000', 3600.0, 16.0],
-                              [u'2013-01-01T12:00:00.000000', 60.0, 16.0]],
+            self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 16.0],
+                              [u'2013-01-01T12:00:00.000000Z', 3600.0, 16.0],
+                              [u'2013-01-01T12:00:00.000000Z', 60.0, 16.0]],
                              measures)
         else:
             self.assertEqual(400, result.status_code)
@@ -1766,9 +1795,9 @@ class ResourceTest(RestTest):
         if self.resource_type == 'instance':
             self.assertEqual(200, result.status_code)
             measures = json.loads(result.text)
-            self.assertEqual([['2013-01-01T00:00:00.000000', 86400.0, 0],
-                              ['2013-01-01T12:00:00.000000', 3600.0, 0],
-                              ['2013-01-01T12:00:00.000000', 60.0, 0]],
+            self.assertEqual([['2013-01-01T00:00:00.000000Z', 86400.0, 0],
+                              ['2013-01-01T12:00:00.000000Z', 3600.0, 0],
+                              ['2013-01-01T12:00:00.000000Z', 60.0, 0]],
                              measures)
         else:
             self.assertEqual(400, result.status_code)
