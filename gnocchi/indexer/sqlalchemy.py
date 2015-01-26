@@ -21,7 +21,6 @@ import datetime
 import decimal
 import itertools
 import operator
-import uuid
 
 from oslo.db import exception
 from oslo.db import options
@@ -350,18 +349,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @staticmethod
     def _resource_to_dict(resource, with_metrics=False):
         r = dict(resource)
-        # FIXME(jd) Convert UUID to string; would be better if Pecan JSON
-        # serializer could be patched to handle that.
-        for k, v in six.iteritems(r):
-            if isinstance(v, uuid.UUID):
-                r[k] = six.text_type(v)
         if with_metrics and isinstance(resource, Resource):
             r['metrics'] = dict((m['name'], six.text_type(m['id']))
                                 for m in resource.metrics)
         return r
 
     def update_resource(self, resource_type,
-                        uuid, ended_at=_marker, metrics=_marker,
+                        resource_id, ended_at=_marker, metrics=_marker,
                         append_metrics=False,
                         **kwargs):
         resource_cls = self._resource_type_to_class(resource_type)
@@ -369,10 +363,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with session.begin():
             q = session.query(
                 resource_cls).filter(
-                    resource_cls.id == uuid)
+                    resource_cls.id == resource_id)
             r = q.first()
             if r is None:
-                raise indexer.NoSuchResource(uuid)
+                raise indexer.NoSuchResource(resource_id)
 
             if ended_at is not _marker:
                 # NOTE(jd) Could be better to have check in the db for that so
@@ -396,9 +390,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if metrics is not _marker:
                 if not append_metrics:
                     session.query(Metric).filter(
-                        Metric.resource_id == uuid).update(
+                        Metric.resource_id == resource_id).update(
                             {"resource_id": None})
-                self._set_metrics_for_resource(session, uuid,
+                self._set_metrics_for_resource(session, resource_id,
                                                r.created_by_user_id,
                                                r.created_by_project_id,
                                                metrics)
@@ -424,12 +418,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if session.query(Resource).filter(Resource.id == id).delete() == 0:
             raise indexer.NoSuchResource(id)
 
-    def get_resource(self, resource_type, uuid, with_metrics=False):
+    def get_resource(self, resource_type, resource_id, with_metrics=False):
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
         q = session.query(
             resource_cls).filter(
-                resource_cls.id == uuid)
+                resource_cls.id == resource_id)
         if with_metrics:
             q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
         r = q.first()
