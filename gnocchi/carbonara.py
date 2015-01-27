@@ -212,9 +212,9 @@ class AggregatedTimeSerie(TimeSerie):
                 and self.aggregation_method == other.aggregation_method)
 
     def set_values(self, values):
-        values = list(values)
         super(AggregatedTimeSerie, self).set_values(values)
-        self._resample(min(list(values), key=operator.itemgetter(0))[0])
+        # See comments in update()
+        self._resample(min(values, key=operator.itemgetter(0))[0])
         self._truncate()
 
     @classmethod
@@ -256,17 +256,24 @@ class AggregatedTimeSerie(TimeSerie):
                     self.ts[:after][:-1])
 
     def update(self, ts):
-        # NOTE(jd) Is there a more efficient way to do that with Pandas? The
-        # goal is to delete all the values that `ts' is providing again, so
-        # that means deleting the aggregate we did for it too.
-        index = sorted(ts.ts.index)
-        for timestamp, value in sorted(self.ts.iteritems()):
-            if timestamp >= index[0] and timestamp <= index[-1]:
-                del self.ts[timestamp]
+        index = ts.ts.index
+        first_timestamp = index[0]
+        last_timestamp = index[-1]
+        # Build a new time serie excluding all data points in the range of the
+        # timeserie passed as argument
+        new_ts = self.ts[:first_timestamp].combine_first(
+            self.ts[last_timestamp:])
 
-        self.ts = ts.ts.combine_first(self.ts)
+        # Build a new timeserie where we replaced the timestamp range covered
+        # by the timeserie passed as argument
+        self.ts = ts.ts.combine_first(new_ts)
 
-        self._resample(min(ts.ts.index))
+        # Resample starting from the first timestamp we received
+        # TODO(jd) So this only works correctly because we expect that we are
+        # not going to replace a range in the middle of our timeserie. So we re
+        # resample EVERYTHING FROM first timestamp. We should rather resample
+        # from first timestamp AND TO LAST TIMESTAMP!
+        self._resample(first_timestamp)
         self._truncate()
 
 

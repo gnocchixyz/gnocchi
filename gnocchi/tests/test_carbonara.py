@@ -94,22 +94,22 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
     def test_max_size(self):
         ts = carbonara.AggregatedTimeSerie(
             max_size=2)
-        ts.set_values(zip(
+        ts.set_values(list(zip(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6]))
+            [3, 5, 6])))
         self.assertEqual(2, len(ts))
         self.assertEqual(ts[0], 5)
         self.assertEqual(ts[1], 6)
 
     def test_down_sampling(self):
         ts = carbonara.AggregatedTimeSerie(sampling='5Min')
-        ts.set_values(zip(
+        ts.set_values(list(zip(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 7]))
+            [3, 5, 7])))
         self.assertEqual(1, len(ts))
         self.assertEqual(5, ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
 
@@ -117,12 +117,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts = carbonara.AggregatedTimeSerie(
             sampling='1Min',
             max_size=2)
-        ts.set_values(zip(
+        ts.set_values(list(zip(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 1, 4),
              datetime.datetime(2014, 1, 1, 12, 1, 9),
              datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 5, 7, 1]))
+            [3, 5, 7, 1])))
         self.assertEqual(2, len(ts))
         self.assertEqual(6, ts[datetime.datetime(2014, 1, 1, 12, 1, 0)])
         self.assertEqual(1, ts[datetime.datetime(2014, 1, 1, 12, 2, 0)])
@@ -132,12 +132,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             sampling='1Min',
             max_size=2,
             aggregation_method='max')
-        ts.set_values(zip(
+        ts.set_values(list(zip(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 1, 4),
              datetime.datetime(2014, 1, 1, 12, 1, 9),
              datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 5, 70, 1]))
+            [3, 5, 70, 1])))
         self.assertEqual(2, len(ts))
         self.assertEqual(70, ts[datetime.datetime(2014, 1, 1, 12, 1, 0)])
         self.assertEqual(1, ts[datetime.datetime(2014, 1, 1, 12, 2, 0)])
@@ -147,12 +147,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             sampling='1Min',
             max_size=2,
             aggregation_method='max')
-        ts.set_values(zip(
+        ts.set_values(list(zip(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 1, 4),
              datetime.datetime(2014, 1, 1, 12, 1, 9),
              datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 5, 7, 1]))
+            [3, 5, 7, 1])))
         ts2 = carbonara.AggregatedTimeSerie.from_dict(ts.to_dict())
         self.assertEqual(ts, ts2)
 
@@ -195,6 +195,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 6, 0), 3),
         ])
 
+        tsc.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 5, 13), 5),
+        ])
+
         self.assertEqual([
             (pandas.Timestamp('2014-01-01 11:45:00'), 300.0, 6.0),
             (pandas.Timestamp('2014-01-01 11:50:00'), 300.0, 27.0),
@@ -206,7 +210,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 8.0),
             (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 3.0),
             (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 7.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 8.0),
+            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 7),
             (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 3.0),
         ], tsc.fetch())
 
@@ -217,7 +221,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 8.0),
             (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 3.0),
             (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 7.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 8.0),
+            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 7),
             (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 3.0),
         ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
@@ -324,13 +328,16 @@ class TestTimeSerieArchive(base.BaseTestCase):
                          measure[0][0])
         self.assertAlmostEquals(measure[0][2], 3.0276503540974917)
 
-    def test_truncation(self):
+    def test_no_truncation(self):
         ts = carbonara.TimeSerieArchive.from_definitions(
             [(60, None)])
 
         for i in six.moves.range(1, 11):
             ts.set_values([
                 (datetime.datetime(2014, 1, 1, 12, i, i), float(i))
+            ])
+            ts.set_values([
+                (datetime.datetime(2014, 1, 1, 12, i, i + 1), float(i + 1))
             ])
             self.assertEqual(i, len(ts.fetch()))
 
