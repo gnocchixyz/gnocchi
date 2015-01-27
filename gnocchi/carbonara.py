@@ -385,6 +385,9 @@ class TimeSerieArchive(object):
     def serialize(self):
         return msgpack.dumps(self.to_dict())
 
+    def serialize_to_file(self, stream):
+        return msgpack.pack(self.to_dict(), stream)
+
     @staticmethod
     def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
                    aggregation='mean', needed_percent_of_overlap=100.0):
@@ -560,4 +563,4 @@ def update_archive_file():
         return 1
 
     args.filename[0].seek(0)
-    args.filename[0].write(ts.serialize())
+    ts.serialize_to_file(args.filename[0])
