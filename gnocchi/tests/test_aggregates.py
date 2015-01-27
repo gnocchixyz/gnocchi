@@ -76,10 +76,10 @@ class TestAggregates(tests_base.TestCase):
             grain, result = agg_obj.retrieve_data(self.storage, 'foo',
                                                   start=None, stop=None,
                                                   window=window)
-            self.assertEqual(grain, 60.0)
-            self.assertEqual(result[datetime.datetime(2014, 1, 1, 12)], 39.0)
-            self.assertEqual(result[datetime.datetime(2014, 1, 1, 12, 1)],
-                             25.5)
+            self.assertEqual(60.0, grain)
+            self.assertEqual(39.0, result[datetime.datetime(2014, 1, 1, 12)])
+            self.assertEqual(25.5,
+                             result[datetime.datetime(2014, 1, 1, 12, 1)])
         self.storage.delete_metric('foo')
 
     def test_compute_moving_average(self):
@@ -92,7 +92,7 @@ class TestAggregates(tests_base.TestCase):
                                  start=None, stop=None,
                                  window=window, center=center)
         expected = [(datetime.datetime(2014, 1, 1, 12), 120.0, 32.25)]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
         center = 'True'
         result = agg_obj.compute(self.storage, 'foo',
@@ -100,7 +100,7 @@ class TestAggregates(tests_base.TestCase):
                                  window=window, center=center)
 
         expected = [(datetime.datetime(2014, 1, 1, 12, 1), 120.0, 28.875)]
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
         # (FIXME) atmalagon: doing a centered average when
         # there are only two points in the retrieved data seems weird.
         # better to raise an error or return nan in this case?
