@@ -156,18 +156,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts2 = carbonara.AggregatedTimeSerie.from_dict(ts.to_dict())
         self.assertEqual(ts, ts2)
 
-    def test_serialize(self):
-        ts = carbonara.AggregatedTimeSerie(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 1, 4),
-             datetime.datetime(2014, 1, 1, 12, 2, 9),
-             datetime.datetime(2014, 1, 1, 12, 3, 12)],
-            [3, 5, 7, 100],
-            sampling='1Min',
-            max_size=10)
-        s = ts.serialize()
-        self.assertEqual(ts, carbonara.AggregatedTimeSerie.unserialize(s))
-
 
 class TestTimeSerieArchive(base.BaseTestCase):
 
