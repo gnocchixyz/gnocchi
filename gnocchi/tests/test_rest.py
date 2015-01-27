@@ -812,7 +812,7 @@ class MetricTest(RestTest):
     def test_get_measure_start_relative(self):
         """Make sure the timestamps can be relative to now."""
         # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override()
+        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
         self.addCleanup(timeutils.clear_time_override)
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "high"})
