@@ -61,9 +61,8 @@ class TimeSerie(object):
         return self.ts[key]
 
     def set_values(self, values):
-        for timestamp, value in values:
-            self.ts[timestamp] = value
-        self.ts = self.ts.sort_index()
+        t = pandas.Series(*reversed(list(zip(*values))))
+        self.ts = t.combine_first(self.ts).sort_index()
 
     def __len__(self):
         return len(self.ts)
