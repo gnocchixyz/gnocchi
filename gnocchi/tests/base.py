@@ -24,8 +24,6 @@ from oslo.config import fixture as config_fixture
 from oslotest import base
 from oslotest import mockpatch
 import six
-import sqlalchemy.engine.url as sqlalchemy_url
-import sqlalchemy_utils
 from stevedore import extension
 from swiftclient import exceptions as swexc
 import testscenarios
@@ -269,16 +267,12 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
                                                  indexer_backends)
 
     def _pre_connect_sqlalchemy(self):
-        db_url = getattr(self, 'db_url', 'sqlite://')
-        if db_url:
-            url = sqlalchemy_url.make_url(db_url)
-            url.database = url.database + str(uuid.uuid4()).replace('-', '')
-            db_url = str(url)
-        self.conf.set_override('connection', db_url, 'database')
+        self.conf.set_override('connection',
+                               getattr(self, "db_url", "sqlite:///"),
+                               'database')
         # No env var exported, no integration tests
         if self.conf.database.connection is None:
             raise testcase.TestSkipped("No database connection configured")
-        sqlalchemy_utils.create_database(db_url)
 
     @staticmethod
     def path_get(project_file=None):
@@ -290,16 +284,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         if project_file:
             return os.path.join(root, project_file)
         return root
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestCase, cls).setUpClass()
-        cls.tempdir = fixtures.TempDir()
-        cls.tempdir.setUp()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanUp()
 
     def setUp(self):
         super(TestCase, self).setUp()
@@ -322,7 +306,7 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.conf.import_opt('coordination_url', 'gnocchi.storage._carbonara',
                              'storage')
         self.conf.set_override('coordination_url',
-                               "file://" + self.tempdir.path,
+                               os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
                                'storage')
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
@@ -331,7 +315,7 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         # path to be sequential to avoid race conditions as the tests run in
         # parallel.
         self.coord = coordination.get_coordinator(
-            "file://" + self.tempdir.path,
+            os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
             str(uuid.uuid4()).encode('ascii'))
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):

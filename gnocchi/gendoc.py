@@ -32,7 +32,6 @@ _RUN = False
 
 
 def _setup_test_app():
-    test_rest.RestTest.setUpClass()
     t = test_rest.RestTest()
     t.indexer_engine = 'sqlalchemy'
     t.db_url = os.environ.get("GNOCCHI_TEST_PGSQL_URL")

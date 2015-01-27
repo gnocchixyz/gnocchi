@@ -26,3 +26,4 @@ voluptuous
 werkzeug
 Jinja2
 PyYAML
+sysv_ipc
