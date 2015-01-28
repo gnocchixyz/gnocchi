@@ -89,7 +89,7 @@ class TimeSerie(object):
             # NOTE(jd) Store up to the nanosecond
             'values': dict((timestamp.value, float(v))
                            for timestamp, v
-                           in six.iteritems(self.ts[~self.ts.isnull()])),
+                           in six.iteritems(self.ts.dropna())),
         }
 
     @staticmethod
@@ -234,8 +234,7 @@ class AggregatedTimeSerie(TimeSerie):
         """Truncate the timeserie."""
         if self.max_size is not None:
             # Remove empty points if any that could be added by aggregation
-            self.ts = self.ts[~self.ts.isnull()]
-            self.ts = self.ts[-self.max_size:]
+            self.ts = self.ts.dropna()[-self.max_size:]
 
     def _resample(self, after):
         if self.sampling:
