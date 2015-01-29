@@ -136,7 +136,7 @@ class Metric(Base, GnocchiBase):
         nullable=False)
     resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
-                                                          ondelete="SET NULL"))
+                                                          ondelete="CASCADE"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
 
 
@@ -413,10 +413,19 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if update == 0:
                 raise indexer.NoSuchMetric(metric_id)
 
-    def delete_resource(self, id):
+    def delete_resource(self, resource_id, delete_metrics=None):
         session = self.engine_facade.get_session()
-        if session.query(Resource).filter(Resource.id == id).delete() == 0:
-            raise indexer.NoSuchResource(id)
+        with session.begin():
+            q = session.query(Resource).filter(
+                Resource.id == resource_id).options(
+                    sqlalchemy.orm.joinedload(Resource.metrics))
+            r = q.first()
+            if r is None:
+                raise indexer.NoSuchResource(resource_id)
+            q.delete()
+            if delete_metrics is not None:
+                delete_metrics([self._resource_to_dict(m)
+                                for m in r.metrics])
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         resource_cls = self._resource_type_to_class(resource_type)

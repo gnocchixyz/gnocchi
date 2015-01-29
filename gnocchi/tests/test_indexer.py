@@ -156,7 +156,20 @@ class TestIndexerDriver(tests_base.TestCase):
     def test_delete_resource(self):
         r1 = uuid.uuid4()
         self.index.create_resource('generic', r1, uuid.uuid4(), uuid.uuid4())
+
+        class Boom(Exception):
+            pass
+
+        def delete_metrics(metrics):
+            raise Boom
+
+        self.assertRaises(Boom,
+                          self.index.delete_resource,
+                          r1, delete_metrics=delete_metrics)
         self.index.delete_resource(r1)
+        self.assertRaises(indexer.NoSuchResource,
+                          self.index.delete_resource,
+                          r1)
 
     def test_delete_resource_non_existent(self):
         r1 = uuid.uuid4()

@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -32,6 +32,7 @@ import webtest
 from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
+from gnocchi import storage
 from gnocchi.tests import base as tests_base
 
 
@@ -1360,9 +1361,42 @@ class ResourceTest(RestTest):
     def test_delete_resource(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
+        self.app.get("/v1/resource/" + self.resource_type + "/"
+                     + self.attributes['id'],
+                     status=200)
         self.app.delete("/v1/resource/" + self.resource_type + "/"
                         + self.attributes['id'],
                         status=204)
+        self.app.get("/v1/resource/" + self.resource_type + "/"
+                     + self.attributes['id'],
+                     status=404)
+
+    def test_delete_resource_with_metrics(self):
+        metric = self.app.post_json(
+            "/v1/metric",
+            params={'archive_policy_name': "high"})
+        metric_id = json.loads(metric.text)['id']
+        metric_name = six.text_type(uuid.uuid4())
+        self.attributes['metrics'] = {metric_name: metric_id}
+        self.app.get("/v1/metric/" + metric_id,
+                     status=200)
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        self.app.get("/v1/resource/" + self.resource_type + "/"
+                     + self.attributes['id'],
+                     status=200)
+        self.app.delete("/v1/resource/" + self.resource_type + "/"
+                        + self.attributes['id'],
+                        status=204)
+        self.app.get("/v1/resource/" + self.resource_type + "/"
+                     + self.attributes['id'],
+                     status=404)
+        self.app.get("/v1/metric/" + metric_id,
+                     status=404)
+        # Test that storage deleted it
+        self.assertRaises(storage.MetricDoesNotExist,
+                          self.storage.get_measures,
+                          metric_id)
 
     def test_delete_resource_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,

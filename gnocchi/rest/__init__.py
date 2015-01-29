@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -23,6 +23,7 @@ import uuid
 import iso8601
 from oslo.utils import strutils
 from oslo.utils import timeutils
+from oslo_log import log
 import pecan
 from pecan import rest
 from pytimeparse import timeparse
@@ -43,6 +44,8 @@ LOGICAL_AND = '∧'
 
 
 _ENFORCER = None
+
+LOG = log.getLogger(__name__)
 
 
 def enforce(rule, target):
@@ -664,6 +667,19 @@ class GenericResourceController(rest.RestController):
         except indexer.NoSuchResource as e:
             pecan.abort(404, e)
 
+    @staticmethod
+    def _delete_metrics(metrics):
+        for metric in metrics:
+            enforce("delete metric", metric)
+        for metric in metrics:
+            try:
+                pecan.request.storage.delete_metric(str(metric['id']))
+            except Exception:
+                LOG.error(
+                    "Unable to delete metric `%s' from storage, "
+                    "you will need to delete it manually" % metric,
+                    exc_info=True)
+
     @pecan.expose()
     def delete(self):
         resource = pecan.request.indexer.get_resource(
@@ -672,7 +688,9 @@ class GenericResourceController(rest.RestController):
             pecan.abort(404, indexer.NoSuchResource(self.id))
         enforce("delete resource", resource)
         try:
-            pecan.request.indexer.delete_resource(self.id)
+            pecan.request.indexer.delete_resource(
+                self.id,
+                delete_metrics=self._delete_metrics)
         except indexer.NoSuchResource as e:
             pecan.abort(404, str(e))
 
