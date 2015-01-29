@@ -20,13 +20,16 @@ import datetime
 import json
 import uuid
 
+import mock
 from oslo.utils import timeutils
 import pecan
 import six
 from six.moves.urllib import parse as urllib_parse
+from stevedore import extension
 import testscenarios
 import webtest
 
+from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
@@ -1801,6 +1804,21 @@ class ResourceTest(RestTest):
                              measures)
         else:
             self.assertEqual(400, result.status_code)
+
+    def test_capabilities(self):
+        custom_agg = extension.Extension('test_aggregation', None, None, None)
+        aggregation_methods = set(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
+        aggregation_methods.add('test_aggregation')
+        mgr = extension.ExtensionManager.make_test_instance(
+            [custom_agg], 'gnocchi.aggregates')
+
+        with mock.patch.object(extension, 'ExtensionManager',
+                               return_value=mgr):
+            result = self.app.get("/v1/capabilities")
+            self.assertEqual(
+                sorted(aggregation_methods),
+                sorted(json.loads(result.text)['aggregation_methods']))
 
 
 class GenericResourceTest(RestTest):
