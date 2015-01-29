@@ -16,7 +16,7 @@ mysqld --no-defaults --datadir=${MYSQL_DATA} --pid-file=${MYSQL_DATA}/mysql.pid 
 # Wait for MySQL to start listening to connections
 wait_for_line "mysqld: ready for connections." ${MYSQL_DATA}/out
 export GNOCCHI_TEST_MYSQL_URL="mysql://root@localhost/test?unix_socket=${MYSQL_DATA}/mysql.socket&charset=utf8"
-mysql -S ${MYSQL_DATA}/mysql.socket -e 'CREATE DATABASE test;'
+mysql --no-defaults -S ${MYSQL_DATA}/mysql.socket -e 'CREATE DATABASE test;'
 
 mkdir $MYSQL_DATA/tooz
 export GNOCCHI_COORDINATION_URL="file:///$MYSQL_DATA/tooz"
