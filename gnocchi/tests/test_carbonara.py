@@ -30,7 +30,8 @@ from gnocchi import carbonara
 
 
 class TestBoundTimeSerie(base.BaseTestCase):
-    def test_base(self):
+    @staticmethod
+    def test_base():
         carbonara.BoundTimeSerie([datetime.datetime(2014, 1, 1, 12, 0, 0),
                                   datetime.datetime(2014, 1, 1, 12, 0, 4),
                                   datetime.datetime(2014, 1, 1, 12, 0, 9)],
@@ -75,8 +76,8 @@ class TestBoundTimeSerie(base.BaseTestCase):
 
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
-
-    def test_base(self):
+    @staticmethod
+    def test_base():
         carbonara.AggregatedTimeSerie(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),

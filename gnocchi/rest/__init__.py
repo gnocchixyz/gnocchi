@@ -478,8 +478,9 @@ class MetricsController(rest.RestController):
         return {"id": str(id),
                 "archive_policy_name": str(body['archive_policy_name'])}
 
+    @staticmethod
     @pecan.expose('json')
-    def get_all(self, **kwargs):
+    def get_all(**kwargs):
         try:
             enforce("list all metric", {})
         except webob.exc.HTTPForbidden:
@@ -807,8 +808,9 @@ class V1Controller(rest.RestController):
         'capabilities': ['GET']
     }
 
+    @staticmethod
     @pecan.expose('json')
-    def get_capabilities(self):
+    def get_capabilities():
         aggregation_methods = set(
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
         aggregation_methods.update(

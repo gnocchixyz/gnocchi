@@ -74,7 +74,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _create_metric_container(metric):
         pass
 
-    def _lock(self, metric, aggregation):
+    @staticmethod
+    def _lock(metric, aggregation):
         raise NotImplementedError
 
     def create_metric(self, metric, archive_policy):

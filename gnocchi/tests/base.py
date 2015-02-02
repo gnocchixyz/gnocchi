@@ -90,7 +90,8 @@ class FakeRadosModule(object):
                 self.kvs[key] = ""
             return 0
 
-        def close(self):
+        @staticmethod
+        def close():
             pass
 
         def write_full(self, key, value):

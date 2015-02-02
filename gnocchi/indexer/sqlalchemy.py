@@ -399,7 +399,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         return self._resource_to_dict(r, with_metrics=True)
 
-    def _set_metrics_for_resource(self, session, resource_id,
+    @staticmethod
+    def _set_metrics_for_resource(session, resource_id,
                                   user_id, project_id, metrics):
         for name, metric_id in six.iteritems(metrics):
             try:
