@@ -276,6 +276,12 @@ class AggregatedMetricController(rest.RestController):
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
                      needed_overlap=100.0):
+        return self.get_cross_metric_measures(self.metric_ids, start, stop,
+                                              aggregation, needed_overlap)
+
+    @staticmethod
+    def get_cross_metric_measures(metric_ids, start=None, stop=None,
+                                  aggregation='mean', needed_overlap=100.0):
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             pecan.abort(
@@ -285,9 +291,9 @@ class AggregatedMetricController(rest.RestController):
                    archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         # Check RBAC policy
-        metrics = pecan.request.indexer.get_metrics(self.metric_ids)
+        metrics = pecan.request.indexer.get_metrics(metric_ids)
         missing_metric_ids = (set(six.text_type(m['id']) for m in metrics)
-                              - set(self.metric_ids))
+                              - set(metric_ids))
         if missing_metric_ids:
             # Return one of the missing one in the error
             pecan.abort(404, storage.MetricDoesNotExist(
@@ -297,8 +303,13 @@ class AggregatedMetricController(rest.RestController):
             enforce("get metric", metric)
 
         try:
-            measures = pecan.request.storage.get_cross_metric_measures(
-                self.metric_ids, start, stop, aggregation, needed_overlap)
+            if len(metric_ids) == 1:
+                # NOTE(sileht): don't do the aggregation if we only one metric
+                measures = pecan.request.storage.get_measures(
+                    metric_ids[0], start, stop, aggregation)
+            else:
+                measures = pecan.request.storage.get_cross_metric_measures(
+                    metric_ids, start, stop, aggregation, needed_overlap)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -805,7 +816,8 @@ class V1Controller(rest.RestController):
     resource = ResourcesController()
 
     _custom_actions = {
-        'capabilities': ['GET']
+        'capabilities': ['GET'],
+        'metric_aggregation': ['GET'],
     }
 
     @staticmethod
@@ -817,6 +829,17 @@ class V1Controller(rest.RestController):
             ext.name for ext in extension.ExtensionManager(
                 namespace='gnocchi.aggregates'))
         return dict(aggregation_methods=aggregation_methods)
+
+    @pecan.expose('json')
+    def get_metric_aggregation(self, metric=None, start=None,
+                               stop=None, aggregation='mean',
+                               needed_overlap=100.0):
+        if isinstance(metric, list):
+            metrics = metric
+        else:
+            metrics = [metric]
+        return AggregatedMetricController.get_cross_metric_measures(
+            metrics, start, stop, aggregation, needed_overlap)
 
 
 class RootController(object):

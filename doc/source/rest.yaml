@@ -163,7 +163,8 @@
       "flavor_id": 2,
       "image_ref": "http://image",
       "host": "compute1",
-      "display_name": "myvm",
+      "display_name": "myvm2",
+      "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": "{{ scenarios['create-metric']['response'].json['id'] }}"}
     }
 
@@ -179,12 +180,60 @@
       "flavor_id": 2,
       "image_ref": "http://image",
       "host": "compute1",
-      "display_name": "myvm",
+      "display_name": "myvm2",
+      "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": {"archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
     }
 
 - name: get-resource-named-metrics-measures
   request: GET /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric/cpu.util/measures?start=2014-10-06T14:34 HTTP/1.1
+
+- name: post-resource-named-metrics-measures1
+  request: |
+    POST /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric/cpu.util/measures HTTP/1.1
+    Content-Type: application/json
+
+    [
+      {
+        "timestamp": "2014-10-06T14:33:57",
+        "value": 3.5
+      },
+      {
+        "timestamp": "2014-10-06T14:34:12",
+        "value": 20
+      },
+      {
+        "timestamp": "2014-10-06T14:34:20",
+        "value": 9
+      }
+    ]
+
+- name: post-resource-named-metrics-measures2
+  request: |
+    POST /v1/resource/generic/{{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['id'] }}/metric/cpu.util/measures HTTP/1.1
+    Content-Type: application/json
+
+    [
+      {
+        "timestamp": "2014-10-06T14:33:57",
+        "value": 25.1
+      },
+      {
+        "timestamp": "2014-10-06T14:34:12",
+        "value": 4.5
+      },
+      {
+        "timestamp": "2014-10-06T14:34:20",
+        "value": 14.2
+      }
+    ]
+
+- name: get-across-metrics-measures-by-attributes-lookup
+  request: GET /v1/resource/instance/server_group=my_autoscaling_group/metric/cpu.util/measures?start=2014-10-06T14:34&aggregation=mean HTTP/1.1
+
+- name: get-across-metrics-measures-by-metric-ids
+  request: |
+    GET /v1/metric_aggregation?metric={{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}&metric={{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}&start=2014-10-06T14:34&aggregation=mean HTTP/1.1
 
 - name: append-metrics-to-resource
   request: |
