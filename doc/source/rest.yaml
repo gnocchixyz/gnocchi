@@ -192,3 +192,6 @@
     Content-Type: application/json
 
     {"memory": {"archive_policy_name": "low"}}
+
+- name: get-capabilities
+  request: GET /v1/capabilities HTTP/1.1
