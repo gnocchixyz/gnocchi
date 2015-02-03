@@ -21,7 +21,8 @@ from oslo_log import log
 LOG = log.getLogger(__name__)
 
 
-def prepare_service():
-    cfg.CONF(project='gnocchi')
-    log.setup(cfg.CONF, 'gnocchi')
-    cfg.CONF.log_opt_values(LOG, logging.DEBUG)
+def prepare_service(args=None, conf=cfg.CONF):
+    log.register_options(conf)
+    log.setup(conf, 'gnocchi')
+    conf(args, project='gnocchi')
+    conf.log_opt_values(LOG, logging.DEBUG)

@@ -33,6 +33,7 @@ from tooz import coordination
 from gnocchi import archive_policy
 from gnocchi import exceptions
 from gnocchi import indexer
+from gnocchi import service
 from gnocchi import storage
 
 
@@ -289,11 +290,10 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
     def setUp(self):
         super(TestCase, self).setUp()
         self.conf = self.useFixture(config_fixture.Config()).conf
-        self.conf([], project='gnocchi')
+        service.prepare_service([], self.conf)
         self.conf.import_opt('policy_file', 'gnocchi.openstack.common.policy')
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'))
-        self.conf.import_opt('debug', 'gnocchi.openstack.common.log')
         self.conf.set_override('debug', True)
 
         self.conf.set_override('driver', self.indexer_engine, 'indexer')

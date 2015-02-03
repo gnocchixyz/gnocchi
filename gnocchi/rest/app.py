@@ -38,7 +38,6 @@ from gnocchi import storage
 
 LOG = log.getLogger(__name__)
 
-cfg.CONF.import_opt('debug', 'gnocchi.openstack.common.log')
 
 OPTS = [
     cfg.IntOpt('port',

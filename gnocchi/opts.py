@@ -18,7 +18,6 @@
 import itertools
 
 import gnocchi.indexer
-import gnocchi.openstack.common.log
 import gnocchi.openstack.common.policy
 import gnocchi.rest.app
 import gnocchi.storage
@@ -29,10 +28,6 @@ import gnocchi.storage.swift
 def list_opts():
     return [
         ("DEFAULT", itertools.chain(
-            gnocchi.openstack.common.log.common_cli_opts,
-            gnocchi.openstack.common.log.logging_cli_opts,
-            gnocchi.openstack.common.log.generic_log_opts,
-            gnocchi.openstack.common.log.log_opts,
             gnocchi.openstack.common.policy.policy_opts)),
         ("indexer", gnocchi.indexer.OPTS),
         ("api", gnocchi.rest.app.OPTS),
