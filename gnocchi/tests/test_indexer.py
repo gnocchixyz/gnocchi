@@ -428,12 +428,12 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"user_id": user})
-        self.assertEqual(len(resources), 1)
+        self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"user_id": uuid.uuid4()})
-        self.assertEqual(len(resources), 0)
+        self.assertEqual(0, len(resources))
 
     def test_list_resources_by_created_by_user(self):
         r1 = uuid.uuid4()
@@ -443,12 +443,12 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"created_by_user_id": user})
-        self.assertEqual(len(resources), 1)
+        self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"created_by_user_id": uuid.uuid4()})
-        self.assertEqual(len(resources), 0)
+        self.assertEqual(0, len(resources))
 
     def test_list_resources_by_user_with_details(self):
         r1 = uuid.uuid4()
@@ -469,7 +469,7 @@ class TestIndexerDriver(tests_base.TestCase):
             attributes_filter={"user_id": user},
             details=True,
         )
-        self.assertEqual(len(resources), 2)
+        self.assertEqual(2, len(resources))
         self.assertIn(g, resources)
         self.assertIn(i, resources)
 
@@ -482,12 +482,12 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"project_id": project})
-        self.assertEqual(len(resources), 1)
+        self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
             attributes_filter={"project_id": uuid.uuid4()})
-        self.assertEqual(len(resources), 0)
+        self.assertEqual(0, len(resources))
 
     def test_list_resources(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
@@ -579,7 +579,7 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = self.index.list_resources(
             'generic',
             ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
-        self.assertEqual(len(resources), 0)
+        self.assertEqual(0, len(resources))
 
     def test_get_metric(self):
         e1 = uuid.uuid4()

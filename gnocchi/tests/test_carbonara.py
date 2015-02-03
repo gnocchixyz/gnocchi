@@ -44,10 +44,10 @@ class TestBoundTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6],
             block_size='5s')
-        self.assertEqual(len(ts), 1)
+        self.assertEqual(1, len(ts))
         ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 10), 3),
                        (datetime.datetime(2014, 1, 1, 12, 0, 11), 4)])
-        self.assertEqual(len(ts), 2)
+        self.assertEqual(2, len(ts))
 
     def test_block_size_back_window(self):
         ts = carbonara.BoundTimeSerie(
@@ -57,10 +57,10 @@ class TestBoundTimeSerie(base.BaseTestCase):
             [3, 5, 6],
             block_size='5s',
             back_window=1)
-        self.assertEqual(len(ts), 3)
+        self.assertEqual(3, len(ts))
         ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 10), 3),
                        (datetime.datetime(2014, 1, 1, 12, 0, 11), 4)])
-        self.assertEqual(len(ts), 3)
+        self.assertEqual(3, len(ts))
 
     def test_block_size_unordered(self):
         ts = carbonara.BoundTimeSerie(
@@ -69,10 +69,10 @@ class TestBoundTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 5)],
             [10, 5, 23],
             block_size='5s')
-        self.assertEqual(len(ts), 2)
+        self.assertEqual(2, len(ts))
         ts.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 11), 3),
                        (datetime.datetime(2014, 1, 1, 12, 0, 10), 4)])
-        self.assertEqual(len(ts), 2)
+        self.assertEqual(2, len(ts))
 
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
@@ -101,8 +101,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])))
         self.assertEqual(2, len(ts))
-        self.assertEqual(ts[0], 5)
-        self.assertEqual(ts[1], 6)
+        self.assertEqual(5, ts[0])
+        self.assertEqual(6, ts[1])
 
     def test_down_sampling(self):
         ts = carbonara.AggregatedTimeSerie(sampling='5Min')

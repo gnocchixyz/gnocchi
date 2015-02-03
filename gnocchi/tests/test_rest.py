@@ -503,7 +503,7 @@ class MetricTest(RestTest):
         metric = json.loads(result.text)
         self.assertEqual("http://localhost/v1/metric/" + metric['id'],
                          result.headers['Location'])
-        self.assertEqual(metric['archive_policy_name'], "medium")
+        self.assertEqual("medium", metric['archive_policy_name'])
 
     def test_get_metric(self):
         result = self.app.post_json("/v1/metric",
@@ -513,7 +513,7 @@ class MetricTest(RestTest):
 
         result = self.app.get(result.headers['Location'], status=200)
         metric = json.loads(result.text)
-        self.assertEqual(metric['archive_policy_name'], "medium")
+        self.assertEqual("medium", metric['archive_policy_name'])
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
@@ -1025,7 +1025,7 @@ class ResourceTest(RestTest):
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/" + self.attributes['id'],
                          result.headers['Location'])
-        self.assertEqual(resource, self.resource)
+        self.assertEqual(self.resource, resource)
 
     def test_post_resource_with_invalid_metric(self):
         metric_id = str(uuid.uuid4())
@@ -1247,7 +1247,7 @@ class ResourceTest(RestTest):
                               + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertEqual(result['metrics'], {})
+        self.assertEqual({}, result['metrics'])
 
     def test_patch_resource_non_existent_metrics(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1268,7 +1268,7 @@ class ResourceTest(RestTest):
                               + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
-        self.assertEqual(result['metrics'], {})
+        self.assertEqual({}, result['metrics'])
 
     def test_patch_resource_attributes(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1405,7 +1405,7 @@ class ResourceTest(RestTest):
                          + self.attributes['id'],
                          result.headers['Location'])
         self.resource['metrics'] = self.attributes['metrics']
-        self.assertEqual(resource, self.resource)
+        self.assertEqual(self.resource, resource)
 
     def test_post_resource_with_null_metrics(self):
         self.attributes['metrics'] = {"foo": {"archive_policy_name": "low"}}
@@ -1417,7 +1417,7 @@ class ResourceTest(RestTest):
                          + self.resource_type + "/"
                          + self.attributes['id'],
                          result.headers['Location'])
-        self.assertEqual(resource["id"], self.attributes['id'])
+        self.assertEqual(self.attributes['id'], resource["id"])
         metric_id = uuid.UUID(resource['metrics']['foo'])
         result = self.app.get("/v1/metric/" + str(metric_id) + "/measures",
                               status=200)
