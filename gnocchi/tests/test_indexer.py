@@ -43,6 +43,20 @@ class TestIndexerDriver(tests_base.TestCase):
                           self.index.create_archive_policy,
                           archive_policy.ArchivePolicy("high", 0, {}))
 
+    def test_get_archive_policy(self):
+        ap = self.index.get_archive_policy("low")
+        self.assertEqual(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(ap['aggregation_methods']))
+        del ap['aggregation_methods']
+        self.assertEqual({
+            'back_window': 0,
+            'definition': [
+                {u'granularity': 300, u'points': 12, u'timespan': 3600},
+                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
+                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+            'name': u'low'}, ap)
+
     def test_delete_archive_policy(self):
         name = str(uuid.uuid4())
         self.index.create_archive_policy(
@@ -607,25 +621,31 @@ class TestIndexerDriver(tests_base.TestCase):
                                  archive_policy_name="low")
 
         metric = self.index.get_metrics([e1], details=True)
-        self.assertEqual([{"id": e1,
-                           "archive_policy": {
-                               "back_window": 0,
-                               "definition": [
-                                   {'granularity': 300,
-                                    'points': 12,
-                                    'timespan': 3600},
-                                   {'granularity': 3600,
-                                    'points': 24,
-                                    'timespan': 86400},
-                                   {'granularity': 86400,
-                                    'points': 30,
-                                    'timespan': 2592000}],
-                               "name": "low"},
-                           "created_by_user_id": user,
-                           "created_by_project_id": project,
-                           "name": None,
-                           "resource_id": None}],
-                         metric)
+        # Order of the list is random, use a set then
+        metric[0]['archive_policy']['aggregation_methods'] = set(
+            metric[0]['archive_policy']['aggregation_methods'])
+        self.assertEqual([
+            {"id": e1,
+             "archive_policy": {
+                 'aggregation_methods':
+                 archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+                 "back_window": 0,
+                 "definition": [
+                     {'granularity': 300,
+                      'points': 12,
+                      'timespan': 3600},
+                     {'granularity': 3600,
+                      'points': 24,
+                      'timespan': 86400},
+                     {'granularity': 86400,
+                      'points': 30,
+                      'timespan': 2592000}],
+                 "name": "low"},
+             "created_by_user_id": user,
+             "created_by_project_id": project,
+             "name": None,
+             "resource_id": None}
+        ], metric)
 
     def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()

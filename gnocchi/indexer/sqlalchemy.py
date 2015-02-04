@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -109,6 +109,9 @@ class ArchivePolicy(Base, GnocchiBase):
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
     back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
     definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
+    # TODO(jd) Use an array of string instead, PostgreSQL can do that
+    aggregation_methods = sqlalchemy.Column(sqlalchemy_utils.JSONType,
+                                            nullable=False)
 
 
 class Metric(Base, GnocchiBase):
@@ -272,10 +275,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return list(map(self._resource_to_dict, query.all()))
 
     def create_archive_policy(self, archive_policy):
-        ap = ArchivePolicy(name=archive_policy.name,
-                           back_window=archive_policy.back_window,
-                           definition=[d.to_dict()
-                                       for d in archive_policy.definition])
+        ap = ArchivePolicy(
+            name=archive_policy.name,
+            back_window=archive_policy.back_window,
+            definition=[d.to_dict()
+                        for d in archive_policy.definition],
+            aggregation_methods=list(archive_policy.aggregation_methods),
+        )
         session = self.engine_facade.get_session()
         session.add(ap)
         try:
