@@ -53,10 +53,11 @@ class AlarmGnocchiThresholdRule(base.AlarmRule):
     @classmethod
     def validate_alarm(cls, alarm):
         alarm_rule = getattr(alarm, "%s_rule" % alarm.type)
-        aggregation_method = alarm_rule['aggregation_method']
+        aggregation_method = alarm_rule.aggregation_method
         if aggregation_method not in cls._get_aggregation_methods():
-            raise wsme.exc.InvalidInput('aggregation_method',
-                                        aggregation_method)
+            raise base.ClientSideError(
+                'aggregation_method should be in %s not %s' % (
+                    cls._get_aggregation_methods(), aggregation_method))
 
     @staticmethod
     @cachetools.ttl_cache(maxsize=1, ttl=600)
@@ -73,7 +74,7 @@ class AlarmGnocchiThresholdRule(base.AlarmRule):
         if r.status_code / 200 != 1:
             raise GnocchiUnavailable(r.text)
 
-        return jsonutils.loads(r.text).get('aggregation_method', [])
+        return jsonutils.loads(r.text).get('aggregation_methods', [])
 
 
 class AlarmGnocchiMetricOfResourcesThresholdRule(AlarmGnocchiThresholdRule):
@@ -88,10 +89,10 @@ class AlarmGnocchiMetricOfResourcesThresholdRule(AlarmGnocchiThresholdRule):
 
     def as_dict(self):
         rule = self.as_dict_from_keys(['granularity', 'comparison_operator',
-                                       'threshold', 'aggregation',
+                                       'threshold', 'aggregation_method',
                                        'evaluation_periods',
                                        'metric',
-                                       'resource',
+                                       'resource_constraint',
                                        'resource_type'])
         return rule
 
@@ -102,7 +103,7 @@ class AlarmGnocchiMetricsThresholdRule(AlarmGnocchiThresholdRule):
 
     def as_dict(self):
         rule = self.as_dict_from_keys(['granularity', 'comparison_operator',
-                                       'threshold', 'aggregation',
+                                       'threshold', 'aggregation_method',
                                        'evaluation_periods',
                                        'metrics'])
         return rule

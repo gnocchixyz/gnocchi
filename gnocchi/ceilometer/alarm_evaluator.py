@@ -75,7 +75,7 @@ class GnocchiThresholdEvaluator(evaluator.Evaluator):
             url = ("%s/v1/metric_aggregation/?"
                    "aggregation=%s&start=%s&end=%s&%s") % (
                        self.gnocchi_url,
-                       alarm.rule['aggregation'],
+                       alarm.rule['aggregation_method'],
                        start, end,
                        "&".join("metric=%s" % m
                                 for m in alarm.rule['metrics']))
@@ -87,7 +87,7 @@ class GnocchiThresholdEvaluator(evaluator.Evaluator):
                        alarm.rule['resource_type'],
                        alarm.rule['resource_constraint'],
                        alarm.rule['metric'],
-                       alarm.rule['aggregation'],
+                       alarm.rule['aggregation_method'],
                        start, end)
 
         LOG.debug(_('stats query %s') % url)
