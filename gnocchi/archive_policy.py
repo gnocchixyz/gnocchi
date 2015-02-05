@@ -27,6 +27,13 @@ class ArchivePolicy(object):
     VALID_AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
                                      'std', 'median', 'first', 'count'))
 
+    # Set that contains all the above values + their minus equivalent (-mean)
+    # and the "*" entry.
+    VALID_AGGREGATION_METHODS_VALUES = VALID_AGGREGATION_METHODS.union(
+        set(('*',)),
+        set(map(lambda s: "-" + s,
+                VALID_AGGREGATION_METHODS)))
+
     def __init__(self, name, back_window, definition,
                  aggregation_methods=None):
         self.name = name
@@ -55,10 +62,7 @@ class ArchivePolicy(object):
     @aggregation_methods.setter
     def aggregation_methods(self, value):
         value = set(value)
-        rest = (value
-                - self.VALID_AGGREGATION_METHODS
-                - set(('*',))
-                - set(map(lambda s: "-" + s, self.VALID_AGGREGATION_METHODS)))
+        rest = value - self.VALID_AGGREGATION_METHODS_VALUES
         if rest:
             raise ValueError("Invalid value for aggregation_methods: %s" %
                              rest)

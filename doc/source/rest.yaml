@@ -18,6 +18,27 @@
       ]
     }
 
+- name: create-archive-policy-without-max
+  request: |
+    POST /v1/archive_policy HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "low-without-max",
+      "aggregation_methods": ["-max", "-min"],
+      "back_window": 0,
+      "definition": [
+        {
+          "granularity": "1s",
+          "timespan": "1 hour"
+        },
+        {
+          "points": 48,
+          "timespan": "1 day"
+        }
+      ]
+    }
+
 - name: get-archive-policy
   request: GET /v1/archive_policy/{{ scenarios['create-archive-policy']['response'].json['name'] }} HTTP/1.1
 

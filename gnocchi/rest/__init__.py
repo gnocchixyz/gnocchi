@@ -205,10 +205,19 @@ def get_details(params):
     return details
 
 
+def ValidAggMethod(value):
+    value = six.text_type(value)
+    if value in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES:
+        return value
+    raise ValueError("Invalid aggregation method")
+
+
 class ArchivePoliciesController(rest.RestController):
     ArchivePolicy = voluptuous.Schema({
         voluptuous.Required("name"): six.text_type,
         voluptuous.Required("back_window", default=0): PositiveOrNullInt,
+        voluptuous.Required("aggregation_methods",
+                            default=["*"]): [ValidAggMethod],
         voluptuous.Required("definition"):
         voluptuous.All([{
             "granularity": Timespan,
