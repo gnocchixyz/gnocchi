@@ -1897,6 +1897,20 @@ class ResourceTest(RestTest):
         else:
             self.assertEqual(400, result.status_code)
 
+    def test_get_aggregated_measures_across_entities_no_match(self):
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "/server_group=notexistsyet"
+                              + "/metric/foo/measures?aggregation=min",
+                              expect_errors=True)
+
+        if self.resource_type == 'instance':
+            self.assertEqual(200, result.status_code)
+            measures = json.loads(result.text)
+            self.assertEqual([], measures)
+        else:
+            self.assertEqual(400, result.status_code)
+
     def test_get_aggregated_measures_across_entities(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"})
