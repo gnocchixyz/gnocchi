@@ -484,26 +484,17 @@ class TestTimeSerieArchive(base.BaseTestCase):
                           carbonara.TimeSerieArchive.aggregated,
                           [tsc1, tsc2], from_timestamp=dtfrom)
 
-    def test_aggregated_different_archive_no_enough_overlap(self):
+    def test_aggregated_different_archive_no_overlap2(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
             [(60, 50),
              (120, 24)])
         tsc2 = carbonara.TimeSerieArchive.from_definitions(
             [(60, 50)])
 
-        tsc1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
-                         (datetime.datetime(2014, 1, 1, 12, 46, 4), 5),
-                         (datetime.datetime(2014, 1, 1, 15, 46, 4), 8),
-                         (datetime.datetime(2014, 1, 1, 17, 46, 4), 9),
-                         (datetime.datetime(2014, 1, 1, 18, 46, 4), 1)])
-        tsc2.set_values([(datetime.datetime(2014, 1, 1, 3, 1, 4), 5),
-                         (datetime.datetime(2014, 1, 1, 9, 1, 4), 9),
-                         (datetime.datetime(2014, 1, 1, 11, 46, 4), 2)])
-
-        dtfrom = datetime.datetime(2014, 1, 1, 11, 0, 0)
+        tsc1.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 0), 4)])
         self.assertRaises(carbonara.UnAggregableTimeseries,
                           carbonara.TimeSerieArchive.aggregated,
-                          [tsc1, tsc2], from_timestamp=dtfrom)
+                          [tsc1, tsc2])
 
     def test_aggregated_different_archive_overlap(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
@@ -563,6 +554,60 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 5.0),
             (pandas.Timestamp('2014-01-01 12:07:00'), 60.0, 10.0),
             (pandas.Timestamp('2014-01-01 12:09:00'), 60.0, 2.0),
+        ], output)
+
+    def test_aggregated_different_archive_overlap_edge_missing1(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
+
+        tsc1.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 9),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 1),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 7),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 3),
+        ])
+
+        tsc2.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 0, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 13),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 24),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 16),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 12),
+        ])
+
+        # By default we require 100% of point that overlap
+        # but we allow that the last datapoint is missing
+        # of the precisest granularity
+        output = carbonara.TimeSerieArchive.aggregated([
+            tsc1, tsc2], aggregation='sum')
+
+        self.assertEqual([
+            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 33.0),
+            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 5.0),
+            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 18.0),
+            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 19.0),
+        ], output)
+
+    def test_aggregated_different_archive_overlap_edge_missing2(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
+        tsc2 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
+
+        tsc1.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
+        ])
+
+        tsc2.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 0, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
+        ])
+
+        output = carbonara.TimeSerieArchive.aggregated([tsc1, tsc2])
+        self.assertEqual([
+            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
         ], output)
 
 
