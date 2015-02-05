@@ -164,7 +164,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
             },
             metric_names=[
                 'instance', 'disk.root.size', 'disk.ephemeral.size',
-                'memory', 'vcpus'],
+                'memory', 'vcpus', 'memory.usage', 'cpu', 'cpu_util'],
             resource_type='instance')),
     ]
 
