@@ -863,8 +863,10 @@ class V1Controller(rest.RestController):
                                needed_overlap=100.0):
         if isinstance(metric, list):
             metrics = metric
-        else:
+        elif metric:
             metrics = [metric]
+        else:
+            metrics = []
         return AggregatedMetricController.get_cross_metric_measures(
             metrics, start, stop, aggregation, needed_overlap)
 

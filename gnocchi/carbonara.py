@@ -406,6 +406,9 @@ class TimeSerieArchive(object):
         columns = ['timestamp', 'granularity', 'value']
         dataframes = []
 
+        if not timeseries:
+            return []
+
         granularities = [set(ts.sampling for ts in timeserie.agg_timeseries)
                          for timeserie in timeseries]
         granularities = granularities[0].intersection(*granularities[1:])
