@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright (c) 2014 eNovance
+# Copyright (c) 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,19 @@
 # limitations under the License.
 import datetime
 
+from oslo_config import cfg
 import six
+
+
+cfg.CONF.register_opts([
+    cfg.MultiStrOpt(
+        'default_aggregation_methods',
+        default=('mean', 'min', 'max', 'sum', 'std',
+                 'median', 'count', '95pct'),
+        # TODO(jd) Validate values
+        # choices=ArchivePolicy.VALID_AGGREGATION_METHODS,
+        help='Default aggregation methods to use in created archive policies'),
+], group="archive_policy")
 
 
 class ArchivePolicy(object):
@@ -34,6 +46,8 @@ class ArchivePolicy(object):
     VALID_AGGREGATION_METHODS_VALUES = VALID_AGGREGATION_METHODS.union(
         set(('*',)),
         set(map(lambda s: "-" + s,
+                VALID_AGGREGATION_METHODS)),
+        set(map(lambda s: "+" + s,
                 VALID_AGGREGATION_METHODS)))
 
     def __init__(self, name, back_window, definition,
@@ -42,22 +56,29 @@ class ArchivePolicy(object):
         self.back_window = back_window
         self.definition = definition
         if aggregation_methods is None:
-            self.aggregation_methods = set(("*",))
+            self.aggregation_methods = (
+                cfg.CONF.archive_policy.default_aggregation_methods
+            )
         else:
             self.aggregation_methods = aggregation_methods
 
     @property
     def aggregation_methods(self):
-        if ('*' in self._aggregation_methods
-           or all(map(lambda s: s.startswith('-'),
-                      self._aggregation_methods))):
+        if '*' in self._aggregation_methods:
             agg_methods = self.VALID_AGGREGATION_METHODS.copy()
+        elif all(map(lambda s: s.startswith('-') or s.startswith('+'),
+                     self._aggregation_methods)):
+            agg_methods = set(
+                cfg.CONF.archive_policy.default_aggregation_methods)
         else:
-            agg_methods = self._aggregation_methods
+            agg_methods = set(self._aggregation_methods)
 
         for entry in self._aggregation_methods:
-            if entry and entry[0] == '-':
-                agg_methods -= set((entry[1:],))
+            if entry:
+                if entry[0] == '-':
+                    agg_methods -= set((entry[1:],))
+                elif entry[0] == '+':
+                    agg_methods.add(entry[1:])
 
         return agg_methods
 

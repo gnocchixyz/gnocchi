@@ -23,6 +23,7 @@ import uuid
 import iso8601
 from oslo.utils import strutils
 from oslo.utils import timeutils
+from oslo_config import cfg
 from oslo_log import log
 import pecan
 from pecan import rest
@@ -39,6 +40,9 @@ from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.openstack.common import policy
 from gnocchi import storage
+
+cfg.CONF.import_opt("default_aggregation_methods", "gnocchi.archive_policy",
+                    group="archive_policy")
 
 LOGICAL_AND = '∧'
 
@@ -216,22 +220,27 @@ def ValidAggMethod(value):
 
 
 class ArchivePoliciesController(rest.RestController):
-    ArchivePolicy = voluptuous.Schema({
-        voluptuous.Required("name"): six.text_type,
-        voluptuous.Required("back_window", default=0): PositiveOrNullInt,
-        voluptuous.Required("aggregation_methods",
-                            default=["*"]): [ValidAggMethod],
-        voluptuous.Required("definition"):
-        voluptuous.All([{
-            "granularity": Timespan,
-            "points": PositiveNotNullInt,
-            "timespan": Timespan,
-            }], voluptuous.Length(min=1)),
-        })
+    def __init__(self):
+        # NOTE(jd): Initialize this one at run-time because we rely on cfg.CONF
+        self.ArchivePolicySchema = voluptuous.Schema({
+            voluptuous.Required("name"): six.text_type,
+            voluptuous.Required("back_window", default=0): PositiveOrNullInt,
+            voluptuous.Required(
+                "aggregation_methods",
+                default=set(
+                    cfg.CONF.archive_policy.default_aggregation_methods)):
+            [ValidAggMethod],
+            voluptuous.Required("definition"):
+            voluptuous.All([{
+                "granularity": Timespan,
+                "points": PositiveNotNullInt,
+                "timespan": Timespan,
+                }], voluptuous.Length(min=1)),
+            })
 
-    @staticmethod
-    @vexpose(ArchivePolicy, 'json')
-    def post(body):
+    @pecan.expose('json')
+    def post(self):
+        body = deserialize(self.ArchivePolicySchema)
         # Validate the data
         try:
             ap = archive_policy.ArchivePolicy.from_dict(body)
