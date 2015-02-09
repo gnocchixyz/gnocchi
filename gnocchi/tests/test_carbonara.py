@@ -314,6 +314,31 @@ class TestTimeSerieArchive(base.BaseTestCase):
             # Rounding \o/
             self.assertAlmostEqual(ref[2], res[2])
 
+    def test_fetch_nano(self):
+        tsc = carbonara.TimeSerieArchive.from_definitions(
+            [(0.2, 10),
+             (0.5, 6)])
+
+        tsc.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 46, 0, 200123), 4),
+            (datetime.datetime(2014, 1, 1, 11, 46, 0, 340000), 8),
+            (datetime.datetime(2014, 1, 1, 11, 47, 0, 323154), 50),
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 590903), 4),
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 903291), 4),
+        ])
+
+        tsc.set_values([
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 821312), 5),
+        ])
+
+        self.assertEqual([
+            (datetime.datetime(2014, 1, 1, 11, 46, 0), 0.5, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 46, 0, 200000), 0.2, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 47, 0, 200000), 0.2, 50.0),
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 400000), 0.2, 4.0),
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 800000), 0.2, 4.5)
+        ], tsc.fetch())
+
     def test_fetch_agg_std(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
             [(60, 60),
@@ -376,13 +401,14 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
     def test_serialize(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(60, None),
-             (300, None)])
+            [(0.5, None),
+             (2, None)])
         tsc.set_values([
-            (datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
-            (datetime.datetime(2014, 1, 1, 12, 1, 4), 5),
-            (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
-            (datetime.datetime(2014, 1, 1, 12, 2, 12), 1),
+            (datetime.datetime(2014, 1, 1, 12, 0, 0, 1234), 3),
+            (datetime.datetime(2014, 1, 1, 12, 0, 0, 321), 6),
+            (datetime.datetime(2014, 1, 1, 12, 1, 4, 234), 5),
+            (datetime.datetime(2014, 1, 1, 12, 1, 9, 32), 7),
+            (datetime.datetime(2014, 1, 1, 12, 2, 12, 532), 1),
         ])
 
         self.assertEqual(tsc,

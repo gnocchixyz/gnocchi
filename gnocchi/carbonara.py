@@ -89,7 +89,6 @@ class TimeSerie(object):
 
     def to_dict(self):
         return {
-            # NOTE(jd) Store up to the nanosecond
             'values': dict((timestamp.value, float(v))
                            for timestamp, v
                            in six.iteritems(self.ts.dropna())),
@@ -321,11 +320,11 @@ class TimeSerieArchive(object):
         # Limit the main timeserie to a timespan mapping
         return cls(
             BoundTimeSerie(
-                block_size=pandas.tseries.offsets.Second(block_size),
+                block_size=pandas.tseries.offsets.Nano(block_size * 10e8),
                 back_window=back_window),
             [AggregatedTimeSerie(
                 max_size=size,
-                sampling=pandas.tseries.offsets.Second(sampling),
+                sampling=pandas.tseries.offsets.Nano(sampling * 10e8),
                 aggregation_method=aggregation_method)
              for sampling, size in definitions]
         )
