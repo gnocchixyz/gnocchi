@@ -429,10 +429,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(resource_id)
-            q.delete()
             if delete_metrics is not None:
-                delete_metrics([self._resource_to_dict(m)
-                                for m in r.metrics])
+                delete_metrics(self.get_metrics([m.id for m in r.metrics],
+                                                details=True))
+            q.delete()
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         resource_cls = self._resource_type_to_class(resource_type)

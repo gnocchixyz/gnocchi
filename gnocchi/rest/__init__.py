@@ -316,12 +316,19 @@ class AggregatedMetricController(rest.RestController):
 
         try:
             if len(metric_ids) == 1:
-                # NOTE(sileht): don't do the aggregation if we only one metric
+                # NOTE(sileht): don't do the aggregation if we only have one
+                # metric
+                # NOTE(jd): set the archive policy to None as it's not really
+                # used and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_measures(
-                    metric_ids[0], start, stop, aggregation)
+                    storage.Metric(metric_ids[0], None),
+                    start, stop, aggregation)
             else:
+                # NOTE(jd): set the archive policy to None as it's not really
+                # used and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_cross_metric_measures(
-                    metric_ids, start, stop, aggregation, needed_overlap)
+                    [storage.Metric(m, None) for m in metric_ids],
+                    start, stop, aggregation, needed_overlap)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -349,22 +356,18 @@ class MetricController(rest.RestController):
         voluptuous.Required("value"): voluptuous.Any(float, int),
     }])
 
-    def enforce_metric(self, rule):
-        metrics = pecan.request.indexer.get_metrics((self.metric_id,))
-        if not metrics:
-            pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
-        enforce(rule, metrics[0])
-
-    @pecan.expose('json')
-    def get_all(self, **kwargs):
-        details = get_details(kwargs)
+    def enforce_metric(self, rule, details=False):
         metrics = pecan.request.indexer.get_metrics((self.metric_id,),
                                                     details=details)
         if not metrics:
             pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
+        enforce(rule, metrics[0])
+        return metrics
 
-        metric = metrics[0]
-        enforce("get metric", metric)
+    @pecan.expose('json')
+    def get_all(self, **kwargs):
+        details = get_details(kwargs)
+        metric = self.enforce_metric("get metric", details)[0]
 
         if details:
             metric['archive_policy'] = (
@@ -375,10 +378,13 @@ class MetricController(rest.RestController):
 
     @vexpose(Measures)
     def post_measures(self, body):
-        self.enforce_metric("post measures")
+        metric = self.enforce_metric("post measures", details=True)[0]
         try:
             pecan.request.storage.add_measures(
-                self.metric_id,
+                storage.Metric(
+                    name=self.metric_id,
+                    archive_policy=archive_policy.ArchivePolicy.from_dict(
+                        metric['archive_policy'])),
                 (storage.Measure(
                     m['timestamp'],
                     m['value']) for m in body))
@@ -423,9 +429,13 @@ class MetricController(rest.RestController):
                     pecan.request.storage, self.metric_id, start, stop,
                     **param)
             else:
-                measures = pecan.request.storage.get_measures(self.metric_id,
-                                                              start, stop,
-                                                              aggregation)
+                measures = pecan.request.storage.get_measures(
+                    # NOTE(jd) We don't set the archive policy in the object
+                    # here because it's not used; but we could do it if needed
+                    # by requesting the metric details from the indexer, for
+                    # example in the enforce_metric() call above.
+                    storage.Metric(name=self.metric_id, archive_policy=None),
+                    start, stop, aggregation)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -436,9 +446,13 @@ class MetricController(rest.RestController):
 
     @pecan.expose()
     def delete(self):
-        self.enforce_metric("delete metric")
+        metric = self.enforce_metric("delete metric", details=True)[0]
         try:
-            pecan.request.storage.delete_metric(self.metric_id)
+            pecan.request.storage.delete_metric(
+                storage.Metric(
+                    self.metric_id,
+                    archive_policy.ArchivePolicy.from_dict(
+                        metric['archive_policy'])))
         except storage.MetricDoesNotExist as e:
             pecan.abort(404, str(e))
         pecan.request.indexer.delete_metric(self.metric_id)
@@ -489,7 +503,8 @@ class MetricsController(rest.RestController):
             id,
             created_by_user_id, created_by_project_id,
             archive_policy_name=policy['name'])
-        pecan.request.storage.create_metric(str(id), ap)
+        pecan.request.storage.create_metric(storage.Metric(name=str(id),
+                                                           archive_policy=ap))
         return id
 
     @vexpose(Metric, 'json')
@@ -694,7 +709,10 @@ class GenericResourceController(rest.RestController):
             enforce("delete metric", metric)
         for metric in metrics:
             try:
-                pecan.request.storage.delete_metric(str(metric['id']))
+                pecan.request.storage.delete_metric(
+                    storage.Metric(str(metric['id']),
+                                   archive_policy.ArchivePolicy.from_dict(
+                                       metric['archive_policy'])))
             except Exception:
                 LOG.error(
                     "Unable to delete metric `%s' from storage, "

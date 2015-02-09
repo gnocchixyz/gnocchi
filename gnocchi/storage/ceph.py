@@ -105,10 +105,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     @staticmethod
     def _get_object_name(metric, aggregation):
-        return "gnocchi_%s_%s" % (metric, aggregation)
+        return "gnocchi_%s_%s" % (metric.name, aggregation)
 
     def _create_metric_container(self, metric):
-        aggregation = self.aggregation_types[0]
+        aggregation = list(metric.archive_policy.aggregation_methods)[0]
         name = self._get_object_name(metric, aggregation)
         with self._get_ioctx() as ioctx:
             try:
@@ -129,7 +129,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
             try:
-                for aggregation in self.aggregation_types:
+                for aggregation in metric.archive_policy.aggregation_methods:
                     name = self._get_object_name(metric, aggregation)
                     ioctx.remove_object(name)
             except rados.ObjectNotFound:
