@@ -94,7 +94,7 @@ create_gnocchi_accounts() {
 
         if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
             local gnocchi_service=$(get_or_create_service "gnocchi" \
-                "gnocchi" "OpenStack Datapoint Service")
+                "metric" "OpenStack Metric Service")
             get_or_create_endpoint $gnocchi_service \
                 "$REGION_NAME" \
                 "$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT/" \
