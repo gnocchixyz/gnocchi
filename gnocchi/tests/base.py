@@ -294,7 +294,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.conf.import_opt('policy_file', 'gnocchi.openstack.common.policy')
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'))
-        self.conf.set_override('debug', True)
 
         self.conf.set_override('driver', self.indexer_engine, 'indexer')
         self.index = indexer.get_driver(self.conf)
