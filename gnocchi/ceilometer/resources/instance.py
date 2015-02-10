@@ -41,8 +41,13 @@ class Instance(base.ResourceBase):
 
     @staticmethod
     def get_metrics_names():
+        # NOTE(sileht): Can we generate the list by loading ceilometer
+        # plugin ?
         return ['instance',
                 'disk.root.size',
                 'disk.ephemeral.size',
                 'memory',
-                'vcpus']
+                'memory.usage',
+                'vcpus',
+                'cpu',
+                'cpu_util']
