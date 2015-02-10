@@ -51,3 +51,5 @@ esac
 
 export ENABLED_SERVICES
 export DEVSTACK_LOCAL_CONFIG
+
+$BASE/new/devstack-gate/devstack-vm-gate.sh
