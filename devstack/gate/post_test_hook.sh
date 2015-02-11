@@ -14,9 +14,21 @@
 
 # This script is executed inside post_test_hook function in devstack gate.
 
+source $BASE/new/devstack/functions-common
+source $BASE/new/devstack/openrc admin admin
+
+set -x
+
 cd $BASE/new/gnocchi
 
-# NOTE(sileht): Just list policies for now
+keystone endpoint-list
+keystone service-list
+keystone endpoint-get --service metric
+
+gnocchi_endpoint=$(keystone endpoint-get --service metric | grep ' metric.publicURL ' | get_field 2)
+die_if_not_set $LINENO gnocchi_endpoint "Keystone fail to get gnocchi endpoint"
 token=$(keystone token-get | grep ' id ' | get_field 2)
 die_if_not_set $LINENO token "Keystone fail to get token"
-curl -X GET ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -H "X-Auth-Token: $token"
+
+# NOTE(sileht): Just list policies for now
+curl -X GET $gnocchi_endpoint/v1/archive_policy -H "Content-Type: application/json" -H "X-Auth-Token: $token"
