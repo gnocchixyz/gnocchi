@@ -32,7 +32,8 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIsInstance(driver, null.NullStorage)
 
     def test_create_metric(self):
-        self.storage.create_metric("foo", self.archive_policies['low'])
+        metric_name = str(uuid.uuid4())
+        self.storage.create_metric(metric_name, self.archive_policies['low'])
 
     def test_create_metric_already_exists(self):
         metric_name = str(uuid.uuid4())
