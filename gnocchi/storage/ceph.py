@@ -66,7 +66,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         self.rados.connect()
 
     @contextlib.contextmanager
-    def _lock(self, metric, aggregation):
+    def _lock(self, metric, lock_name):
         # NOTE(sileht): current stable python binding (0.80.X) doesn't
         # have rados_lock_XXX method, so do ourself the call with ctypes
         #
@@ -74,7 +74,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         # When ^^ is released, we can drop this code and directly use:
         # - ctx.lock_exclusive(name, 'lock', 'gnocchi')
         # - ctx.unlock(name, 'lock', 'gnocchi')
-        name = self._get_object_name(metric, aggregation)
+        name = self._get_object_name(metric, lock_name)
         with self._get_ioctx() as ctx:
             while True:
                 ret = rados.run_in_thread(
@@ -104,22 +104,25 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         return self.rados.open_ioctx(self.pool)
 
     @staticmethod
-    def _get_object_name(metric, aggregation):
-        return "gnocchi_%s_%s" % (metric.name, aggregation)
+    def _get_object_name(metric, lock_name):
+        return "gnocchi_%s_%s" % (metric.name, lock_name)
 
     def _create_metric_container(self, metric):
-        aggregation = list(metric.archive_policy.aggregation_methods)[0]
-        name = self._get_object_name(metric, aggregation)
+        name = self._get_object_name(metric, 'container')
         with self._get_ioctx() as ioctx:
+            not_yet_exist = False
             try:
                 size, mtime = ioctx.stat(name)
                 # NOTE(sileht: the object have been created by
                 # the lock code
                 if size == 0:
-                    return
+                    not_yet_exist = True
             except rados.ObjectNotFound:
-                return
-            raise storage.MetricAlreadyExists(metric)
+                not_yet_exist = True
+            if not_yet_exist:
+                ioctx.write_full(name, "metric created")
+            else:
+                raise storage.MetricAlreadyExists(metric)
 
     def _store_metric_measures(self, metric, aggregation, data):
         name = self._get_object_name(metric, aggregation)
@@ -128,12 +131,17 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
+            name = self._get_object_name(metric, 'container')
             try:
-                for aggregation in metric.archive_policy.aggregation_methods:
-                    name = self._get_object_name(metric, aggregation)
-                    ioctx.remove_object(name)
+                ioctx.remove_object(name)
             except rados.ObjectNotFound:
                 raise storage.MetricDoesNotExist(metric)
+            for aggregation in metric.archive_policy.aggregation_methods:
+                name = self._get_object_name(metric, aggregation)
+                try:
+                    ioctx.remove_object(name)
+                except rados.ObjectNotFound:
+                    pass
 
     def _get_measures(self, metric, aggregation):
         try:
