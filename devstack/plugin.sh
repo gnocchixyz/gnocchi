@@ -90,7 +90,7 @@ create_gnocchi_accounts() {
     if [[ "$ENABLED_SERVICES" =~ "gnocchi-api" ]]; then
         local gnocchi_user=$(get_or_create_user "gnocchi" \
             "$SERVICE_PASSWORD" $SERVICE_TENANT_NAME)
-        get_or_add_user_role service $gnocchi_user $SERVICE_TENANT_NAME
+        get_or_add_user_project_role service $gnocchi_user $SERVICE_TENANT_NAME
 
         if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
             local gnocchi_service=$(get_or_create_service "gnocchi" \
@@ -105,7 +105,7 @@ create_gnocchi_accounts() {
             get_or_create_project "gnocchi_swift"
             local gnocchi_swift_user=$(get_or_create_user "gnocchi_swift" \
                 "$SERVICE_PASSWORD" "gnocchi_swift" "gnocchi_swift@example.com")
-            get_or_add_user_role "ResellerAdmin" $gnocchi_swift_user "gnocchi_swift"
+            get_or_add_user_project_role "ResellerAdmin" $gnocchi_swift_user "gnocchi_swift"
         fi
     fi
 }
