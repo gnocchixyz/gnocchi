@@ -732,6 +732,14 @@ class InstanceResourceController(GenericResourceController):
     })
 
 
+class VolumeResourceController(GenericResourceController):
+    _resource_type = 'volume'
+
+    ResourcePatch = ResourcePatchSchema({
+        "display_name": six.text_type,
+    })
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -831,10 +839,20 @@ class InstancesResourcesController(GenericResourcesController):
     })
 
 
+class VolumesResourcesController(GenericResourcesController):
+    _resource_type = 'volume'
+    _resource_rest_class = VolumeResourceController
+
+    Resource = ResourceSchema({
+        voluptuous.Required("display_name"): six.text_type,
+    })
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
     instance = InstancesResourcesController()
     swift_account = SwiftAccountsResourcesController()
+    volume = VolumesResourcesController()
 
 
 class V1Controller(rest.RestController):
