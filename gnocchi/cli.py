@@ -18,6 +18,7 @@ from oslo.config import cfg
 from gnocchi.indexer import sqlalchemy as sql_db
 from gnocchi.rest import app
 from gnocchi import service
+from gnocchi import statsd as statsd_service
 
 
 def storage_dbsync():
@@ -33,4 +34,4 @@ def api():
 
 
 def statsd():
-    statsd.start()
+    statsd_service.start()
