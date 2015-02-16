@@ -49,6 +49,9 @@ class Metric(object):
     def __str__(self):
         return self.name
 
+    def __hash__(self):
+        return id(self)
+
 
 class MetricDoesNotExist(Exception):
     """Error raised when this metric does not exist."""
@@ -153,6 +156,19 @@ class StorageDriver(object):
         :param entities: The entities measured to aggregate.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
+        :param aggregation: The type of aggregation to retrieve.
+        """
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def search_value(metrics, predicate, from_timestamp=None,
+                     to_timestamp=None,
+                     aggregation='mean'):
+        """Search for an aggregated value that realizes a predicate.
+
+        :param metrics: The list of metrics to look into.
+        :param from_timestamp: The timestamp to get the measure from.
+        :param to_timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         """
         raise exceptions.NotImplementedError

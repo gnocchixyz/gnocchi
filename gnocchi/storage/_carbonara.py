@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
+# Copyright © 2014-2015 eNovance
 #
 # Authors: Julien Danjou <julien@danjou.info>
 #
@@ -140,6 +140,26 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 tss, from_timestamp, to_timestamp, aggregation, needed_overlap)
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
+
+    def _find_measure(self, metric, aggregation, predicate,
+                      from_timestamp, to_timestamp):
+        timeserie = self._get_measures_archive(metric, aggregation)
+        values = timeserie.fetch(from_timestamp, to_timestamp)
+        return {metric:
+                [(timestamp, granularity, value)
+                 for timestamp, granularity, value in values
+                 if predicate(value)]}
+
+    def search_value(self, metrics, predicate, from_timestamp=None,
+                     to_timestamp=None, aggregation='mean'):
+        result = {}
+        results = self._map_in_thread(self._find_measure,
+                                      [(metric, aggregation, predicate,
+                                        from_timestamp, to_timestamp)
+                                       for metric in metrics])
+        for r in results:
+            result.update(r)
+        return result
 
     def _map_in_thread(self, method, list_of_args):
         # We use 'list' to iterate all threads here to raise the first
