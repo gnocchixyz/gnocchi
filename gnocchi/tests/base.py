@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -268,10 +266,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
     scenarios = testscenarios.multiply_scenarios(storage_backends,
                                                  indexer_backends)
 
-    STATSD_USER_ID = uuid.uuid4()
-    STATSD_PROJECT_ID = uuid.uuid4()
-    STATSD_ARCHIVE_POLICY_NAME = "medium"
-
     def _pre_connect_sqlalchemy(self):
         self.conf.set_override('connection',
                                getattr(self, "db_url", "sqlite:///"),
@@ -291,25 +285,20 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             return os.path.join(root, project_file)
         return root
 
+    def prepare_service(self):
+        service.prepare_service([], self.conf)
+
     def setUp(self):
         super(TestCase, self).setUp()
-        self.conf = self.useFixture(config_fixture.Config()).conf
-        self.conf.import_group('statsd', 'gnocchi.statsd')
-        self.conf.set_override("resource_id",
-                               uuid.uuid4(), "statsd")
-        self.conf.set_override("user_id",
-                               self.STATSD_USER_ID, "statsd")
-        self.conf.set_override("project_id",
-                               self.STATSD_PROJECT_ID, "statsd")
-        self.conf.set_override("archive_policy_name",
-                               self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
+        self.config_fixture = config_fixture.Config()
+        self.conf = self.useFixture(self.config_fixture).conf
         self.conf.import_opt('policy_file', 'gnocchi.openstack.common.policy')
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'))
 
         self.conf.set_override('driver', self.indexer_engine, 'indexer')
 
-        service.prepare_service([], self.conf)
+        self.prepare_service()
 
         self.index = indexer.get_driver(self.conf)
         pre_connect_func = getattr(self, "_pre_connect_" + self.indexer_engine,

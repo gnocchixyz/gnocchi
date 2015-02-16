@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import uuid
 
 import mock
 from oslo.utils import timeutils
@@ -28,13 +29,30 @@ load_tests = testscenarios.load_tests_apply_scenarios
 
 class TestStatsd(tests_base.TestCase):
 
+    STATSD_USER_ID = uuid.uuid4()
+    STATSD_PROJECT_ID = uuid.uuid4()
+    STATSD_ARCHIVE_POLICY_NAME = "medium"
+
     def setUp(self):
         super(TestStatsd, self).setUp()
+
         # NOTE(jd) Always use self.server.storage and self.server.indexer to
         # pick at the right storage/indexer used by the statsd server, and not
         # new instances from the base test class.
         self.stats = statsd.Stats(self.conf)
         self.server = statsd.StatsdServer(self.stats)
+
+    def prepare_service(self):
+        statsd.register_opts(self.config_fixture)
+        self.conf.set_override("resource_id",
+                               uuid.uuid4(), "statsd")
+        self.conf.set_override("user_id",
+                               self.STATSD_USER_ID, "statsd")
+        self.conf.set_override("project_id",
+                               self.STATSD_PROJECT_ID, "statsd")
+        self.conf.set_override("archive_policy_name",
+                               self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
+        super(TestStatsd, self).prepare_service()
 
     def test_flush_empty(self):
         self.server.stats.flush()

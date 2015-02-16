@@ -48,8 +48,6 @@ OPTS = [
                help='Archive policy name to use when creating metrics'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="statsd")
-
 
 class Stats(object):
     def __init__(self, conf):
@@ -187,7 +185,13 @@ class StatsdServer(object):
                 LOG.error("Unable to treat metric %s: %s" % (message, str(e)))
 
 
+def register_opts(conf):
+    conf.register_opts(OPTS, group="statsd")
+
+
 def start():
+    register_opts(cfg.CONF)
+
     service.prepare_service()
 
     stats = Stats(cfg.CONF)

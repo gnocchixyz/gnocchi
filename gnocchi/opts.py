@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,6 +18,7 @@ import itertools
 import gnocchi.indexer
 import gnocchi.openstack.common.policy
 import gnocchi.rest.app
+import gnocchi.statsd
 import gnocchi.storage
 import gnocchi.storage.file
 import gnocchi.storage.swift
@@ -34,4 +33,5 @@ def list_opts():
         ("storage", itertools.chain(gnocchi.storage.OPTS,
                                     gnocchi.storage.file.OPTS,
                                     gnocchi.storage.swift.OPTS)),
+        ("statsd", gnocchi.statsd.OPTS),
     ]
