@@ -569,9 +569,9 @@ class NamedMetricController(rest.RestController):
         pecan.abort(404)
 
     def _lookup_aggregated_metric(self, query, name):
-        attrs_filter = self._get_filters_from_query(query)
+        attr_filter = self._get_filters_from_query(query)
         resources = pecan.request.indexer.list_resources(
-            self.resource_type, attributes_filter=attrs_filter)
+            self.resource_type, attribute_filter=attr_filter)
         return AggregatedMetricController([r['metrics'][name]
                                            for r in resources])
 
@@ -606,7 +606,9 @@ class NamedMetricController(rest.RestController):
         except voluptuous.Error as e:
             pecan.abort(400, "Invalid input: %s" % e)
 
-        return filters
+        return {"and":
+                [{"=": {k: v}}
+                 for k, v in six.iteritems(filters)]}
 
     @vexpose(Metrics)
     def post(self, body):
@@ -791,6 +793,8 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
+        attr_filter = {}
+
         try:
             enforce("list all resource", {
                 "resource_type": self._resource_type,
@@ -799,8 +803,10 @@ class GenericResourcesController(rest.RestController):
             enforce("list resource", {
                 "resource_type": self._resource_type,
             })
-            (kwargs['created_by_user_id'],
-             kwargs['created_by_project_id']) = get_user_and_project()
+            user, project = get_user_and_project()
+            attr_filter = {"and": [{"=": {"created_by_user_id": user}},
+                                   {"=": {"created_by_project_id": project}},
+                                   attr_filter]}
 
         started_after = kwargs.pop('started_after', None)
         ended_before = kwargs.pop('ended_before', None)
@@ -811,21 +817,24 @@ class GenericResourcesController(rest.RestController):
                 started_after = Timestamp(started_after)
             except Exception:
                 pecan.abort(400, "Unable to parse started_after timestamp")
+            attr_filter = {"and": [{">=": {"started_at": started_after}},
+                                   attr_filter]}
         if ended_before is not None:
             try:
                 ended_before = Timestamp(ended_before)
             except Exception:
                 pecan.abort(400, "Unable to parse ended_before timestamp")
-        # Transform empty string to None (NULL)
+            attr_filter = {"and": [{"<": {"started_at": ended_before}},
+                                   attr_filter]}
         for k, v in six.iteritems(kwargs):
+            # Transform empty string to None (NULL)
             if v == '':
-                kwargs[k] = None
+                v = None
+            attr_filter = {"and": [{"=": {k: v}}, attr_filter]}
         try:
             return pecan.request.indexer.list_resources(
                 self._resource_type,
-                started_after=started_after,
-                ended_before=ended_before,
-                attributes_filter=kwargs,
+                attribute_filter=attr_filter,
                 details=details)
         except indexer.ResourceAttributeError as e:
             pecan.abort(400, e)
