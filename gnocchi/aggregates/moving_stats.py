@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright 2014 Openstack Foundation
-#
-# Authors: Ana Malagon <atmalagon@gmail.com>
+# Copyright 2014-2015 Openstack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,6 +20,7 @@ import pandas
 import six
 
 from gnocchi import aggregates
+from gnocchi import storage
 
 from oslo.utils import strutils
 from pytimeparse import timeparse
@@ -43,7 +42,8 @@ class MovingAverage(aggregates.CustomAggregator):
     @staticmethod
     def retrieve_data(storage_obj, metric_id, start, stop, window):
         """Retrieves finest-res data available from storage."""
-        all_data = storage_obj.get_measures(metric_id, start, stop)
+        all_data = storage_obj.get_measures(storage.Metric(metric_id, None),
+                                            start, stop)
 
         try:
             min_grain = min(set([row[1] for row in all_data if row[1] == 0

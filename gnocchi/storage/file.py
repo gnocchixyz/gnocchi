@@ -40,8 +40,14 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self.basepath = conf.file_basepath
         self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
 
+    def _build_metric_path(self, metric, aggregation=None):
+        path = os.path.join(self.basepath, metric.name)
+        if aggregation:
+            return os.path.join(path, aggregation)
+        return path
+
     def _create_metric_container(self, metric):
-        path = os.path.join(self.basepath, metric)
+        path = self._build_metric_path(metric)
         try:
             os.mkdir(path, 0o750)
         except OSError as e:
@@ -50,12 +56,12 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             raise
 
     def _store_metric_measures(self, metric, aggregation, data):
-        path = os.path.join(self.basepath, metric, aggregation)
+        path = self._build_metric_path(metric, aggregation)
         with open(path, 'wb') as aggregation_file:
             aggregation_file.write(data)
 
     def delete_metric(self, metric):
-        path = os.path.join(self.basepath, metric)
+        path = self._build_metric_path(metric)
         try:
             shutil.rmtree(path)
         except OSError as e:
@@ -64,7 +70,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             raise
 
     def _get_measures(self, metric, aggregation):
-        path = os.path.join(self.basepath, metric, aggregation)
+        path = self._build_metric_path(metric, aggregation)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()

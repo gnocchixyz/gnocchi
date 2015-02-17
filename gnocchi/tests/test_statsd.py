@@ -21,6 +21,7 @@ from oslo.utils import timeutils
 import testscenarios
 
 from gnocchi import statsd
+from gnocchi import storage
 from gnocchi.tests import base as tests_base
 
 
@@ -71,7 +72,8 @@ class TestStatsd(tests_base.TestCase):
                                             self.conf.statsd.resource_id,
                                             with_metrics=True)
 
-        measures = self.stats.storage.get_measures(r['metrics'][metric_key])
+        measures = self.stats.storage.get_measures(storage.Metric(
+            r['metrics'][metric_key], None))
         self.assertEqual([(datetime.datetime(2015, 1, 7), 86400.0, 1.0),
                           (datetime.datetime(2015, 1, 7, 13), 3600.0, 1.0),
                           (datetime.datetime(2015, 1, 7, 13, 58), 60.0, 1.0)],
@@ -87,7 +89,8 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        measures = self.stats.storage.get_measures(r['metrics'][metric_key])
+        measures = self.stats.storage.get_measures(storage.Metric(
+            r['metrics'][metric_key], None))
         self.assertEqual([(datetime.datetime(2015, 1, 7), 86400.0, 1.5),
                           (datetime.datetime(2015, 1, 7, 13), 3600.0, 1.5),
                           (datetime.datetime(2015, 1, 7, 13, 58), 60.0, 1.0),
@@ -114,7 +117,8 @@ class TestStatsd(tests_base.TestCase):
                                             self.conf.statsd.resource_id,
                                             with_metrics=True)
 
-        measures = self.stats.storage.get_measures(r['metrics'][metric_key])
+        measures = self.stats.storage.get_measures(storage.Metric(
+            r['metrics'][metric_key], None))
         self.assertEqual([(datetime.datetime(2015, 1, 7), 86400.0, 1.0),
                           (datetime.datetime(2015, 1, 7, 13), 3600.0, 1.0),
                           (datetime.datetime(2015, 1, 7, 13, 58), 60.0, 1.0)],
@@ -129,7 +133,8 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        measures = self.stats.storage.get_measures(r['metrics'][metric_key])
+        measures = self.stats.storage.get_measures(storage.Metric(
+            r['metrics'][metric_key], None))
         self.assertEqual([(datetime.datetime(2015, 1, 7), 86400.0, 28),
                           (datetime.datetime(2015, 1, 7, 13), 3600.0, 28),
                           (datetime.datetime(2015, 1, 7, 13, 58), 60.0, 1.0),

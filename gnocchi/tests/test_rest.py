@@ -1454,7 +1454,7 @@ class ResourceTest(RestTest):
         # Test that storage deleted it
         self.assertRaises(storage.MetricDoesNotExist,
                           self.storage.get_measures,
-                          metric_id)
+                          storage.Metric(metric_id, None))
 
     def test_delete_resource_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,

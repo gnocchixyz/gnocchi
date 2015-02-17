@@ -35,6 +35,23 @@ cfg.CONF.register_opts(OPTS, group="storage")
 Measure = collections.namedtuple('Measure', ['timestamp', 'value'])
 
 
+class Metric(object):
+    __slots__ = ['name', 'archive_policy']
+
+    def __init__(self, name, archive_policy):
+        self.name = name
+        self.archive_policy = archive_policy
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and other.name == self.name
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.name)
+
+    def __str__(self):
+        return self.name
+
+
 class MetricDoesNotExist(Exception):
     """Error raised when this metric does not exist."""
 
@@ -70,8 +87,8 @@ class MetricUnaggregatable(Exception):
         self.metrics = metrics
         self.reason = reason
         super(MetricUnaggregatable, self).__init__(
-            "Metrics %s can't be aggregated: %s" % (" ,".join(metrics),
-                                                    reason))
+            "Metrics %s can't be aggregated: %s"
+            % (" ,".join((m.name for m in metrics)), reason))
 
 
 def _get_driver(name, conf):
@@ -97,17 +114,16 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_metric(metric, archive_policy):
-        """Create an metric.
+    def create_metric(metric):
+        """Create a metric.
 
-        :param metric: The metric key.
-        :param archive_policy: The archive policy to use.
+        :param metric: The metric object.
         """
         raise exceptions.NotImplementedError
 
     @staticmethod
     def add_measures(metric, measures):
-        """Add a measure to an metric.
+        """Add a measure to a metric.
 
         :param metric: The metric measured.
         :param measures: The actual measures.
@@ -117,7 +133,7 @@ class StorageDriver(object):
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
-        """Get a measure to an metric.
+        """Get a measure to a metric.
 
         :param metric: The metric measured.
         :param from timestamp: The timestamp to get the measure from.
