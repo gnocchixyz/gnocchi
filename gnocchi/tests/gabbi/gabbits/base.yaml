@@ -1,0 +1,102 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+
+# TODO(chdent): Maybe this should do something?
+- name: access currently purposeless root
+  url: /
+  response_headers:
+      content-type: text/plain; charset=UTF-8
+  response_strings:
+      - nom
+
+- name: archive policy post success
+  url: /v1/archive_policy
+  method: POST
+  request_headers:
+      content-type: application/json
+      x-roles: admin
+  data:
+      name: test1
+      definition:
+          - granularity: 1 minute
+            points: 20
+  status: 201
+  response_headers:
+      content-type: /application\/json/
+      location: $SCHEME://$NETLOC/v1/archive_policy/test1
+  response_json_paths:
+      $.name: test1
+      $.definition.[0].granularity: 0:01:00
+      $.definition.[0].points: 20
+      $.definition.[0].timespan: 0:20:00
+
+- name: post metric with archive policy
+  url: /v1/metric
+  request_headers:
+      content-type: application/json
+      x-roles: admin
+      x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+      x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+  method: POST
+  data:
+      archive_policy_name: test1
+  status: 201
+  response_headers:
+      content-type: /application\/json/
+  response_strings:
+      - '"archive_policy_name": "test1"'
+  response_json_paths:
+      $.archive_policy_name: test1
+
+- name: retrieve metric info
+  url: $LOCATION
+  status: 200
+  request_headers:
+      content_type: /application\/json/
+      x-roles: admin
+  response_json_paths:
+      $.archive_policy_name: test1
+      $.created_by_user_id: 93180da9-7c15-40d3-a050-a374551e52ee
+      $.created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
+
+- name: list the one metric
+  url: /v1/metric
+  status: 200
+  response_json_paths:
+      $[0].archive_policy_name: test1
+
+- name: post a single measure
+  desc: post one measure
+  url: /v1/metric/$RESPONSE['$[0].id']/measures
+  method: POST
+  request_headers:
+      content-type: application/json
+      x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+      x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+  data:
+      - timestamp: "2013-01-01 23:23:20"
+        value: 1234.2
+  status: 204
+
+- name: post generic resource
+  url: /v1/resource/generic
+  method: post
+  request_headers:
+    content-type: application/json
+    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+  data:
+    id: f93450f2-d8a5-4d67-9985-02511241e7d1
+    started_at: "2014-01-03T02:02:02.000000"
+    user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+    project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+  status: 201
+  response_headers:
+    location: $SCHEME://$NETLOC/v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
+  response_json_paths:
+    type: generic
+    started_at: "2014-01-03T02:02:02.000000"
+    project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+    created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
