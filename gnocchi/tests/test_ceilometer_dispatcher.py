@@ -23,10 +23,12 @@ from oslo.config import fixture as config_fixture
 from oslotest import base
 from oslotest import mockpatch
 import requests
+import tempfile
 import testscenarios
+import yaml
 
+from ceilometer import service as ceilometer_service
 from gnocchi.ceilometer import dispatcher
-
 
 load_tests = testscenarios.load_tests_apply_scenarios
 
@@ -43,9 +45,11 @@ class json_matcher(object):
 
 
 class DispatcherTest(base.BaseTestCase):
+
     def setUp(self):
         super(DispatcherTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
+        ceilometer_service.prepare_service([])
         self.resource_id = str(uuid.uuid4())
         self.samples = [{
             'counter_name': 'disk.root.size',
@@ -109,6 +113,26 @@ class DispatcherTest(base.BaseTestCase):
             mock.ANY, self.resource_id, 'disk.root.size',
             expected_samples, True,
         )
+
+    def test_archive_policy_default(self):
+        d = dispatcher.GnocchiDispatcher(self.conf.conf)
+        self.assertEqual(d.gnocchi_archive_policy_default, "low")
+
+    def test_archive_policy_map_config(self):
+        archive_policy_map = yaml.dump([{
+            'foo.*': 'low'
+        }])
+        archive_policy_cfg_file = tempfile.NamedTemporaryFile(
+            mode='w+b', prefix="foo", suffix=".yaml")
+        archive_policy_cfg_file.write(archive_policy_map.encode())
+        archive_policy_cfg_file.seek(0)
+        d = dispatcher.GnocchiDispatcher(self.conf.conf)
+        d.conf.dispatcher_gnocchi.archive_policy_file = (
+            archive_policy_cfg_file.name)
+        self.assertEqual(
+            d.get_archive_policy(
+                'foo.disk.rate')['archive_policy_name'], "low")
+        archive_policy_cfg_file.close()
 
     def test_activity_filter_match(self):
         self._do_test_activity_filter(True)
@@ -197,13 +221,13 @@ class DispatcherWorkflowTest(base.BaseTestCase,
     def setUp(self):
         super(DispatcherWorkflowTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
-
         ks_client = mock.Mock(auth_token='fake_token')
         ks_client.users.find.return_value = 'gnocchi'
         self.useFixture(mockpatch.Patch(
             'gnocchi.ceilometer.utils.ksclient.Client',
             return_value=ks_client))
 
+        ceilometer_service.prepare_service([])
         self.dispatcher = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.sample['resource_id'] = str(uuid.uuid4())
 

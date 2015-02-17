@@ -16,10 +16,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+import fnmatch
 
 import itertools
 import json
 import operator
+import os
+import yaml
 
 from ceilometer import dispatcher
 from ceilometer.i18n import _
@@ -48,7 +51,11 @@ dispatcher_opts = [
     cfg.StrOpt('archive_policy',
                default="low",
                help='The archive policy to use when the dispatcher '
-               'create a new metric.')
+               'create a new metric.'),
+    cfg.StrOpt('archive_policy_file',
+               default='/etc/ceilometer/gnocchi_archive_policy_map.yaml',
+               help=_('The Yaml file that defines per metric archive '
+                      'policies.')),
 ]
 
 cfg.CONF.register_opts(dispatcher_opts, group="dispatcher_gnocchi")
@@ -99,10 +106,9 @@ class GnocchiDispatcher(dispatcher.Base):
                 raise
 
         self.gnocchi_url = conf.dispatcher_gnocchi.url
-        self.gnocchi_archive_policy = {
-            'archive_policy_name':
-            cfg.CONF.dispatcher_gnocchi.archive_policy
-        }
+        self.gnocchi_archive_policy_default = (
+            conf.dispatcher_gnocchi.archive_policy)
+        self.gnocchi_archive_policy_data = self._load_archive_policy(conf)
         self.mgmr = stevedore.dispatch.DispatchExtensionManager(
             'gnocchi.ceilometer.resource', lambda x: True,
             invoke_on_load=True)
@@ -112,6 +118,45 @@ class GnocchiDispatcher(dispatcher.Base):
             'Content-Type': content_type,
             'X-Auth-Token': self._ks_client.auth_token,
         }
+
+    def _load_archive_policy(self, conf):
+        policy_config_file = self._get_config_file(conf)
+        data = {}
+        if policy_config_file is not None:
+            with open(policy_config_file) as data_file:
+                try:
+                    data = yaml.safe_load(data_file)
+                except ValueError:
+                    data = {}
+        return data
+
+    def get_archive_policy(self, metric_name):
+
+        archive_policy = {}
+        if self.gnocchi_archive_policy_data is not None:
+            policy_match = self._match_metric(metric_name)
+            archive_policy['archive_policy_name'] = (
+                policy_match or self.gnocchi_archive_policy_default)
+        else:
+            LOG.debug(_("No archive policy file found!"
+                      " Using default config."))
+            archive_policy['archive_policy_name'] = (
+                self.gnocchi_archive_policy_default)
+
+        return archive_policy
+
+    @staticmethod
+    def _get_config_file(conf):
+        config_file = conf.dispatcher_gnocchi.archive_policy_file
+        if not os.path.exists(config_file):
+            config_file = cfg.CONF.find_file(config_file)
+        return config_file
+
+    def _match_metric(self, metric_name):
+        for metric, policy in enumerate(self.gnocchi_archive_policy_data):
+            # Support wild cards such as disk.*
+            if fnmatch.fnmatch(metric_name, metric):
+                return policy
 
     def _is_gnocchi_activity(self, sample):
         return (self.filter_service_activity
@@ -209,7 +254,7 @@ class GnocchiDispatcher(dispatcher.Base):
             attributes["user_id"] = samples[-1]['user_id']
             attributes["project_id"] = samples[-1]['project_id']
             attributes["metrics"] = dict(
-                (metric_name, self.gnocchi_archive_policy)
+                (metric_name, self.get_archive_policy(metric_name))
                 for metric_name in ext.obj.get_metrics_names()
             )
         return attributes
@@ -281,7 +326,7 @@ class GnocchiDispatcher(dispatcher.Base):
             LOG.debug("Resource %s updated", resource_id)
 
     def _create_metric(self, resource_type, resource_id, metric_name):
-        params = {metric_name: self.gnocchi_archive_policy}
+        params = {metric_name: self.get_archive_policy(metric_name)}
         r = requests.post("%s/v1/resource/%s/%s/metric"
                           % (self.gnocchi_url, resource_type,
                              resource_id),
