@@ -444,7 +444,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.ResourceAttributeError,
                           self.index.list_resources,
                           'generic',
-                          attributes_filter={"fern": "bar"})
+                          attribute_filter={"=": {"fern": "bar"}})
 
     def test_list_resources_by_user(self):
         r1 = uuid.uuid4()
@@ -454,12 +454,12 @@ class TestIndexerDriver(tests_base.TestCase):
                                        user, project)
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": user})
+            attribute_filter={"=": {"user_id": user}})
         self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": uuid.uuid4()})
+            attribute_filter={"=": {"user_id": uuid.uuid4()}})
         self.assertEqual(0, len(resources))
 
     def test_list_resources_by_created_by_user(self):
@@ -469,12 +469,12 @@ class TestIndexerDriver(tests_base.TestCase):
         g = self.index.create_resource('generic', r1, user, project)
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"created_by_user_id": user})
+            attribute_filter={"=": {"created_by_user_id": user}})
         self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"created_by_user_id": uuid.uuid4()})
+            attribute_filter={"=": {"created_by_user_id": uuid.uuid4()}})
         self.assertEqual(0, len(resources))
 
     def test_list_resources_by_user_with_details(self):
@@ -493,7 +493,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                        display_name="foobar")
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"user_id": user},
+            attribute_filter={"=": {"user_id": user}},
             details=True,
         )
         self.assertEqual(2, len(resources))
@@ -508,12 +508,12 @@ class TestIndexerDriver(tests_base.TestCase):
                                        user, project)
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"project_id": project})
+            attribute_filter={"=": {"project_id": project}})
         self.assertEqual(1, len(resources))
         self.assertEqual(g, resources[0])
         resources = self.index.list_resources(
             'generic',
-            attributes_filter={"project_id": uuid.uuid4()})
+            attribute_filter={"=": {"project_id": uuid.uuid4()}})
         self.assertEqual(0, len(resources))
 
     def test_list_resources(self):
@@ -576,8 +576,12 @@ class TestIndexerDriver(tests_base.TestCase):
             ended_at=datetime.datetime(2000, 1, 4, 23, 23, 23))
         resources = self.index.list_resources(
             'generic',
-            started_after=datetime.datetime(2000, 1, 1, 23, 23, 23),
-            ended_before=datetime.datetime(2000, 1, 5, 23, 23, 23))
+            attribute_filter={
+                "and":
+                [{">=": {"started_at":
+                         datetime.datetime(2000, 1, 1, 23, 23, 23)}},
+                 {"<": {"ended_at":
+                        datetime.datetime(2000, 1, 5, 23, 23, 23)}}]})
         self.assertGreaterEqual(len(resources), 2)
         g_found = False
         i_found = False
@@ -594,7 +598,11 @@ class TestIndexerDriver(tests_base.TestCase):
 
         resources = self.index.list_resources(
             'instance',
-            started_after=datetime.datetime(2000, 1, 1, 23, 23, 23))
+            attribute_filter={
+                ">=": {
+                    "started_at": datetime.datetime(2000, 1, 1, 23, 23, 23)
+                },
+            })
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r['id'] == r2:
@@ -605,7 +613,11 @@ class TestIndexerDriver(tests_base.TestCase):
 
         resources = self.index.list_resources(
             'generic',
-            ended_before=datetime.datetime(1999, 1, 1, 23, 23, 23))
+            attribute_filter={
+                "<": {
+                    "ended_at": datetime.datetime(1999, 1, 1, 23, 23, 23)
+                },
+            })
         self.assertEqual(0, len(resources))
 
     def test_get_metric(self):

@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -235,6 +233,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def __init__(self, conf):
         options.set_defaults(conf)
         self.conf = conf
+        self.qt = QueryTransformer()
 
     def connect(self):
         self.engine_facade = session.EngineFacade.from_config(self.conf)
@@ -463,27 +462,25 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return self._resource_to_dict(r, with_metrics)
 
     def list_resources(self, resource_type='generic',
-                       started_after=None,
-                       ended_before=None,
-                       attributes_filter=None,
+                       attribute_filter=None,
                        details=False):
+
         resource_cls = self._resource_type_to_class(resource_type)
         session = self.engine_facade.get_session()
-        q = session.query(
-            resource_cls)
+
+        q = session.query(resource_cls)
+
+        if attribute_filter:
+            try:
+                f = self.qt.build_filter(resource_cls, attribute_filter)
+            except QueryAttributeError as e:
+                raise indexer.ResourceAttributeError(
+                    resource_type, e.attribute)
+            q = q.filter(f)
+
         # Always include metrics
         q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
-        if started_after is not None:
-            q = q.filter(resource_cls.started_at >= started_after)
-        if ended_before is not None:
-            q = q.filter(resource_cls.ended_at < ended_before)
-        if attributes_filter is not None:
-            for attribute, value in six.iteritems(attributes_filter):
-                try:
-                    q = q.filter(getattr(resource_cls, attribute) == value)
-                except AttributeError:
-                    raise indexer.ResourceAttributeError(
-                        resource_type, attribute)
+
         if details:
             grouped_by_type = itertools.groupby(q.all(),
                                                 operator.attrgetter('type'))
@@ -509,3 +506,55 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         session.query(Metric).filter(Metric.id == id).delete()
         session.flush()
+
+
+class QueryAttributeError(AttributeError):
+    def __init__(self, table, attribute):
+        self.table = table
+        self.attribute = attribute
+
+
+class QueryTransformer(object):
+    operators = {"=": operator.eq,
+                 "<": operator.lt,
+                 ">": operator.gt,
+                 "<=": operator.le,
+                 "=<": operator.le,
+                 ">=": operator.ge,
+                 "=>": operator.ge,
+                 "!=": operator.ne,
+                 "in": lambda field_name, values: field_name.in_(values),
+                 "=~": lambda field, value: field.op("regexp")(value)}
+
+    complex_operators = {"or": sqlalchemy.or_,
+                         "and": sqlalchemy.and_,
+                         "not": sqlalchemy.not_}
+
+    def _handle_complex_op(self, table, complex_op, nodes):
+        op = self.complex_operators[complex_op]
+        if op == sqlalchemy.not_:
+            nodes = [nodes]
+        element_list = []
+        for node in nodes:
+            element = self.build_filter(table, node)
+            element_list.append(element)
+        return op(*element_list)
+
+    def _handle_simple_op(self, table, simple_op, nodes):
+        op = self.operators[simple_op]
+        field_name = list(nodes.keys())[0]
+        value = list(nodes.values())[0]
+        try:
+            attr = getattr(table, field_name)
+        except AttributeError:
+            raise QueryAttributeError(table, field_name)
+        return op(attr, value)
+
+    def build_filter(self, table, sub_tree):
+        if sub_tree == {}:
+            return True
+        operator = list(sub_tree.keys())[0]
+        nodes = list(sub_tree.values())[0]
+        if operator in self.complex_operators:
+            return self._handle_complex_op(table, operator, nodes)
+        return self._handle_simple_op(table, operator, nodes)
