@@ -204,11 +204,6 @@ or using `details=true` in the query parameter:
 
 {{ scenarios['list-resource-generic-details']['doc'] }}
 
-When listing resources, it is possible to filter resource based on attributes
-values:
-
-{{ scenarios['get-resource-for-user']['doc'] }}
-
 Each resource can be linked to any number of metrics. The `metrics` attributes
 is a key/value field where the key is the name of the relationship and
 the value is a metric:
@@ -229,6 +224,29 @@ The same endpoint can be used to append metrics to a resource:
 {{ scenarios['append-metrics-to-resource']['doc'] }}
 
 .. _Nova: http://launchpad.net/nova
+
+Searching for resources
+=======================
+
+It's possible to search for resources using a query mechanism, using the
+`POST` method and uploading a JSON formatted query.
+
+When listing resources, it is possible to filter resources based on attributes
+values:
+
+{{ scenarios['search-resource-for-user']['doc'] }}
+
+Complex operators such as `and` and `or` are also available:
+
+{{ scenarios['search-resource-for-user-after-timestamp']['doc'] }}
+
+Details about the resource can also be retrieved at the same time:
+
+{{ scenarios['search-resource-for-user-details']['doc'] }}
+
+
+The supported operators are: `=`, `<`, `>`, `<=`, `>=`, `!=`, `in`,
+`like`, `or`, `and` and `not`.
 
 Aggregation across metrics
 ==========================

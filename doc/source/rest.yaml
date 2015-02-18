@@ -156,8 +156,29 @@
 - name: list-resource-generic-details
   request: GET /v1/resource/generic?details=true HTTP/1.1
 
-- name: get-resource-for-user
-  request: GET /v1/resource/instance?user_id={{ scenarios['create-resource-instance']['response'].json['user_id'] }} HTTP/1.1
+- name: search-resource-for-user
+  request: |
+    POST /v1/search/resource/instance HTTP/1.1
+    Content-Type: application/json
+
+    {"=": {"user_id": "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}"}}
+
+- name: search-resource-for-user-details
+  request: |
+    POST /v1/search/resource/generic?details=true HTTP/1.1
+    Content-Type: application/json
+
+    {"=": {"user_id": "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}"}}
+
+- name: search-resource-for-user-after-timestamp
+  request: |
+    POST /v1/search/resource/instance HTTP/1.1
+    Content-Type: application/json
+
+    {"and": [
+      {"=": {"user_id": "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}"}},
+      {">=": {"started_at": "2010-01-01"}}
+    ]}
 
 - name: get-resource-generic
   request: GET /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
