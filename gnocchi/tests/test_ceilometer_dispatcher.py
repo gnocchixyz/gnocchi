@@ -90,6 +90,7 @@ class DispatcherTest(base.BaseTestCase):
                          group='dispatcher_gnocchi')
         d = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.assertIn('instance', d.mgmr.names())
+        self.assertIn('volume', d.mgmr.names())
 
     @mock.patch('gnocchi.ceilometer.dispatcher.GnocchiDispatcher'
                 '._process_samples')
