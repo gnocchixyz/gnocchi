@@ -4,6 +4,7 @@ fixtures
 keystonemiddleware
 mock
 MySQL-python
+oslotest
 sphinx
 psycopg2
 testrepository

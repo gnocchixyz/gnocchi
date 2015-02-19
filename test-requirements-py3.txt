@@ -3,6 +3,7 @@ gabbi>=0.6.0
 fixtures
 keystonemiddleware
 mock
+oslotest
 psycopg2
 testrepository
 testscenarios
