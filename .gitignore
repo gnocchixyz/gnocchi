@@ -7,3 +7,5 @@ ChangeLog
 etc/gnocchi/gnocchi.conf
 doc/build
 doc/source/rest.rst
+cover
+.coverage

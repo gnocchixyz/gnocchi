@@ -1,5 +1,6 @@
 http://tarballs.openstack.org/ceilometer/ceilometer-master.tar.gz#egg=ceilometer
 gabbi>=0.6.0
+coverage>=3.6
 fixtures
 keystonemiddleware
 mock
