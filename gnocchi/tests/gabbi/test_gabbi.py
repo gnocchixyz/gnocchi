@@ -28,6 +28,12 @@ TESTS_DIR = 'gabbits'
 def load_tests(loader, tests, pattern):
     """Provide a TestSuite to the discovery process."""
     test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
-    return driver.build_tests(test_dir, loader, host=None,
-                              intercept=fixtures.setup_app,
-                              fixture_module=fixtures)
+    host = os.getenv('GNOCCHI_SERVICE_HOST')
+    if host:
+        port = os.getenv('GNOCCHI_SERVICE_PORT', 8041)
+        return driver.build_tests(test_dir, loader,
+                                  host=host, port=port)
+    else:
+        return driver.build_tests(test_dir, loader, host=None,
+                                  intercept=fixtures.setup_app,
+                                  fixture_module=fixtures)

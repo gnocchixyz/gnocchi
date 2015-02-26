@@ -88,13 +88,13 @@ tests:
     x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
     x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   data:
-    id: f93450f2-d8a5-4d67-9985-02511241e7d1
+    id: 5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
     started_at: "2014-01-03T02:02:02.000000"
     user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
   status: 201
   response_headers:
-    location: $SCHEME://$NETLOC/v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
+    location: $SCHEME://$NETLOC/v1/resource/generic/5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
   response_json_paths:
     type: generic
     started_at: "2014-01-03T02:02:02.000000"

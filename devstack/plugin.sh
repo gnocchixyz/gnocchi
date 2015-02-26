@@ -69,6 +69,9 @@ GNOCCHI_CEPH_POOL=${GNOCCHI_CEPH_POOL:-gnocchi}
 GNOCCHI_CEPH_POOL_PG=${GNOCCHI_CEPH_POOL_PG:-8}
 GNOCCHI_CEPH_POOL_PGP=${GNOCCHI_CEPH_POOL_PGP:-8}
 
+# Gnocchi with keystone
+GNOCCHI_USE_KEYSTONE=${GNOCCHI_USE_KEYSTONE:-True}
+
 # Functions
 # ---------
 
@@ -194,6 +197,10 @@ function configure_gnocchi {
         iniset $GNOCCHI_CONF storage driver "$GNOCCHI_STORAGE_BACKEND"
     fi
 
+    if [ "$GNOCCHI_USE_KEYSTONE" != "True" ]; then
+        iniset $GNOCCHI_CONF api middlewares ""
+    fi
+
     # Configure the indexer database
     iniset $GNOCCHI_CONF indexer url `database_connection_url gnocchi`
 
@@ -277,11 +284,15 @@ function start_gnocchi {
     fi
 
     # Create a default policy
-    token=$(keystone token-get | grep ' id ' | get_field 2)
-    die_if_not_set $LINENO token "Keystone fail to get token"
-    curl -X POST ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -H "X-Auth-Token: $token" -d '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
-    curl -X POST ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -H "X-Auth-Token: $token" -d '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
-    curl -X POST ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -H "X-Auth-Token: $token" -d '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
+    if [ "$GNOCCHI_USE_KEYSTONE" == "True" ]; then
+        token=$(keystone token-get | grep ' id ' | get_field 2)
+        die_if_not_set $LINENO token "Keystone fail to get token"
+        auth="-H 'X-Auth-Token: $token'"
+    fi
+
+    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
+    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
+    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
 }
 
 # stop_gnocchi() - Stop running processes
