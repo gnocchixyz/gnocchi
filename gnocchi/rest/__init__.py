@@ -686,11 +686,7 @@ class GenericResourceController(rest.RestController):
         # inheritance
         body = deserialize(self.ResourcePatch)
         if len(body) == 0:
-            # Empty update, just check if the resource exists
-            if pecan.request.indexer.get_resource(
-                    self._resource_type, self.id):
-                return
-            pecan.abort(404)
+            return
 
         try:
             if 'metrics' in body:
