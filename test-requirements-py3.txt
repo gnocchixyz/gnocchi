@@ -4,7 +4,9 @@ fixtures
 keystonemiddleware
 mock
 oslotest
+python-subunit>=0.0.18
 psycopg2
+tempest-lib>=0.2.0
 testrepository
 testscenarios
 testtools>=0.9.38
