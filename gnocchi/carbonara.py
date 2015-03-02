@@ -206,8 +206,8 @@ class AggregatedTimeSerie(TimeSerie):
         m = self._AGG_METHOD_PCT_RE.match(aggregation_method)
 
         if m:
-            self.aggregation_method_func = functools.partial(self._percentile,
-                                                             q=m.group(1))
+            self.aggregation_method_func = functools.partial(
+                self._percentile, q=float(m.group(1)))
         else:
             self.aggregation_method_func = aggregation_method
 
