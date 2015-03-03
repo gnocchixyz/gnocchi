@@ -46,7 +46,7 @@ class TestIndexerDriver(tests_base.TestCase):
     def test_get_archive_policy(self):
         ap = self.index.get_archive_policy("low")
         self.assertEqual(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(self.conf.archive_policy.default_aggregation_methods),
             set(ap['aggregation_methods']))
         del ap['aggregation_methods']
         self.assertEqual({
@@ -653,7 +653,7 @@ class TestIndexerDriver(tests_base.TestCase):
             {"id": e1,
              "archive_policy": {
                  'aggregation_methods':
-                 archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+                 set(self.conf.archive_policy.default_aggregation_methods),
                  "back_window": 0,
                  "definition": [
                      {'granularity': 300,

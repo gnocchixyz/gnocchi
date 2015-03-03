@@ -112,15 +112,23 @@ The REST API allows to create archive policies this way:
 
 {{ scenarios['create-archive-policy']['doc'] }}
 
-By default, all aggregation methods are computed and store, but it is possible
-to limit the aggregation methods used in an archive policy by sepcifying the
-list of aggregation method to use in the `aggregation_methods` attribute of an
+By default, the aggregation methods computed and stored are the ones defined
+with `default_aggregation_methods` in the configuration file. It is possible to
+change the aggregation methods used in an archive policy by specifying the list
+of aggregation method to use in the `aggregation_methods` attribute of an
 archive policy.
 
 {{ scenarios['create-archive-policy-without-max']['doc'] }}
 
-The list of aggregation methods can the list the methods, or a list of methods
-to not use by prefixing them by `-` (minus).
+The list of aggregation methods can either be:
+
+- a list of aggregation methods to use, e.g. `["mean", "max"]`
+
+- a list of methods to remove (prefixed by `-`) and/or to add (prefixed by `+`)
+  to the default list (e.g. `["+mean", "-last"]`)
+
+If `*` is included in the list, it's substituted by the list of all supported
+aggregation methods.
 
 Once the archive policy is created, the complete set of properties is computed
 and returned, with the URL of the archive policy. This URL can be used to

@@ -222,7 +222,7 @@ class ArchivePolicyTest(RestTest):
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual(
-            (archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
+            (set(self.conf.archive_policy.default_aggregation_methods)
              - set(['mean'])),
             set(ap['aggregation_methods']))
 
@@ -451,7 +451,7 @@ class ArchivePolicyTest(RestTest):
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
         self.assertEqual(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(self.conf.archive_policy.default_aggregation_methods),
             set(ap['aggregation_methods']))
         del ap['aggregation_methods']
         self.assertEqual(params, ap)
@@ -472,7 +472,7 @@ class ArchivePolicyTest(RestTest):
         params['definition'][0]['timespan'] = u'0:03:20'
         params['definition'][0]['granularity'] = u'0:00:10'
         self.assertEqual(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
+            set(self.conf.archive_policy.default_aggregation_methods),
             set(ap['aggregation_methods']))
         del ap['aggregation_methods']
         self.assertEqual(params, ap)
