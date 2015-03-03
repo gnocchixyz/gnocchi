@@ -131,11 +131,9 @@ class Metric(Base, GnocchiBase):
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy)
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
+        sqlalchemy_utils.UUIDType(binary=False))
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
+        sqlalchemy_utils.UUIDType(binary=False))
     resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                     sqlalchemy.ForeignKey('resource.id',
                                                           ondelete="CASCADE"))
@@ -156,11 +154,9 @@ class Resource(Base, GnocchiBase):
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
+        sqlalchemy_utils.UUIDType(binary=False))
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
-        nullable=False)
+        sqlalchemy_utils.UUIDType(binary=False))
     metrics = sqlalchemy.orm.relationship(Metric)
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
@@ -256,9 +252,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # FIXME(sileht): so weird, sqlachemy_utils.UUIDTYPE try to convert any
         # input to a UUID to write it in db but don't update the orm object
         # if the object doesn't come from the database
-        if not isinstance(obj.created_by_user_id, uuid.UUID):
+        if (obj.created_by_user_id
+           and not isinstance(obj.created_by_user_id, uuid.UUID)):
             obj.created_by_user_id = uuid.UUID(obj.created_by_user_id)
-        if not isinstance(obj.created_by_project_id, uuid.UUID):
+        if (obj.created_by_project_id
+           and not isinstance(obj.created_by_project_id, uuid.UUID)):
             obj.created_by_project_id = uuid.UUID(obj.created_by_project_id)
 
     def list_archive_policies(self):

@@ -87,17 +87,18 @@ tests:
 
     - name: post resource no user-id
       desc: https://bugs.launchpad.net/gnocchi/+bug/1424005
-      xfail: true
       url: /v1/resource/generic
       method: post
       request_headers:
+          # Only provide one of these auth headers
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           content-type: application/json
       data:
-          id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          id: f93454f2-d8a5-4d67-9985-02511241e7f3
           started_at: "2014-01-03T02:02:02.000000"
           user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      status: 401 # No auth provided but if it where there things could work.
+      status: 201
 
     - name: post generic resource
       url: /v1/resource/generic

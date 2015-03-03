@@ -70,18 +70,19 @@ def enforce(rule, target):
     # theses UUID without the dash representation. It's valid, we can parse,
     # but the policy module won't see the equality in the string
     # representations.
-
     user_id = headers.get("X-User-Id")
-    try:
-        user_id = six.text_type(uuid.UUID(user_id))
-    except Exception:
-        pass
+    if user_id:
+        try:
+            user_id = six.text_type(uuid.UUID(user_id))
+        except Exception:
+            pecan.abort(400, "Malformed X-User-Id")
 
     project_id = headers.get("X-Project-Id")
-    try:
-        project_id = six.text_type(uuid.UUID(project_id))
-    except Exception:
-        pass
+    if project_id:
+        try:
+            project_id = six.text_type(uuid.UUID(project_id))
+        except Exception:
+            pecan.abort(400, "Malformed X-Project-Id")
 
     creds = {
         'roles': headers.get("X-Roles", "").split(","),
