@@ -27,6 +27,7 @@ import six
 from six.moves.urllib import parse as urllib_parse
 from stevedore import extension
 import testscenarios
+from testtools import testcase
 import webtest
 
 from gnocchi import archive_policy
@@ -107,6 +108,7 @@ class TestingApp(webtest.TestApp):
     CACHE_NAME = 'fake.cache'
 
     def __init__(self, *args, **kwargs):
+        self.auth = kwargs.pop('auth')
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.extra_environ.update({self.CACHE_NAME: FakeMemcache()})
@@ -114,6 +116,8 @@ class TestingApp(webtest.TestApp):
 
     @contextlib.contextmanager
     def use_admin_user(self):
+        if not self.auth:
+            raise testcase.TestSkipped("No auth enabled")
         old_token = self.token
         self.token = FakeMemcache.VALID_TOKEN_ADMIN
         try:
@@ -123,6 +127,8 @@ class TestingApp(webtest.TestApp):
 
     @contextlib.contextmanager
     def use_another_user(self):
+        if not self.auth:
+            raise testcase.TestSkipped("No auth enabled")
         old_token = self.token
         self.token = FakeMemcache.VALID_TOKEN_2
         try:
@@ -136,6 +142,13 @@ class TestingApp(webtest.TestApp):
 
 
 class RestTest(tests_base.TestCase):
+
+    auth_middleware_scenarios = [
+        ('noauth', dict(middlewares=[])),
+        ('keystone', dict(
+            middlewares=['keystonemiddleware.auth_token.AuthProtocol'])),
+    ]
+
     def setUp(self):
         super(RestTest, self).setUp()
         c = {}
@@ -147,7 +160,13 @@ class RestTest(tests_base.TestCase):
                              group="keystone_authtoken")
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
-        self.app = TestingApp(pecan.load_app(c))
+        self.conf.import_opt("middlewares", "gnocchi.rest.app", group="api")
+        if hasattr(self, "middlewares"):
+            self.conf.set_override("middlewares",
+                                   self.middlewares, group="api")
+
+        self.app = TestingApp(pecan.load_app(c),
+                              auth=bool(self.conf.api.middlewares))
 
     def test_root(self):
         result = self.app.get("/", status=200)
@@ -163,6 +182,14 @@ class RestTest(tests_base.TestCase):
     @staticmethod
     def runTest():
         pass
+
+    @classmethod
+    def generate_scenarios(cls):
+        cls.scenarios = testscenarios.multiply_scenarios(
+            cls.scenarios,
+            cls.auth_middleware_scenarios)
+
+RestTest.generate_scenarios()
 
 
 class ArchivePolicyTest(RestTest):
@@ -662,9 +689,11 @@ class MetricTest(RestTest):
         result = self.app.get("/v1/metric")
         self.assertIn(metric['id'],
                       [r['id'] for r in json.loads(result.text)])
-        result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
-        self.assertIn(metric['id'],
-                      [r['id'] for r in json.loads(result.text)])
+        # Only test that if we have auth enabled
+        if self.middlewares:
+            result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
+            self.assertIn(metric['id'],
+                          [r['id'] for r in json.loads(result.text)])
 
     def test_list_metric_filter_as_admin(self):
         result = self.app.post_json(
@@ -1077,8 +1106,12 @@ class ResourceTest(RestTest):
         # Set an id in the attribute
         self.attributes['id'] = str(uuid.uuid4())
         self.resource = self.attributes.copy()
-        self.resource['created_by_user_id'] = FakeMemcache.USER_ID
-        self.resource['created_by_project_id'] = FakeMemcache.PROJECT_ID
+        if self.middlewares:
+            self.resource['created_by_user_id'] = FakeMemcache.USER_ID
+            self.resource['created_by_project_id'] = FakeMemcache.PROJECT_ID
+        else:
+            self.resource['created_by_user_id'] = None
+            self.resource['created_by_project_id'] = None
         self.resource['type'] = self.resource_type
         self.resource['ended_at'] = None
         self.resource['metrics'] = {}
