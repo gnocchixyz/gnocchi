@@ -285,7 +285,7 @@ tests:
           - "Invalid input: expected a dictionary"
 
     - name: patch noexit resource
-      desc: patching something that doesn't exist is a 404
+      desc: "patching something that doesn't exist is a 404"
       url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
@@ -491,7 +491,7 @@ tests:
           - "[]"
 
     - name: post new instance with bad timestamp
-      desc: metric doesn't exist yet
+      desc: "metric doesn't exist yet"
       url: /v1/resource/instance
       method: post
       request_headers:
