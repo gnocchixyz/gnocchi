@@ -24,5 +24,5 @@ LOG = log.getLogger(__name__)
 def prepare_service(args=None, conf=cfg.CONF):
     log.register_options(conf)
     log.setup(conf, 'gnocchi')
-    conf(args, project='gnocchi')
+    conf(args, project='gnocchi', validate_default_values=True)
     conf.log_opt_values(LOG, logging.DEBUG)
