@@ -19,6 +19,7 @@ import datetime
 import decimal
 import itertools
 import operator
+import uuid
 
 from oslo.db import exception
 from oslo.db import options
@@ -250,6 +251,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.UnknownResourceType(resource_type)
         return self._RESOURCE_CLASS_MAPPER[resource_type]
 
+    @staticmethod
+    def _fixup_created_by_uuid(obj):
+        # FIXME(sileht): so weird, sqlachemy_utils.UUIDTYPE try to convert any
+        # input to a UUID to write it in db but don't update the orm object
+        # if the object doesn't come from the database
+        if not isinstance(obj.created_by_user_id, uuid.UUID):
+            obj.created_by_user_id = uuid.UUID(obj.created_by_user_id)
+        if not isinstance(obj.created_by_project_id, uuid.UUID):
+            obj.created_by_project_id = uuid.UUID(obj.created_by_project_id)
+
     def list_archive_policies(self):
         session = self.engine_facade.get_session()
         return [dict(ap) for ap in session.query(ArchivePolicy).all()]
@@ -365,6 +376,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                created_by_project_id,
                                                metrics)
 
+        self._fixup_created_by_uuid(r)
         return self._resource_to_dict(r, with_metrics=True)
 
     @staticmethod
@@ -418,6 +430,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                r.created_by_project_id,
                                                metrics)
 
+        self._fixup_created_by_uuid(r)
         return self._resource_to_dict(r, with_metrics=True)
 
     @staticmethod

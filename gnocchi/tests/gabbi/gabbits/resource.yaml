@@ -444,7 +444,7 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           content-type: application/json
       data:
-          id: 85C44741-CC60-4033-804E-2D3098C7D2E9
+          id: d13982cb-4cce-4f84-a96e-7581be1e599c
           user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           flavor_id: 2
@@ -455,6 +455,31 @@ tests:
               cpu.util:
                   archive_policy_name: medium
       status: 201
+      response_json_paths:
+          created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+
+    - name: post new instance with metrics and un-normalized user/project id from keystone middleware
+      url: /v1/resource/instance
+      method: post
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 85C44741-CC60-4033-804E-2D3098C7D2E9
+          flavor_id: 2
+          image_ref: http://image
+          host: compute3
+          display_name: myvm2
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 201
+      response_json_paths:
+          created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+
 
     - name: get metrics for this resource
       url: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
