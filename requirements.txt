@@ -14,7 +14,7 @@ python-swiftclient
 pytimeparse
 # pytimeparse misses this dep for now
 future
-futures
+futures>=2.1.6
 requests
 six
 sqlalchemy
