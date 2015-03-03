@@ -45,6 +45,19 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertRaises(storage.MetricAlreadyExists,
                           self.storage.create_metric, self.metric)
 
+    def test_create_metric_already_exists_new_aggregation_methods_change(self):
+        # NOTE(sileht): this is not really possible currently throught the API
+        # but we even check that storage driver doesn't use the
+        # aggregation_methods to check the presence or not of a meter,
+        # just in case of the API change to not have to rewrite driver just
+        # for that.
+        self.metric.archive_policy.aggregation_methods = ['mean']
+        self.storage.create_metric(self.metric)
+        self.metric.archive_policy.aggregation_methods = ['sum']
+        self.assertRaises(storage.MetricAlreadyExists,
+                          self.storage.create_metric,
+                          self.metric)
+
     def test_delete_empty_metric(self):
         self.storage.create_metric(self.metric)
         self.storage.delete_metric(self.metric)
