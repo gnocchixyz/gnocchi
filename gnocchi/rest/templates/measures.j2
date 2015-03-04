@@ -7,6 +7,7 @@
 {% block body %}
 <script src="/static/js/d3.min.js" charset="utf-8"></script>
 <script src="/static/js/c3.min.js"></script>
+<script src="/static/js/gnocchi.js"></script>
 <div class="container-fluid">
   <div class="page-header">
     <h1>Measures</h1>
@@ -17,48 +18,8 @@
 </div>
 
 <script>
-
 $(function () {
-    var measures = {{ data|tojson }};
-
-    var x_line = measures.map(function (m) { return Date.parse(m[0]); });
-    x_line.unshift('x');
-
-    var metrics = measures.map(function (m) { return m[2]; });
-    metrics.unshift('Measure');
-
-    var chart = c3.generate({
-        bindto: '#chart',
-        data: {
-            x: 'x',
-            columns: [
-                x_line,
-                metrics,
-            ],
-            types: {
-                'Measure': 'bar',
-            },
-        },
-        axis: {
-            x: {
-                type: 'timeseries',
-                tick: {
-                    format: '%Y-%m-%d %H:%M:%S'
-                }
-            }
-        },
-        zoom: {
-            enabled: true
-        },
-        padding: {
-            left: 100,
-            right: 100,
-            top: 50,
-        },
-        size: {
-            height: 600
-        }
-    });
+    drawGraph('#chart', {{ data|tojson }})
 });
 </script>
 {% endblock body %}

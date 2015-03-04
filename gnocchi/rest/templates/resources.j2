@@ -1,6 +1,13 @@
 {% extends "basic.j2" %}
 
+{% block head %}
+<link href="/static/css/c3.min.css" rel="stylesheet" type="text/css">
+{% endblock head %}
+
 {% block body %}
+<script src="/static/js/d3.min.js" charset="utf-8"></script>
+<script src="/static/js/c3.min.js"></script>
+<script src="/static/js/gnocchi.js"></script>
 <div class="container-fluid">
   <div class="page-header">
     <h1>Resource {{ data.id }}</h1>
@@ -9,11 +16,36 @@
   <div class="page-body">
     <dl>
       {% for key, value in data.items() %}
-        <dt>{{ key|e }}</dt>
-        <dd>{{ value|e }}</dd>
+        {%- if key != 'metrics' -%}
+          <dt>{{ key }}</dt>
+          <dd>{{ value }}</dd>
+        {% endif %}
       {% endfor %}
+
+      <dt>metrics</dt>
+      <dd>
+        <ul>
+          {% for key, value in data.metrics.items() %}
+            <li>
+              <a href="/v1/metric/{{ value | e }}/measures">{{ key | e }}</a>
+              <div id="{{ key|e }}-chart"></div>
+            </li>
+          {% endfor %}
+        </ul>
+      </dd>
     </dl>
     </div>
   </div>
 
+<script>
+$(function () {
+    var metrics = {{ data.metrics|tojson }}
+    $.each(metrics, function(name, id) {
+        url = '/v1/metric/' + id + '/measures'
+        $.get(url, function(measures) {
+            drawGraph('#' + name + '-chart', measures)
+        });
+    });
+});
+</script>
 {% endblock body %}
