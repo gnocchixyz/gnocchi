@@ -676,6 +676,7 @@ class GenericResourceController(rest.RestController):
         self.metric = NamedMetricController(id, self._resource_type)
 
     @pecan.expose('json')
+    @pecan.expose('resources.j2')
     def get(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id, with_metrics=True)

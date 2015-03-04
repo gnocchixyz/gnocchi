@@ -109,8 +109,7 @@ class GnocchiJinjaRenderer(templating.JinjaRenderer):
         self.env.filters['tojson'] = flask_json.tojson_filter
 
     def render(self, template_path, namespace):
-        if not isinstance(namespace, dict):
-            namespace = dict(data=namespace)
+        namespace = dict(data=namespace)
         return super(GnocchiJinjaRenderer, self).render(
             template_path, namespace)
 
