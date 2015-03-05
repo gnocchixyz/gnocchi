@@ -25,9 +25,11 @@ from oslo_serialization import jsonutils
 import pecan
 from pecan import templating
 import six
+import webob.exc
 from werkzeug import serving
 from werkzeug import wsgi
 
+from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
@@ -85,6 +87,19 @@ PECAN_CONFIG = {
 }
 
 
+class NotImplementedMiddleware(object):
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        try:
+            return self.app(environ, start_response)
+        except exceptions.NotImplementedError:
+            raise webob.exc.HTTPNotImplemented(
+                "Sorry, this Gnocchi server does "
+                "not implement this feature 😞")
+
+
 def setup_app(config=PECAN_CONFIG, cfg=None):
     if cfg is None:
         # NOTE(jd) That sucks but pecan forces us to use kwargs :(
@@ -121,6 +136,9 @@ def setup_app(config=PECAN_CONFIG, cfg=None):
         app,
         {"/static": root_dir + "/static"},
         cache=not cfg.api.pecan_debug)
+
+    if config.get('not_implemented_middleware', True):
+        app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
 
     for middleware in reversed(cfg.api.middlewares):
         if not middleware:
