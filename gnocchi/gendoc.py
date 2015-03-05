@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -16,7 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import json
-import os
 
 import jinja2
 import six
@@ -33,8 +30,6 @@ _RUN = False
 
 def _setup_test_app():
     t = test_rest.RestTest()
-    t.indexer_engine = 'sqlalchemy'
-    t.db_url = os.environ.get("GNOCCHI_TEST_PGSQL_URL")
     t.storage_engine = 'file'
     t.skip_archive_policies_creation = True
     t.setUp()

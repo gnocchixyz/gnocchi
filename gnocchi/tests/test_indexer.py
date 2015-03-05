@@ -20,7 +20,6 @@ import testscenarios
 
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.indexer import null
 from gnocchi.tests import base as tests_base
 
 
@@ -29,9 +28,8 @@ load_tests = testscenarios.load_tests_apply_scenarios
 
 class TestIndexer(tests_base.TestCase):
     def test_get_driver(self):
-        self.conf.set_override('driver', 'null', 'indexer')
         driver = indexer.get_driver(self.conf)
-        self.assertIsInstance(driver, null.NullIndexer)
+        self.assertIsInstance(driver, indexer.IndexerDriver)
 
 
 class TestIndexerDriver(tests_base.TestCase):
