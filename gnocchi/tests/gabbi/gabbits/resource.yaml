@@ -318,7 +318,7 @@ tests:
       response_strings:
           - The resource could not be found.
 
-# List and filter resources
+# List resources
 
     - name: list instance resources no auth
       url: /v1/resource/instance
@@ -341,60 +341,6 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
       response_strings:
           - '"type": "generic"'
-
-    - name: list all resources filtered
-      url: /v1/resource/generic?type=instance&details=true
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      response_json_paths:
-          $[0].host: compute2
-          $[-1].host: compute2
-
-    - name: list all resources bad filter param
-      url: /v1/resource/generic?cow=instance&details=true
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      status: 400
-      response_strings:
-          - Resource generic has no cow attribute
-
-    - name: list all resource bad start time
-      url: /v1/resource/generic?started_after=my%20house%20caught%20fire
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      status: 400
-      response_strings:
-          - Unable to parse started_after timestamp
-
-    - name: list all resource bad end time
-      url: /v1/resource/generic?ended_before=my%20house%20caught%20fire
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      status: 400
-      response_strings:
-          - Unable to parse ended_before timestamp
-
-    - name: list all resources time bound
-      desc: legal time in past before test
-      url: /v1/resource/generic?started_after=1224880000&ended_before=1224890000
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      response_strings:
-          - '[]'
-
-    - name: list all resources null param
-      desc: legal time in past before test
-      url: /v1/resource/generic?type=&details=true
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      response_strings:
-          - '[]'
 
 # Metric handling when POSTing resources.
 

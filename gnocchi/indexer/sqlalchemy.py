@@ -34,6 +34,7 @@ from sqlalchemy import types
 import sqlalchemy_utils
 
 from gnocchi import indexer
+from gnocchi import utils
 
 
 Base = declarative.declarative_base()
@@ -526,16 +527,16 @@ class QueryAttributeError(AttributeError):
 
 
 class QueryTransformer(object):
-    operators = {"=": operator.eq,
-                 "<": operator.lt,
-                 ">": operator.gt,
-                 "<=": operator.le,
-                 "=<": operator.le,
-                 ">=": operator.ge,
-                 "=>": operator.ge,
-                 "!=": operator.ne,
-                 "in": lambda field_name, values: field_name.in_(values),
-                 "=~": lambda field, value: field.op("regexp")(value)}
+    operators = {
+        "=": operator.eq,
+        "<": operator.lt,
+        ">": operator.gt,
+        "<=": operator.le,
+        ">=": operator.ge,
+        "!=": operator.ne,
+        "in": lambda field_name, values: field_name.in_(values),
+        "like": lambda field, value: field.like(value),
+    }
 
     complex_operators = {"or": sqlalchemy.or_,
                          "and": sqlalchemy.and_,
@@ -559,6 +560,11 @@ class QueryTransformer(object):
             attr = getattr(table, field_name)
         except AttributeError:
             raise QueryAttributeError(table, field_name)
+
+        # Convert value to the right type
+        if isinstance(attr.type, PreciseTimestamp):
+            value = utils.to_timestamp(value)
+
         return op(attr, value)
 
     def build_filter(self, table, sub_tree):

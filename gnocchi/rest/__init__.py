@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -15,12 +13,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import datetime
 import functools
 import json
 import uuid
 
-import iso8601
 from oslo.utils import strutils
 from oslo.utils import timeutils
 from oslo_config import cfg
@@ -40,6 +36,7 @@ from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.openstack.common import policy
 from gnocchi import storage
+from gnocchi import utils
 
 cfg.CONF.import_opt("default_aggregation_methods", "gnocchi.archive_policy",
                     group="archive_policy")
@@ -140,17 +137,7 @@ def vexpose(schema, *vargs, **vkwargs):
 def Timestamp(v):
     if v is None:
         return v
-    try:
-        v = float(v)
-    except (ValueError, TypeError):
-        try:
-            return timeutils.normalize_time(iso8601.parse_date(v))
-        except iso8601.ParseError:
-            delta = timeparse.timeparse(v)
-            if delta is None:
-                raise ValueError("Unable to parse timestamp %s" % v)
-            return timeutils.utcnow() + datetime.timedelta(seconds=delta)
-    return datetime.datetime.utcfromtimestamp(v)
+    return utils.to_timestamp(v)
 
 
 def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
@@ -807,7 +794,7 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
-        attr_filter = {}
+        details = get_details(kwargs)
 
         try:
             enforce("list all resource", {
@@ -819,32 +806,10 @@ class GenericResourcesController(rest.RestController):
             })
             user, project = get_user_and_project()
             attr_filter = {"and": [{"=": {"created_by_user_id": user}},
-                                   {"=": {"created_by_project_id": project}},
-                                   attr_filter]}
+                                   {"=": {"created_by_project_id": project}}]}
+        else:
+            attr_filter = {}
 
-        started_after = kwargs.pop('started_after', None)
-        ended_before = kwargs.pop('ended_before', None)
-        details = get_details(kwargs)
-
-        if started_after is not None:
-            try:
-                started_after = Timestamp(started_after)
-            except Exception:
-                pecan.abort(400, "Unable to parse started_after timestamp")
-            attr_filter = {"and": [{">=": {"started_at": started_after}},
-                                   attr_filter]}
-        if ended_before is not None:
-            try:
-                ended_before = Timestamp(ended_before)
-            except Exception:
-                pecan.abort(400, "Unable to parse ended_before timestamp")
-            attr_filter = {"and": [{"<": {"started_at": ended_before}},
-                                   attr_filter]}
-        for k, v in six.iteritems(kwargs):
-            # Transform empty string to None (NULL)
-            if v == '':
-                v = None
-            attr_filter = {"and": [{"=": {k: v}}, attr_filter]}
         try:
             return pecan.request.indexer.list_resources(
                 self._resource_type,
@@ -888,7 +853,71 @@ class ResourcesController(rest.RestController):
     volume = VolumesResourcesController()
 
 
+def _SearchSchema(v):
+    """Helper method to indirect the recursivity of the search schema"""
+    return SearchResourceTypeController.SearchSchema(v)
+
+
+class SearchResourceTypeController(rest.RestController):
+    def __init__(self, resource_type):
+        self._resource_type = resource_type
+
+    SearchSchema = voluptuous.Schema(
+        voluptuous.All(
+            voluptuous.Length(min=1, max=1),
+            {
+                voluptuous.Any("=", "<=", ">=", "!=", "in", "like"):
+                voluptuous.All(voluptuous.Length(min=1, max=1), dict),
+                voluptuous.Any("and", "or", "not"): [_SearchSchema],
+            }
+        )
+    )
+
+    @pecan.expose('json')
+    def post(self, **kwargs):
+        if pecan.request.body:
+            attr_filter = deserialize(self.SearchSchema)
+        else:
+            attr_filter = {}
+
+        details = get_details(kwargs)
+
+        try:
+            enforce("search all resource", {
+                "resource_type": self._resource_type,
+            })
+        except webob.exc.HTTPForbidden:
+            enforce("search resource", {
+                "resource_type": self._resource_type,
+            })
+            user, project = get_user_and_project()
+            attr_filter = {"and": [{"=": {"created_by_user_id": user}},
+                                   {"=": {"created_by_project_id": project}},
+                                   attr_filter]}
+
+        try:
+            return pecan.request.indexer.list_resources(
+                self._resource_type,
+                attribute_filter=attr_filter,
+                details=details)
+        except indexer.ResourceAttributeError as e:
+            pecan.abort(400, e)
+
+
+class SearchResourceController(rest.RestController):
+    @pecan.expose()
+    def _lookup(self, resource_type, *remainder):
+        # TODO(jd) Check that resource_type is valid
+        return SearchResourceTypeController(resource_type), remainder
+
+
+class SearchController(rest.RestController):
+    resource = SearchResourceController()
+
+
 class V1Controller(rest.RestController):
+    search = SearchController()
+
     archive_policy = ArchivePoliciesController()
     metric = MetricsController()
     resource = ResourcesController()
