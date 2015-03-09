@@ -39,6 +39,12 @@ from gnocchi import utils
 LOG = log.getLogger(__name__)
 
 
+def abort(status_code=None, detail='', headers=None, comment=None, **kw):
+    """Like pecan.abort, but make sure detail is a string."""
+    return pecan.abort(status_code, six.text_type(detail),
+                       headers, comment, **kw)
+
+
 def enforce(rule, target):
     """Return the user and project the request should be limited to.
 
@@ -58,14 +64,14 @@ def enforce(rule, target):
         try:
             user_id = six.text_type(uuid.UUID(user_id))
         except Exception:
-            pecan.abort(400, "Malformed X-User-Id")
+            abort(400, "Malformed X-User-Id")
 
     project_id = headers.get("X-Project-Id")
     if project_id:
         try:
             project_id = six.text_type(uuid.UUID(project_id))
         except Exception:
-            pecan.abort(400, "Malformed X-Project-Id")
+            abort(400, "Malformed X-Project-Id")
 
     creds = {
         'roles': headers.get("X-Roles", "").split(","),
@@ -74,7 +80,7 @@ def enforce(rule, target):
     }
 
     if not pecan.request.policy_enforcer.enforce(rule, target, creds):
-        pecan.abort(403)
+        abort(403)
 
 
 def set_resp_location_hdr(location):
@@ -97,16 +103,16 @@ def deserialize(schema, required=True):
     mime_type, options = werkzeug.http.parse_options_header(
         pecan.request.headers.get('Content-Type'))
     if mime_type != "application/json":
-        pecan.abort(415)
+        abort(415)
     try:
         params = json.loads(pecan.request.body.decode(
             options.get('charset', 'ascii')))
     except Exception as e:
-        pecan.abort(400, "Unable to decode body: " + str(e))
+        abort(400, "Unable to decode body: " + str(e))
     try:
         return voluptuous.Schema(schema, required=required)(params)
     except voluptuous.Error as e:
-        pecan.abort(400, "Invalid input: %s" % e)
+        abort(400, "Invalid input: %s" % e)
 
 
 def vexpose(schema, *vargs, **vkwargs):
@@ -180,7 +186,7 @@ def get_details(params):
             strict=True)
     except ValueError as e:
         method = 'Accept' if 'details' in options else 'query'
-        pecan.abort(
+        abort(
             400,
             "Unable to parse details value in %s: %s" % (method, str(e)))
     return details
@@ -218,12 +224,12 @@ class ArchivePoliciesController(rest.RestController):
         try:
             ap = archive_policy.ArchivePolicy.from_dict(body)
         except ValueError as e:
-            pecan.abort(400, e)
+            abort(400, e)
         enforce("create archive policy", ap.to_dict())
         try:
             ap = pecan.request.indexer.create_archive_policy(ap)
         except indexer.ArchivePolicyAlreadyExists as e:
-            pecan.abort(409, e)
+            abort(409, e)
 
         location = "/v1/archive_policy/" + ap['name']
         set_resp_location_hdr(location)
@@ -238,7 +244,7 @@ class ArchivePoliciesController(rest.RestController):
             enforce("get archive policy", ap)
             return archive_policy.ArchivePolicy.from_dict(
                 ap).to_human_readable_dict()
-        pecan.abort(404)
+        abort(404)
 
     @pecan.expose('json')
     def get_all(self):
@@ -254,9 +260,9 @@ class ArchivePoliciesController(rest.RestController):
         try:
             pecan.request.indexer.delete_archive_policy(name)
         except indexer.NoSuchArchivePolicy as e:
-            pecan.abort(404, e)
+            abort(404, e)
         except indexer.ArchivePolicyInUse as e:
-            pecan.abort(400, e)
+            abort(400, e)
 
 
 class AggregatedMetricController(rest.RestController):
@@ -278,7 +284,7 @@ class AggregatedMetricController(rest.RestController):
                                   aggregation='mean', needed_overlap=100.0):
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
-            pecan.abort(
+            abort(
                 400,
                 'Invalid aggregation value %s, must be one of %s'
                 % (aggregation,
@@ -290,7 +296,7 @@ class AggregatedMetricController(rest.RestController):
                               - set(metric_ids))
         if missing_metric_ids:
             # Return one of the missing one in the error
-            pecan.abort(404, storage.MetricDoesNotExist(
+            abort(404, storage.MetricDoesNotExist(
                 missing_metric_ids.pop()))
 
         for metric in metrics:
@@ -315,10 +321,10 @@ class AggregatedMetricController(rest.RestController):
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
         except storage.MetricUnaggregatable:
-            pecan.abort(400, "One of the metric to aggregated doesn't have "
-                        "matching granularity")
+            abort(400, "One of the metric to aggregated doesn't have "
+                  "matching granularity")
         except storage.MetricDoesNotExist as e:
-            pecan.abort(404, str(e))
+            abort(404, e)
 
 
 class MetricController(rest.RestController):
@@ -342,7 +348,7 @@ class MetricController(rest.RestController):
         metrics = pecan.request.indexer.get_metrics((self.metric_id,),
                                                     details=details)
         if not metrics:
-            pecan.abort(404, storage.MetricDoesNotExist(self.metric_id))
+            abort(404, storage.MetricDoesNotExist(self.metric_id))
         enforce(rule, metrics[0])
         return metrics
 
@@ -371,13 +377,13 @@ class MetricController(rest.RestController):
                     m['timestamp'],
                     m['value']) for m in body))
         except storage.MetricDoesNotExist as e:
-            pecan.abort(404, str(e))
+            abort(404, e)
         except storage.NoDeloreanAvailable as e:
-            pecan.abort(400,
-                        "The measure for %s is too old considering the "
-                        "archive policy used by this metric. "
-                        "It can only go back to %s."
-                        % (e.bad_timestamp, e.first_timestamp))
+            abort(400,
+                  "The measure for %s is too old considering the "
+                  "archive policy used by this metric. "
+                  "It can only go back to %s."
+                  % (e.bad_timestamp, e.first_timestamp))
 
     @pecan.expose('json')
     @pecan.expose('measures.j2')
@@ -388,7 +394,7 @@ class MetricController(rest.RestController):
                 or aggregation in self.custom_agg):
             msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
                      or %(custom)s'''
-            pecan.abort(400, msg % dict(
+            abort(400, msg % dict(
                 agg=aggregation,
                 std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
                 custom=str(self.custom_agg.keys())))
@@ -397,13 +403,13 @@ class MetricController(rest.RestController):
             try:
                 start = Timestamp(start)
             except Exception:
-                pecan.abort(400, "Invalid value for start")
+                abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
                 stop = Timestamp(stop)
             except Exception:
-                pecan.abort(400, "Invalid value for stop")
+                abort(400, "Invalid value for stop")
 
         try:
             if aggregation in self.custom_agg:
@@ -422,9 +428,9 @@ class MetricController(rest.RestController):
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
         except storage.MetricDoesNotExist as e:
-            pecan.abort(404, str(e))
+            abort(404, e)
         except aggregates.CustomAggFailure as e:
-            pecan.abort(400, str(e))
+            abort(400, e)
 
     @pecan.expose()
     def delete(self):
@@ -436,7 +442,7 @@ class MetricController(rest.RestController):
                     archive_policy.ArchivePolicy.from_dict(
                         metric['archive_policy'])))
         except storage.MetricDoesNotExist as e:
-            pecan.abort(404, str(e))
+            abort(404, e)
         pecan.request.indexer.delete_metric(self.metric_id)
 
 
@@ -460,7 +466,7 @@ class MetricsController(rest.RestController):
     def _lookup(id, *remainder):
         # That's triggered when accessing /v1/metric/
         if id is "":
-            pecan.abort(404)
+            abort(404)
         return MetricController(id), remainder
 
     Metric = voluptuous.Schema(MetricSchemaDefinition)
@@ -479,7 +485,7 @@ class MetricsController(rest.RestController):
         id = uuid.uuid4()
         policy = pecan.request.indexer.get_archive_policy(archive_policy_name)
         if policy is None:
-            pecan.abort(400, "Unknown archive policy %s" % archive_policy_name)
+            abort(400, "Unknown archive policy %s" % archive_policy_name)
         ap = archive_policy.ArchivePolicy.from_dict(policy)
         pecan.request.indexer.create_metric(
             id,
@@ -510,7 +516,7 @@ class MetricsController(rest.RestController):
             provided_project_id = kwargs.get('project_id')
             if ((provided_user_id and user_id != provided_user_id)
                or (provided_project_id and project_id != provided_project_id)):
-                pecan.abort(
+                abort(
                     403, "Insufficient privileges to filter by user/project")
         else:
             user_id = kwargs.get('user_id')
@@ -539,7 +545,7 @@ class NamedMetricController(rest.RestController):
             'generic', self.resource_id, with_metrics=True)
         if name in resource['metrics']:
             return MetricController(resource['metrics'][name]), remainder
-        pecan.abort(404)
+        abort(404)
 
     @vexpose(Metrics)
     def post(self, body):
@@ -553,11 +559,11 @@ class NamedMetricController(rest.RestController):
                 self.resource_type, self.resource_id, metrics=metrics,
                 append_metrics=True)
         except (indexer.NoSuchMetric, ValueError) as e:
-            pecan.abort(400, e)
+            abort(400, e)
         except indexer.NamedMetricAlreadyExists as e:
-            pecan.abort(409, e)
+            abort(409, e)
         except indexer.NoSuchResource as e:
-            pecan.abort(404, e)
+            abort(404, e)
 
 
 def ResourceSchema(schema):
@@ -590,14 +596,14 @@ class GenericResourceController(rest.RestController):
         if resource:
             enforce("get resource", resource)
             return resource
-        pecan.abort(404)
+        abort(404)
 
     @pecan.expose()
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if not resource:
-            pecan.abort(404)
+            abort(404)
         enforce("update resource", resource)
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
@@ -614,9 +620,9 @@ class GenericResourceController(rest.RestController):
                 self._resource_type,
                 self.id, **body)
         except (indexer.NoSuchMetric, ValueError) as e:
-            pecan.abort(400, e)
+            abort(400, e)
         except indexer.NoSuchResource as e:
-            pecan.abort(404, e)
+            abort(404, e)
 
     @staticmethod
     def _delete_metrics(metrics):
@@ -639,14 +645,14 @@ class GenericResourceController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if not resource:
-            pecan.abort(404, indexer.NoSuchResource(self.id))
+            abort(404, indexer.NoSuchResource(self.id))
         enforce("delete resource", resource)
         try:
             pecan.request.indexer.delete_resource(
                 self.id,
                 delete_metrics=self._delete_metrics)
         except indexer.NoSuchResource as e:
-            pecan.abort(404, str(e))
+            abort(404, e)
 
 
 class SwiftAccountResourceController(GenericResourceController):
@@ -703,9 +709,9 @@ class GenericResourcesController(rest.RestController):
                 self._resource_type, rid, user, project,
                 **body)
         except (ValueError, indexer.NoSuchMetric) as e:
-            pecan.abort(400, e)
+            abort(400, e)
         except indexer.ResourceAlreadyExists as e:
-            pecan.abort(409, e)
+            abort(409, e)
         set_resp_location_hdr("/v1/resource/"
                               + self._resource_type + "/"
                               + six.text_type(resource['id']))
@@ -736,7 +742,7 @@ class GenericResourcesController(rest.RestController):
                 attribute_filter=attr_filter,
                 details=details)
         except indexer.ResourceAttributeError as e:
-            pecan.abort(400, e)
+            abort(400, e)
 
 
 class SwiftAccountsResourcesController(GenericResourcesController):
@@ -813,7 +819,7 @@ class SearchResourceTypeController(rest.RestController):
                 attribute_filter=attr_filter,
                 details=details)
         except indexer.ResourceAttributeError as e:
-            pecan.abort(400, e)
+            abort(400, e)
 
 
 class SearchResourceController(rest.RestController):
