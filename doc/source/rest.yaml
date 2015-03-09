@@ -271,7 +271,11 @@
     ]
 
 - name: get-across-metrics-measures-by-attributes-lookup
-  request: GET /v1/resource/instance/server_group=my_autoscaling_group/metric/cpu.util/measures?start=2014-10-06T14:34&aggregation=mean HTTP/1.1
+  request: |
+    POST /v1/aggregation/resource/instance/metric/cpu.util?start=2014-10-06T14:34&aggregation=mean HTTP/1.1
+    Content-Type: application/json
+
+    {"=": {"server_group": "my_autoscaling_group"}}
 
 - name: get-across-metrics-measures-by-metric-ids
   request: |

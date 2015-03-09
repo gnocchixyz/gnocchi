@@ -36,10 +36,6 @@ from gnocchi import indexer
 from gnocchi import storage
 from gnocchi import utils
 
-
-LOGICAL_AND = '∧'
-
-
 LOG = log.getLogger(__name__)
 
 
@@ -536,60 +532,14 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        try:
-            uuid.UUID(self.resource_id)
-        except ValueError:
-            return (self._lookup_aggregated_metric(self.resource_id, name),
-                    remainder)
-        else:
-            return self._lookup_metric(name), remainder
-
-    def _lookup_metric(self, name):
         # TODO(jd) There might be an slight optimization to do by using a
         # dedicated driver method rather than get_resource, which might be
         # heavier.
         resource = pecan.request.indexer.get_resource(
             'generic', self.resource_id, with_metrics=True)
         if name in resource['metrics']:
-            return MetricController(resource['metrics'][name])
+            return MetricController(resource['metrics'][name]), remainder
         pecan.abort(404)
-
-    def _lookup_aggregated_metric(self, query, name):
-        attr_filter = self._get_filters_from_query(query)
-        resources = pecan.request.indexer.list_resources(
-            self.resource_type, attribute_filter=attr_filter)
-        return AggregatedMetricController([r['metrics'][name]
-                                           for r in resources])
-
-    def _get_filters_from_query(self, query):
-        # TODO(sileht): Implements more filters not just ∧
-        parsed_query = {}
-        for fragment in query.split(LOGICAL_AND):
-            try:
-                fragment = six.text_type(fragment)
-            except ValueError:
-                pecan.abort(400, "Invalid input: %s" % query)
-
-            fragment = fragment.split('=', 1)
-            if len(fragment) != 2:
-                pecan.abort(400, "Invalid input: %s" % query)
-
-            parsed_query[fragment[0]] = fragment[1]
-
-        try:
-            ctrl = getattr(ResourcesController, self.resource_type)
-            schema = ctrl._resource_rest_class.Resource
-        except AttributeError:
-            pecan.abort(404)
-
-        try:
-            filters = voluptuous.Schema(schema, required=False)(parsed_query)
-        except voluptuous.Error as e:
-            pecan.abort(400, "Invalid input: %s" % e)
-
-        return {"and":
-                [{"=": {k: v}}
-                 for k, v in six.iteritems(filters)]}
 
     @vexpose(Metrics)
     def post(self, body):
@@ -877,10 +827,32 @@ class SearchController(rest.RestController):
     resource = SearchResourceController()
 
 
+class AggregationResource(rest.RestController):
+    def __init__(self, resource_type, metric_name):
+        self.resource_type = resource_type
+        self.metric_name = metric_name
+
+    @pecan.expose('json')
+    def post(self, start=None, stop=None, aggregation='mean',
+             needed_overlap=100.0):
+        resources = SearchResourceTypeController(self.resource_type).post()
+        return AggregatedMetricController.get_cross_metric_measures(
+            [r['metrics'][self.metric_name] for r in resources
+             if self.metric_name in r['metrics']],
+            start, stop, aggregation, needed_overlap)
+
+
 class Aggregation(rest.RestController):
     _custom_actions = {
         'metric': ['GET'],
     }
+
+    @pecan.expose()
+    def _lookup(self, object_type, subtype, key, metric_name, *remainder):
+        if object_type == 'resource' and key == 'metric':
+            return AggregationResource(subtype, metric_name), remainder
+        return super(Aggregation, self)._lookup(object_type, subtype, key,
+                                                metric_name, *remainder)
 
     @pecan.expose('json')
     def get_metric(self, metric=None, start=None,

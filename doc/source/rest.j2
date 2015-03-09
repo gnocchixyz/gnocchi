@@ -252,9 +252,7 @@ Aggregation across metrics
 ==========================
 
 Gnocchi allows to do on-the-fly aggregation of already aggregated data of
-metrics. This can be done by filtering on resource attributes like this:
-
-{{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
+metrics.
 
 It can also be done by providing the list of metrics to aggregate:
 
@@ -266,6 +264,13 @@ It can also be done by providing the list of metrics to aggregate:
    a metric when new measurements are posted in Gnocchi. Therefore the aggregate
    of this already aggregated data may not have sense for certain kind of
    aggregation method (e.g. stdev).
+
+It's also possible to do that aggregation on metrics linked to resources. In
+order to select these resources, the following endpoint accepts a query such as
+the one described in `Searching for resources`_.
+
+
+{{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
 
 
 Capabilities
