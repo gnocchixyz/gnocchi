@@ -275,7 +275,7 @@
 
 - name: get-across-metrics-measures-by-metric-ids
   request: |
-    GET /v1/metric_aggregation?metric={{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}&metric={{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}&start=2014-10-06T14:34&aggregation=mean HTTP/1.1
+    GET /v1/aggregation/metric?metric={{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}&metric={{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}&start=2014-10-06T14:34&aggregation=mean HTTP/1.1
 
 - name: append-metrics-to-resource
   request: |

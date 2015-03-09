@@ -1930,7 +1930,7 @@ class ResourceTest(RestTest):
                                    {"timestamp": '2013-01-01 12:00:02',
                                     "value": 4}])
         # Check with one metric
-        result = self.app.get("/v1/metric_aggregation"
+        result = self.app.get("/v1/aggregation/metric"
                               "?aggregation=mean&metric=%s" % (metric2['id']))
         measures = json.loads(result.text)
         self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 2.0],
@@ -1939,7 +1939,7 @@ class ResourceTest(RestTest):
                          measures)
 
         # Check with two metrics
-        result = self.app.get("/v1/metric_aggregation"
+        result = self.app.get("/v1/aggregation/metric"
                               "?aggregation=mean&metric=%s&metric=%s" %
                               (metric1['id'], metric2['id']))
         measures = json.loads(result.text)

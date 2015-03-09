@@ -877,16 +877,35 @@ class SearchController(rest.RestController):
     resource = SearchResourceController()
 
 
+class Aggregation(rest.RestController):
+    _custom_actions = {
+        'metric': ['GET'],
+    }
+
+    @pecan.expose('json')
+    def get_metric(self, metric=None, start=None,
+                   stop=None, aggregation='mean',
+                   needed_overlap=100.0):
+        if isinstance(metric, list):
+            metrics = metric
+        elif metric:
+            metrics = [metric]
+        else:
+            metrics = []
+        return AggregatedMetricController.get_cross_metric_measures(
+            metrics, start, stop, aggregation, needed_overlap)
+
+
 class V1Controller(rest.RestController):
     search = SearchController()
 
     archive_policy = ArchivePoliciesController()
     metric = MetricsController()
     resource = ResourcesController()
+    aggregation = Aggregation()
 
     _custom_actions = {
         'capabilities': ['GET'],
-        'metric_aggregation': ['GET'],
     }
 
     @staticmethod
@@ -898,19 +917,6 @@ class V1Controller(rest.RestController):
             ext.name for ext in extension.ExtensionManager(
                 namespace='gnocchi.aggregates'))
         return dict(aggregation_methods=aggregation_methods)
-
-    @pecan.expose('json')
-    def get_metric_aggregation(self, metric=None, start=None,
-                               stop=None, aggregation='mean',
-                               needed_overlap=100.0):
-        if isinstance(metric, list):
-            metrics = metric
-        elif metric:
-            metrics = [metric]
-        else:
-            metrics = []
-        return AggregatedMetricController.get_cross_metric_measures(
-            metrics, start, stop, aggregation, needed_overlap)
 
 
 class RootController(object):
