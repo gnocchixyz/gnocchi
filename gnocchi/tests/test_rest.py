@@ -185,6 +185,21 @@ class RestTest(tests_base.TestCase):
             params="foo",
             status=415)
 
+    def test_capabilities(self):
+        custom_agg = extension.Extension('test_aggregation', None, None, None)
+        aggregation_methods = set(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
+        aggregation_methods.add('test_aggregation')
+        mgr = extension.ExtensionManager.make_test_instance(
+            [custom_agg], 'gnocchi.aggregates')
+
+        with mock.patch.object(extension, 'ExtensionManager',
+                               return_value=mgr):
+            result = self.app.get("/v1/capabilities")
+            self.assertEqual(
+                sorted(aggregation_methods),
+                sorted(json.loads(result.text)['aggregation_methods']))
+
     @staticmethod
     def runTest():
         pass
@@ -1934,21 +1949,6 @@ class ResourceTest(RestTest):
                           [u'2013-01-01T12:00:00.000000Z', 3600.0, 7.0],
                           [u'2013-01-01T12:00:00.000000Z', 60.0, 7.0]],
                          measures)
-
-    def test_capabilities(self):
-        custom_agg = extension.Extension('test_aggregation', None, None, None)
-        aggregation_methods = set(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-        aggregation_methods.add('test_aggregation')
-        mgr = extension.ExtensionManager.make_test_instance(
-            [custom_agg], 'gnocchi.aggregates')
-
-        with mock.patch.object(extension, 'ExtensionManager',
-                               return_value=mgr):
-            result = self.app.get("/v1/capabilities")
-            self.assertEqual(
-                sorted(aggregation_methods),
-                sorted(json.loads(result.text)['aggregation_methods']))
 
 
 class GenericResourceTest(RestTest):
