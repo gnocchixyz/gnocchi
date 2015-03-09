@@ -1750,10 +1750,8 @@ class ResourceTest(RestTest):
         # NOTE(sileht): This is a bit ugly, but this is a workaround for this
         # webob bug:
         #  https://github.com/Pylons/webob/issues/164
-        binary_kwargs = {}
         if six.PY3:
             rest.LOGICAL_AND = '+'
-            binary_kwargs['encoding'] = 'utf-8'
 
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "low"})
