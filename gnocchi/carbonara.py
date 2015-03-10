@@ -481,7 +481,6 @@ class TimeSerieArchive(object):
 import argparse
 import datetime
 
-import iso8601
 from oslo.utils import timeutils
 import prettytable
 
@@ -570,7 +569,8 @@ def _timestamp_value(value):
     try:
         timestamp = float(result[0])
     except (ValueError, TypeError):
-        timestamp = timeutils.normalize_time(iso8601.parse_date(result[0]))
+        timestamp = timeutils.normalize_time(
+            timeutils.parse_isotime(result[0]))
     else:
         timestamp = datetime.datetime.utcfromtimestamp(timestamp)
 

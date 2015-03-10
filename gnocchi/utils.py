@@ -15,7 +15,6 @@
 # under the License.
 import datetime
 
-import iso8601
 from oslo.utils import timeutils
 from pytimeparse import timeparse
 import six
@@ -29,8 +28,8 @@ def to_timestamp(v):
     except (ValueError, TypeError):
         v = six.text_type(v)
         try:
-            return timeutils.normalize_time(iso8601.parse_date(v))
-        except iso8601.ParseError:
+            return timeutils.normalize_time(timeutils.parse_isotime(v))
+        except ValueError:
             delta = timeparse.timeparse(v)
             if delta is None:
                 raise ValueError("Unable to parse timestamp %s" % v)
