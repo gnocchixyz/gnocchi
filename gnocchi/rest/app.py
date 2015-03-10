@@ -21,6 +21,7 @@ from flask import json as flask_json
 import keystonemiddleware.auth_token
 from oslo.utils import importutils
 from oslo_log import log
+from oslo_policy import policy
 from oslo_serialization import jsonutils
 import pecan
 from pecan import templating
@@ -42,11 +43,13 @@ class GnocchiHook(pecan.hooks.PecanHook):
         self.storage = storage
         self.indexer = indexer
         self.conf = conf
+        self.policy_enforcer = policy.Enforcer(conf)
 
     def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
         state.request.conf = self.conf
+        state.request.policy_enforcer = self.policy_enforcer
 
 
 class OsloJSONRenderer(object):

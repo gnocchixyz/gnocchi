@@ -21,9 +21,9 @@ from keystonemiddleware import opts as ks_opts
 from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_log import log
+from oslo_policy import opts as policy_opts
 
 from gnocchi import archive_policy
-from gnocchi.openstack.common import policy
 from gnocchi import opts
 
 LOG = log.getLogger(__name__)
@@ -36,6 +36,7 @@ def prepare_service(args=None):
     db_options.set_defaults(conf)
     for group, options in ks_opts.list_auth_token_opts():
         conf.register_opts(list(options), group=group)
+    policy_opts.set_defaults(conf)
 
     # Register our own Gnocchi options
     for group, options in opts.list_opts():
@@ -46,8 +47,6 @@ def prepare_service(args=None):
     archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
         conf.archive_policy.default_aggregation_methods
     )
-    # HACK(jd) Fix oslo policy FFS!
-    policy.CONF = conf
 
     try:
         default_workers = multiprocessing.cpu_count() or 1
