@@ -19,7 +19,6 @@ try:
     import asyncio
 except ImportError:
     import trollius as asyncio
-from oslo.config import cfg
 from oslo.utils import timeutils
 from oslo_log import log
 import six
@@ -31,22 +30,6 @@ from gnocchi import storage
 
 
 LOG = log.getLogger(__name__)
-
-
-OPTS = [
-    cfg.StrOpt('resource_id',
-               required=True,
-               help='Resource UUID to use to identify statsd in Gnocchi'),
-    cfg.StrOpt('user_id',
-               required=True,
-               help='User UUID to use to identify statsd in Gnocchi'),
-    cfg.StrOpt('project_id',
-               required=True,
-               help='Project UUID to use to identify statsd in Gnocchi'),
-    cfg.StrOpt('archive_policy_name',
-               required=True,
-               help='Archive policy name to use when creating metrics'),
-]
 
 
 class Stats(object):
@@ -187,23 +170,17 @@ class StatsdServer(object):
                 LOG.error("Unable to treat metric %s: %s" % (message, str(e)))
 
 
-def register_opts(conf):
-    conf.register_opts(OPTS, group="statsd")
-
-
 def start():
-    register_opts(cfg.CONF)
+    conf = service.prepare_service()
 
-    service.prepare_service()
-
-    stats = Stats(cfg.CONF)
+    stats = Stats(conf)
 
     loop = asyncio.get_event_loop()
     # TODO(jd) Add TCP support
     listen = loop.create_datagram_endpoint(
         # TODO(jd) Add config options for host/port
         lambda: StatsdServer(stats), local_addr=('0.0.0.0', 8125))
-    loop.call_later(cfg.CONF.statsd.flush_delay, stats.flush)
+    loop.call_later(conf.statsd.flush_delay, stats.flush)
     transport, protocol = loop.run_until_complete(listen)
 
     try:

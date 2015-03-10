@@ -11,15 +11,17 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from oslo_config import cfg
 from oslotest import base
 
 from gnocchi import archive_policy
+from gnocchi import service
 
 
 class TestArchivePolicy(base.BaseTestCase):
 
     def test_aggregation_methods(self):
+        conf = service.prepare_service([])
+
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,
                                           [],
@@ -50,7 +52,7 @@ class TestArchivePolicy(base.BaseTestCase):
                                           [],
                                           ["-mean", "-last"])
         self.assertEqual(
-            (set(cfg.CONF.archive_policy.default_aggregation_methods)
+            (set(conf.archive_policy.default_aggregation_methods)
              - set(["mean", "last"])),
             ap.aggregation_methods)
 
@@ -59,6 +61,6 @@ class TestArchivePolicy(base.BaseTestCase):
                                           [],
                                           ["+12pct"])
         self.assertEqual(
-            (set(cfg.CONF.archive_policy.default_aggregation_methods)
+            (set(conf.archive_policy.default_aggregation_methods)
              .union(set(["12pct"]))),
             ap.aggregation_methods)

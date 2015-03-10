@@ -153,19 +153,15 @@ class RestTest(tests_base.TestCase):
         super(RestTest, self).setUp()
         c = {}
         c.update(app.PECAN_CONFIG)
-        c['conf'] = self.conf
         c['indexer'] = self.index
         c['storage'] = self.storage
-        self.conf.import_opt("cache", "keystonemiddleware.auth_token",
-                             group="keystone_authtoken")
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
-        self.conf.import_opt("middlewares", "gnocchi.rest.app", group="api")
         if hasattr(self, "middlewares"):
             self.conf.set_override("middlewares",
                                    self.middlewares, group="api")
 
-        self.app = TestingApp(pecan.load_app(c),
+        self.app = TestingApp(pecan.load_app(c, cfg=self.conf),
                               auth=bool(self.conf.api.middlewares))
 
     def test_root(self):

@@ -20,7 +20,7 @@ from oslo_config import cfg
 import six
 
 
-cfg.CONF.register_opts([
+OPTS = [
     cfg.MultiStrOpt(
         'default_aggregation_methods',
         default=('mean', 'min', 'max', 'sum', 'std',
@@ -28,10 +28,12 @@ cfg.CONF.register_opts([
         # TODO(jd) Validate values
         # choices=ArchivePolicy.VALID_AGGREGATION_METHODS,
         help='Default aggregation methods to use in created archive policies'),
-], group="archive_policy")
+]
 
 
 class ArchivePolicy(object):
+
+    DEFAULT_AGGREGATION_METHODS = ()
 
     # TODO(eglynn): figure out how to accommodate multi-valued aggregation
     #               methods, where there is no longer just a single aggregate
@@ -56,9 +58,7 @@ class ArchivePolicy(object):
         self.back_window = back_window
         self.definition = definition
         if aggregation_methods is None:
-            self.aggregation_methods = (
-                cfg.CONF.archive_policy.default_aggregation_methods
-            )
+            self.aggregation_methods = self.DEFAULT_AGGREGATION_METHODS
         else:
             self.aggregation_methods = aggregation_methods
 
@@ -68,8 +68,7 @@ class ArchivePolicy(object):
             agg_methods = self.VALID_AGGREGATION_METHODS.copy()
         elif all(map(lambda s: s.startswith('-') or s.startswith('+'),
                      self._aggregation_methods)):
-            agg_methods = set(
-                cfg.CONF.archive_policy.default_aggregation_methods)
+            agg_methods = set(self.DEFAULT_AGGREGATION_METHODS)
         else:
             agg_methods = set(self._aggregation_methods)
 

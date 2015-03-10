@@ -45,8 +45,6 @@ OPTS = [
                help='Ceph configuration file.'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="storage")
-
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):

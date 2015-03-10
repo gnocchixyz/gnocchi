@@ -22,12 +22,22 @@ import uuid
 import warnings
 
 from gabbi import fixture
-from oslo.config import cfg
-from oslo.config import fixture as fixture_config
 import sqlalchemy.engine.url as sqlalchemy_url
 import sqlalchemy_utils
 
 from gnocchi import indexer
+from gnocchi.rest import app
+from gnocchi import service
+
+
+# NOTE(chdent): Hack to restore semblance of global conf to pass to
+# the WSGI app used per test suite.
+CONF = None
+
+
+def setup_app():
+    global CONF
+    return app.setup_app(cfg=CONF)
 
 
 class ConfigFixture(fixture.GabbiFixture):
@@ -51,22 +61,14 @@ class ConfigFixture(fixture.GabbiFixture):
     def start_fixture(self):
         """Create necessary temp files and do the config dance."""
 
+        global CONF
+
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
         coordination_dir = os.path.join(data_tmp_dir, 'tooz')
         os.mkdir(coordination_dir)
         coordination_url = 'file://%s' % coordination_dir
 
-        fixture = fixture_config.Config()
-        conf = fixture.conf
-
-        try:
-            conf([], project='gnocchi', validate_default_values=True)
-        except cfg.ArgsAlreadyParsedError:
-            pass
-
-        conf.import_opt('file_basepath', 'gnocchi.storage.file',
-                        group='storage')
-
+        conf = service.prepare_service([])
         conf.set_override('policy_file',
                           os.path.abspath('etc/gnocchi/policy.json'))
         conf.set_override('file_basepath', data_tmp_dir, 'storage')
@@ -79,13 +81,14 @@ class ConfigFixture(fixture.GabbiFixture):
         conf.set_override('middlewares', [], 'api')
 
         self.db_url = self._setup_database(conf)
+        CONF = self.conf = conf
         self.tmp_dir = data_tmp_dir
-        self.conf = conf
 
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
-        if self.conf:
-            self.conf.reset()
+
+        self.conf.reset()
+
         if self.db_url:
             # Swallow noise from missing tables when dropping
             # database.

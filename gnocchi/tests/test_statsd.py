@@ -37,14 +37,6 @@ class TestStatsd(tests_base.TestCase):
     def setUp(self):
         super(TestStatsd, self).setUp()
 
-        # NOTE(jd) Always use self.server.storage and self.server.indexer to
-        # pick at the right storage/indexer used by the statsd server, and not
-        # new instances from the base test class.
-        self.stats = statsd.Stats(self.conf)
-        self.server = statsd.StatsdServer(self.stats)
-
-    def prepare_service(self):
-        statsd.register_opts(self.config_fixture)
         self.conf.set_override("resource_id",
                                uuid.uuid4(), "statsd")
         self.conf.set_override("user_id",
@@ -53,7 +45,12 @@ class TestStatsd(tests_base.TestCase):
                                self.STATSD_PROJECT_ID, "statsd")
         self.conf.set_override("archive_policy_name",
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
-        super(TestStatsd, self).prepare_service()
+
+        # NOTE(jd) Always use self.server.storage and self.server.indexer to
+        # pick at the right storage/indexer used by the statsd server, and not
+        # new instances from the base test class.
+        self.stats = statsd.Stats(self.conf)
+        self.server = statsd.StatsdServer(self.stats)
 
     def test_flush_empty(self):
         self.server.stats.flush()

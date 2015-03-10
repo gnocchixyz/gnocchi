@@ -19,7 +19,6 @@ import uuid
 
 from oslo.utils import strutils
 from oslo.utils import timeutils
-from oslo_config import cfg
 from oslo_log import log
 import pecan
 from pecan import rest
@@ -38,8 +37,6 @@ from gnocchi.openstack.common import policy
 from gnocchi import storage
 from gnocchi import utils
 
-cfg.CONF.import_opt("default_aggregation_methods", "gnocchi.archive_policy",
-                    group="archive_policy")
 
 LOGICAL_AND = '∧'
 
@@ -208,15 +205,16 @@ def ValidAggMethod(value):
 
 
 class ArchivePoliciesController(rest.RestController):
-    def __init__(self):
-        # NOTE(jd): Initialize this one at run-time because we rely on cfg.CONF
-        self.ArchivePolicySchema = voluptuous.Schema({
+    @pecan.expose('json')
+    def post(self):
+        # NOTE(jd): Initialize this one at run-time because we rely on conf
+        conf = pecan.request.conf
+        ArchivePolicySchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("back_window", default=0): PositiveOrNullInt,
             voluptuous.Required(
                 "aggregation_methods",
-                default=set(
-                    cfg.CONF.archive_policy.default_aggregation_methods)):
+                default=set(conf.archive_policy.default_aggregation_methods)):
             [ValidAggMethod],
             voluptuous.Required("definition"):
             voluptuous.All([{
@@ -226,9 +224,7 @@ class ArchivePoliciesController(rest.RestController):
                 }], voluptuous.Length(min=1)),
             })
 
-    @pecan.expose('json')
-    def post(self):
-        body = deserialize(self.ArchivePolicySchema)
+        body = deserialize(ArchivePolicySchema)
         # Validate the data
         try:
             ap = archive_policy.ArchivePolicy.from_dict(body)

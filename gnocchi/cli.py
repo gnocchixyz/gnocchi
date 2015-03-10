@@ -12,9 +12,6 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-from oslo.config import cfg
-
 from gnocchi.indexer import sqlalchemy as sql_db
 from gnocchi.rest import app
 from gnocchi import service
@@ -22,14 +19,13 @@ from gnocchi import statsd as statsd_service
 
 
 def storage_dbsync():
-    service.prepare_service()
-    indexer = sql_db.SQLAlchemyIndexer(cfg.CONF)
+    conf = service.prepare_service()
+    indexer = sql_db.SQLAlchemyIndexer(conf)
     indexer.connect()
     indexer.upgrade()
 
 
 def api():
-    service.prepare_service()
     app.build_server()
 
 

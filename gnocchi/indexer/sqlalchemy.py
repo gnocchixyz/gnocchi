@@ -22,7 +22,6 @@ import operator
 import uuid
 
 from oslo.db import exception
-from oslo.db import options
 from oslo.db.sqlalchemy import models
 from oslo.db.sqlalchemy import session
 from oslo.utils import timeutils
@@ -229,7 +228,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     }
 
     def __init__(self, conf):
-        options.set_defaults(conf)
         self.conf = conf
         self.qt = QueryTransformer()
 

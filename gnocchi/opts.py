@@ -15,23 +15,59 @@
 # under the License.
 import itertools
 
+from oslo_config import cfg
+from oslo_config import types
+
+import gnocchi.archive_policy
 import gnocchi.indexer
 import gnocchi.openstack.common.policy
-import gnocchi.rest.app
-import gnocchi.statsd
 import gnocchi.storage
+import gnocchi.storage.ceph
 import gnocchi.storage.file
 import gnocchi.storage.swift
 
 
 def list_opts():
     return [
-        ("DEFAULT", itertools.chain(
-            gnocchi.openstack.common.policy.policy_opts)),
+        ("DEFAULT", gnocchi.openstack.common.policy.policy_opts),
         ("indexer", gnocchi.indexer.OPTS),
-        ("api", gnocchi.rest.app.OPTS),
-        ("storage", itertools.chain(gnocchi.storage.OPTS,
+        ("api", (
+            cfg.IntOpt('port',
+                       default=8041,
+                       help='The port for the Gnocchi API server.'),
+            cfg.StrOpt('host',
+                       default='0.0.0.0',
+                       help='The listen IP for the Gnocchi API server.'),
+            cfg.BoolOpt('pecan_debug',
+                        default='$debug',
+                        help='Toggle Pecan Debug Middleware. '
+                        'Defaults to global debug value.'),
+            cfg.MultiStrOpt(
+                'middlewares',
+                default=['keystonemiddleware.auth_token.AuthProtocol'],
+                help='Middlewares to use',),
+            cfg.Opt('workers', type=types.Integer(min=1),
+                    help='Number of workers for Gnocchi API server. '
+                    'By default the available number of CPU is used.'),
+        )),
+        ("storage", itertools.chain(gnocchi.storage._carbonara.OPTS,
+                                    gnocchi.storage.OPTS,
+                                    gnocchi.storage.ceph.OPTS,
                                     gnocchi.storage.file.OPTS,
                                     gnocchi.storage.swift.OPTS)),
-        ("statsd", gnocchi.statsd.OPTS),
+        ("statsd", (
+            cfg.StrOpt(
+                'resource_id',
+                help='Resource UUID to use to identify statsd in Gnocchi'),
+            cfg.StrOpt(
+                'user_id',
+                help='User UUID to use to identify statsd in Gnocchi'),
+            cfg.StrOpt(
+                'project_id',
+                help='Project UUID to use to identify statsd in Gnocchi'),
+            cfg.StrOpt(
+                'archive_policy_name',
+                help='Archive policy name to use when creating metrics'),
+        )),
+        ("archive_policy", gnocchi.archive_policy.OPTS),
     ]

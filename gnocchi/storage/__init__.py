@@ -29,8 +29,6 @@ OPTS = [
                help='Storage driver to use'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="storage")
-
 
 Measure = collections.namedtuple('Measure', ['timestamp', 'value'])
 

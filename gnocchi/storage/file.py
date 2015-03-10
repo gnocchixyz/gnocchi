@@ -31,8 +31,6 @@ OPTS = [
                help='Path used to store gnocchi data files.'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="storage")
-
 
 class FileStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):

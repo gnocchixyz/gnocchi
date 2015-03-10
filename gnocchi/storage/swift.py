@@ -45,8 +45,6 @@ OPTS = [
                help='Swift tenant name, only used in v2 auth.'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="storage")
-
 
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):

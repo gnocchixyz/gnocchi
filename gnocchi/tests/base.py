@@ -18,8 +18,6 @@ import os
 import uuid
 
 import fixtures
-from oslo.config import cfg
-from oslo.config import fixture as config_fixture
 from oslotest import base
 from oslotest import mockpatch
 import six
@@ -286,27 +284,13 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             return os.path.join(root, project_file)
         return root
 
-    def prepare_service(self):
-        try:
-            service.prepare_service([], self.conf)
-        except cfg.ArgsAlreadyParsedError:
-            # Raised when args have already been parsed in this
-            # process. Happens when running tests which are not
-            # subclasses of this and may be using a different
-            # config_fixture.
-            pass
-
     def setUp(self):
         super(TestCase, self).setUp()
-        self.config_fixture = config_fixture.Config()
-        self.conf = self.useFixture(self.config_fixture).conf
-        self.conf.import_opt('policy_file', 'gnocchi.openstack.common.policy')
+        self.conf = service.prepare_service([])
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'))
 
         self.conf.set_override('driver', self.indexer_engine, 'indexer')
-
-        self.prepare_service()
 
         self.index = indexer.get_driver(self.conf)
         pre_connect_func = getattr(self, "_pre_connect_" + self.indexer_engine,
@@ -315,8 +299,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
             pre_connect_func()
         self.index.connect()
 
-        self.conf.import_opt('coordination_url', 'gnocchi.storage._carbonara',
-                             'storage')
         self.conf.set_override('coordination_url',
                                os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
                                'storage')
@@ -351,9 +333,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
                                         FakeRadosModule()))
 
         if self.storage_engine == 'file':
-            self.conf.import_opt('file_basepath',
-                                 'gnocchi.storage.file',
-                                 group='storage')
             tempdir = self.useFixture(fixtures.TempDir())
             self.conf.set_override('file_basepath',
                                    tempdir.path,

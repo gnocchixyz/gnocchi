@@ -26,8 +26,6 @@ OPTS = [
                help='Indexer driver to use'),
 ]
 
-cfg.CONF.register_opts(OPTS, group="indexer")
-
 
 _marker = object()
 

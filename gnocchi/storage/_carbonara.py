@@ -36,7 +36,6 @@ OPTS = [
                default="file:///var/lib/gnocchi/locks"),
 
 ]
-cfg.CONF.register_opts(OPTS, group="storage")
 
 
 class CarbonaraBasedStorageToozLock(object):

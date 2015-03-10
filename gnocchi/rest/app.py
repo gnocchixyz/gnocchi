@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -16,13 +14,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import multiprocessing
 import os
 import uuid
 
 from flask import json as flask_json
-from oslo.config import cfg
-from oslo.config import types
+import keystonemiddleware.auth_token
 from oslo.utils import importutils
 from oslo_log import log
 from oslo_serialization import jsonutils
@@ -33,57 +29,24 @@ from werkzeug import serving
 from werkzeug import wsgi
 
 from gnocchi import indexer
+from gnocchi import service
 from gnocchi import storage
 
 
 LOG = log.getLogger(__name__)
 
 
-OPTS = [
-    cfg.IntOpt('port',
-               default=8041,
-               help='The port for the Gnocchi API server.',
-               ),
-    cfg.StrOpt('host',
-               default='0.0.0.0',
-               help='The listen IP for the Gnocchi API server.',
-               ),
-    cfg.BoolOpt('pecan_debug',
-                default='$debug',
-                help='Toggle Pecan Debug Middleware. '
-                'Defaults to global debug value.'
-                ),
-    cfg.MultiStrOpt('middlewares',
-                    default=['keystonemiddleware.auth_token.AuthProtocol'],
-                    help='Middlewares to use',),
-    cfg.Opt('workers', type=types.Integer(min=1),
-            help='Number of workers for Gnocchi API server. '
-            'By default the available number of CPU is used.'),
-]
+class GnocchiHook(pecan.hooks.PecanHook):
 
-opt_group = cfg.OptGroup(name='api',
-                         title='Options for the gnocchi-api service')
-cfg.CONF.register_group(opt_group)
-cfg.CONF.register_opts(OPTS, opt_group)
-
-
-try:
-    default_workers = multiprocessing.cpu_count() or 1
-except NotImplementedError:
-    default_workers = 1
-
-cfg.set_defaults(OPTS, workers=default_workers)
-
-
-class DBHook(pecan.hooks.PecanHook):
-
-    def __init__(self, storage, indexer):
+    def __init__(self, storage, indexer, conf):
         self.storage = storage
         self.indexer = indexer
+        self.conf = conf
 
     def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
+        state.request.conf = self.conf
 
 
 class OsloJSONRenderer(object):
@@ -119,33 +82,34 @@ PECAN_CONFIG = {
         'root': 'gnocchi.rest.RootController',
         'modules': ['gnocchi.rest'],
     },
-    'conf': cfg.CONF,
 }
 
 
-def setup_app(pecan_config=PECAN_CONFIG):
-    conf = pecan_config['conf']
-    s = pecan_config.get('storage')
+def setup_app(config=PECAN_CONFIG, cfg=None):
+    if cfg is None:
+        # NOTE(jd) That sucks but pecan forces us to use kwargs :(
+        raise RuntimeError("Config is actually mandatory")
+    s = config.get('storage')
     if not s:
-        s = storage.get_driver(conf)
-    i = pecan_config.get('indexer')
+        s = storage.get_driver(cfg)
+    i = config.get('indexer')
     if not i:
-        i = indexer.get_driver(conf)
+        i = indexer.get_driver(cfg)
     i.connect()
 
     root_dir = os.path.dirname(os.path.abspath(__file__))
 
     # NOTE(sileht): pecan debug won't work in multi-process environment
-    pecan_debug = cfg.CONF.api.pecan_debug
-    if cfg.CONF.api.workers != 1 and pecan_debug:
+    pecan_debug = cfg.api.pecan_debug
+    if cfg.api.workers != 1 and pecan_debug:
         pecan_debug = False
         LOG.warning('pecan_debug cannot be enabled, if workers is > 1, '
                     'the value is overrided with False')
 
     app = pecan.make_app(
-        pecan_config['app']['root'],
+        config['app']['root'],
         debug=pecan_debug,
-        hooks=(DBHook(s, i),),
+        hooks=(GnocchiHook(s, i, cfg),),
         guess_content_type_from_ext=False,
         custom_renderers={'json': OsloJSONRenderer,
                           'gnocchi_jinja': GnocchiJinjaRenderer},
@@ -156,18 +120,24 @@ def setup_app(pecan_config=PECAN_CONFIG):
     app = wsgi.SharedDataMiddleware(
         app,
         {"/static": root_dir + "/static"},
-        cache=not conf.api.pecan_debug)
+        cache=not cfg.api.pecan_debug)
 
-    for middleware in reversed(pecan_config['conf'].api.middlewares):
+    for middleware in reversed(cfg.api.middlewares):
         if not middleware:
             continue
         klass = importutils.import_class(middleware)
-        app = klass(app, dict(conf))
+        # FIXME(jd) Find a way to remove that special handling…
+        if klass == keystonemiddleware.auth_token.AuthProtocol:
+            middleware_config = dict(cfg.keystone_authtoken)
+        else:
+            middleware_config = dict(cfg)
+        app = klass(app, middleware_config)
 
     return app
 
 
 def build_server():
-    serving.run_simple(cfg.CONF.api.host, cfg.CONF.api.port,
-                       setup_app(),
-                       processes=cfg.CONF.api.workers)
+    conf = service.prepare_service()
+    serving.run_simple(conf.api.host, conf.api.port,
+                       setup_app(cfg=conf),
+                       processes=conf.api.workers)

@@ -19,7 +19,6 @@ import os
 
 from gabbi import driver
 
-from gnocchi.rest import app
 from gnocchi.tests.gabbi import fixtures
 
 
@@ -30,5 +29,5 @@ def load_tests(loader, tests, pattern):
     """Provide a TestSuite to the discovery process."""
     test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
     return driver.build_tests(test_dir, loader, host=None,
-                              intercept=app.setup_app,
+                              intercept=fixtures.setup_app,
                               fixture_module=fixtures)
