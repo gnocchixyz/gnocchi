@@ -158,6 +158,15 @@ class RestTest(tests_base.TestCase):
         c['not_implemented_middleware'] = False
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
+        # TODO(jd) Override these options with values. They are not used, but
+        # if they are None (their defaults), the keystone authtoken middleware
+        # prints a warning… :( When the bug is fixed we can remove that!
+        # See https://bugs.launchpad.net/keystonemiddleware/+bug/1429179
+        self.conf.set_override("identity_uri", "foobar",
+                               group="keystone_authtoken")
+        self.conf.set_override("auth_uri", "foobar",
+                               group="keystone_authtoken")
+
         if hasattr(self, "middlewares"):
             self.conf.set_override("middlewares",
                                    self.middlewares, group="api")
