@@ -97,7 +97,7 @@ def get_user_and_project():
             pecan.request.headers.get('X-Project-Id'))
 
 
-def deserialize(schema):
+def deserialize(schema, required=True):
     mime_type, options = werkzeug.http.parse_options_header(
         pecan.request.headers.get('Content-Type'))
     if mime_type != "application/json":
@@ -108,7 +108,7 @@ def deserialize(schema):
     except Exception as e:
         pecan.abort(400, "Unable to decode body: " + str(e))
     try:
-        return schema(params)
+        return voluptuous.Schema(schema, required=required)(params)
     except voluptuous.Error as e:
         pecan.abort(400, "Invalid input: %s" % e)
 
@@ -576,19 +576,14 @@ class NamedMetricController(rest.RestController):
 
             parsed_query[fragment[0]] = fragment[1]
 
-        # TODO(sileht): for now to reduce the number of voluptuous
-        # schema definition used we allows to filter only on Patchable
-        # attributes, (voluptuous schema of Postable attributes
-        # have 'required' set and we don't want to force to put all
-        # the filters into the query)
         try:
             ctrl = getattr(ResourcesController, self.resource_type)
-            schema = ctrl._resource_rest_class.ResourcePatch
+            schema = ctrl._resource_rest_class.Resource
         except AttributeError:
             pecan.abort(404)
 
         try:
-            filters = schema(parsed_query)
+            filters = voluptuous.Schema(schema, required=False)(parsed_query)
         except voluptuous.Error as e:
             pecan.abort(400, "Invalid input: %s" % e)
 
@@ -615,38 +610,23 @@ class NamedMetricController(rest.RestController):
             pecan.abort(404, e)
 
 
-Metrics = voluptuous.Schema({
-    six.text_type: voluptuous.Any(UUID,
-                                  MetricsController.Metric),
-})
-
-
 def ResourceSchema(schema):
     base_schema = {
-        voluptuous.Required("id"): UUID,
-        'started_at': Timestamp,
-        'ended_at': Timestamp,
-        'user_id': voluptuous.Any(None, UUID),
-        'project_id': voluptuous.Any(None, UUID),
-        'metrics': Metrics,
+        "id": UUID,
+        voluptuous.Optional('started_at'): Timestamp,
+        voluptuous.Optional('ended_at'): Timestamp,
+        voluptuous.Optional('user_id'): voluptuous.Any(None, UUID),
+        voluptuous.Optional('project_id'): voluptuous.Any(None, UUID),
+        voluptuous.Optional('metrics'): Metrics,
     }
     base_schema.update(schema)
-    return voluptuous.Schema(base_schema)
-
-
-def ResourcePatchSchema(schema):
-    base_schema = {
-        'metrics': Metrics,
-        'ended_at': Timestamp,
-    }
-    base_schema.update(schema)
-    return voluptuous.Schema(base_schema)
+    return base_schema
 
 
 class GenericResourceController(rest.RestController):
     _resource_type = 'generic'
 
-    ResourcePatch = ResourcePatchSchema({})
+    Resource = ResourceSchema({})
 
     def __init__(self, id):
         self.id = id
@@ -671,7 +651,7 @@ class GenericResourceController(rest.RestController):
         enforce("update resource", resource)
         # NOTE(jd) Can't use vexpose because it does not take into account
         # inheritance
-        body = deserialize(self.ResourcePatch)
+        body = deserialize(self.Resource, required=False)
         if len(body) == 0:
             return
 
@@ -726,19 +706,19 @@ class SwiftAccountResourceController(GenericResourceController):
 class InstanceResourceController(GenericResourceController):
     _resource_type = 'instance'
 
-    ResourcePatch = ResourcePatchSchema({
+    Resource = ResourceSchema({
         "flavor_id": int,
         "image_ref": six.text_type,
         "host": six.text_type,
         "display_name": six.text_type,
-        "server_group": six.text_type,
+        voluptuous.Optional("server_group"): six.text_type,
     })
 
 
 class VolumeResourceController(GenericResourceController):
     _resource_type = 'volume'
 
-    ResourcePatch = ResourcePatchSchema({
+    Resource = ResourceSchema({
         "display_name": six.text_type,
     })
 
@@ -747,7 +727,7 @@ class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
 
-    Resource = ResourceSchema({})
+    Resource = GenericResourceController.Resource
 
     @pecan.expose()
     def _lookup(self, id, *remainder):
@@ -818,22 +798,14 @@ class InstancesResourcesController(GenericResourcesController):
     _resource_type = 'instance'
     _resource_rest_class = InstanceResourceController
 
-    Resource = ResourceSchema({
-        voluptuous.Required("flavor_id"): int,
-        voluptuous.Required("image_ref"): six.text_type,
-        voluptuous.Required("host"): six.text_type,
-        voluptuous.Required("display_name"): six.text_type,
-        "server_group": six.text_type,
-    })
+    Resource = InstanceResourceController.Resource
 
 
 class VolumesResourcesController(GenericResourcesController):
     _resource_type = 'volume'
     _resource_rest_class = VolumeResourceController
 
-    Resource = ResourceSchema({
-        voluptuous.Required("display_name"): six.text_type,
-    })
+    Resource = VolumeResourceController.Resource
 
 
 class ResourcesController(rest.RestController):
