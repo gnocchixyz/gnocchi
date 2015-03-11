@@ -103,7 +103,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     @staticmethod
     def _get_object_name(metric, lock_name):
-        return "gnocchi_%s_%s" % (metric.name, lock_name)
+        return str("gnocchi_%s_%s" % (metric.name, lock_name))
 
     def _create_metric_container(self, metric):
         name = self._get_object_name(metric, 'container')
