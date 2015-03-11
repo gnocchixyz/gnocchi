@@ -33,15 +33,12 @@ import werkzeug.http
 from gnocchi import aggregates
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.openstack.common import policy
 from gnocchi import storage
 from gnocchi import utils
 
 
 LOGICAL_AND = '∧'
 
-
-_ENFORCER = None
 
 LOG = log.getLogger(__name__)
 
@@ -53,10 +50,6 @@ def enforce(rule, target):
     :param target: The target to enforce on.
 
     """
-    global _ENFORCER
-    if not _ENFORCER:
-        _ENFORCER = policy.Enforcer()
-
     headers = pecan.request.headers
 
     # NOTE(jd) If user_id or project_id are UUID, try to convert them in the
@@ -84,7 +77,7 @@ def enforce(rule, target):
         'project_id': project_id
     }
 
-    if not _ENFORCER.enforce(rule, target, creds):
+    if not pecan.request.policy_enforcer.enforce(rule, target, creds):
         pecan.abort(403)
 
 

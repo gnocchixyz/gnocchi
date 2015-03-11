@@ -269,7 +269,8 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         super(TestCase, self).setUp()
         self.conf = service.prepare_service([])
         self.conf.set_override('policy_file',
-                               self.path_get('etc/gnocchi/policy.json'))
+                               self.path_get('etc/gnocchi/policy.json'),
+                               group="oslo_policy")
 
         self.conf.set_override(
             'url',

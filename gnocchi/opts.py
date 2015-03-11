@@ -20,7 +20,6 @@ from oslo_config import types
 
 import gnocchi.archive_policy
 import gnocchi.indexer
-import gnocchi.openstack.common.policy
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
@@ -29,7 +28,6 @@ import gnocchi.storage.swift
 
 def list_opts():
     return [
-        ("DEFAULT", gnocchi.openstack.common.policy.policy_opts),
         ("indexer", gnocchi.indexer.OPTS),
         ("api", (
             cfg.IntOpt('port',

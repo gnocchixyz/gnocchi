@@ -162,7 +162,6 @@ function configure_gnocchi {
 
     # Install the policy file for the API server
     cp $GNOCCHI_DIR/etc/gnocchi/policy.json $GNOCCHI_CONF_DIR
-    iniset $GNOCCHI_CONF DEFAULT policy_file $GNOCCHI_CONF_DIR/policy.json
 
     iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
     if [ "${GNOCCHI_COORDINATOR_URL:0:7}" == "file://" ]; then
