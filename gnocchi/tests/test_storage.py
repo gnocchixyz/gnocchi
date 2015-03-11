@@ -18,6 +18,7 @@ import uuid
 
 import testscenarios
 
+from gnocchi import archive_policy
 from gnocchi import storage
 from gnocchi.storage import null
 from gnocchi.tests import base as tests_base
@@ -51,6 +52,9 @@ class TestStorageDriver(tests_base.TestCase):
         # aggregation_methods to check the presence or not of a meter,
         # just in case of the API change to not have to rewrite driver just
         # for that.
+        # NOTE(jd) Copy the archive policy, DO NOT MODIFY THE GLOBAL ONE!
+        self.metric.archive_policy = archive_policy.ArchivePolicy.from_dict(
+            self.metric.archive_policy.to_dict())
         self.metric.archive_policy.aggregation_methods = ['mean']
         self.storage.create_metric(self.metric)
         self.metric.archive_policy.aggregation_methods = ['sum']
