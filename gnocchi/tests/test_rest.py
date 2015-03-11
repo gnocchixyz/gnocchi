@@ -155,6 +155,7 @@ class RestTest(tests_base.TestCase):
         c.update(app.PECAN_CONFIG)
         c['indexer'] = self.index
         c['storage'] = self.storage
+        c['not_implemented_middleware'] = False
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
         if hasattr(self, "middlewares"):
