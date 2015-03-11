@@ -1768,8 +1768,7 @@ class ResourceTest(RestTest):
                               + urllib_parse.quote(rest.LOGICAL_AND)
                               + "display_name=myinstance"
                               + "/metric/foo/measures?aggregation=max",
-                              expect_errors=True)
-        self.assertEqual(400, result.status_code, result.body)
+                              status=400)
         if self.resource_type == 'instance':
             self.assertIn(b"One of the metric to aggregated doesn't have "
                           b"matching granularity",

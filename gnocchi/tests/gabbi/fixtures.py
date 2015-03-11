@@ -69,52 +69,55 @@ class ConfigFixture(fixture.GabbiFixture):
         coordination_url = 'file://%s' % coordination_dir
 
         conf = service.prepare_service([])
+
+        conf.set_override('url',
+                          os.environ.get("GNOCCHI_TEST_INDEXER_URL",
+                                         "null://"),
+                          'indexer')
+
+        # TODO(jd) It would be cool if Gabbi was able to use the null://
+        # indexer, but this makes the API returns a lot of 501 error, which
+        # Gabbi does not want to see, so let's just disable it.
+        if conf.indexer.url is "null://":
+            raise case.SkipTest("No indexer configured")
+
         conf.set_override('policy_file',
                           os.path.abspath('etc/gnocchi/policy.json'))
         conf.set_override('file_basepath', data_tmp_dir, 'storage')
         conf.set_override('driver', 'file', 'storage')
         conf.set_override('coordination_url', coordination_url, 'storage')
-        conf.set_override('driver', 'sqlalchemy', 'indexer')
+
+        # NOTE(jd) All of that is still very SQL centric but we only support
+        # SQL for now so let's say it's good enough.
+        url = sqlalchemy_url.make_url(conf.indexer.url)
+
+        url.database = url.database + str(uuid.uuid4()).replace('-', '')
+        db_url = str(url)
+        conf.set_override('url', db_url, 'indexer')
+        sqlalchemy_utils.create_database(db_url)
+
+        index = indexer.get_driver(conf)
+        index.connect()
+        index.upgrade()
+
         conf.set_override('pecan_debug', False, 'api')
 
         # Turn off any middleware.
         conf.set_override('middlewares', [], 'api')
 
-        self.db_url = self._setup_database(conf)
         CONF = self.conf = conf
         self.tmp_dir = data_tmp_dir
 
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
-
         self.conf.reset()
 
-        if self.db_url:
+        if not self.conf.indexer.url.startswith("null://"):
             # Swallow noise from missing tables when dropping
             # database.
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore',
                                         module='sqlalchemy.engine.default')
-                sqlalchemy_utils.drop_database(self.db_url)
+                sqlalchemy_utils.drop_database(self.conf.indexer.url)
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
-
-    @staticmethod
-    def _setup_database(conf):
-        """Establish the indexer database."""
-        index = indexer.get_driver(conf)
-
-        db_url = os.environ.get('GNOCCHI_TEST_MYSQL_URL', os.environ.get(
-            'GNOCCHI_TEST_PGSQL_URL'))
-        if db_url is None:
-            raise case.SkipTest("No database connection configured")
-
-        url = sqlalchemy_url.make_url(db_url)
-        url.database = url.database + str(uuid.uuid4()).replace('-', '')
-        db_url = str(url)
-        conf.set_override('connection', db_url, 'database')
-        sqlalchemy_utils.create_database(db_url)
-
-        index.connect()
-        index.upgrade()
-        return db_url

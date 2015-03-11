@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -16,13 +14,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from oslo.config import cfg
+from oslo_utils import netutils
 from stevedore import driver
 
 from gnocchi import exceptions
 
 OPTS = [
-    cfg.StrOpt('driver',
-               default='sqlalchemy',
+    cfg.StrOpt('url',
+               default="null://",
                help='Indexer driver to use'),
 ]
 
@@ -30,21 +29,12 @@ OPTS = [
 _marker = object()
 
 
-def _get_driver(name, conf):
-    """Return the driver named name.
-
-    :param name: The name of the driver.
-    :param conf: The conf to pass to the driver.
-    """
-    d = driver.DriverManager('gnocchi.indexer',
-                             name).driver
-    return d(conf)
-
-
 def get_driver(conf):
     """Return the configured driver."""
-    return _get_driver(conf.indexer.driver,
-                       conf)
+    split = netutils.urlsplit(conf.indexer.url)
+    d = driver.DriverManager('gnocchi.indexer',
+                             split.scheme).driver
+    return d(conf)
 
 
 class UnknownResourceType(Exception):

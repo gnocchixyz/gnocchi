@@ -196,7 +196,7 @@ function configure_gnocchi {
     fi
 
     # Configure the indexer database
-    iniset $GNOCCHI_CONF database connection `database_connection_url gnocchi`
+    iniset $GNOCCHI_CONF indexer url `database_connection_url gnocchi`
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         _config_gnocchi_apache_wsgi

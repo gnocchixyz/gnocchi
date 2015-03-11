@@ -247,31 +247,12 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         ),
     }
 
-    indexer_backends = [
-        ('null', dict(indexer_engine='null')),
-        ('postgresql', dict(indexer_engine='sqlalchemy',
-                            db_url=os.environ.get("GNOCCHI_TEST_PGSQL_URL"))),
-        ('mysql', dict(indexer_engine='sqlalchemy',
-                       db_url=os.environ.get("GNOCCHI_TEST_MYSQL_URL"))),
-    ]
-
-    storage_backends = [
+    scenarios = [
         ('null', dict(storage_engine='null')),
         ('swift', dict(storage_engine='swift')),
         ('file', dict(storage_engine='file')),
         ('ceph', dict(storage_engine='ceph')),
     ]
-
-    scenarios = testscenarios.multiply_scenarios(storage_backends,
-                                                 indexer_backends)
-
-    def _pre_connect_sqlalchemy(self):
-        self.conf.set_override('connection',
-                               getattr(self, "db_url", "sqlite:///"),
-                               'database')
-        # No env var exported, no integration tests
-        if self.conf.database.connection is None:
-            raise testcase.TestSkipped("No database connection configured")
 
     @staticmethod
     def path_get(project_file=None):
@@ -290,13 +271,12 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'))
 
-        self.conf.set_override('driver', self.indexer_engine, 'indexer')
+        self.conf.set_override(
+            'url',
+            os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
+            'indexer')
 
         self.index = indexer.get_driver(self.conf)
-        pre_connect_func = getattr(self, "_pre_connect_" + self.indexer_engine,
-                                   None)
-        if pre_connect_func:
-            pre_connect_func()
         self.index.connect()
 
         self.conf.set_override('coordination_url',
