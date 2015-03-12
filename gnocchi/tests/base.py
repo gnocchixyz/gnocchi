@@ -92,22 +92,31 @@ class FakeRadosModule(object):
         def close():
             pass
 
+        @staticmethod
+        def _validate_key(name):
+            if not isinstance(name, str):
+                raise TypeError("key is not a 'str' object")
+
         def write_full(self, key, value):
+            self._validate_key(key)
             self.kvs[key] = value
 
         def stat(self, key):
+            self._validate_key(key)
             if key not in self.kvs:
                 raise FakeRadosModule.ObjectNotFound
             else:
                 return (1024, "timestamp")
 
         def read(self, key, length=8192, offset=0):
+            self._validate_key(key)
             if key not in self.kvs:
                 raise FakeRadosModule.ObjectNotFound
             else:
                 return self.kvs[key][offset:offset+length]
 
         def remove_object(self, key):
+            self._validate_key(key)
             if key not in self.kvs:
                 raise FakeRadosModule.ObjectNotFound
             del self.kvs[key]
