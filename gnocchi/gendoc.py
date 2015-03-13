@@ -30,7 +30,6 @@ _RUN = False
 
 def _setup_test_app():
     t = test_rest.RestTest()
-    t.storage_engine = 'file'
     t.skip_archive_policies_creation = True
     t.setUp()
     return t.app

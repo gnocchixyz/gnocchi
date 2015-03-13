@@ -23,7 +23,6 @@ from oslotest import mockpatch
 import six
 from stevedore import extension
 from swiftclient import exceptions as swexc
-import testscenarios
 from testtools import testcase
 from tooz import coordination
 
@@ -197,7 +196,7 @@ class FakeSwiftClient(object):
 
 
 @six.add_metaclass(SkipNotImplementedMeta)
-class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
+class TestCase(base.BaseTestCase):
 
     ARCHIVE_POLICIES = {
         'low': archive_policy.ArchivePolicy(
@@ -255,13 +254,6 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
                 ],
         ),
     }
-
-    scenarios = [
-        ('null', dict(storage_engine='null')),
-        ('swift', dict(storage_engine='swift')),
-        ('file', dict(storage_engine='file')),
-        ('ceph', dict(storage_engine='ceph')),
-    ]
 
     @staticmethod
     def path_get(project_file=None):
@@ -322,13 +314,17 @@ class TestCase(base.BaseTestCase, testscenarios.TestWithScenarios):
         self.useFixture(mockpatch.Patch('gnocchi.storage.ceph.rados',
                                         FakeRadosModule()))
 
-        if self.storage_engine == 'file':
+        self.conf.set_override(
+            'driver',
+            os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "null"),
+            'storage')
+
+        if self.conf.storage.driver == 'file':
             tempdir = self.useFixture(fixtures.TempDir())
             self.conf.set_override('file_basepath',
                                    tempdir.path,
                                    'storage')
 
-        self.conf.set_override('driver', self.storage_engine, 'storage')
         self.storage = storage.get_driver(self.conf)
 
         self.mgr = extension.ExtensionManager('gnocchi.aggregates',

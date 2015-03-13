@@ -18,14 +18,10 @@ import uuid
 
 import mock
 from oslo.utils import timeutils
-import testscenarios
 
 from gnocchi import statsd
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
-
-
-load_tests = testscenarios.load_tests_apply_scenarios
 
 
 class TestStatsd(tests_base.TestCase):

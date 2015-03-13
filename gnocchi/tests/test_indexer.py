@@ -16,14 +16,9 @@
 import datetime
 import uuid
 
-import testscenarios
-
 from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.tests import base as tests_base
-
-
-load_tests = testscenarios.load_tests_apply_scenarios
 
 
 class TestIndexer(tests_base.TestCase):

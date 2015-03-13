@@ -17,15 +17,11 @@ import datetime
 import uuid
 
 import pandas
-import testscenarios
 
 from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
-
-
-load_tests = testscenarios.load_tests_apply_scenarios
 
 
 class TestAggregates(tests_base.TestCase):

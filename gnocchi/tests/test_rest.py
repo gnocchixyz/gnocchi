@@ -140,9 +140,9 @@ class TestingApp(webtest.TestApp):
         return super(TestingApp, self).do_request(req, *args, **kwargs)
 
 
-class RestTest(tests_base.TestCase):
+class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
-    auth_middleware_scenarios = [
+    scenarios = [
         ('noauth', dict(middlewares=[])),
         ('keystone', dict(
             middlewares=['keystonemiddleware.auth_token.AuthProtocol'])),
@@ -198,14 +198,6 @@ class RestTest(tests_base.TestCase):
     @staticmethod
     def runTest():
         pass
-
-    @classmethod
-    def generate_scenarios(cls):
-        cls.scenarios = testscenarios.multiply_scenarios(
-            cls.scenarios,
-            cls.auth_middleware_scenarios)
-
-RestTest.generate_scenarios()
 
 
 class ArchivePolicyTest(RestTest):
