@@ -46,7 +46,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def __init__(self, conf):
         conf.set_override("connection", conf.indexer.url, "database")
         self.conf = conf
-        self.qt = QueryTransformer()
 
     def connect(self):
         self.engine_facade = session.EngineFacade.from_config(self.conf)
@@ -299,10 +298,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         if attribute_filter:
             try:
-                f = self.qt.build_filter(resource_cls, attribute_filter)
-            except QueryAttributeError as e:
-                raise indexer.ResourceAttributeError(
-                    resource_type, e.attribute)
+                f = QueryTransformer.build_filter(resource_cls,
+                                                  attribute_filter)
+            except indexer.QueryAttributeError as e:
+                # NOTE(jd) The QueryAttributeError does not know about
+                # resource_type, so convert it
+                raise indexer.ResourceAttributeError(resource_type,
+                                                     e.attribute)
             q = q.filter(f)
 
         # Always include metrics
@@ -335,46 +337,68 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session.flush()
 
 
-class QueryAttributeError(AttributeError):
-    def __init__(self, table, attribute):
-        self.table = table
-        self.attribute = attribute
-
-
 class QueryTransformer(object):
-    operators = {
+    unary_operators = {
+        "not": sqlalchemy.or_,
+    }
+
+    binary_operators = {
         "=": operator.eq,
+        "==": operator.eq,
+        "eq": operator.eq,
+
         "<": operator.lt,
+        "lt": operator.lt,
+
         ">": operator.gt,
+        "gt": operator.gt,
+
         "<=": operator.le,
+        "≤": operator.le,
+        "le": operator.le,
+
         ">=": operator.ge,
+        "≥": operator.ge,
+        "ge": operator.ge,
+
         "!=": operator.ne,
+        "≠": operator.ne,
+        "ne": operator.ne,
+
         "in": lambda field_name, values: field_name.in_(values),
+
         "like": lambda field, value: field.like(value),
     }
 
-    complex_operators = {"or": sqlalchemy.or_,
-                         "and": sqlalchemy.and_,
-                         "not": sqlalchemy.not_}
+    multiple_operators = {
+        "or": sqlalchemy.or_,
+        "∨": sqlalchemy.or_,
 
-    def _handle_complex_op(self, table, complex_op, nodes):
-        op = self.complex_operators[complex_op]
-        if op == sqlalchemy.not_:
-            nodes = [nodes]
-        element_list = []
-        for node in nodes:
-            element = self.build_filter(table, node)
-            element_list.append(element)
-        return op(*element_list)
+        "and": sqlalchemy.and_,
+        "∧": sqlalchemy.and_,
+    }
 
-    def _handle_simple_op(self, table, simple_op, nodes):
-        op = self.operators[simple_op]
-        field_name = list(nodes.keys())[0]
-        value = list(nodes.values())[0]
+    @classmethod
+    def _handle_multiple_op(cls, table, op, nodes):
+        return op(*[
+            cls.build_filter(table, node)
+            for node in nodes
+        ])
+
+    @classmethod
+    def _handle_unary_op(cls, table, op, node):
+        return op(cls.build_filter(table, node))
+
+    @staticmethod
+    def _handle_binary_op(table, op, nodes):
+        try:
+            field_name, value = list(nodes.items())[0]
+        except Exception:
+            raise indexer.QueryError()
         try:
             attr = getattr(table, field_name)
         except AttributeError:
-            raise QueryAttributeError(table, field_name)
+            raise indexer.QueryAttributeError(table, field_name)
 
         # Convert value to the right type
         if isinstance(attr.type, base.PreciseTimestamp):
@@ -382,11 +406,23 @@ class QueryTransformer(object):
 
         return op(attr, value)
 
-    def build_filter(self, table, sub_tree):
-        if sub_tree == {}:
-            return True
-        operator = list(sub_tree.keys())[0]
-        nodes = list(sub_tree.values())[0]
-        if operator in self.complex_operators:
-            return self._handle_complex_op(table, operator, nodes)
-        return self._handle_simple_op(table, operator, nodes)
+    @classmethod
+    def build_filter(cls, table, tree):
+        try:
+            operator, nodes = list(tree.items())[0]
+        except Exception:
+            raise indexer.QueryError()
+
+        try:
+            op = cls.multiple_operators[operator]
+        except KeyError:
+            try:
+                op = cls.binary_operators[operator]
+            except KeyError:
+                try:
+                    op = cls.unary_operators[operator]
+                except KeyError:
+                    raise indexer.QueryInvalidOperator(operator)
+                return cls._handle_unary_op(op, nodes)
+            return cls._handle_binary_op(table, op, nodes)
+        return cls._handle_multiple_op(table, op, nodes)
