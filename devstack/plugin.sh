@@ -216,8 +216,10 @@ function configure_ceph_gnocchi {
 }
 
 function configure_ceilometer_gnocchi {
+    gnocchi_url=$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT
     iniset $CEILOMETER_CONF DEFAULT dispatcher gnocchi
-    iniset $CEILOMETER_CONF dispatcher_gnocchi url $GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT
+    iniset $CEILOMETER_CONF alarms gnocchi_url $gnocchi_url
+    iniset $CEILOMETER_CONF dispatcher_gnocchi url $gnocchi_url
     iniset $CEILOMETER_CONF dispatcher_gnocchi archive_policy ${GNOCCHI_ARCHIVE_POLICY}
     if is_service_enabled swift; then
         iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "True"
