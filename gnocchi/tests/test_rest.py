@@ -894,6 +894,35 @@ class MetricTest(RestTest):
              [u'2013-01-01T23:20:00.000000Z', 300.0, 1234.2]],
             result)
 
+    def test_get_measure_unknown_metric(self):
+        metric_id = "cee6ef1f-52cc-4a16-bbb5-648aedfd1c37"
+        ret = self.app.get("/v1/metric/%s/measures" % metric_id, status=404)
+        self.assertIn('Metric %s does not exist' % metric_id, ret.text)
+
+    def test_get_measure_unknown_aggregation(self):
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "low"})
+        metric = json.loads(result.text)
+        ret = self.app.get("/v1/metric/%s/measures?aggregation=last" %
+                           metric['id'], status=404)
+        self.assertIn("Aggregation method 'last' for metric %s does not "
+                      "exist" % metric['id'], ret.text)
+
+    def test_aggregation_get_measure_unknown_metric(self):
+        metric_id = "cee6ef1f-52cc-4a16-bbb5-648aedfd1c37"
+        ret = self.app.get("/v1/aggregation/metric?metric=%s" % metric_id,
+                           status=404)
+        self.assertIn('Metric %s does not exist' % metric_id, ret.text)
+
+    def test_aggregation_get_measure_unknown_aggregation(self):
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "low"})
+        metric = json.loads(result.text)
+        ret = self.app.get("/v1/aggregation/metric?metric=%s&"
+                           "aggregation=last" % metric['id'], status=404)
+        self.assertIn("Aggregation method 'last' for metric %s does not "
+                      "exist" % metric['id'], ret.text)
+
     def test_get_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "low"})

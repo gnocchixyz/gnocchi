@@ -90,6 +90,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             headers, contents = self.swift.get_object(metric.name, aggregation)
         except swclient.ClientException as e:
             if e.http_status == 404:
-                raise storage.MetricDoesNotExist(metric)
+                try:
+                    self.swift.head_container(metric.name)
+                except swclient.ClientException as e:
+                    if e.http_status == 404:
+                        raise storage.MetricDoesNotExist(metric)
+                    raise
+                raise storage.AggregationDoesNotExist(metric, aggregation)
             raise
         return contents

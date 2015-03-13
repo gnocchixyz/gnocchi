@@ -62,6 +62,17 @@ class MetricDoesNotExist(Exception):
             "Metric %s does not exist" % metric)
 
 
+class AggregationDoesNotExist(Exception):
+    """Error raised when the aggregation method doesn't exists for a metric."""
+
+    def __init__(self, metric, method):
+        self.metric = metric
+        self.method = method
+        super(AggregationDoesNotExist, self).__init__(
+            "Aggregation method '%s' for metric %s does not exist" %
+            (method, metric))
+
+
 class MetricAlreadyExists(Exception):
     """Error raised when this metric already exists."""
 
