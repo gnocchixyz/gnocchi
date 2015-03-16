@@ -17,7 +17,6 @@
 # under the License.
 import logging
 import multiprocessing
-import operator
 import uuid
 
 from concurrent import futures
@@ -42,99 +41,6 @@ OPTS = [
 ]
 
 LOG = logging.getLogger(__name__)
-
-
-class MeasureQuery(object):
-    binary_operators = {
-        u"=": operator.eq,
-        u"==": operator.eq,
-        u"eq": operator.eq,
-
-        u"<": operator.lt,
-        u"lt": operator.lt,
-
-        u">": operator.gt,
-        u"gt": operator.gt,
-
-        u"<=": operator.le,
-        u"≤": operator.le,
-        u"le": operator.le,
-
-        u">=": operator.ge,
-        u"≥": operator.ge,
-        u"ge": operator.ge,
-
-        u"!=": operator.ne,
-        u"≠": operator.ne,
-        u"ne": operator.ne,
-
-        u"%": operator.mod,
-        u"mod": operator.mod,
-
-        u"+": operator.add,
-        u"add": operator.add,
-
-        u"-": operator.sub,
-        u"sub": operator.sub,
-
-        u"*": operator.mul,
-        u"×": operator.mul,
-        u"mul": operator.mul,
-
-        u"/": operator.truediv,
-        u"÷": operator.truediv,
-        u"div": operator.truediv,
-
-        u"**": operator.pow,
-        u"^": operator.pow,
-        u"pow": operator.pow,
-    }
-
-    multiple_operators = {
-        u"or": any,
-        u"∨": any,
-        u"and": all,
-        u"∧": all,
-    }
-
-    def __init__(self, tree):
-        self._eval = self.build_evaluator(tree)
-
-    def __call__(self, value):
-        return self._eval(value)
-
-    def build_evaluator(self, tree):
-        try:
-            operator, nodes = list(tree.items())[0]
-        except Exception:
-            return lambda value: tree
-        try:
-            op = self.multiple_operators[operator]
-        except KeyError:
-            try:
-                op = self.binary_operators[operator]
-            except KeyError:
-                raise storage.InvalidQuery("Unknown operator %s" % operator)
-            return self._handle_binary_op(op, nodes)
-        return self._handle_multiple_op(op, nodes)
-
-    def _handle_multiple_op(self, op, nodes):
-        elements = [self.build_evaluator(node) for node in nodes]
-        return lambda value: op((e(value) for e in elements))
-
-    def _handle_binary_op(self, op, node):
-        try:
-            iterator = iter(node)
-        except Exception:
-            return lambda value: op(value, node)
-        nodes = list(iterator)
-        if len(nodes) != 2:
-            raise storage.InvalidQuery(
-                "Binary operator %s needs 2 arguments, %d given" %
-                (op, len(nodes)))
-        node0 = self.build_evaluator(node[0])
-        node1 = self.build_evaluator(node[1])
-        return lambda value: op(node0(value), node1(value))
 
 
 class CarbonaraBasedStorageToozLock(object):
@@ -286,7 +192,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def search_value(self, metrics, query, from_timestamp=None,
                      to_timestamp=None, aggregation='mean'):
         result = {}
-        predicate = MeasureQuery(query)
+        predicate = storage.MeasureQuery(query)
         results = self._map_in_thread(self._find_measure,
                                       [(metric, aggregation, predicate,
                                         from_timestamp, to_timestamp)

@@ -78,6 +78,13 @@ def _wrap_metricd(cpu_number):
 
 def metricd():
     conf = service.prepare_service()
+
+    # Check that the storage driver actually needs this daemon to run
+    s = storage.get_driver_class(conf)
+    if s.process_measures == storage.StorageDriver.process_measures:
+        LOG.debug("This storage driver does not need metricd to run, exiting")
+        return 0
+
     p = multiprocessing.Pool(conf.metricd.workers)
 
     signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(0))

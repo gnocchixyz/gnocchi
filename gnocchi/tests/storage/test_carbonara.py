@@ -16,41 +16,40 @@
 from oslotest import base
 
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 
 
 class TestMeasureQuery(base.BaseTestCase):
     def test_equal(self):
-        q = _carbonara.MeasureQuery({"=": 4})
+        q = storage.MeasureQuery({"=": 4})
         self.assertTrue(q(4))
         self.assertFalse(q(40))
 
     def test_gt(self):
-        q = _carbonara.MeasureQuery({">": 4})
+        q = storage.MeasureQuery({">": 4})
         self.assertTrue(q(40))
         self.assertFalse(q(4))
 
     def test_and(self):
-        q = _carbonara.MeasureQuery({"and": [{">": 4}, {"<": 10}]})
+        q = storage.MeasureQuery({"and": [{">": 4}, {"<": 10}]})
         self.assertTrue(q(5))
         self.assertFalse(q(40))
         self.assertFalse(q(1))
 
     def test_or(self):
-        q = _carbonara.MeasureQuery({"or": [{"=": 4}, {"=": 10}]})
+        q = storage.MeasureQuery({"or": [{"=": 4}, {"=": 10}]})
         self.assertTrue(q(4))
         self.assertTrue(q(10))
         self.assertFalse(q(-1))
 
     def test_modulo(self):
-        q = _carbonara.MeasureQuery({"=": [{"%": 5}, 0]})
+        q = storage.MeasureQuery({"=": [{"%": 5}, 0]})
         self.assertTrue(q(5))
         self.assertTrue(q(10))
         self.assertFalse(q(-1))
         self.assertFalse(q(6))
 
     def test_math(self):
-        q = _carbonara.MeasureQuery(
+        q = storage.MeasureQuery(
             {
                 u"and": [
                     # v+5 is bigger 0
@@ -65,15 +64,15 @@ class TestMeasureQuery(base.BaseTestCase):
         self.assertFalse(q(11))
 
     def test_empty(self):
-        q = _carbonara.MeasureQuery({})
+        q = storage.MeasureQuery({})
         self.assertFalse(q(5))
         self.assertFalse(q(10))
 
     def test_bad_format(self):
         self.assertRaises(storage.InvalidQuery,
-                          _carbonara.MeasureQuery,
+                          storage.MeasureQuery,
                           {"foo": [{"=": 4}, {"=": 10}]})
 
         self.assertRaises(storage.InvalidQuery,
-                          _carbonara.MeasureQuery,
+                          storage.MeasureQuery,
                           {"=": [1, 2, 3]})

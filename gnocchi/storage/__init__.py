@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import operator
 from oslo_config import cfg
 from oslo_utils import timeutils
 from stevedore import driver
@@ -117,21 +118,18 @@ class MetricUnaggregatable(Exception):
             % (" ,".join((str(m.id) for m in metrics)), reason))
 
 
-def _get_driver(name, conf):
-    """Return the driver named name.
+def get_driver_class(conf):
+    """Return the storage driver class.
 
-    :param name: The name of the driver.
-    :param conf: The conf to pass to the driver.
+    :param conf: The conf to use to determine the driver.
     """
-    d = driver.DriverManager('gnocchi.storage',
-                             name).driver
-    return d(conf)
+    return driver.DriverManager('gnocchi.storage',
+                                conf.storage.driver).driver
 
 
 def get_driver(conf):
     """Return the configured driver."""
-    return _get_driver(conf.storage.driver,
-                       conf.storage)
+    return get_driver_class(conf)(conf.storage)
 
 
 class StorageDriver(object):
@@ -210,3 +208,96 @@ class StorageDriver(object):
         :param aggregation: The type of aggregation to retrieve.
         """
         raise exceptions.NotImplementedError
+
+
+class MeasureQuery(object):
+    binary_operators = {
+        u"=": operator.eq,
+        u"==": operator.eq,
+        u"eq": operator.eq,
+
+        u"<": operator.lt,
+        u"lt": operator.lt,
+
+        u">": operator.gt,
+        u"gt": operator.gt,
+
+        u"<=": operator.le,
+        u"≤": operator.le,
+        u"le": operator.le,
+
+        u">=": operator.ge,
+        u"≥": operator.ge,
+        u"ge": operator.ge,
+
+        u"!=": operator.ne,
+        u"≠": operator.ne,
+        u"ne": operator.ne,
+
+        u"%": operator.mod,
+        u"mod": operator.mod,
+
+        u"+": operator.add,
+        u"add": operator.add,
+
+        u"-": operator.sub,
+        u"sub": operator.sub,
+
+        u"*": operator.mul,
+        u"×": operator.mul,
+        u"mul": operator.mul,
+
+        u"/": operator.truediv,
+        u"÷": operator.truediv,
+        u"div": operator.truediv,
+
+        u"**": operator.pow,
+        u"^": operator.pow,
+        u"pow": operator.pow,
+    }
+
+    multiple_operators = {
+        u"or": any,
+        u"∨": any,
+        u"and": all,
+        u"∧": all,
+    }
+
+    def __init__(self, tree):
+        self._eval = self.build_evaluator(tree)
+
+    def __call__(self, value):
+        return self._eval(value)
+
+    def build_evaluator(self, tree):
+        try:
+            operator, nodes = list(tree.items())[0]
+        except Exception:
+            return lambda value: tree
+        try:
+            op = self.multiple_operators[operator]
+        except KeyError:
+            try:
+                op = self.binary_operators[operator]
+            except KeyError:
+                raise InvalidQuery("Unknown operator %s" % operator)
+            return self._handle_binary_op(op, nodes)
+        return self._handle_multiple_op(op, nodes)
+
+    def _handle_multiple_op(self, op, nodes):
+        elements = [self.build_evaluator(node) for node in nodes]
+        return lambda value: op((e(value) for e in elements))
+
+    def _handle_binary_op(self, op, node):
+        try:
+            iterator = iter(node)
+        except Exception:
+            return lambda value: op(value, node)
+        nodes = list(iterator)
+        if len(nodes) != 2:
+            raise InvalidQuery(
+                "Binary operator %s needs 2 arguments, %d given" %
+                (op, len(nodes)))
+        node0 = self.build_evaluator(node[0])
+        node1 = self.build_evaluator(node[1])
+        return lambda value: op(node0(value), node1(value))
