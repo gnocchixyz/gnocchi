@@ -239,29 +239,32 @@ class TestTimeSerieArchive(base.BaseTestCase):
         ])
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 11:45:00'), 300.0, 6.0),
-            (pandas.Timestamp('2014-01-01 11:50:00'), 300.0, 27.0),
-            (pandas.Timestamp('2014-01-01 11:54:00'), 60.0, 4.0),
-            (pandas.Timestamp('2014-01-01 11:56:00'), 60.0, 4.0),
-            (pandas.Timestamp('2014-01-01 11:57:00'), 60.0, 6.0),
-            (pandas.Timestamp('2014-01-01 11:58:00'), 60.0, 5.0),
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 5.5),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 8.0),
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 3.0),
-            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 7.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 7),
-            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 11, 45), 300.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 50), 300.0, 27.0),
+            (datetime.datetime(2014, 1, 1, 11, 55), 300.0, 5.0),
+            (datetime.datetime(2014, 1, 1, 12, 00), 300.0, 6.166666666666667),
+            (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 54), 60.0, 4.0),
+            (datetime.datetime(2014, 1, 1, 11, 56), 60.0, 4.0),
+            (datetime.datetime(2014, 1, 1, 11, 57), 60.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 58), 60.0, 5.0),
+            (datetime.datetime(2014, 1, 1, 12, 1), 60.0, 5.5),
+            (datetime.datetime(2014, 1, 1, 12, 2), 60.0, 8.0),
+            (datetime.datetime(2014, 1, 1, 12, 3), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
+            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 7.0),
+            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 3.0)
         ], tsc.fetch())
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             300.0, 6.166666666666667),
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 5.5),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 8.0),
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 3.0),
-            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 7.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 7),
-            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 12), 300.0, 6.166666666666667),
+            (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 12, 1), 60.0, 5.5),
+            (datetime.datetime(2014, 1, 1, 12, 2), 60.0, 8.0),
+            (datetime.datetime(2014, 1, 1, 12, 3), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
+            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 7.0),
+            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 3.0)
         ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_fetch_agg_pct(self):
@@ -332,7 +335,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
         ])
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 11, 46, 0), 0.5, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 46), 0.5, 6.0),
+            (datetime.datetime(2014, 1, 1, 11, 47), 0.5, 50.0),
+            (datetime.datetime(2014, 1, 1, 11, 48, 0, 500000), 0.5,
+             4.333333333333333),
             (datetime.datetime(2014, 1, 1, 11, 46, 0, 200000), 0.2, 6.0),
             (datetime.datetime(2014, 1, 1, 11, 47, 0, 200000), 0.2, 50.0),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 400000), 0.2, 4.0),
@@ -569,18 +575,21 @@ class TestTimeSerieArchive(base.BaseTestCase):
 
         output = carbonara.TimeSerieArchive.aggregated([tsc1, tsc2])
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 11:45:00'), 300.0, 5.75),
-            (pandas.Timestamp('2014-01-01 11:50:00'), 300.0, 27.5),
-            (pandas.Timestamp('2014-01-01 11:54:00'), 60.0, 4.5),
-            (pandas.Timestamp('2014-01-01 11:56:00'), 60.0, 4.5),
-            (pandas.Timestamp('2014-01-01 11:57:00'), 60.0, 6.5),
-            (pandas.Timestamp('2014-01-01 11:58:00'), 60.0, 5.0),
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 6.0),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 7.0),
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.5),
-            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 5.5),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 6.75),
-            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 2.0),
+            (datetime.datetime(2014, 1, 1, 11, 45), 300.0, 5.75),
+            (datetime.datetime(2014, 1, 1, 11, 50), 300.0, 27.5),
+            (datetime.datetime(2014, 1, 1, 11, 55), 300.0, 5.3333333333333339),
+            (datetime.datetime(2014, 1, 1, 12, 0), 300.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 5.1666666666666661),
+            (datetime.datetime(2014, 1, 1, 11, 54), 60.0, 4.5),
+            (datetime.datetime(2014, 1, 1, 11, 56), 60.0, 4.5),
+            (datetime.datetime(2014, 1, 1, 11, 57), 60.0, 6.5),
+            (datetime.datetime(2014, 1, 1, 11, 58), 60.0, 5.0),
+            (datetime.datetime(2014, 1, 1, 12, 1), 60.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 12, 2), 60.0, 7.0),
+            (datetime.datetime(2014, 1, 1, 12, 3), 60.0, 4.5),
+            (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 5.5),
+            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 6.75),
+            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 2.0),
         ], output)
 
     def test_aggregated_different_archive(self):
