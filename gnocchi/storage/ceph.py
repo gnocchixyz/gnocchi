@@ -105,22 +105,24 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _get_object_name(metric, lock_name):
         return str("gnocchi_%s_%s" % (metric.name, lock_name))
 
+    @staticmethod
+    def _object_exists(ioctx, name):
+        try:
+            size, mtime = ioctx.stat(name)
+            # NOTE(sileht): the object have been created by
+            # the lock code
+            return size > 0
+        except rados.ObjectNotFound:
+            return False
+        return True
+
     def _create_metric_container(self, metric):
         name = self._get_object_name(metric, 'container')
         with self._get_ioctx() as ioctx:
-            not_yet_exist = False
-            try:
-                size, mtime = ioctx.stat(name)
-                # NOTE(sileht: the object have been created by
-                # the lock code
-                if size == 0:
-                    not_yet_exist = True
-            except rados.ObjectNotFound:
-                not_yet_exist = True
-            if not_yet_exist:
-                ioctx.write_full(name, "metric created")
-            else:
+            if self._object_exists(ioctx, name):
                 raise storage.MetricAlreadyExists(metric)
+            else:
+                ioctx.write_full(name, "metric created")
 
     def _store_metric_measures(self, metric, aggregation, data):
         name = self._get_object_name(metric, aggregation)
@@ -156,7 +158,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 if len(content) == 0:
                     # NOTE(sileht: the object have been created by
                     # the lock code
-                    raise storage.MetricDoesNotExist(metric)
-                return content
+                    raise rados.ObjectNotFound
+                else:
+                    return content
         except rados.ObjectNotFound:
-            raise storage.MetricDoesNotExist(metric)
+            name = self._get_object_name(metric, 'container')
+            with self._get_ioctx() as ioctx:
+                if self._object_exists(ioctx, name):
+                    raise storage.AggregationDoesNotExist(metric, aggregation)
+                else:
+                    raise storage.MetricDoesNotExist(metric)

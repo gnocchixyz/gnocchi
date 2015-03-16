@@ -74,5 +74,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 return aggregation_file.read()
         except IOError as e:
             if e.errno == errno.ENOENT:
-                raise storage.MetricDoesNotExist(metric)
+                if os.path.exists(self._build_metric_path(metric)):
+                    raise storage.AggregationDoesNotExist(metric, aggregation)
+                else:
+                    raise storage.MetricDoesNotExist(metric)
             raise

@@ -325,6 +325,8 @@ class AggregatedMetricController(rest.RestController):
                   "matching granularity")
         except storage.MetricDoesNotExist as e:
             abort(404, e)
+        except storage.AggregationDoesNotExist as e:
+            abort(404, e)
 
 
 class MetricController(rest.RestController):
@@ -428,6 +430,8 @@ class MetricController(rest.RestController):
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
         except storage.MetricDoesNotExist as e:
+            abort(404, e)
+        except storage.AggregationDoesNotExist as e:
             abort(404, e)
         except aggregates.CustomAggFailure as e:
             abort(400, e)

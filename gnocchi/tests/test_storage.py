@@ -131,6 +131,22 @@ class TestStorageDriver(tests_base.TestCase):
                           [storage.Metric(str(uuid.uuid4()), None),
                            storage.Metric(str(uuid.uuid4()), None)])
 
+    def test_get_measure_unknown_aggregation(self):
+        self.storage.create_metric(self.metric)
+        self.assertRaises(storage.AggregationDoesNotExist,
+                          self.storage.get_measures,
+                          self.metric, aggregation='last')
+
+    def test_get_cross_metric_measures_unknown_aggregation(self):
+        metric2 = storage.Metric(str(uuid.uuid4()),
+                                 self.archive_policies['low'])
+        self.storage.create_metric(self.metric)
+        self.storage.create_metric(metric2)
+        self.assertRaises(storage.AggregationDoesNotExist,
+                          self.storage.get_cross_metric_measures,
+                          [self.metric, metric2],
+                          aggregation='last')
+
     def test_add_and_get_cross_metric_measures_different_archives(self):
         metric2 = storage.Metric(str(uuid.uuid4()),
                                  self.archive_policies['no_granularity_match'])
