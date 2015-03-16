@@ -21,10 +21,9 @@ import six
 
 
 OPTS = [
-    cfg.MultiStrOpt(
+    cfg.ListOpt(
         'default_aggregation_methods',
-        default=('mean', 'min', 'max', 'sum', 'std',
-                 'median', 'count', '95pct'),
+        default='mean,min,max,sum,std,median,count,95pct',
         # TODO(jd) Validate values
         # choices=ArchivePolicy.VALID_AGGREGATION_METHODS,
         help='Default aggregation methods to use in created archive policies'),
