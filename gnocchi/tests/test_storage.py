@@ -62,6 +62,11 @@ class TestStorageDriver(tests_base.TestCase):
                           self.storage.create_metric,
                           self.metric)
 
+    def test_delete_inexistent_metric(self):
+        self.assertRaises(storage.MetricDoesNotExist,
+                          self.storage.delete_metric,
+                          self.metric)
+
     def test_delete_empty_metric(self):
         self.storage.create_metric(self.metric)
         self.storage.delete_metric(self.metric)
