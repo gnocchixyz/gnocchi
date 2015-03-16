@@ -108,7 +108,7 @@ def deserialize(schema, required=True):
         params = json.loads(pecan.request.body.decode(
             options.get('charset', 'ascii')))
     except Exception as e:
-        abort(400, "Unable to decode body: " + str(e))
+        abort(400, "Unable to decode body: " + six.text_type(e))
     try:
         return voluptuous.Schema(schema, required=required)(params)
     except voluptuous.Error as e:
@@ -188,7 +188,8 @@ def get_details(params):
         method = 'Accept' if 'details' in options else 'query'
         abort(
             400,
-            "Unable to parse details value in %s: %s" % (method, str(e)))
+            "Unable to parse details value in %s: %s"
+            % (method, six.text_type(e)))
     return details
 
 
