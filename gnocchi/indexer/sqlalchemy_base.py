@@ -140,7 +140,7 @@ class Resource(Base, GnocchiBase):
                            primary_key=True)
     type = sqlalchemy.Column(sqlalchemy.Enum('metric', 'generic', 'instance',
                                              'swift_account', 'volume',
-                                             'ceph_account',
+                                             'ceph_account', 'network',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
