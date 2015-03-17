@@ -1207,6 +1207,16 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02.000000",
             },
             resource_type='network')),
+        ('identity', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02.000000",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02.000000",
+            },
+            resource_type='identity')),
     ]
 
     @classmethod

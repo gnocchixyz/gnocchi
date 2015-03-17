@@ -692,6 +692,10 @@ class NetworkAccountResourceController(GenericResourceController):
     _resource_type = 'network'
 
 
+class IdentityAccountResourceController(GenericResourceController):
+    _resource_type = 'identity'
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -787,6 +791,11 @@ class NetworkAccountsResourcesController(GenericResourcesController):
     _resource_rest_class = NetworkAccountResourceController
 
 
+class IdentityAccountsResourcesController(GenericResourcesController):
+    _resource_type = 'identity'
+    _resource_rest_class = IdentityAccountResourceController
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
     instance = InstancesResourcesController()
@@ -794,6 +803,7 @@ class ResourcesController(rest.RestController):
     volume = VolumesResourcesController()
     ceph_account = CephAccountsResourcesController()
     network = NetworkAccountsResourcesController()
+    identity = IdentityAccountsResourcesController()
 
 
 def _SearchSchema(v):
