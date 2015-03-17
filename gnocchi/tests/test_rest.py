@@ -1187,6 +1187,16 @@ class ResourceTest(RestTest):
                 "display_name": "myvolume",
             },
             resource_type='volume')),
+        ('ceph_account', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02.000000",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02.000000",
+            },
+            resource_type='ceph_account')),
     ]
 
     @classmethod
