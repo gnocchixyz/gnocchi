@@ -15,7 +15,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import sqlalchemy
+import sqlalchemy_utils
+
 from gnocchi.ceilometer.resources import base
+from gnocchi.indexer import sqlalchemy_base
 
 
 class Instance(base.ResourceBase):
@@ -51,3 +55,22 @@ class Instance(base.ResourceBase):
                 'vcpus',
                 'cpu',
                 'cpu_util']
+
+
+class InstanceSQLAlchemy(sqlalchemy_base.Resource):
+    __tablename__ = 'instance'
+    __table_args__ = (
+        sqlalchemy.Index('ix_instance_id', 'id'),
+        sqlalchemy_base.COMMON_TABLES_ARGS,
+    )
+
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"),
+                           primary_key=True)
+
+    flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    server_group = sqlalchemy.Column(sqlalchemy.String(255))
