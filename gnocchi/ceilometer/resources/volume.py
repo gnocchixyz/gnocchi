@@ -12,12 +12,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
-from ceilometer.openstack.common import log
+import sqlalchemy
+import sqlalchemy_utils
 
 from gnocchi.ceilometer.resources import base
-
-LOG = log.getLogger(__name__)
+from gnocchi.indexer import sqlalchemy_base
 
 
 class Volume(base.ResourceBase):
@@ -40,3 +39,18 @@ class Volume(base.ResourceBase):
                 'volume.attach',
                 'volume.detach',
                 ]
+
+
+class VolumeSQLAlchemy(sqlalchemy_base.Resource):
+    __tablename__ = 'volume'
+    __table_args__ = (
+        sqlalchemy.Index('ix_volume_id', 'id'),
+        sqlalchemy_base.COMMON_TABLES_ARGS,
+    )
+
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"),
+                           primary_key=True)
+
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
