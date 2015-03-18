@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import functools
 import json
 import uuid
 
@@ -115,17 +114,6 @@ def deserialize(schema, required=True):
         abort(400, "Invalid input: %s" % e)
 
 
-def vexpose(schema, *vargs, **vkwargs):
-    def expose(f):
-        f = pecan.expose(*vargs, **vkwargs)(f)
-
-        @functools.wraps(f)
-        def callfunction(*args, **kwargs):
-            return f(*args, body=deserialize(schema), **kwargs)
-        return callfunction
-    return expose
-
-
 def Timestamp(v):
     if v is None:
         return v
@@ -205,6 +193,7 @@ class ArchivePoliciesController(rest.RestController):
     def post(self):
         # NOTE(jd): Initialize this one at run-time because we rely on conf
         conf = pecan.request.conf
+        enforce("create archive policy", {})
         ArchivePolicySchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("back_window", default=0): PositiveOrNullInt,
@@ -367,8 +356,8 @@ class MetricController(rest.RestController):
                 ).to_human_readable_dict())
         return metric
 
-    @vexpose(Measures)
-    def post_measures(self, body):
+    @pecan.expose()
+    def post_measures(self):
         metric = self.enforce_metric("post measures", details=True)[0]
         try:
             pecan.request.storage.add_measures(
@@ -378,7 +367,7 @@ class MetricController(rest.RestController):
                         metric['archive_policy'])),
                 (storage.Measure(
                     m['timestamp'],
-                    m['value']) for m in body))
+                    m['value']) for m in deserialize(self.Measures)))
         except storage.MetricDoesNotExist as e:
             abort(404, e)
         except storage.NoDeloreanAvailable as e:
@@ -500,9 +489,10 @@ class MetricsController(rest.RestController):
                                                            archive_policy=ap))
         return id
 
-    @vexpose(Metric, 'json')
-    def post(self, body):
+    @pecan.expose('json')
+    def post(self):
         user, project = get_user_and_project()
+        body = deserialize(self.Metric)
         id = self.create_metric(user, project, **body)
         set_resp_location_hdr("/v1/metric/" + str(id))
         pecan.response.status = 201
@@ -552,13 +542,13 @@ class NamedMetricController(rest.RestController):
             return MetricController(resource['metrics'][name]), remainder
         abort(404)
 
-    @vexpose(Metrics)
-    def post(self, body):
+    @pecan.expose()
+    def post(self):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         enforce("update resource", resource)
         user, project = get_user_and_project()
-        metrics = convert_metric_list(body, user, project)
+        metrics = convert_metric_list(deserialize(Metrics), user, project)
         try:
             pecan.request.indexer.update_resource(
                 self.resource_type, self.resource_id, metrics=metrics,
@@ -610,8 +600,6 @@ class GenericResourceController(rest.RestController):
         if not resource:
             abort(404)
         enforce("update resource", resource)
-        # NOTE(jd) Can't use vexpose because it does not take into account
-        # inheritance
         body = deserialize(self.Resource, required=False)
         if len(body) == 0:
             return
@@ -696,8 +684,6 @@ class GenericResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
-        # NOTE(jd) Can't use vexpose because it does not take into account
-        # inheritance
         body = deserialize(self.Resource)
         target = {
             "resource_type": self._resource_type,
