@@ -179,10 +179,11 @@ class RestTest(tests_base.TestCase):
         self.assertEqual("text/plain", result.content_type)
 
     def test_deserialize_force_json(self):
-        self.app.post(
-            "/v1/archive_policy",
-            params="foo",
-            status=415)
+        with self.app.use_admin_user():
+            self.app.post(
+                "/v1/archive_policy",
+                params="foo",
+                status=415)
 
     def test_capabilities(self):
         custom_agg = extension.Extension('test_aggregation', None, None, None)
@@ -213,6 +214,16 @@ RestTest.generate_scenarios()
 
 
 class ArchivePolicyTest(RestTest):
+    def test_policy_enforcement_before_request_validation(self):
+        self.app.post_json(
+            "/v1/archive_policy",
+            params={"definition":
+                    [{
+                        "granularity": "1 minute",
+                        "points": 20,
+                    }]},
+            status=403)
+
     def test_post_archive_policy(self):
         name = str(uuid.uuid4())
         with self.app.use_admin_user():
