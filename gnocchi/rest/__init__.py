@@ -700,6 +700,10 @@ class IPMIAccountResourceController(GenericResourceController):
     _resource_type = 'ipmi'
 
 
+class StackResourceController(GenericResourceController):
+    _resource_type = 'stack'
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -805,6 +809,11 @@ class IPMIAccountsResourcesController(GenericResourcesController):
     _resource_rest_class = IPMIAccountResourceController
 
 
+class StackResourcesController(GenericResourcesController):
+    _resource_type = 'stack'
+    _resource_rest_class = StackResourceController
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
     instance = InstancesResourcesController()
@@ -814,6 +823,7 @@ class ResourcesController(rest.RestController):
     network = NetworkAccountsResourcesController()
     identity = IdentityAccountsResourcesController()
     ipmi = IPMIAccountsResourcesController()
+    stack = StackResourcesController()
 
 
 def _SearchSchema(v):
