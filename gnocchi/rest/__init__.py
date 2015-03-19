@@ -696,6 +696,10 @@ class IdentityAccountResourceController(GenericResourceController):
     _resource_type = 'identity'
 
 
+class IPMIAccountResourceController(GenericResourceController):
+    _resource_type = 'ipmi'
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -796,6 +800,11 @@ class IdentityAccountsResourcesController(GenericResourcesController):
     _resource_rest_class = IdentityAccountResourceController
 
 
+class IPMIAccountsResourcesController(GenericResourcesController):
+    _resource_type = 'ipmi'
+    _resource_rest_class = IPMIAccountResourceController
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
     instance = InstancesResourcesController()
@@ -804,6 +813,7 @@ class ResourcesController(rest.RestController):
     ceph_account = CephAccountsResourcesController()
     network = NetworkAccountsResourcesController()
     identity = IdentityAccountsResourcesController()
+    ipmi = IPMIAccountsResourcesController()
 
 
 def _SearchSchema(v):
