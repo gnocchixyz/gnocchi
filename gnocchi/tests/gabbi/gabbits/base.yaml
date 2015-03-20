@@ -3,13 +3,14 @@ fixtures:
 
 tests:
 
-# TODO(chdent): Maybe this should do something?
-- name: access currently purposeless root
+- name: get information on APIs
+  desc: Root URL must return information about API versions
   url: /
   response_headers:
-      content-type: text/plain; charset=UTF-8
-  response_strings:
-      - nom
+      content-type: application/json; charset=UTF-8
+  response_json_paths:
+      $.versions.[0].id: "v1.0"
+      $.versions.[0].status: "CURRENT"
 
 - name: archive policy post success
   url: /v1/archive_policy

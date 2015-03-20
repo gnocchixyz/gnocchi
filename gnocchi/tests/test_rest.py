@@ -173,11 +173,6 @@ class RestTest(tests_base.TestCase):
         self.app = TestingApp(pecan.load_app(c, cfg=self.conf),
                               auth=bool(self.conf.api.middlewares))
 
-    def test_root(self):
-        result = self.app.get("/", status=200)
-        self.assertEqual(b"Nom nom nom.", result.body)
-        self.assertEqual("text/plain", result.content_type)
-
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
             self.app.post(

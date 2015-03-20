@@ -960,6 +960,20 @@ class RootController(object):
     v1 = V1Controller()
 
     @staticmethod
-    @pecan.expose(content_type="text/plain")
+    @pecan.expose('json')
     def index():
-        return "Nom nom nom."
+        return {
+            "versions": [
+                {
+                    "status": "CURRENT",
+                    "links": [
+                        {
+                            "rel": "self",
+                            "href": pecan.request.application_url + "/v1/"
+                            }
+                        ],
+                    "id": "v1.0",
+                    "updated": "2015-03-19"
+                    }
+                ]
+            }
