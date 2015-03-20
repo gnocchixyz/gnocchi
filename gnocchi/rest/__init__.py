@@ -692,6 +692,16 @@ class StackResourceController(GenericResourceController):
     _resource_type = 'stack'
 
 
+class ImageResourceController(GenericResourceController):
+    _resource_type = 'image'
+
+    Resource = ResourceSchema({
+        "name": six.text_type,
+        "container_format": six.text_type,
+        "disk_format": six.text_type,
+    })
+
+
 class GenericResourcesController(rest.RestController):
     _resource_type = 'generic'
     _resource_rest_class = GenericResourceController
@@ -800,6 +810,13 @@ class StackResourcesController(GenericResourcesController):
     _resource_rest_class = StackResourceController
 
 
+class ImageResourcesController(GenericResourcesController):
+    _resource_type = 'image'
+    _resource_rest_class = ImageResourceController
+
+    Resource = ImageResourceController.Resource
+
+
 class ResourcesController(rest.RestController):
     generic = GenericResourcesController()
     instance = InstancesResourcesController()
@@ -810,6 +827,7 @@ class ResourcesController(rest.RestController):
     identity = IdentityAccountsResourcesController()
     ipmi = IPMIAccountsResourcesController()
     stack = StackResourcesController()
+    image = ImageResourcesController()
 
 
 def _SearchSchema(v):

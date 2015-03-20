@@ -1248,6 +1248,34 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02.000000",
             },
             resource_type='stack')),
+        # image pollsters contain UUID user_id
+        ('image', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02.000000",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "name": "test-image",
+                "container_format": "aki",
+                "disk_format": "aki",
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02.000000",
+            },
+            resource_type='image')),
+        # image pollsters contain None user_id
+        ('image_none_user', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02.000000",
+                "user_id": None,
+                "project_id": str(uuid.uuid4()),
+                "name": "test-image2",
+                "container_format": "aki",
+                "disk_format": "aki",
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02.000000",
+            },
+            resource_type='image')),
     ]
 
     @classmethod

@@ -142,6 +142,7 @@ class Resource(Base, GnocchiBase):
                                              'swift_account', 'volume',
                                              'ceph_account', 'network',
                                              'identity', 'ipmi', 'stack',
+                                             'image',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
