@@ -37,7 +37,11 @@ def get_driver(conf):
     return d(conf)
 
 
-class UnknownResourceType(Exception):
+class IndexerException(Exception):
+    """Base class for all exceptions raised by an indexer."""
+
+
+class UnknownResourceType(IndexerException):
     """Error raised when the resource type is unknown."""
     def __init__(self, type):
         super(UnknownResourceType, self).__init__(
@@ -45,7 +49,7 @@ class UnknownResourceType(Exception):
         self.type = type
 
 
-class NoSuchMetric(Exception):
+class NoSuchMetric(IndexerException):
     """Error raised when a metric does not exist."""
     def __init__(self, metric):
         super(NoSuchMetric, self).__init__("Metric %s does not exist" %
@@ -53,7 +57,7 @@ class NoSuchMetric(Exception):
         self.metric = metric
 
 
-class NoSuchResource(Exception):
+class NoSuchResource(IndexerException):
     """Error raised when a resource does not exist."""
     def __init__(self, resource):
         super(NoSuchResource, self).__init__("Resource %s does not exist" %
@@ -61,7 +65,7 @@ class NoSuchResource(Exception):
         self.resource = resource
 
 
-class NoSuchArchivePolicy(Exception):
+class NoSuchArchivePolicy(IndexerException):
     """Error raised when an archive policy does not exist."""
     def __init__(self, archive_policy):
         super(NoSuchArchivePolicy, self).__init__(
@@ -70,7 +74,7 @@ class NoSuchArchivePolicy(Exception):
         self.archive_policy = archive_policy
 
 
-class ArchivePolicyInUse(Exception):
+class ArchivePolicyInUse(IndexerException):
     """Error raised when an archive policy is still being used."""
     def __init__(self, archive_policy):
         super(ArchivePolicyInUse, self).__init__(
@@ -78,7 +82,7 @@ class ArchivePolicyInUse(Exception):
         self.archive_policy = archive_policy
 
 
-class NamedMetricAlreadyExists(Exception):
+class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
     def __init__(self, metric):
         super(NamedMetricAlreadyExists, self).__init__(
@@ -86,7 +90,7 @@ class NamedMetricAlreadyExists(Exception):
         self.metric = metric
 
 
-class ResourceAlreadyExists(Exception):
+class ResourceAlreadyExists(IndexerException):
     """Error raised when a resource already exists."""
     def __init__(self, resource):
         super(ResourceAlreadyExists, self).__init__(
@@ -94,7 +98,7 @@ class ResourceAlreadyExists(Exception):
         self.resource = resource
 
 
-class ResourceAttributeError(AttributeError):
+class ResourceAttributeError(IndexerException, AttributeError):
     """Error raised when an attribute does not exist for a resource type."""
     def __init__(self, resource, attribute):
         super(ResourceAttributeError, self).__init__(
@@ -103,7 +107,7 @@ class ResourceAttributeError(AttributeError):
         self.attribute = attribute
 
 
-class ResourceValueError(ValueError):
+class ResourceValueError(IndexerException, ValueError):
     """Error raised when an attribute value is invalid for a resource type."""
     def __init__(self, resource_type, attribute, value):
         super(ResourceValueError, self).__init__(
@@ -114,12 +118,28 @@ class ResourceValueError(ValueError):
         self.value = value
 
 
-class ArchivePolicyAlreadyExists(Exception):
+class ArchivePolicyAlreadyExists(IndexerException):
     """Error raised when an archive policy already exists."""
     def __init__(self, name):
         super(ArchivePolicyAlreadyExists, self).__init__(
             "Archive policy %s already exists" % name)
         self.name = name
+
+
+class QueryError(IndexerException):
+    def __init__(self):
+        super(QueryError, self).__init__("Unable to parse this query")
+
+
+class QueryInvalidOperator(QueryError):
+    def __init__(self, op):
+        self.op = op
+        super(QueryError, self).__init__("Unknown operator `%s'" % op)
+
+
+class QueryAttributeError(QueryError, ResourceAttributeError):
+    def __init__(self, resource, attribute):
+        ResourceAttributeError.__init__(self, resource, attribute)
 
 
 class IndexerDriver(object):
