@@ -1121,17 +1121,17 @@ class ResourceTest(RestTest):
     resource_scenarios = [
         ('generic', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='generic')),
         ('instance', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 # NOTE(jd) We test this one without user_id/project_id!
                 # Just to test that use case. :)
                 "host": "foo",
@@ -1141,7 +1141,7 @@ class ResourceTest(RestTest):
                 "server_group": "as_group",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
                 "host": "fooz",
                 "image_ref": "imageref!z",
                 "flavor_id": 1234,
@@ -1152,93 +1152,93 @@ class ResourceTest(RestTest):
         # swift notifications contain UUID user_id
         ('swift_account', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='swift_account')),
         # swift pollsters contain None user_id
         ('swift_account_none_user', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": None,
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='swift_account')),
         # TODO(dbelova): add tests with None project ID when we'll add kwapi,
         # ipmi, hardware, etc. resources that are passed without project ID
         ('volume', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
                 "display_name": "test_volume",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
                 "display_name": "myvolume",
             },
             resource_type='volume')),
         ('ceph_account', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='ceph_account')),
         ('network', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='network')),
         ('identity', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='identity')),
         ('ipmi', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='ipmi')),
         ('stack', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='stack')),
         # image pollsters contain UUID user_id
         ('image', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
                 "name": "test-image",
@@ -1246,13 +1246,13 @@ class ResourceTest(RestTest):
                 "disk_format": "aki",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='image')),
         # image pollsters contain None user_id
         ('image_none_user', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000",
+                "started_at": "2014-01-03T02:02:02.000000Z",
                 "user_id": None,
                 "project_id": str(uuid.uuid4()),
                 "name": "test-image2",
@@ -1260,7 +1260,7 @@ class ResourceTest(RestTest):
                 "disk_format": "aki",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000",
+                "ended_at": "2014-01-03T02:02:02.000000Z",
             },
             resource_type='image')),
     ]
@@ -1347,7 +1347,7 @@ class ResourceTest(RestTest):
             params=self.attributes,
             status=201)
         resource = json.loads(result.text)
-        self.assertEqual(u"2014-05-20T10:00:45.856219",
+        self.assertEqual(u"2014-05-20T10:00:45.856219Z",
                          resource['started_at'])
 
     def test_post_invalid_timestamp(self):
