@@ -15,7 +15,6 @@
 # under the License.
 
 import os
-import uuid
 
 from flask import json as flask_json
 import keystonemiddleware.auth_token
@@ -25,7 +24,6 @@ from oslo_serialization import jsonutils
 from oslo_utils import importutils
 import pecan
 from pecan import templating
-import six
 import webob.exc
 from werkzeug import serving
 from werkzeug import wsgi
@@ -60,15 +58,8 @@ class OsloJSONRenderer(object):
         pass
 
     @staticmethod
-    def to_primitive(value, *args, **kwargs):
-        # TODO(jd): Remove that once oslo.serialization is released with
-        # https://review.openstack.org/#/c/147198/
-        if isinstance(value, uuid.UUID):
-            return six.text_type(value)
-        return jsonutils.to_primitive(value, *args, **kwargs)
-
-    def render(self, template_path, namespace):
-        return jsonutils.dumps(namespace, default=self.to_primitive)
+    def render(template_path, namespace):
+        return jsonutils.dumps(namespace)
 
 
 class GnocchiJinjaRenderer(templating.JinjaRenderer):
