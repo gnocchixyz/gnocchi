@@ -9,3 +9,4 @@ doc/build
 doc/source/rest.rst
 cover
 .coverage
+dist
