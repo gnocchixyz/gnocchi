@@ -1739,7 +1739,7 @@ class ResourceTest(RestTest):
             params=self.attributes)
         created_resource = json.loads(result.text)
         result = self.app.post_json("/v1/search/resource/generic",
-                                    params={"=": {"user_id": u1}},
+                                    params={"eq": {"user_id": u1}},
                                     status=200)
         resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 1)
@@ -1779,7 +1779,7 @@ class ResourceTest(RestTest):
         i = json.loads(result.text)
         result = self.app.post_json(
             "/v1/search/resource/generic",
-            params={">=": {"started_at": "2014-01-01"}},
+            params={"≥": {"started_at": "2014-01-01"}},
             status=200)
         resources = json.loads(result.text)
         self.assertGreaterEqual(len(resources), 2)
