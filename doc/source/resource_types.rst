@@ -30,6 +30,32 @@ generic
 +------------+----------------+-----------+
 
 
+ceph_account
+============
+
+No specific attributes.
+
+
+identity
+========
+
+No specific attributes.
+
+
+image
+=====
+
++------------------+---------+-----------+
+| Attribute        | Type    | Immutable |
++==================+=========+===========+
+| name             | String  | No        |
++------------------+---------+-----------+
+| container_format | String  | No        |
++------------------+---------+-----------+
+| disk_format      | String  | No        |
++------------------+---------+-----------+
+
+
 instance
 ========
 
@@ -46,6 +72,24 @@ instance
 +--------------+---------+-----------+
 | server_group | String  | No        |
 +--------------+---------+-----------+
+
+
+ipmi
+====
+
+No specific attributes.
+
+
+network
+=======
+
+No specific attributes.
+
+
+stack
+=====
+
+No specific attributes.
 
 
 swift_account
