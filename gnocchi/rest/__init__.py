@@ -676,15 +676,15 @@ class CephAccountResourceController(GenericResourceController):
     _resource_type = 'ceph_account'
 
 
-class NetworkAccountResourceController(GenericResourceController):
+class NetworkResourceController(GenericResourceController):
     _resource_type = 'network'
 
 
-class IdentityAccountResourceController(GenericResourceController):
+class IdentityResourceController(GenericResourceController):
     _resource_type = 'identity'
 
 
-class IPMIAccountResourceController(GenericResourceController):
+class IPMIResourceController(GenericResourceController):
     _resource_type = 'ipmi'
 
 
@@ -790,19 +790,19 @@ class CephAccountsResourcesController(GenericResourcesController):
     _resource_rest_class = CephAccountResourceController
 
 
-class NetworkAccountsResourcesController(GenericResourcesController):
+class NetworkResourcesController(GenericResourcesController):
     _resource_type = 'network'
-    _resource_rest_class = NetworkAccountResourceController
+    _resource_rest_class = NetworkResourceController
 
 
-class IdentityAccountsResourcesController(GenericResourcesController):
+class IdentityResourcesController(GenericResourcesController):
     _resource_type = 'identity'
-    _resource_rest_class = IdentityAccountResourceController
+    _resource_rest_class = IdentityResourceController
 
 
-class IPMIAccountsResourcesController(GenericResourcesController):
+class IPMIResourcesController(GenericResourcesController):
     _resource_type = 'ipmi'
-    _resource_rest_class = IPMIAccountResourceController
+    _resource_rest_class = IPMIResourceController
 
 
 class StackResourcesController(GenericResourcesController):
@@ -823,9 +823,9 @@ class ResourcesController(rest.RestController):
     swift_account = SwiftAccountsResourcesController()
     volume = VolumesResourcesController()
     ceph_account = CephAccountsResourcesController()
-    network = NetworkAccountsResourcesController()
-    identity = IdentityAccountsResourcesController()
-    ipmi = IPMIAccountsResourcesController()
+    network = NetworkResourcesController()
+    identity = IdentityResourcesController()
+    ipmi = IPMIResourcesController()
     stack = StackResourcesController()
     image = ImageResourcesController()
 
