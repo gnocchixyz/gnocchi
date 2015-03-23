@@ -41,56 +41,55 @@ OPTS = [
 
 class MeasureQuery(object):
     binary_operators = {
-        "=": operator.eq,
-        "==": operator.eq,
-        "eq": operator.eq,
+        u"=": operator.eq,
+        u"==": operator.eq,
+        u"eq": operator.eq,
 
-        "<": operator.lt,
-        "lt": operator.lt,
+        u"<": operator.lt,
+        u"lt": operator.lt,
 
-        ">": operator.gt,
-        "gt": operator.gt,
+        u">": operator.gt,
+        u"gt": operator.gt,
 
-        "<=": operator.le,
-        "≤": operator.le,
-        "le": operator.le,
+        u"<=": operator.le,
+        u"≤": operator.le,
+        u"le": operator.le,
 
-        ">=": operator.ge,
-        "≥": operator.ge,
-        "ge": operator.ge,
+        u">=": operator.ge,
+        u"≥": operator.ge,
+        u"ge": operator.ge,
 
-        "!=": operator.ne,
-        "≠": operator.ne,
-        "ne": operator.ne,
+        u"!=": operator.ne,
+        u"≠": operator.ne,
+        u"ne": operator.ne,
 
-        "%": operator.mod,
-        "mod": operator.mod,
+        u"%": operator.mod,
+        u"mod": operator.mod,
 
-        "+": operator.add,
-        "add": operator.add,
+        u"+": operator.add,
+        u"add": operator.add,
 
-        "-": operator.sub,
-        "sub": operator.sub,
+        u"-": operator.sub,
+        u"sub": operator.sub,
 
-        "*": operator.mul,
-        "×": operator.mul,
-        "mul": operator.mul,
+        u"*": operator.mul,
+        u"×": operator.mul,
+        u"mul": operator.mul,
 
-        "/": operator.truediv,
-        "÷": operator.truediv,
-        "div": operator.truediv,
+        u"/": operator.truediv,
+        u"÷": operator.truediv,
+        u"div": operator.truediv,
 
-        "**": operator.pow,
-        "^": operator.pow,
-        "pow": operator.pow,
-
+        u"**": operator.pow,
+        u"^": operator.pow,
+        u"pow": operator.pow,
     }
 
     multiple_operators = {
-        "or": any,
-        "∨": any,
-        "and": all,
-        "∧": all,
+        u"or": any,
+        u"∨": any,
+        u"and": all,
+        u"∧": all,
     }
 
     def __init__(self, tree):

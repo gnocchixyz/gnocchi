@@ -111,7 +111,7 @@ def setup(app):
     for entry in scenarios:
         template = jinja2.Template(entry['request'])
         fake_file = six.moves.cStringIO()
-        fake_file.write(template.render(scenarios=scenarios))
+        fake_file.write(template.render(scenarios=scenarios).encode('utf-8'))
         fake_file.seek(0)
         request = webapp.RequestClass.from_file(fake_file)
         # TODO(jd) Fix this lame bug in webob
@@ -122,7 +122,8 @@ def setup(app):
                 request.body = fake_file.read()
             else:
                 request.body = fake_file.read(clen)
-        app.info("Doing request %s: %s" % (entry['name'], str(request)))
+        app.info("Doing request %s: %s" % (entry['name'],
+                                           six.text_type(request)))
         with webapp.use_admin_user():
             response = webapp.request(request)
         entry['response'] = response

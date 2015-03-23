@@ -268,12 +268,12 @@ class TestStorageDriver(tests_base.TestCase):
              self.metric: [(datetime.datetime(2014, 1, 1, 12), 300, 69)]},
             self.storage.search_value(
                 [metric2, self.metric],
-                {"≥": 50}))
+                {u"≥": 50}))
 
         self.assertEqual(
             {metric2: [], self.metric: []},
             self.storage.search_value(
                 [metric2, self.metric],
-                {"∧": [
-                    {"eq": 100},
-                    {"≠": 50}]}))
+                {u"∧": [
+                    {u"eq": 100},
+                    {u"≠": 50}]}))

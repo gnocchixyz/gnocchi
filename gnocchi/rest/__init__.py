@@ -38,6 +38,14 @@ from gnocchi import utils
 LOG = log.getLogger(__name__)
 
 
+def arg_to_list(value):
+    if isinstance(value, list):
+        return value
+    elif value:
+        return [value]
+    return []
+
+
 def abort(status_code=None, detail='', headers=None, comment=None, **kw):
     """Like pecan.abort, but make sure detail is a string."""
     return pecan.abort(status_code, six.text_type(detail),
@@ -842,16 +850,16 @@ for resource_type, resource_class in (
     setattr(ResourcesController, resource_type, resource_class())
 
 
-def _SearchSchema(v):
+def _ResourceSearchSchema(v):
     """Helper method to indirect the recursivity of the search schema"""
-    return SearchResourceTypeController.SearchSchema(v)
+    return SearchResourceTypeController.ResourceSearchSchema(v)
 
 
 class SearchResourceTypeController(rest.RestController):
     def __init__(self, resource_type):
         self._resource_type = resource_type
 
-    SearchSchema = voluptuous.Schema(
+    ResourceSearchSchema = voluptuous.Schema(
         voluptuous.All(
             voluptuous.Length(min=1, max=1),
             {
@@ -869,7 +877,7 @@ class SearchResourceTypeController(rest.RestController):
                     u"and", u"∨",
                     u"or", u"∧",
                     u"not",
-                ): [_SearchSchema],
+                ): [_ResourceSearchSchema],
             }
         )
     )
@@ -877,7 +885,7 @@ class SearchResourceTypeController(rest.RestController):
     @pecan.expose('json')
     def post(self, **kwargs):
         if pecan.request.body:
-            attr_filter = deserialize(self.SearchSchema)
+            attr_filter = deserialize(self.ResourceSearchSchema)
         else:
             attr_filter = None
 
@@ -919,8 +927,94 @@ class SearchResourceController(rest.RestController):
         return SearchResourceTypeController(resource_type), remainder
 
 
+def _MetricSearchSchema(v):
+    """Helper method to indirect the recursivity of the search schema"""
+    return SearchMetricController.MetricSearchSchema(v)
+
+
+def _MetricSearchOperationSchema(v):
+    """Helper method to indirect the recursivity of the search schema"""
+    return SearchMetricController.MetricSearchOperationSchema(v)
+
+
+class SearchMetricController(rest.RestController):
+
+    MetricSearchOperationSchema = voluptuous.Schema(
+        voluptuous.All(
+            voluptuous.Length(min=1, max=1),
+            {
+                voluptuous.Any(
+                    u"=", u"==", u"eq",
+                    u"<", u"lt",
+                    u">", u"gt",
+                    u"<=", u"≤", u"le",
+                    u">=", u"≥", u"ge",
+                    u"!=", u"≠", u"ne",
+                    u"%", u"mod",
+                    u"+", u"add",
+                    u"-", u"sub",
+                    u"*", u"×", u"mul",
+                    u"/", u"÷", u"div",
+                    u"**", u"^", u"pow",
+                ): voluptuous.Any(
+                    float, int,
+                    voluptuous.All(
+                        [float, int,
+                         voluptuous.Any(_MetricSearchOperationSchema)],
+                        voluptuous.Length(min=2, max=2),
+                    ),
+                ),
+            },
+        )
+    )
+
+    MetricSearchSchema = voluptuous.Schema(
+        voluptuous.Any(
+            MetricSearchOperationSchema,
+            voluptuous.All(
+                voluptuous.Length(min=1, max=1),
+                {
+                    voluptuous.Any(
+                        u"and", u"∨",
+                        u"or", u"∧",
+                        u"not",
+                    ): [_MetricSearchSchema],
+                }
+            )
+        )
+    )
+
+    @pecan.expose('json')
+    def post(self, metric_id, start=None, stop=None, aggregation='mean'):
+        metrics = pecan.request.indexer.get_metrics(arg_to_list(metric_id))
+
+        for metric in metrics:
+            enforce("search metric", metric)
+
+        if not pecan.request.body:
+            abort(400, "No query specified in body")
+
+        query = deserialize(self.MetricSearchSchema)
+
+        try:
+            return {
+                str(metric_id): values
+                for metric_id, values in six.iteritems(
+                    pecan.request.storage.search_value(
+                        # NOTE(jd) Don't pass the archive policy as no
+                        # driver needs it for now
+                        [storage.Metric(str(metric['id']), None)
+                         for metric in metrics],
+                        query, start, stop, aggregation)
+                )
+            }
+        except storage.InvalidQuery as e:
+            abort(400, e)
+
+
 class SearchController(rest.RestController):
     resource = SearchResourceController()
+    metric = SearchMetricController()
 
 
 class AggregationResource(rest.RestController):
@@ -954,14 +1048,8 @@ class Aggregation(rest.RestController):
     def get_metric(self, metric=None, start=None,
                    stop=None, aggregation='mean',
                    needed_overlap=100.0):
-        if isinstance(metric, list):
-            metrics = metric
-        elif metric:
-            metrics = [metric]
-        else:
-            metrics = []
         return AggregatedMetricController.get_cross_metric_measures(
-            metrics, start, stop, aggregation, needed_overlap)
+            arg_to_list(metric), start, stop, aggregation, needed_overlap)
 
 
 class V1Controller(rest.RestController):

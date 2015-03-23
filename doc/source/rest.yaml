@@ -111,6 +111,13 @@
       }
     ]
 
+- name: search-value-in-metric
+  request: |
+    POST /v1/search/metric?metric_id={{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
+    Content-Type: application/json
+
+    {"and": [{">=": [{"+": 23}, 50]}, {"!=": 55}]}
+
 - name: get-measures
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures HTTP/1.1
 

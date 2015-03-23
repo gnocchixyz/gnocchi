@@ -1115,6 +1115,37 @@ class MetricTest(RestTest):
                           [u'2013-01-01T12:00:00.000000Z', 60.0, 16.0]],
                          measures)
 
+    def test_search_value(self):
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "high"})
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
+                           params=[{"timestamp": '2013-01-01 12:00:00',
+                                    "value": 1234.2},
+                                   {"timestamp": '2013-01-01 12:00:02',
+                                    "value": 456}])
+        metric1 = metric['id']
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "high"})
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
+                           params=[{"timestamp": '2013-01-01 12:30:00',
+                                    "value": 1234.2},
+                                   {"timestamp": '2013-01-01 12:00:02',
+                                    "value": 456}])
+        metric2 = metric['id']
+
+        ret = self.app.post_json(
+            "/v1/search/metric?metric_id=%s&metric_id=%s"
+            "&stop=2013-01-01 12:10:00" % (metric1, metric2),
+            params={u"∧": [{u"≥": 1000}]},
+            status=200)
+        result = json.loads(ret.text)
+        self.assertEqual(
+            {metric1: [[u'2013-01-01T12:00:00.000000Z', 1.0, 1234.2]],
+             metric2: []},
+            result)
+
 
 class ResourceTest(RestTest):
 

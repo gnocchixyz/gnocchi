@@ -52,11 +52,11 @@ class TestMeasureQuery(base.BaseTestCase):
     def test_math(self):
         q = _carbonara.MeasureQuery(
             {
-                "and": [
+                u"and": [
                     # v+5 is bigger 0
-                    {"≥": [{"+": 5}, 0]},
+                    {u"≥": [{u"+": 5}, 0]},
                     # v-6 is not 5
-                    {"≠": [5, {"-": 6}]},
+                    {u"≠": [5, {u"-": 6}]},
                 ],
             }
         )
