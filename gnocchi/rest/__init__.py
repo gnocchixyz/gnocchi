@@ -580,7 +580,10 @@ class GenericResourceController(rest.RestController):
     Resource = ResourceSchema({})
 
     def __init__(self, id):
-        self.id = id
+        try:
+            self.id = uuid.UUID(id)
+        except ValueError:
+            abort(404)
         self.metric = NamedMetricController(id, self._resource_type)
 
     @pecan.expose('json')

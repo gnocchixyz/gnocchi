@@ -309,7 +309,6 @@ tests:
 
     - name: get bad resource id
       desc: https://bugs.launchpad.net/gnocchi/+bug/1425588
-      xfail: true
       url:  /v1/resource/instance/noexist
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
