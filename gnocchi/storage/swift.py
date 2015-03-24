@@ -43,6 +43,9 @@ OPTS = [
                help='Swift key/password.'),
     cfg.StrOpt('swift_tenant_name',
                help='Swift tenant name, only used in v2 auth.'),
+    cfg.StrOpt('swift_container_prefix',
+               default='gnocchi',
+               help='Prefix to namespace metric containers.'),
 ]
 
 
@@ -57,29 +60,35 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name)
         self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
+        self._container_prefix = conf.swift_container_prefix
+
+    def _container_name(self, metric):
+        return '%s.%s' % (self._container_prefix, metric.name)
 
     def _create_metric_container(self, metric):
         # TODO(jd) A container per user in their account?
         resp = {}
-        self.swift.put_container(metric.name, response_dict=resp)
+        self.swift.put_container(self._container_name(metric),
+                                 response_dict=resp)
         # put_container() should return 201 Created; if it returns 204, that
         # means the metric was already created!
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
     def _store_metric_measures(self, metric, aggregation, data):
-        self.swift.put_object(metric.name, aggregation, data)
+        self.swift.put_object(self._container_name(metric), aggregation, data)
 
     def delete_metric(self, metric):
         try:
             for aggregation in metric.archive_policy.aggregation_methods:
                 try:
-                    self.swift.delete_object(metric.name, aggregation)
+                    self.swift.delete_object(self._container_name(metric),
+                                             aggregation)
                 except swclient.ClientException as e:
                     if e.http_status != 404:
                         raise
 
-            self.swift.delete_container(metric.name)
+            self.swift.delete_container(self._container_name(metric))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
@@ -87,11 +96,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     def _get_measures(self, metric, aggregation):
         try:
-            headers, contents = self.swift.get_object(metric.name, aggregation)
+            headers, contents = self.swift.get_object(
+                self._container_name(metric), aggregation)
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
-                    self.swift.head_container(metric.name)
+                    self.swift.head_container(self._container_name(metric))
                 except swclient.ClientException as e:
                     if e.http_status == 404:
                         raise storage.MetricDoesNotExist(metric)
