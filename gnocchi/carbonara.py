@@ -337,13 +337,9 @@ class TimeSerieArchive(object):
         """
         result = []
         end_timestamp = to_timestamp
-        for ts in self.agg_timeseries:
+        for ts in reversed(self.agg_timeseries):
             if timeserie_filter and not timeserie_filter(ts):
                 continue
-            if result:
-                # Change to_timestamp not to override more precise points we
-                # already have
-                to_timestamp = result[0][0]
             granularity = ts.sampling.nanos / 1000000000.0
             points = ts[from_timestamp:to_timestamp]
             try:
@@ -351,11 +347,9 @@ class TimeSerieArchive(object):
                 del points[end_timestamp]
             except KeyError:
                 pass
-            points = [(timestamp, granularity, value)
-                      for timestamp, value
-                      in six.iteritems(points)]
-            points.extend(result)
-            result = points
+            result.extend([(timestamp, granularity, value)
+                           for timestamp, value
+                           in six.iteritems(points)])
         return result
 
     def __eq__(self, other):
