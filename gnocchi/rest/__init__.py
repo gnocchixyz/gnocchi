@@ -325,7 +325,10 @@ class MetricController(rest.RestController):
     }
 
     def __init__(self, metric_id):
-        self.metric_id = metric_id
+        try:
+            self.metric_id = six.text_type(uuid.UUID(metric_id))
+        except ValueError:
+            abort(404)
         mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
                                          invoke_on_load=True)
         self.custom_agg = dict((x.name, x.obj) for x in mgr)
