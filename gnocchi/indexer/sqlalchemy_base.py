@@ -147,7 +147,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
         COMMON_TABLES_ARGS,
     )
 
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
                            primary_key=True)
     archive_policy_name = sqlalchemy.Column(
         sqlalchemy.String(255),
@@ -158,11 +158,11 @@ class Metric(Base, GnocchiBase, storage.Metric):
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy)
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False))
+        sqlalchemy_utils.UUIDType())
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False))
+        sqlalchemy_utils.UUIDType())
     resource_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False),
+        sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey('resource.id',
                               ondelete="CASCADE",
                               name="fk_metric_resource_id_resource_id"))
@@ -227,9 +227,9 @@ class ResourceMixin(ResourceJsonifier):
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False))
+        sqlalchemy_utils.UUIDType())
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType(binary=False))
+        sqlalchemy_utils.UUIDType())
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -241,15 +241,15 @@ class ResourceMixin(ResourceJsonifier):
     revision_start = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                        default=timeutils.utcnow)
     ended_at = sqlalchemy.Column(PreciseTimestamp)
-    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
-    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
+    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
 
 
 class Resource(ResourceMixin, Base, GnocchiBase):
     __tablename__ = 'resource'
     _extra_keys = ['revision', 'revision_end']
     revision = -1
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
                            primary_key=True)
     revision_end = None
     metrics = sqlalchemy.orm.relationship(Metric, backref="resource")
@@ -268,7 +268,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
     __tablename__ = 'resource_history'
     revision = sqlalchemy.Column(sqlalchemy.Integer, autoincrement=True,
                                  primary_key=True)
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
                            sqlalchemy.ForeignKey(
                                'resource.id',
                                ondelete="CASCADE",
@@ -297,7 +297,7 @@ class ResourceExtMixin(object):
     @declarative.declared_attr
     def id(cls):
         return sqlalchemy.Column(
-            sqlalchemy_utils.UUIDType(binary=False),
+            sqlalchemy_utils.UUIDType(),
             sqlalchemy.ForeignKey(
                 'resource.id',
                 ondelete="CASCADE",
