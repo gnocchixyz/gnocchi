@@ -1,0 +1,8 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: wrong metric
+      desc: https://bugs.launchpad.net/gnocchi/+bug/1429949
+      url: /v1/metric/foobar
+      status: 404
