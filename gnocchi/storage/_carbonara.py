@@ -143,7 +143,7 @@ class CarbonaraBasedStorageToozLock(object):
         self.coord.stop()
 
     def __call__(self, metric, aggregation):
-        lock_name = (b"gnocchi-" + metric.name.encode('ascii')
+        lock_name = (b"gnocchi-" + str(metric.id).encode('ascii')
                      + b"-" + aggregation.encode('ascii'))
         return self.coord.get_lock(lock_name)
 

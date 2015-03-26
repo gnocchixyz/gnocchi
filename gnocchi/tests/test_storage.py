@@ -26,7 +26,7 @@ class TestStorageDriver(tests_base.TestCase):
     def setUp(self):
         super(TestStorageDriver, self).setUp()
         # A lot of tests wants a metric, create one
-        self.metric = storage.Metric(str(uuid.uuid4()),
+        self.metric = storage.Metric(uuid.uuid4(),
                                      self.archive_policies['low'])
 
     def test_get_driver(self):
@@ -49,8 +49,10 @@ class TestStorageDriver(tests_base.TestCase):
         # just in case of the API change to not have to rewrite driver just
         # for that.
         # NOTE(jd) Copy the archive policy, DO NOT MODIFY THE GLOBAL ONE!
-        self.metric.archive_policy = archive_policy.ArchivePolicy.from_dict(
-            self.metric.archive_policy.to_dict())
+        self.metric.archive_policy = archive_policy.ArchivePolicy(
+            self.metric.archive_policy.name,
+            self.metric.archive_policy.back_window,
+            self.metric.archive_policy.definition)
         self.metric.archive_policy.aggregation_methods = ['mean']
         self.storage.create_metric(self.metric)
         self.metric.archive_policy.aggregation_methods = ['sum']
@@ -129,8 +131,8 @@ class TestStorageDriver(tests_base.TestCase):
     def test_get_cross_metric_measures_unknown_metric(self):
         self.assertRaises(storage.MetricDoesNotExist,
                           self.storage.get_cross_metric_measures,
-                          [storage.Metric(str(uuid.uuid4()), None),
-                           storage.Metric(str(uuid.uuid4()), None)])
+                          [storage.Metric(uuid.uuid4(), None),
+                           storage.Metric(uuid.uuid4(), None)])
 
     def test_get_measure_unknown_aggregation(self):
         self.storage.create_metric(self.metric)
@@ -139,7 +141,7 @@ class TestStorageDriver(tests_base.TestCase):
                           self.metric, aggregation='last')
 
     def test_get_cross_metric_measures_unknown_aggregation(self):
-        metric2 = storage.Metric(str(uuid.uuid4()),
+        metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.storage.create_metric(self.metric)
         self.storage.create_metric(metric2)
@@ -149,7 +151,7 @@ class TestStorageDriver(tests_base.TestCase):
                           aggregation='last')
 
     def test_add_and_get_cross_metric_measures_different_archives(self):
-        metric2 = storage.Metric(str(uuid.uuid4()),
+        metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['no_granularity_match'])
         self.storage.create_metric(self.metric)
         self.storage.create_metric(metric2)
@@ -158,7 +160,7 @@ class TestStorageDriver(tests_base.TestCase):
                           [self.metric, metric2])
 
     def test_add_and_get_cross_metric_measures(self):
-        metric2 = storage.Metric(str(uuid.uuid4()),
+        metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.storage.create_metric(self.metric)
         self.storage.create_metric(metric2)
@@ -216,7 +218,7 @@ class TestStorageDriver(tests_base.TestCase):
         ], values)
 
     def test_add_and_get_cross_metric_measures_with_holes(self):
-        metric2 = storage.Metric(str(uuid.uuid4()),
+        metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.storage.create_metric(self.metric)
         self.storage.create_metric(metric2)
@@ -244,7 +246,7 @@ class TestStorageDriver(tests_base.TestCase):
         ], values)
 
     def test_search_value(self):
-        metric2 = storage.Metric(str(uuid.uuid4()),
+        metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.storage.create_metric(self.metric)
         self.storage.create_metric(metric2)

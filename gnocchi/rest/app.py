@@ -63,6 +63,9 @@ class OsloJSONRenderer(object):
         # https://review.openstack.org/#/c/166861/
         if isinstance(value, datetime.datetime):
             return timeutils.isotime(value, subsecond=True)
+        # This mimics what Pecan implements in its default JSON encoder
+        if hasattr(value, "jsonify"):
+            return self._to_primitive(value.jsonify(), *args, **kwargs)
         return self._to_primitive_orig(value, *args, **kwargs)
 
     def to_primitive(self, *args, **kwargs):

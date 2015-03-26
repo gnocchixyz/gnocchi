@@ -32,23 +32,35 @@ Measure = collections.namedtuple('Measure', ['timestamp', 'value'])
 
 
 class Metric(object):
-    __slots__ = ['name', 'archive_policy']
-
-    def __init__(self, name, archive_policy):
-        self.name = name
+    def __init__(self, id, archive_policy,
+                 created_by_user_id=None,
+                 created_by_project_id=None,
+                 name=None,
+                 resource_id=None):
+        self.id = id
         self.archive_policy = archive_policy
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and other.name == self.name
+        self.created_by_user_id = created_by_user_id
+        self.created_by_project_id = created_by_project_id
+        self.name = name
+        self.resource_id = resource_id
 
     def __repr__(self):
-        return '<%s %s>' % (self.__class__.__name__, self.name)
-
-    def __str__(self):
-        return self.name
+        return '<%s %s>' % (self.__class__.__name__, self.id)
 
     def __hash__(self):
         return id(self)
+
+    def __str__(self):
+        return str(self.id)
+
+    def __eq__(self, other):
+        return (isinstance(self, Metric)
+                and self.id == other.id
+                and self.archive_policy == other.archive_policy
+                and self.created_by_user_id == other.created_by_user_id
+                and self.created_by_project_id == other.created_by_project_id
+                and self.name == other.name
+                and self.resource_id == other.resource_id)
 
 
 class InvalidQuery(Exception):
@@ -102,7 +114,7 @@ class MetricUnaggregatable(Exception):
         self.reason = reason
         super(MetricUnaggregatable, self).__init__(
             "Metrics %s can't be aggregated: %s"
-            % (" ,".join((m.name for m in metrics)), reason))
+            % (" ,".join((str(m.id) for m in metrics)), reason))
 
 
 def _get_driver(name, conf):

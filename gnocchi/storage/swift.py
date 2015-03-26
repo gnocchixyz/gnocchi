@@ -66,7 +66,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self._container_prefix = conf.swift_container_prefix
 
     def _container_name(self, metric):
-        return '%s.%s' % (self._container_prefix, metric.name)
+        return '%s.%s' % (self._container_prefix, str(metric.id))
 
     def _create_metric_container(self, metric):
         # TODO(jd) A container per user in their account?

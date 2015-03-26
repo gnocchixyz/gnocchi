@@ -97,26 +97,23 @@ class ArchivePolicy(object):
                     for definition in d['definition']],
                    d.get('aggregation_methods'))
 
-    def to_dict(self):
+    def __eq__(self, other):
+        return (isinstance(other, ArchivePolicy)
+                and self.name == other.name
+                and self.back_window == other.back_window
+                and self.definition == other.definition
+                and self.aggregation_methods == other.aggregation_methods)
+
+    def jsonify(self):
         return {
             "name": self.name,
             "back_window": self.back_window,
-            "definition": [d.to_dict()
-                           for d in self.definition],
-            "aggregation_methods": self.aggregation_methods,
-        }
-
-    def to_human_readable_dict(self):
-        return {
-            "name": self.name,
-            "back_window": self.back_window,
-            "definition": [d.to_human_readable_dict()
-                           for d in self.definition],
+            "definition": self.definition,
             "aggregation_methods": self.aggregation_methods,
         }
 
 
-class ArchivePolicyItem(object):
+class ArchivePolicyItem(dict):
     def __init__(self, granularity=None, points=None, timespan=None):
         if (granularity is not None
            and points is not None
@@ -134,24 +131,29 @@ class ArchivePolicyItem(object):
 
         if points is None:
             if timespan is None:
-                self.timespan = None
+                self['timespan'] = None
             else:
                 points = int(timespan / granularity)
-                self.timespan = granularity * points
+                self['timespan'] = granularity * points
         else:
-            self.timespan = granularity * points
+            self['timespan'] = granularity * points
 
-        self.points = points
-        self.granularity = granularity
+        self['points'] = points
+        self['granularity'] = granularity
 
-    def to_dict(self):
-        return {
-            'timespan': self.timespan,
-            'granularity': self.granularity,
-            'points': self.points
-        }
+    @property
+    def granularity(self):
+        return self['granularity']
 
-    def to_human_readable_dict(self):
+    @property
+    def points(self):
+        return self['points']
+
+    @property
+    def timespan(self):
+        return self['timespan']
+
+    def jsonify(self):
         """Return a dict representation with human readable values."""
         return {
             'timespan': six.text_type(

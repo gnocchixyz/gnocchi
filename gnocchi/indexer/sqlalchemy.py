@@ -76,13 +76,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policies(self):
         session = self.engine_facade.get_session()
-        return [dict(ap) for ap in session.query(ArchivePolicy).all()]
+        return session.query(ArchivePolicy).all()
 
     def get_archive_policy(self, name):
         session = self.engine_facade.get_session()
-        ap = session.query(ArchivePolicy).get(name)
-        if ap:
-            return dict(ap)
+        return session.query(ArchivePolicy).get(name)
 
     def delete_archive_policy(self, name):
         session = self.engine_facade.get_session()
@@ -104,23 +102,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if details:
             query = query.options(sqlalchemy.orm.joinedload(
                 Metric.archive_policy))
-            metrics = []
-            for m in query:
-                metric = self._resource_to_dict(m)
-                metric['archive_policy'] = self._resource_to_dict(
-                    m.archive_policy)
-                del metric['archive_policy_name']
-                metrics.append(metric)
-            return metrics
 
-        return list(map(self._resource_to_dict, query.all()))
+        return list(query.all())
 
     def create_archive_policy(self, archive_policy):
         ap = ArchivePolicy(
             name=archive_policy.name,
             back_window=archive_policy.back_window,
-            definition=[d.to_dict()
-                        for d in archive_policy.definition],
+            definition=archive_policy.definition,
             aggregation_methods=list(archive_policy.aggregation_methods),
         )
         session = self.engine_facade.get_session()
@@ -129,7 +118,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             session.flush()
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyAlreadyExists(archive_policy.name)
-        return dict(ap)
+        return ap
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
@@ -143,7 +132,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         session.add(m)
         session.flush()
-        return self._resource_to_dict(m)
+        return m
 
     def list_metrics(self, user_id=None, project_id=None):
         session = self.engine_facade.get_session()
@@ -152,7 +141,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             q = q.filter(Metric.created_by_user_id == user_id)
         if project_id is not None:
             q = q.filter(Metric.created_by_project_id == project_id)
-        return [self._resource_to_dict(m) for m in q.all()]
+        return q.all()
 
     def create_resource(self, resource_type, id,
                         created_by_user_id, created_by_project_id,

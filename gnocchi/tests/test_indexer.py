@@ -38,17 +38,15 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_get_archive_policy(self):
         ap = self.index.get_archive_policy("low")
-        self.assertEqual(
-            set(self.conf.archive_policy.default_aggregation_methods),
-            set(ap['aggregation_methods']))
-        del ap['aggregation_methods']
         self.assertEqual({
             'back_window': 0,
+            'aggregation_methods':
+            set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
                 {u'granularity': 300, u'points': 12, u'timespan': 3600},
                 {u'granularity': 3600, u'points': 24, u'timespan': 86400},
                 {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
-            'name': u'low'}, ap)
+            'name': u'low'}, dict(ap))
 
     def test_delete_archive_policy(self):
         name = str(uuid.uuid4())
@@ -74,12 +72,11 @@ class TestIndexerDriver(tests_base.TestCase):
         user = uuid.uuid4()
         project = uuid.uuid4()
         m = self.index.create_metric(r1, user, project, "low")
-        self.assertEqual({"id": r1,
-                          "created_by_user_id": user,
-                          "created_by_project_id": project,
-                          "archive_policy_name": "low",
-                          "name": None,
-                          "resource_id": None}, m)
+        self.assertEqual(r1, m.id)
+        self.assertEqual(m.created_by_user_id, user)
+        self.assertEqual(m.created_by_project_id, project)
+        self.assertIsNone(m.name)
+        self.assertIsNone(m.resource_id)
         m2 = self.index.get_metrics([r1])
         self.assertEqual([m], m2)
 
@@ -622,13 +619,13 @@ class TestIndexerDriver(tests_base.TestCase):
                                  archive_policy_name="low")
 
         metric = self.index.get_metrics([e1])
-        self.assertEqual([{"id": e1,
-                           "archive_policy_name": "low",
-                           "created_by_user_id": user,
-                           "created_by_project_id": project,
-                           "name": None,
-                           "resource_id": None}],
-                         metric)
+        self.assertEqual(1, len(metric))
+        metric = metric[0]
+        self.assertEqual(e1, metric.id)
+        self.assertEqual(metric.created_by_user_id, user)
+        self.assertEqual(metric.created_by_project_id, project)
+        self.assertIsNone(metric.name)
+        self.assertIsNone(metric.resource_id)
 
     def test_get_metric_with_details(self):
         e1 = uuid.uuid4()
@@ -639,31 +636,14 @@ class TestIndexerDriver(tests_base.TestCase):
                                  archive_policy_name="low")
 
         metric = self.index.get_metrics([e1], details=True)
-        # Order of the list is random, use a set then
-        metric[0]['archive_policy']['aggregation_methods'] = set(
-            metric[0]['archive_policy']['aggregation_methods'])
-        self.assertEqual([
-            {"id": e1,
-             "archive_policy": {
-                 'aggregation_methods':
-                 set(self.conf.archive_policy.default_aggregation_methods),
-                 "back_window": 0,
-                 "definition": [
-                     {'granularity': 300,
-                      'points': 12,
-                      'timespan': 3600},
-                     {'granularity': 3600,
-                      'points': 24,
-                      'timespan': 86400},
-                     {'granularity': 86400,
-                      'points': 30,
-                      'timespan': 2592000}],
-                 "name": "low"},
-             "created_by_user_id": user,
-             "created_by_project_id": project,
-             "name": None,
-             "resource_id": None}
-        ], metric)
+        self.assertEqual(1, len(metric))
+        metric = metric[0]
+        self.assertEqual(e1, metric.id)
+        self.assertEqual(metric.created_by_user_id, user)
+        self.assertEqual(metric.created_by_project_id, project)
+        self.assertIsNone(metric.name)
+        self.assertIsNone(metric.resource_id)
+        self.assertEqual(self.archive_policies['low'], metric.archive_policy)
 
     def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()

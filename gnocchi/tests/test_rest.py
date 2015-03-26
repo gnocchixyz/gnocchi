@@ -525,7 +525,11 @@ class ArchivePolicyTest(RestTest):
     def test_get_archive_policy(self):
         result = self.app.get("/v1/archive_policy/medium")
         ap = json.loads(result.text)
-        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
+        ap_dict = self.archive_policies['medium'].jsonify()
+        ap_dict['definition'] = [
+            archive_policy.ArchivePolicyItem(**d).jsonify()
+            for d in ap_dict['definition']
+        ]
         self.assertEqual(set(ap['aggregation_methods']),
                          ap_dict['aggregation_methods'])
         del ap['aggregation_methods']
@@ -588,7 +592,12 @@ class ArchivePolicyTest(RestTest):
         for ap in aps:
             ap['aggregation_methods'] = set(ap['aggregation_methods'])
         for name, ap in six.iteritems(self.archive_policies):
-            self.assertIn(ap.to_human_readable_dict(), aps)
+            apj = ap.jsonify()
+            apj['definition'] = [
+                archive_policy.ArchivePolicyItem(**d).jsonify()
+                for d in ap.definition
+            ]
+            self.assertIn(apj, aps)
 
 
 class MetricTest(RestTest):
@@ -631,12 +640,13 @@ class MetricTest(RestTest):
                               status=200)
         metric = json.loads(result.text)
         ap = metric['archive_policy']
-        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
-        self.assertEqual(set(ap['aggregation_methods']),
-                         ap_dict['aggregation_methods'])
-        del ap['aggregation_methods']
-        del ap_dict['aggregation_methods']
-        self.assertEqual(ap_dict, ap)
+        ap_ref = self.archive_policies['medium']
+        self.assertEqual(ap_ref.aggregation_methods,
+                         set(ap['aggregation_methods']))
+        self.assertEqual(ap_ref.back_window, ap['back_window'])
+        self.assertEqual(ap_ref.name, ap['name'])
+        self.assertEqual([d.jsonify() for d in ap_ref.definition],
+                         ap['definition'])
 
     def test_get_metric_with_detail_in_accept(self):
         result = self.app.post_json(
@@ -650,12 +660,13 @@ class MetricTest(RestTest):
             status=200)
         metric = json.loads(result.text)
         ap = metric['archive_policy']
-        ap_dict = self.archive_policies['medium'].to_human_readable_dict()
-        self.assertEqual(set(ap['aggregation_methods']),
-                         ap_dict['aggregation_methods'])
-        del ap['aggregation_methods']
-        del ap_dict['aggregation_methods']
-        self.assertEqual(ap_dict, ap)
+        ap_ref = self.archive_policies['medium']
+        self.assertEqual(ap_ref.aggregation_methods,
+                         set(ap['aggregation_methods']))
+        self.assertEqual(ap_ref.back_window, ap['back_window'])
+        self.assertEqual(ap_ref.name, ap['name'])
+        self.assertEqual([d.jsonify() for d in ap_ref.definition],
+                         ap['definition'])
 
     def test_get_detailed_metric_with_bad_details(self):
         result = self.app.post_json(
@@ -907,7 +918,7 @@ class MetricTest(RestTest):
                       "exist" % metric['id'], ret.text)
 
     def test_aggregation_get_measure_unknown_metric(self):
-        metric_id = "cee6ef1f-52cc-4a16-bbb5-648aedfd1c37"
+        metric_id = str(uuid.uuid4())
         ret = self.app.get("/v1/aggregation/metric?metric=%s" % metric_id,
                            status=404)
         self.assertIn('Metric %s does not exist' % metric_id, ret.text)

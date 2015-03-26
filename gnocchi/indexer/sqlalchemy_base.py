@@ -27,6 +27,9 @@ from sqlalchemy.ext import declarative
 from sqlalchemy import types
 import sqlalchemy_utils
 
+from gnocchi import archive_policy
+from gnocchi import storage
+
 Base = declarative.declarative_base()
 
 COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
@@ -87,7 +90,20 @@ class GnocchiBase(models.ModelBase):
     pass
 
 
-class ArchivePolicy(Base, GnocchiBase):
+class ArchivePolicyDefinitionType(sqlalchemy_utils.JSONType):
+    def process_result_value(self, value, dialect):
+        values = super(ArchivePolicyDefinitionType,
+                       self).process_result_value(value, dialect)
+        return [archive_policy.ArchivePolicyItem(**v) for v in values]
+
+
+class SetType(sqlalchemy_utils.JSONType):
+    def process_result_value(self, value, dialect):
+        return set(super(SetType,
+                         self).process_result_value(value, dialect))
+
+
+class ArchivePolicy(Base, GnocchiBase, archive_policy.ArchivePolicy):
     __tablename__ = 'archive_policy'
     __table_args__ = (
         sqlalchemy.Index('ix_archive_policy_name', 'name'),
@@ -96,13 +112,13 @@ class ArchivePolicy(Base, GnocchiBase):
 
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
     back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    definition = sqlalchemy.Column(sqlalchemy_utils.JSONType, nullable=False)
+    definition = sqlalchemy.Column(ArchivePolicyDefinitionType, nullable=False)
     # TODO(jd) Use an array of string instead, PostgreSQL can do that
-    aggregation_methods = sqlalchemy.Column(sqlalchemy_utils.JSONType,
+    aggregation_methods = sqlalchemy.Column(SetType,
                                             nullable=False)
 
 
-class Metric(Base, GnocchiBase):
+class Metric(Base, GnocchiBase, storage.Metric):
     __tablename__ = 'metric'
     __table_args__ = (
         sqlalchemy.Index('ix_metric_id', 'id'),
@@ -127,6 +143,34 @@ class Metric(Base, GnocchiBase):
                                     sqlalchemy.ForeignKey('resource.id',
                                                           ondelete="CASCADE"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
+
+    def jsonify(self):
+        d = {
+            "id": self.id,
+            "created_by_user_id": self.created_by_user_id,
+            "created_by_project_id": self.created_by_project_id,
+            "name": self.name,
+            "resource_id": self.resource_id,
+        }
+        if 'archive_policy' in sqlalchemy.inspect(self).unloaded:
+            d['archive_policy_name'] = self.archive_policy_name
+        else:
+            d['archive_policy'] = self.archive_policy
+        return d
+
+    def __eq__(self, other):
+        # NOTE(jd) If `other` is a SQL Metric, we only compare
+        # archive_policy_name, and we don't compare archive_policy that might
+        # not be loaded. Otherwise we fallback to the original comparison for
+        # storage.Metric.
+        return ((isinstance(other, Metric)
+                 and self.id == other.id
+                 and self.archive_policy_name == other.archive_policy_name
+                 and self.created_by_user_id == other.created_by_user_id
+                 and self.created_by_project_id == other.created_by_project_id
+                 and self.name == other.name
+                 and self.resource_id == other.resource_id)
+                or (storage.Metric.__eq__(self, other)))
 
 
 class Resource(Base, GnocchiBase):

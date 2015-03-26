@@ -86,6 +86,9 @@ def enforce(rule, target):
         'project_id': project_id
     }
 
+    if not isinstance(target, dict):
+        target = target.__dict__
+
     if not pecan.request.policy_enforcer.enforce(rule, target, creds):
         abort(403)
 
@@ -223,7 +226,7 @@ class ArchivePoliciesController(rest.RestController):
             ap = archive_policy.ArchivePolicy.from_dict(body)
         except ValueError as e:
             abort(400, e)
-        enforce("create archive policy", ap.to_dict())
+        enforce("create archive policy", ap)
         try:
             ap = pecan.request.indexer.create_archive_policy(ap)
         except indexer.ArchivePolicyAlreadyExists as e:
@@ -232,26 +235,20 @@ class ArchivePoliciesController(rest.RestController):
         location = "/v1/archive_policy/" + ap['name']
         set_resp_location_hdr(location)
         pecan.response.status = 201
-        return archive_policy.ArchivePolicy.from_dict(
-            ap).to_human_readable_dict()
+        return ap
 
     @pecan.expose('json')
     def get_one(self, id):
         ap = pecan.request.indexer.get_archive_policy(id)
         if ap:
             enforce("get archive policy", ap)
-            return archive_policy.ArchivePolicy.from_dict(
-                ap).to_human_readable_dict()
+            return ap
         abort(404)
 
     @pecan.expose('json')
     def get_all(self):
         enforce("list archive policy", {})
-        return [
-            archive_policy.ArchivePolicy.from_dict(
-                ap).to_human_readable_dict()
-            for ap in pecan.request.indexer.list_archive_policies()
-        ]
+        return pecan.request.indexer.list_archive_policies()
 
     @pecan.expose()
     def delete(self, name):
@@ -290,8 +287,8 @@ class AggregatedMetricController(rest.RestController):
 
         # Check RBAC policy
         metrics = pecan.request.indexer.get_metrics(metric_ids)
-        missing_metric_ids = (set(six.text_type(m['id']) for m in metrics)
-                              - set(metric_ids))
+        missing_metric_ids = (set(metric_ids)
+                              - set(six.text_type(m.id) for m in metrics))
         if missing_metric_ids:
             # Return one of the missing one in the error
             abort(404, storage.MetricDoesNotExist(
@@ -301,20 +298,18 @@ class AggregatedMetricController(rest.RestController):
             enforce("get metric", metric)
 
         try:
-            if len(metric_ids) == 1:
+            if len(metrics) == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
-                # NOTE(jd): set the archive policy to None as it's not really
-                # used and it has a cost to request it from the indexer
+                # NOTE(jd): the archive policy is None as it's not really used
+                # and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_measures(
-                    storage.Metric(metric_ids[0], None),
-                    start, stop, aggregation)
+                    metrics[0], start, stop, aggregation)
             else:
-                # NOTE(jd): set the archive policy to None as it's not really
-                # used and it has a cost to request it from the indexer
+                # NOTE(jd): the archive policy is None as it's not really used
+                # and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_cross_metric_measures(
-                    [storage.Metric(m, None) for m in metric_ids],
-                    start, stop, aggregation, needed_overlap)
+                    metrics, start, stop, aggregation, needed_overlap)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -352,19 +347,13 @@ class MetricController(rest.RestController):
                                                     details=details)
         if not metrics:
             abort(404, storage.MetricDoesNotExist(self.metric_id))
-        enforce(rule, metrics[0])
+        enforce(rule, dict(metrics[0]))
         return metrics
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
         details = get_details(kwargs)
         metric = self.enforce_metric("get metric", details)[0]
-
-        if details:
-            metric['archive_policy'] = (
-                archive_policy.ArchivePolicy.from_dict(
-                    metric['archive_policy']
-                ).to_human_readable_dict())
         return metric
 
     @pecan.expose()
@@ -372,10 +361,7 @@ class MetricController(rest.RestController):
         metric = self.enforce_metric("post measures", details=True)[0]
         try:
             pecan.request.storage.add_measures(
-                storage.Metric(
-                    name=self.metric_id,
-                    archive_policy=archive_policy.ArchivePolicy.from_dict(
-                        metric['archive_policy'])),
+                metric,
                 (storage.Measure(
                     m['timestamp'],
                     m['value']) for m in deserialize(self.Measures)))
@@ -391,7 +377,7 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     @pecan.expose('measures.j2')
     def get_measures(self, start=None, stop=None, aggregation='mean', **param):
-        self.enforce_metric("get measures")
+        metric = self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
                 or aggregation in self.custom_agg):
@@ -425,8 +411,7 @@ class MetricController(rest.RestController):
                     # here because it's not used; but we could do it if needed
                     # by requesting the metric details from the indexer, for
                     # example in the enforce_metric() call above.
-                    storage.Metric(name=self.metric_id, archive_policy=None),
-                    start, stop, aggregation)
+                    metric[0], start, stop, aggregation)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -441,11 +426,7 @@ class MetricController(rest.RestController):
     def delete(self):
         metric = self.enforce_metric("delete metric", details=True)[0]
         try:
-            pecan.request.storage.delete_metric(
-                storage.Metric(
-                    self.metric_id,
-                    archive_policy.ArchivePolicy.from_dict(
-                        metric['archive_policy'])))
+            pecan.request.storage.delete_metric(metric)
         except storage.MetricDoesNotExist as e:
             abort(404, e)
         pecan.request.indexer.delete_metric(self.metric_id)
@@ -491,13 +472,11 @@ class MetricsController(rest.RestController):
         policy = pecan.request.indexer.get_archive_policy(archive_policy_name)
         if policy is None:
             abort(400, "Unknown archive policy %s" % archive_policy_name)
-        ap = archive_policy.ArchivePolicy.from_dict(policy)
         pecan.request.indexer.create_metric(
             id,
             created_by_user_id, created_by_project_id,
-            archive_policy_name=policy['name'])
-        pecan.request.storage.create_metric(storage.Metric(name=str(id),
-                                                           archive_policy=ap))
+            archive_policy_name=policy.name)
+        pecan.request.storage.create_metric(storage.Metric(id, policy))
         return id
 
     @pecan.expose('json')
@@ -637,14 +616,11 @@ class GenericResourceController(rest.RestController):
             enforce("delete metric", metric)
         for metric in metrics:
             try:
-                pecan.request.storage.delete_metric(
-                    storage.Metric(str(metric['id']),
-                                   archive_policy.ArchivePolicy.from_dict(
-                                       metric['archive_policy'])))
+                pecan.request.storage.delete_metric(metric)
             except Exception:
                 LOG.error(
                     "Unable to delete metric `%s' from storage, "
-                    "you will need to delete it manually" % metric,
+                    "you will need to delete it manually" % metric.id,
                     exc_info=True)
 
     @pecan.expose()
@@ -998,8 +974,8 @@ class SearchMetricController(rest.RestController):
 
         try:
             return {
-                str(metric_id): values
-                for metric_id, values in six.iteritems(
+                str(metric.id): values
+                for metric, values in six.iteritems(
                     pecan.request.storage.search_value(
                         # NOTE(jd) Don't pass the archive policy as no
                         # driver needs it for now
