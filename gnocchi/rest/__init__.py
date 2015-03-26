@@ -528,8 +528,11 @@ class NamedMetricController(rest.RestController):
         # heavier.
         resource = pecan.request.indexer.get_resource(
             'generic', self.resource_id, with_metrics=True)
-        if name in resource['metrics']:
-            return MetricController(resource['metrics'][name]), remainder
+        m = resource.get_metric(name)
+        if m:
+            # TODO(jd) We have the entire metric, pass it along to avoid
+            # refetch!
+            return MetricController(str(m.id)), remainder
         abort(404)
 
     @pecan.expose()
@@ -1002,10 +1005,15 @@ class AggregationResource(rest.RestController):
     def post(self, start=None, stop=None, aggregation='mean',
              needed_overlap=100.0):
         resources = SearchResourceTypeController(self.resource_type).post()
+        metrics = []
+        for r in resources:
+            m = r.get_metric(self.metric_name)
+            if m:
+                # TODO(jd) Pass the full metric object to avoid refetching
+                # them!
+                metrics.append(str(m.id))
         return AggregatedMetricController.get_cross_metric_measures(
-            [r['metrics'][self.metric_name] for r in resources
-             if self.metric_name in r['metrics']],
-            start, stop, aggregation, needed_overlap)
+            metrics, start, stop, aggregation, needed_overlap)
 
 
 class Aggregation(rest.RestController):

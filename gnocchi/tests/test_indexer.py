@@ -86,19 +86,19 @@ class TestIndexerDriver(tests_base.TestCase):
         project = uuid.uuid4()
         rc = self.index.create_resource('generic', r1, user, project)
         self.assertIsNotNone(rc['started_at'])
-        del rc['started_at']
         self.assertEqual({"id": r1,
                           "created_by_user_id": user,
                           "created_by_project_id": project,
                           "user_id": None,
                           "project_id": None,
+                          "started_at": rc.started_at,
                           "ended_at": None,
                           "type": "generic",
                           "metrics": {}},
-                         rc)
+                         rc.jsonify())
         rg = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertEqual(rc['id'], rg['id'])
-        self.assertEqual(rc['metrics'], rg['metrics'])
+        self.assertEqual(rc, rg)
+        self.assertEqual(rc.metrics, rg.metrics)
 
     def test_create_non_existent_metric(self):
         e = uuid.uuid4()
@@ -132,13 +132,13 @@ class TestIndexerDriver(tests_base.TestCase):
                                         host="foo",
                                         display_name="lol", **kwargs)
         self.assertIsNotNone(rc['started_at'])
-        del rc['started_at']
         self.assertEqual({"id": r1,
                           "type": "instance",
                           "created_by_user_id": user,
                           "created_by_project_id": project,
                           "user_id": None,
                           "project_id": None,
+                          "started_at": rc.started_at,
                           "ended_at": None,
                           "display_name": "lol",
                           "server_group": server_group,
@@ -146,7 +146,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "image_ref": "http://foo/bar",
                           "flavor_id": 1,
                           "metrics": {}},
-                         rc)
+                         rc.jsonify())
         rg = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(rc['id'], rg['id'])
         self.assertEqual(rc['metrics'], rg['metrics'])
@@ -198,7 +198,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "started_at": ts,
                           "ended_at": None,
                           "type": "generic",
-                          "metrics": {}}, rc)
+                          "metrics": {}}, rc.jsonify())
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(rc, r)
 
@@ -217,26 +217,28 @@ class TestIndexerDriver(tests_base.TestCase):
         rc = self.index.create_resource('generic', r1, user, project,
                                         metrics={'foo': e1, 'bar': e2})
         self.assertIsNotNone(rc['started_at'])
-        del rc['started_at']
         self.assertEqual({"id": r1,
                           "created_by_user_id": user,
                           "created_by_project_id": project,
                           "user_id": None,
                           "project_id": None,
+                          "started_at": rc.started_at,
                           "ended_at": None,
                           "type": "generic",
-                          "metrics": {'foo': str(e1), 'bar': str(e2)}}, rc)
+                          "metrics": {'foo': str(e1), 'bar': str(e2)}},
+                         rc.jsonify())
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
-        del r['started_at']
         self.assertEqual({"id": r1,
                           "created_by_user_id": user,
                           "created_by_project_id": project,
                           "type": "generic",
+                          "started_at": rc.started_at,
                           "ended_at": None,
                           "user_id": None,
                           "project_id": None,
-                          "metrics": {'foo': str(e1), 'bar': str(e2)}}, r)
+                          "metrics": {'foo': str(e1), 'bar': str(e2)}},
+                         r.jsonify())
 
     def test_update_non_existent_resource_end_timestamp(self):
         r1 = uuid.uuid4()
@@ -257,23 +259,21 @@ class TestIndexerDriver(tests_base.TestCase):
             r1,
             ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
         r = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertIsNotNone(r['started_at'])
-        del r['started_at']
-        self.assertEqual({"id": r1,
-                          "created_by_user_id": user,
-                          "created_by_project_id": project,
-                          "ended_at": datetime.datetime(2043, 1, 1, 2, 3, 4),
-                          "user_id": None,
-                          "project_id": None,
-                          "type": "generic",
-                          "metrics": {}}, r)
+        self.assertIsNotNone(r.started_at)
+        self.assertIsNone(r.user_id)
+        self.assertIsNone(r.project_id)
+        self.assertEqual(r1, r.id)
+        self.assertEqual(user, r.created_by_user_id)
+        self.assertEqual(project, r.created_by_project_id)
+        self.assertEqual(datetime.datetime(2043, 1, 1, 2, 3, 4), r.ended_at)
+        self.assertEqual("generic", r.type)
+        self.assertEqual(0, len(r.metrics))
         self.index.update_resource(
             'generic',
             r1,
             ended_at=None)
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
-        del r['started_at']
         self.assertEqual({"id": r1,
                           "ended_at": None,
                           "created_by_user_id": user,
@@ -281,7 +281,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           "user_id": None,
                           "project_id": None,
                           "type": "generic",
-                          "metrics": {}}, r)
+                          "started_at": r.started_at,
+                          "metrics": {}}, r.jsonify())
 
     def test_update_resource_metrics(self):
         r1 = uuid.uuid4()
@@ -315,8 +316,9 @@ class TestIndexerDriver(tests_base.TestCase):
                                         append_metrics=True)
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertEqual(rc, r)
-        self.assertIn('foo', rc['metrics'])
-        self.assertIn('bar', rc['metrics'])
+        metric_names = [m.name for m in rc.metrics]
+        self.assertIn('foo', metric_names)
+        self.assertIn('bar', metric_names)
 
     def test_update_resource_metrics_append_fail(self):
         r1 = uuid.uuid4()
@@ -336,7 +338,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           'generic', r1, metrics={'foo': e2},
                           append_metrics=True)
         r = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertEqual(str(e1), r['metrics']['foo'])
+        self.assertEqual(e1, r.metrics[0].id)
 
     def test_update_resource_attribute(self):
         r1 = uuid.uuid4()
@@ -406,15 +408,15 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.delete_metric(e1)
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r['started_at'])
-        del r['started_at']
         self.assertEqual({"id": r1,
+                          "started_at": r.started_at,
                           "ended_at": None,
                           "created_by_user_id": user,
                           "created_by_project_id": project,
                           "user_id": None,
                           "project_id": None,
                           "type": "generic",
-                          "metrics": {'bar': str(e2)}}, r)
+                          "metrics": {'bar': str(e2)}}, r.jsonify())
 
     def test_delete_instance(self):
         r1 = uuid.uuid4()
