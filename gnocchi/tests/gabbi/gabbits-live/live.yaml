@@ -1,0 +1,23 @@
+#
+# Confirmation tests to run against a live web server.
+#
+# These act as a very basic sanity check.
+
+tests:
+
+    - name: check /
+      url: /
+
+    - name: check archive policies
+      url: /v1/archive_policy
+      response_headers:
+          content-type: /application/json/
+      response_strings:
+          - "[]"
+
+    - name: check generic resources
+      url: /v1/resource/generic
+      response_headers:
+          content-type: /application/json/
+      response_strings:
+          - "[]"

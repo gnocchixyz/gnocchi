@@ -290,9 +290,10 @@ function start_gnocchi {
         auth="-H 'X-Auth-Token: $token'"
     fi
 
-    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
-    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
-    curl -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
+    # These will silently fail if GNOCCHI_USE_KEYSTONE is false
+    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
+    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
+    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
 }
 
 # stop_gnocchi() - Stop running processes

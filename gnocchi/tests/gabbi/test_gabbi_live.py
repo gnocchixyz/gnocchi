@@ -19,15 +19,15 @@ import os
 
 from gabbi import driver
 
-from gnocchi.tests.gabbi import fixtures
 
-
-TESTS_DIR = 'gabbits'
+TESTS_DIR = 'gabbits-live'
 
 
 def load_tests(loader, tests, pattern):
     """Provide a TestSuite to the discovery process."""
-    test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
-    return driver.build_tests(test_dir, loader, host=None,
-                              intercept=fixtures.setup_app,
-                              fixture_module=fixtures)
+    host = os.getenv('GNOCCHI_SERVICE_HOST')
+    if host:
+        test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
+        port = os.getenv('GNOCCHI_SERVICE_PORT', 8041)
+        return driver.build_tests(test_dir, loader,
+                                  host=host, port=port)
