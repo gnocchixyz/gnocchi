@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -16,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from oslo.config import cfg
+import retrying
 from swiftclient import client as swclient
 
 from gnocchi import storage
@@ -47,6 +46,10 @@ OPTS = [
                default='gnocchi',
                help='Prefix to namespace metric containers.'),
 ]
+
+
+def retry_if_result_empty(result):
+    return len(result) == 0
 
 
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):
@@ -94,6 +97,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
 
+    @retrying.retry(stop_max_attempt_number=4,
+                    wait_fixed=500,
+                    retry_on_result=retry_if_result_empty)
     def _get_measures(self, metric, aggregation):
         try:
             headers, contents = self.swift.get_object(

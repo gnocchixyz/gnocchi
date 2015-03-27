@@ -26,3 +26,4 @@ Jinja2
 PyYAML
 sysv_ipc
 msgpack-python
+retrying

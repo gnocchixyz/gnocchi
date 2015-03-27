@@ -27,3 +27,4 @@ PyYAML
 sysv_ipc
 msgpack-python
 trollius
+retrying
