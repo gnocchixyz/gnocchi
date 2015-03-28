@@ -1,4 +1,4 @@
 [gerrit]
 host=review.openstack.org
 port=29418
-project=stackforge/gnocchi.git
+project=openstack/gnocchi.git
