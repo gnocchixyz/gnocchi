@@ -668,3 +668,9 @@ class TestIndexerDriver(tests_base.TestCase):
     def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()
         self.assertEqual([], self.index.get_metrics([e1]))
+
+    def test_get_metric_empty_list_uuids(self):
+        self.assertEqual([], self.index.get_metrics([]))
+
+    def test_get_metric_no_args(self):
+        self.assertRaises(TypeError, self.index.get_metrics, *[])
