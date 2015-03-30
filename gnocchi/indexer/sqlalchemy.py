@@ -18,9 +18,9 @@ import itertools
 import operator
 import uuid
 
-from oslo.db import exception
-from oslo.db.sqlalchemy import session
-from oslo.utils import timeutils
+from oslo_db import exception
+from oslo_db.sqlalchemy import session
+from oslo_utils import timeutils
 import six
 import sqlalchemy
 from stevedore import extension

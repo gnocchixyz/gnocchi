@@ -21,7 +21,7 @@ import random
 import uuid
 
 from concurrent import futures
-from oslo.config import cfg
+from oslo_config import cfg
 from tooz import coordination
 
 from gnocchi import carbonara

@@ -21,8 +21,8 @@ import ctypes
 import errno
 import time
 
-from oslo.config import cfg
-from oslo.utils import importutils
+from oslo_config import cfg
+from oslo_utils import importutils
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
