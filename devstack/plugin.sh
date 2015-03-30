@@ -3,7 +3,7 @@
 
 # To enable Gnocchi service, add the following to localrc:
 #
-#   enable_plugin gnocchi https://github.com/stackforge/gnocchi master
+#   enable_plugin gnocchi https://github.com/openstack/gnocchi master
 #   enable_service gnocchi-api
 #
 
@@ -36,7 +36,7 @@ set +o xtrace
 # --------
 
 # Setup repository
-GNOCCHI_REPO=${GNOCCHI_REPO:-${GIT_BASE}/stackforge/gnocchi.git}
+GNOCCHI_REPO=${GNOCCHI_REPO:-${GIT_BASE}/openstack/gnocchi.git}
 GNOCCHI_BRANCH=${GNOCCHI_BRANCH:-master}
 
 # Set up default directories
