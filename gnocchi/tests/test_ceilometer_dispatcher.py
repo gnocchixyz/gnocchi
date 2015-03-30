@@ -23,6 +23,7 @@ from oslo.config import fixture as config_fixture
 from oslotest import base
 from oslotest import mockpatch
 import requests
+import six.moves.urllib.parse as urlparse
 import tempfile
 import testscenarios
 import yaml
@@ -234,8 +235,9 @@ class DispatcherWorkflowTest(base.BaseTestCase,
     @mock.patch('gnocchi.ceilometer.dispatcher.LOG')
     @mock.patch('gnocchi.ceilometer.dispatcher.requests')
     def test_workflow(self, requests, logger):
+        base_url = self.dispatcher.conf.dispatcher_gnocchi.url
         url_params = {
-            'url': 'http://localhost:8041/v1/resource',
+            'url': urlparse.urljoin(base_url, '/v1/resource'),
             'resource_id': self.sample['resource_id'],
             'resource_type': self.resource_type,
             'metric_name': self.sample['counter_name']
