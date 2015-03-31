@@ -245,9 +245,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                  for timestamp, granularity, value in values
                  if predicate(value)]}
 
-    def search_value(self, metrics, predicate, from_timestamp=None,
+    def search_value(self, metrics, query, from_timestamp=None,
                      to_timestamp=None, aggregation='mean'):
         result = {}
+        predicate = MeasureQuery(query)
         results = self._map_in_thread(self._find_measure,
                                       [(metric, aggregation, predicate,
                                         from_timestamp, to_timestamp)

@@ -174,12 +174,13 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def search_value(metrics, predicate, from_timestamp=None,
+    def search_value(metrics, query, from_timestamp=None,
                      to_timestamp=None,
                      aggregation='mean'):
         """Search for an aggregated value that realizes a predicate.
 
         :param metrics: The list of metrics to look into.
+        :param query: The query being sent.
         :param from_timestamp: The timestamp to get the measure from.
         :param to_timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
