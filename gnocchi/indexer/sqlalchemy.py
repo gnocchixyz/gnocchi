@@ -97,6 +97,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ArchivePolicyInUse(name)
 
     def get_metrics(self, uuids, details=False):
+        if not uuids:
+            return []
         session = self.engine_facade.get_session()
         query = session.query(Metric).filter(Metric.id.in_(uuids))
         if details:
