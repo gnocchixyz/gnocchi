@@ -393,9 +393,8 @@ class MetricController(rest.RestController):
 
         try:
             if aggregation in self.custom_agg:
-                # TODO(jd) Pass the metric object, not only the id
                 measures = self.custom_agg[aggregation].compute(
-                    pecan.request.storage, six.text_type(self.metric.id),
+                    pecan.request.storage, self.metric,
                     start, stop, **param)
             else:
                 measures = pecan.request.storage.get_measures(

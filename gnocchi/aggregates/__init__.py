@@ -34,11 +34,11 @@ class CustomAggFailure(Exception):
 class CustomAggregator(object):
 
     @abc.abstractmethod
-    def compute(self, storage_obj, metric_id, start, stop, **param):
+    def compute(self, storage_obj, metric, start, stop, **param):
         """Returns list of (timestamp, window, aggregate value) tuples.
 
         :param storage_obj: storage object for retrieving the data
-        :param metric_id: metric id
+        :param metric: metric
         :param start: start timestamp
         :param stop: stop timestamp
         :param **param: parameters are window and optionally center.

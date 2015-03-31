@@ -66,13 +66,13 @@ class TestAggregates(tests_base.TestCase):
             window = 90.0
             self.assertRaises(aggregates.CustomAggFailure,
                               agg_obj.retrieve_data,
-                              self.storage, metric.id,
+                              self.storage, metric,
                               start=None, stop=None,
                               window=window)
 
             window = 120.0
             result = pandas.Series()
-            grain, result = agg_obj.retrieve_data(self.storage, metric.id,
+            grain, result = agg_obj.retrieve_data(self.storage, metric,
                                                   start=None, stop=None,
                                                   window=window)
             self.assertEqual(60.0, grain)
@@ -88,14 +88,14 @@ class TestAggregates(tests_base.TestCase):
         window = '120s'
 
         center = 'False'
-        result = agg_obj.compute(self.storage, metric.id,
+        result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
         expected = [(datetime.datetime(2014, 1, 1, 12), 120.0, 32.25)]
         self.assertEqual(expected, result)
 
         center = 'True'
-        result = agg_obj.compute(self.storage, metric.id,
+        result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
 

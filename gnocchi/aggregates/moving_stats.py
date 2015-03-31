@@ -20,7 +20,6 @@ import pandas
 import six
 
 from gnocchi import aggregates
-from gnocchi import storage
 
 from oslo_utils import strutils
 from pytimeparse import timeparse
@@ -40,10 +39,9 @@ class MovingAverage(aggregates.CustomAggregator):
             raise aggregates.CustomAggFailure('Invalid value for window')
 
     @staticmethod
-    def retrieve_data(storage_obj, metric_id, start, stop, window):
+    def retrieve_data(storage_obj, metric, start, stop, window):
         """Retrieves finest-res data available from storage."""
-        all_data = storage_obj.get_measures(storage.Metric(metric_id, None),
-                                            start, stop)
+        all_data = storage_obj.get_measures(metric, start, stop)
 
         try:
             min_grain = min(set([row[1] for row in all_data if row[1] == 0
@@ -125,13 +123,13 @@ class MovingAverage(aggregates.CustomAggregator):
         except Exception as e:
             raise aggregates.CustomAggFailure(str(e))
 
-    def compute(self, storage_obj, metric_id, start, stop, window=None,
+    def compute(self, storage_obj, metric, start, stop, window=None,
                 center=False):
         """Returns list of (timestamp, window, aggregated value) tuples.
 
         :param storage_obj: a call is placed to the storage object to retrieve
             the stored data.
-        :param metric_id: the metric id
+        :param metric: the metric
         :param start: start timestamp
         :param stop: stop timestamp
         :param window: format string specifying the size over which to
@@ -140,7 +138,7 @@ class MovingAverage(aggregates.CustomAggregator):
             leftmost timestamp)
         """
         window = self.check_window_valid(window)
-        min_grain, data = self.retrieve_data(storage_obj, metric_id, start,
+        min_grain, data = self.retrieve_data(storage_obj, metric, start,
                                              stop, window)
         return self.aggregate_data(data, numpy.mean, window, min_grain, center,
                                    min_size=1)
