@@ -339,43 +339,43 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
 class QueryTransformer(object):
     unary_operators = {
-        "not": sqlalchemy.or_,
+        u"not": sqlalchemy.not_,
     }
 
     binary_operators = {
-        "=": operator.eq,
-        "==": operator.eq,
-        "eq": operator.eq,
+        u"=": operator.eq,
+        u"==": operator.eq,
+        u"eq": operator.eq,
 
-        "<": operator.lt,
-        "lt": operator.lt,
+        u"<": operator.lt,
+        u"lt": operator.lt,
 
-        ">": operator.gt,
-        "gt": operator.gt,
+        u">": operator.gt,
+        u"gt": operator.gt,
 
-        "<=": operator.le,
-        "≤": operator.le,
-        "le": operator.le,
+        u"<=": operator.le,
+        u"≤": operator.le,
+        u"le": operator.le,
 
-        ">=": operator.ge,
-        "≥": operator.ge,
-        "ge": operator.ge,
+        u">=": operator.ge,
+        u"≥": operator.ge,
+        u"ge": operator.ge,
 
-        "!=": operator.ne,
-        "≠": operator.ne,
-        "ne": operator.ne,
+        u"!=": operator.ne,
+        u"≠": operator.ne,
+        u"ne": operator.ne,
 
-        "in": lambda field_name, values: field_name.in_(values),
+        u"in": lambda field_name, values: field_name.in_(values),
 
-        "like": lambda field, value: field.like(value),
+        u"like": lambda field, value: field.like(value),
     }
 
     multiple_operators = {
-        "or": sqlalchemy.or_,
-        "∨": sqlalchemy.or_,
+        u"or": sqlalchemy.or_,
+        u"∨": sqlalchemy.or_,
 
-        "and": sqlalchemy.and_,
-        "∧": sqlalchemy.and_,
+        u"and": sqlalchemy.and_,
+        u"∧": sqlalchemy.and_,
     }
 
     @classmethod

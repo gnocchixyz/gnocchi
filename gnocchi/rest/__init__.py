@@ -849,9 +849,21 @@ class SearchResourceTypeController(rest.RestController):
         voluptuous.All(
             voluptuous.Length(min=1, max=1),
             {
-                voluptuous.Any("=", "<=", ">=", "!=", "in", "like"):
-                voluptuous.All(voluptuous.Length(min=1, max=1), dict),
-                voluptuous.Any("and", "or", "not"): [_SearchSchema],
+                voluptuous.Any(
+                    u"=", u"==", u"eq",
+                    u"<", u"lt",
+                    u">", u"gt",
+                    u"<=", u"≤", u"le",
+                    u">=", u"≥", u"ge",
+                    u"!=", u"≠", u"ne",
+                    u"in",
+                    u"like",
+                ): voluptuous.All(voluptuous.Length(min=1, max=1), dict),
+                voluptuous.Any(
+                    u"and", u"∨",
+                    u"or", u"∧",
+                    u"not",
+                ): [_SearchSchema],
             }
         )
     )
