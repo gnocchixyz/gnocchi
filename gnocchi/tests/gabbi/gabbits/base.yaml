@@ -70,7 +70,7 @@ tests:
       content_type: /application\/json/
       x-roles: admin
   response_json_paths:
-      $.archive_policy_name: test1
+      $.archive_policy.name: test1
       $.created_by_user_id: 93180da9-7c15-40d3-a050-a374551e52ee
       $.created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
 

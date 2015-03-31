@@ -54,23 +54,7 @@ tests:
       url: /v1/metric/$RESPONSE['$.id']
       status: 200
       response_json_paths:
-          archive_policy_name: cookies
-
-    - name: get valid metric id with details
-      url: /v1/metric/$RESPONSE['$.id']?details=true
-      status: 200
-      response_json_paths:
-          $.archive_policy.name: cookies
-          $.archive_policy.definition[0].granularity: "0:00:01"
-
-    - name: get valid metric id with details via headers
-      url: /v1/metric/$RESPONSE['$.id']
-      request_headers:
-          accept: application/json; details=true
-      status: 200
-      response_json_paths:
-          $.archive_policy.name: cookies
-          $.archive_policy.definition[0].granularity: "0:00:01"
+        $.archive_policy.name: cookies
 
     - name: push measurements to metric
       url: /v1/metric/$RESPONSE['$.id']/measures

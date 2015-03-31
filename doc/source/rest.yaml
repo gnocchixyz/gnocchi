@@ -80,9 +80,6 @@
 - name: get-metric
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
 
-- name: get-metric-details
-  request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}?details=true HTTP/1.1
-
 - name: list-metric
   request: GET /v1/metric HTTP/1.1
 

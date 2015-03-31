@@ -327,11 +327,8 @@ class MetricController(rest.RestController):
         'measures': ['POST', 'GET']
     }
 
-    def __init__(self, metric_id):
-        try:
-            self.metric_id = six.text_type(uuid.UUID(metric_id))
-        except ValueError:
-            abort(404)
+    def __init__(self, metric):
+        self.metric = metric
         mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
                                          invoke_on_load=True)
         self.custom_agg = dict((x.name, x.obj) for x in mgr)
@@ -342,26 +339,20 @@ class MetricController(rest.RestController):
         voluptuous.Required("value"): voluptuous.Any(float, int),
     }])
 
-    def enforce_metric(self, rule, details=False):
-        metrics = pecan.request.indexer.get_metrics((self.metric_id,),
-                                                    details=details)
-        if not metrics:
-            abort(404, storage.MetricDoesNotExist(self.metric_id))
-        enforce(rule, dict(metrics[0]))
-        return metrics
+    def enforce_metric(self, rule):
+        enforce(rule, dict(self.metric))
 
     @pecan.expose('json')
-    def get_all(self, **kwargs):
-        details = get_details(kwargs)
-        metric = self.enforce_metric("get metric", details)[0]
-        return metric
+    def get_all(self):
+        self.enforce_metric("get metric")
+        return self.metric
 
     @pecan.expose()
     def post_measures(self):
-        metric = self.enforce_metric("post measures", details=True)[0]
+        self.enforce_metric("post measures")
         try:
             pecan.request.storage.add_measures(
-                metric,
+                self.metric,
                 (storage.Measure(
                     m['timestamp'],
                     m['value']) for m in deserialize(self.Measures)))
@@ -377,7 +368,7 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     @pecan.expose('measures.j2')
     def get_measures(self, start=None, stop=None, aggregation='mean', **param):
-        metric = self.enforce_metric("get measures")
+        self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
                 or aggregation in self.custom_agg):
@@ -402,16 +393,16 @@ class MetricController(rest.RestController):
 
         try:
             if aggregation in self.custom_agg:
+                # TODO(jd) Pass the metric object, not only the id
                 measures = self.custom_agg[aggregation].compute(
-                    pecan.request.storage, self.metric_id, start, stop,
-                    **param)
+                    pecan.request.storage, six.text_type(self.metric.id),
+                    start, stop, **param)
             else:
                 measures = pecan.request.storage.get_measures(
                     # NOTE(jd) We don't set the archive policy in the object
                     # here because it's not used; but we could do it if needed
-                    # by requesting the metric details from the indexer, for
-                    # example in the enforce_metric() call above.
-                    metric[0], start, stop, aggregation)
+                    # by requesting the metric details from the indexer
+                    self.metric, start, stop, aggregation)
             # Replace timestamp keys by their string versions
             return [(timeutils.isotime(timestamp, subsecond=True), offset, v)
                     for timestamp, offset, v in measures]
@@ -424,12 +415,12 @@ class MetricController(rest.RestController):
 
     @pecan.expose()
     def delete(self):
-        metric = self.enforce_metric("delete metric", details=True)[0]
+        self.enforce_metric("delete metric")
         try:
-            pecan.request.storage.delete_metric(metric)
+            pecan.request.storage.delete_metric(self.metric)
         except storage.MetricDoesNotExist as e:
             abort(404, e)
-        pecan.request.indexer.delete_metric(self.metric_id)
+        pecan.request.indexer.delete_metric(self.metric.id)
 
 
 def UUID(value):
@@ -450,10 +441,14 @@ class MetricsController(rest.RestController):
     @staticmethod
     @pecan.expose()
     def _lookup(id, *remainder):
-        # That's triggered when accessing /v1/metric/
-        if id is "":
+        try:
+            metric_id = uuid.UUID(id)
+        except ValueError:
             abort(404)
-        return MetricController(id), remainder
+        metrics = pecan.request.indexer.get_metrics([metric_id], details=True)
+        if not metrics:
+            abort(404)
+        return MetricController(metrics[0]), remainder
 
     Metric = voluptuous.Schema(MetricSchemaDefinition)
 
@@ -530,9 +525,7 @@ class NamedMetricController(rest.RestController):
             'generic', self.resource_id, with_metrics=True)
         m = resource.get_metric(name)
         if m:
-            # TODO(jd) We have the entire metric, pass it along to avoid
-            # refetch!
-            return MetricController(str(m.id)), remainder
+            return MetricController(m), remainder
         abort(404)
 
     @pecan.expose()

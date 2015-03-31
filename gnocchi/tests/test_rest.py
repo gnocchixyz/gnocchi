@@ -619,7 +619,15 @@ class MetricTest(RestTest):
 
         result = self.app.get(result.headers['Location'], status=200)
         metric = json.loads(result.text)
-        self.assertEqual("medium", metric['archive_policy_name'])
+        self.assertNotIn('archive_policy_name', metric)
+        ap = metric['archive_policy']
+        ap_ref = self.archive_policies['medium']
+        self.assertEqual(ap_ref.aggregation_methods,
+                         set(ap['aggregation_methods']))
+        self.assertEqual(ap_ref.back_window, ap['back_window'])
+        self.assertEqual(ap_ref.name, ap['name'])
+        self.assertEqual([d.jsonify() for d in ap_ref.definition],
+                         ap['definition'])
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
@@ -630,76 +638,9 @@ class MetricTest(RestTest):
         with self.app.use_another_user():
             self.app.get(result.headers['Location'], status=403)
 
-    def test_get_detailed_metric(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"},
-            status=201)
-
-        result = self.app.get(result.headers['Location'] + '?details=true',
-                              status=200)
-        metric = json.loads(result.text)
-        ap = metric['archive_policy']
-        ap_ref = self.archive_policies['medium']
-        self.assertEqual(ap_ref.aggregation_methods,
-                         set(ap['aggregation_methods']))
-        self.assertEqual(ap_ref.back_window, ap['back_window'])
-        self.assertEqual(ap_ref.name, ap['name'])
-        self.assertEqual([d.jsonify() for d in ap_ref.definition],
-                         ap['definition'])
-
-    def test_get_metric_with_detail_in_accept(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"},
-            status=201)
-
-        result = self.app.get(
-            result.headers['Location'],
-            headers={"Accept": "application/json; details=true"},
-            status=200)
-        metric = json.loads(result.text)
-        ap = metric['archive_policy']
-        ap_ref = self.archive_policies['medium']
-        self.assertEqual(ap_ref.aggregation_methods,
-                         set(ap['aggregation_methods']))
-        self.assertEqual(ap_ref.back_window, ap['back_window'])
-        self.assertEqual(ap_ref.name, ap['name'])
-        self.assertEqual([d.jsonify() for d in ap_ref.definition],
-                         ap['definition'])
-
-    def test_get_detailed_metric_with_bad_details(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"},
-            status=201)
-
-        result = self.app.get(result.headers['Location'] + '?details=awesome',
-                              status=400)
-        self.assertIn(
-            b"Unable to parse details value in query: "
-            b"Unrecognized value 'awesome', acceptable values are",
-            result.body)
-
-    def test_get_metric_with_bad_detail_in_accept(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"},
-            status=201)
-
-        result = self.app.get(
-            result.headers['Location'],
-            headers={"Accept": "application/json; details=awesome"},
-            status=400)
-        self.assertIn(
-            b"Unable to parse details value in Accept: "
-            b"Unrecognized value 'awesome', acceptable values are",
-            result.body)
-
     def test_get_metric_with_wrong_metric_id(self):
         fake_metric_id = uuid.uuid4()
-        result = self.app.get("/v1/metric/%s" % fake_metric_id, status=404)
-        self.assertIn("Metric %s does not exist" % fake_metric_id, result.text)
+        self.app.get("/v1/metric/%s" % fake_metric_id, status=404)
 
     def test_post_metric_wrong_archive_policy(self):
         policy = str(uuid.uuid4())
@@ -755,18 +696,12 @@ class MetricTest(RestTest):
 
     def test_delete_metric_non_existent(self):
         e1 = str(uuid.uuid4())
-        result = self.app.delete("/v1/metric/" + e1,
-                                 expect_errors=True,
-                                 status=404)
-        self.assertIn(
-            b"Metric " + e1.encode('ascii') + b" does not exist",
-            result.body)
+        self.app.delete("/v1/metric/" + e1, status=404)
 
     def test_post_metric_bad_archives(self):
         result = self.app.post_json(
             "/v1/metric",
             params={"archive_policy_name": 'foobar123'},
-            expect_errors=True,
             status=400)
         self.assertEqual("text/plain", result.content_type)
         self.assertIn(b"Unknown archive policy foobar123", result.body)
@@ -806,15 +741,12 @@ class MetricTest(RestTest):
 
     def test_add_measure_no_such_metric(self):
         e1 = str(uuid.uuid4())
-        result = self.app.post_json(
+        self.app.post_json(
             "/v1/metric/%s/measures" % e1,
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
             expect_errors=True,
             status=404)
-        self.assertIn(
-            b"Metric " + e1.encode('ascii') + b" does not exist",
-            result.body)
 
     def test_add_measures_back_window(self):
         ap_name = str(uuid.uuid4())
@@ -905,8 +837,7 @@ class MetricTest(RestTest):
 
     def test_get_measure_unknown_metric(self):
         metric_id = "cee6ef1f-52cc-4a16-bbb5-648aedfd1c37"
-        ret = self.app.get("/v1/metric/%s/measures" % metric_id, status=404)
-        self.assertIn('Metric %s does not exist' % metric_id, ret.text)
+        self.app.get("/v1/metric/%s/measures" % metric_id, status=404)
 
     def test_get_measure_unknown_aggregation(self):
         result = self.app.post_json("/v1/metric",
