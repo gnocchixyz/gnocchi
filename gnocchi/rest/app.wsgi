@@ -19,7 +19,7 @@
 
 See http://pecan.readthedocs.org/en/latest/deployment.html for details.
 """
-from oslo.config import cfg
+from oslo_config import cfg
 
 from gnocchi import service
 from gnocchi.rest import app

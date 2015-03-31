@@ -19,7 +19,7 @@ import errno
 import os
 import shutil
 
-from oslo.config import cfg
+from oslo_config import cfg
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara

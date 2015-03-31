@@ -15,7 +15,7 @@
 # under the License.
 import collections
 
-from oslo.config import cfg
+from oslo_config import cfg
 from stevedore import driver
 
 from gnocchi import exceptions

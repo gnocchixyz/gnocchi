@@ -21,7 +21,7 @@ import json
 import uuid
 
 import mock
-from oslo.utils import timeutils
+from oslo_utils import timeutils
 import pecan
 import six
 from six.moves.urllib import parse as urllib_parse

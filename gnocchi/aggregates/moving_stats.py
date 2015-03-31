@@ -22,7 +22,7 @@ import six
 from gnocchi import aggregates
 from gnocchi import storage
 
-from oslo.utils import strutils
+from oslo_utils import strutils
 from pytimeparse import timeparse
 
 

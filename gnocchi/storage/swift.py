@@ -13,7 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from oslo.config import cfg
+from oslo_config import cfg
 import retrying
 from swiftclient import client as swclient
 

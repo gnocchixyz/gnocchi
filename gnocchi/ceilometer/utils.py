@@ -14,7 +14,7 @@
 # under the License.
 
 from keystoneclient.v2_0 import client as ksclient
-from oslo.config import cfg
+from oslo_config import cfg
 
 cfg.CONF.import_group('service_credentials', 'ceilometer.service')
 

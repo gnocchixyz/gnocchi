@@ -20,8 +20,8 @@ import calendar
 import datetime
 import decimal
 
-from oslo.db.sqlalchemy import models
-from oslo.utils import units
+from oslo_db.sqlalchemy import models
+from oslo_utils import units
 import sqlalchemy
 from sqlalchemy.ext import declarative
 from sqlalchemy import types
