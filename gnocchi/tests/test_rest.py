@@ -646,7 +646,6 @@ class MetricTest(RestTest):
         policy = str(uuid.uuid4())
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": policy},
-                                    expect_errors=True,
                                     status=400)
         self.assertIn('Unknown archive policy %s' % policy, result.text)
 
@@ -745,7 +744,6 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures" % e1,
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
-            expect_errors=True,
             status=404)
 
     def test_add_measures_back_window(self):
@@ -812,7 +810,6 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2012-01-01 23:23:23',
                      "value": 1234.2}],
-            expect_errors=True,
             status=400)
         self.assertIn(
             b"The measure for 2012-01-01 23:23:23 is too old considering "
@@ -1308,7 +1305,6 @@ class ResourceTest(RestTest):
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
-            expect_errors=True,
             status=409)
         self.assertIn("Resource %s already exists" % self.attributes['id'],
                       result.text)
@@ -1329,7 +1325,6 @@ class ResourceTest(RestTest):
         self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
-            expect_errors=True,
             status=400)
 
     def test_get_resource(self):
@@ -1391,7 +1386,6 @@ class ResourceTest(RestTest):
                         + "/"
                         + self.attributes['id']
                         + "/metric/foo/measures",
-                        expect_errors=True,
                         status=404)
 
     def test_get_resource_unknown_named_metric(self):
@@ -1402,7 +1396,6 @@ class ResourceTest(RestTest):
                      + "/"
                      + self.attributes['id']
                      + "/metric/foo",
-                     expect_errors=True,
                      status=404)
 
     def test_post_append_metrics_already_exists(self):
@@ -1418,7 +1411,6 @@ class ResourceTest(RestTest):
                            + "/" + self.attributes['id']
                            + "/metric",
                            params=metrics,
-                           expect_errors=True,
                            status=409)
 
         result = self.app.get("/v1/resource/"
@@ -1509,7 +1501,6 @@ class ResourceTest(RestTest):
             + "/"
             + self.attributes['id'],
             params={'metrics': {'foo': e1}},
-            expect_errors=True,
             status=400)
         self.assertIn("Metric %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
@@ -1555,7 +1546,6 @@ class ResourceTest(RestTest):
             + "/"
             + self.attributes['id'],
             params={'ended_at': "2000-05-05 23:23:23"},
-            expect_errors=True,
             status=400)
 
     def test_patch_resource_no_partial_update(self):
@@ -1568,7 +1558,6 @@ class ResourceTest(RestTest):
             + self.attributes['id'],
             params={'ended_at': "2044-05-05 23:23:23",
                     'metrics': {"foo": e1}},
-            expect_errors=True,
             status=400)
         self.assertIn("Metric %s does not exist" % e1, result.text)
         result = self.app.get("/v1/resource/"
@@ -1582,7 +1571,6 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type
             + "/" + str(uuid.uuid4()),
             params={},
-            expect_errors=True,
             status=404)
 
     def test_patch_resource_non_existent_with_body(self):
@@ -1590,7 +1578,6 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type
             + "/" + str(uuid.uuid4()),
             params=self.patchable_attributes,
-            expect_errors=True,
             status=404)
 
     def test_patch_resource_unknown_field(self):
@@ -1600,7 +1587,6 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
             params={'foobar': 123},
-            expect_errors=True,
             status=400)
         self.assertIn(b'Invalid input: extra keys not allowed @ data['
                       + repr(u'foobar').encode('ascii') + b"]",
@@ -1665,7 +1651,6 @@ class ResourceTest(RestTest):
     def test_post_resource_invalid_uuid(self):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params={"id": "foobar"},
-                                    expect_errors=True,
                                     status=400)
         self.assertEqual("text/plain", result.content_type)
         self.assertIn(b"Invalid input: not a valid value "
@@ -1784,7 +1769,6 @@ class ResourceTest(RestTest):
 
     def test_list_resources_with_bad_details(self):
         result = self.app.get("/v1/resource/generic?details=awesome",
-                              expect_errors=True,
                               status=400)
         self.assertIn(
             b"Unable to parse details value in query: "
@@ -1796,7 +1780,6 @@ class ResourceTest(RestTest):
                               headers={
                                   "Accept": "application/json; details=foo",
                               },
-                              expect_errors=True,
                               status=400)
         self.assertIn(
             b"Unable to parse details value in Accept: "
