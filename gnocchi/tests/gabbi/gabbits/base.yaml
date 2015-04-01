@@ -93,6 +93,15 @@ tests:
         value: 1234.2
   status: 204
 
+- name: Get list of resource type and URL
+  desc: Resources index page should return list of type associated with a URL
+  url: /v1/resource/
+  response_headers:
+      content-type: application/json; charset=UTF-8
+  status: 200
+  response_json_paths:
+      $.generic: $SCHEME://$NETLOC/v1/resource/generic
+
 - name: post generic resource
   url: /v1/resource/generic
   method: post
