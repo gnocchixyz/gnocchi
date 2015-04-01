@@ -31,11 +31,11 @@ tests:
 # xfails.
 
     - name: root of all
-      desc: https://bugs.launchpad.net/gnocchi/+bug/1423986
       url: /
-      xfail: true
       response_headers:
-          content-type: application/json-home
+          content-type: /application/json/
+      response_json_paths:
+          $.versions[0].links[0].href: $SCHEME://$NETLOC/v1/
 
     - name: root of v1
       desc: https://bugs.launchpad.net/gnocchi/+bug/1424627
@@ -45,11 +45,15 @@ tests:
           - some hypermedia
 
     - name: root of resource
-      desc: https://bugs.launchpad.net/gnocchi/+bug/1423990
-      xfail: true
       url: /v1/resource
-      response_strings:
-          - something useful here
+      status: 302
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/resource/
+
+    - name: root of resource slashed
+      url: $LOCATION
+      response_json_paths:
+          $.volume: $SCHEME://$NETLOC/v1/resource/volume
 
 # Explore that GETting a list of resources demonstrates the expected
 # behaviors notably with regard to content negotiation.
