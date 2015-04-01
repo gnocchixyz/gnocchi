@@ -46,12 +46,6 @@ tests:
 
     - name: root of resource
       url: /v1/resource
-      status: 302
-      response_headers:
-          location: $SCHEME://$NETLOC/v1/resource/
-
-    - name: root of resource slashed
-      url: $LOCATION
       response_json_paths:
           $.volume: $SCHEME://$NETLOC/v1/resource/volume
 

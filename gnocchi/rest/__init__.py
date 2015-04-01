@@ -830,7 +830,7 @@ class ResourcesController(rest.RestController):
             'gnocchi.controller.resources').extensions)
 
     @pecan.expose('json')
-    def index(self):
+    def get_all(self):
         return dict(
             (type_name,
              pecan.request.application_url + '/v1/resource/' + type_name)
