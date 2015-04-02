@@ -161,3 +161,17 @@ class Resource(Base, GnocchiBase):
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+
+
+class ResourceExtMixin(object):
+    @declarative.declared_attr
+    def __table_args__(cls):
+        return (sqlalchemy.Index('ix_%s_id' % cls.__tablename__, 'id'),
+                COMMON_TABLES_ARGS)
+
+    @declarative.declared_attr
+    def id(cls):
+        return sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                                 sqlalchemy.ForeignKey('resource.id',
+                                                       ondelete="CASCADE"),
+                                 primary_key=True)
