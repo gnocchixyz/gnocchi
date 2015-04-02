@@ -12,7 +12,6 @@
 import sqlalchemy
 
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Image(base.ResourceBase):
@@ -32,10 +31,7 @@ class Image(base.ResourceBase):
                 'image.size']
 
 
-class ImageSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                      sqlalchemy_base.Resource):
-    __tablename__ = 'image'
-
+class ImageSQLAlchemy(object):
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     container_format = sqlalchemy.Column(sqlalchemy.String(255),
                                          nullable=False)

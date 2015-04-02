@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class CephAccount(base.ResourceBase):
@@ -30,8 +29,3 @@ class CephAccount(base.ResourceBase):
                 'radosgw.containers.objects',
                 'radosgw.containers.objects.size',
                 ]
-
-
-class CephAccountSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                            sqlalchemy_base.Resource):
-    __tablename__ = 'ceph_account'

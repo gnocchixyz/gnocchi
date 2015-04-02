@@ -16,7 +16,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class SwiftAccount(base.ResourceBase):
@@ -32,8 +31,3 @@ class SwiftAccount(base.ResourceBase):
                 'storage.objects.size',
                 'storage.objects',
                 'storage.objects.containers']
-
-
-class SwiftAccountSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                             sqlalchemy_base.Resource):
-    __tablename__ = 'swift_account'
