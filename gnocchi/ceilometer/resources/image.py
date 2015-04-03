@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import sqlalchemy
-import sqlalchemy_utils
 
 from gnocchi.ceilometer.resources import base
 from gnocchi.indexer import sqlalchemy_base
@@ -33,17 +32,9 @@ class Image(base.ResourceBase):
                 'image.size']
 
 
-class ImageSQLAlchemy(sqlalchemy_base.Resource):
+class ImageSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
+                      sqlalchemy_base.Resource):
     __tablename__ = 'image'
-    __table_args__ = (
-        sqlalchemy.Index('ix_image_id', 'id'),
-        sqlalchemy_base.COMMON_TABLES_ARGS,
-    )
-
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           sqlalchemy.ForeignKey('resource.id',
-                                                 ondelete="CASCADE"),
-                           primary_key=True)
 
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     container_format = sqlalchemy.Column(sqlalchemy.String(255),

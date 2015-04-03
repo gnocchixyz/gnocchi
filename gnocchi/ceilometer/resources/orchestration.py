@@ -12,9 +12,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import sqlalchemy
-import sqlalchemy_utils
-
 from gnocchi.ceilometer.resources import base
 from gnocchi.indexer import sqlalchemy_base
 
@@ -34,14 +31,6 @@ class Stack(base.ResourceBase):
                 ]
 
 
-class StackSQLAlchemy(sqlalchemy_base.Resource):
+class StackSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
+                      sqlalchemy_base.Resource):
     __tablename__ = 'stack'
-    __table_args__ = (
-        sqlalchemy.Index('ix_stack_id', 'id'),
-        sqlalchemy_base.COMMON_TABLES_ARGS,
-    )
-
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           sqlalchemy.ForeignKey('resource.id',
-                                                 ondelete="CASCADE"),
-                           primary_key=True)
