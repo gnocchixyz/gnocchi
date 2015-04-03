@@ -215,6 +215,8 @@ class ResourceMixin(ResourceJsonifier):
     @declarative.declared_attr
     def __table_args__(cls):
         return (sqlalchemy.Index('ix_%s_id' % cls.__tablename__, 'id'),
+                sqlalchemy.CheckConstraint('started_at <= ended_at',
+                                           name="ck_started_before_ended"),
                 COMMON_TABLES_ARGS)
 
     type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',

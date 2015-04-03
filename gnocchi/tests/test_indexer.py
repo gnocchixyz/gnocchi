@@ -373,6 +373,21 @@ class TestIndexerDriver(tests_base.TestCase):
         r = self.index.get_resource('instance', r1, with_metrics=True)
         self.assertEqual(rc, r)
 
+    def test_update_resource_ended_at_fail(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        self.index.create_resource('instance', r1, user, project,
+                                   flavor_id=1,
+                                   image_ref="http://foo/bar",
+                                   host="foo",
+                                   display_name="lol")
+        self.assertRaises(
+            indexer.ResourceValueError,
+            self.index.update_resource,
+            'instance', r1,
+            ended_at=datetime.datetime(2010, 1, 1, 1, 1, 1))
+
     def test_update_resource_unknown_attribute(self):
         r1 = uuid.uuid4()
         self.index.create_resource('instance', r1, uuid.uuid4(), uuid.uuid4(),

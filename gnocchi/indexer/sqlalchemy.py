@@ -271,52 +271,60 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         resource_history_cls = self._resource_type_to_class(resource_type,
                                                             "history")
         session = self.engine_facade.get_session()
-        with session.begin():
-            # NOTE(sileht): We use FOR UPDATE that is not galera friendly,
-            # but they are no other way to cleanly patch a resource and store
-            # the history that safe when two concurrent calls are done.
-            q = session.query(resource_cls).filter(
-                resource_cls.id == resource_id).with_for_update()
+        try:
+            with session.begin():
+                # NOTE(sileht): We use FOR UPDATE that is not galera friendly,
+                # but they are no other way to cleanly patch a resource and
+                # store the history that safe when two concurrent calls are
+                # done.
+                q = session.query(resource_cls).filter(
+                    resource_cls.id == resource_id).with_for_update()
 
-            r = q.first()
-            if r is None:
-                raise indexer.NoSuchResource(resource_id)
+                r = q.first()
+                if r is None:
+                    raise indexer.NoSuchResource(resource_id)
 
-            # Build history
-            rh = resource_history_cls()
-            for col in sqlalchemy.inspect(resource_cls).columns:
-                setattr(rh, col.name, getattr(r, col.name))
-            rh.revision_end = now
-            session.add(rh)
+                # Build history
+                rh = resource_history_cls()
+                for col in sqlalchemy.inspect(resource_cls).columns:
+                    setattr(rh, col.name, getattr(r, col.name))
+                rh.revision_end = now
+                session.add(rh)
 
-            # Update the resource
-            if ended_at is not _marker:
-                # NOTE(jd) Could be better to have check in the db for that so
-                # we can just run the UPDATE
-                if r.started_at is not None and ended_at is not None:
-                    # Convert to UTC because we store in UTC :(
-                    ended_at = timeutils.normalize_time(ended_at)
-                    if r.started_at > ended_at:
-                        raise ValueError(
-                            "Start timestamp cannot be after end timestamp")
-                r.ended_at = ended_at
+                # Update the resource
+                if ended_at is not _marker:
+                    # NOTE(jd) MySQL does not honor checks. I hate it.
+                    engine = self.engine_facade.get_engine()
+                    if engine.dialect.name == "mysql":
+                        if r.started_at is not None and ended_at is not None:
+                            # Convert to UTC because we store in UTC :(
+                            ended_at = timeutils.normalize_time(ended_at)
+                            if r.started_at > ended_at:
+                                raise indexer.ResourceValueError(
+                                    resource_type, "ended_at", ended_at)
+                    r.ended_at = ended_at
 
-            r.revision_start = now
+                r.revision_start = now
 
-            if kwargs:
-                for attribute, value in six.iteritems(kwargs):
-                    if hasattr(r, attribute):
-                        setattr(r, attribute, value)
-                    else:
-                        raise indexer.ResourceAttributeError(
-                            r.type, attribute)
+                if kwargs:
+                    for attribute, value in six.iteritems(kwargs):
+                        if hasattr(r, attribute):
+                            setattr(r, attribute, value)
+                        else:
+                            raise indexer.ResourceAttributeError(
+                                r.type, attribute)
 
-            if metrics is not _marker:
-                if not append_metrics:
-                    session.query(Metric).filter(
-                        Metric.resource_id == resource_id).update(
-                            {"resource_id": None})
-                self._set_metrics_for_resource(session, r, metrics)
+                if metrics is not _marker:
+                    if not append_metrics:
+                        session.query(Metric).filter(
+                            Metric.resource_id == resource_id).update(
+                                {"resource_id": None})
+                    self._set_metrics_for_resource(session, r, metrics)
+        except exception.DBConstraintError as e:
+            if e.check_name == "ck_started_before_ended":
+                raise indexer.ResourceValueError(
+                    resource_type, "ended_at", ended_at)
+            raise
 
         # NOTE(jd) Force load of metrics – do it outside the session!
         r.metrics
