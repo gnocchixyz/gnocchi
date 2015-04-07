@@ -1,0 +1,92 @@
+#
+## Test the Archive Policy API to achieve coverage of just the
+## ArchivePolicyRulesController.
+##
+#
+fixtures:
+    - ConfigFixture
+
+tests:
+
+# create dependent policy
+    - name: create archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: low
+          definition:
+              - granularity: 1 hour
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/low
+      status: 201
+
+
+# Attempt to create an archive policy rule
+
+    - name: create archive policy rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule
+        metric_pattern: "disk.foo.*"
+        archive_policy_name: low
+      status: 201
+      response_json_paths:
+        $.metric_pattern: disk.foo.*
+        $.archive_policy_name: low
+        $.name: test_rule
+
+
+# Attempt to create an invalid policy rule
+
+    - name: create invalid archive policy rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule
+        metric_pattern: "disk.foo.*"
+      status: 400
+
+# missing auth
+
+    - name: missing auth archive policy rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+      data:
+        name: test_rule
+        metric_pattern: "disk.foo.*"
+        archive_policy_name: low
+      status: 403
+
+
+# get an archive policy rule
+
+    - name: get archive policy rule
+      url: /v1/archive_policy_rule
+      status: 200
+
+# delete rule
+
+    - name: delete archive policy rule
+      url: /v1/archive_policy_rule/test_rule
+      method: DELETE
+      status: 204
+
+
+# delete again
+
+    - name: delete again archive policy rule
+      url: /v1/archive_policy_rule/test_rule
+      method: DELETE
+      status: 404

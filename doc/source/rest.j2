@@ -139,6 +139,45 @@ It is possible to delete an archive policy if it is not used by any metric:
 
 {{ scenarios['delete-archive-policy']['doc'] }}
 
+Archive Policy Rule
+===================
+
+Gnocchi provides the ability to define a mapping called `archive_policy_rule`.
+An archive policy rule defines a mapping between a metric and an archive policy.
+This gives users ability to pre-define rules so an archive policy is assigned to
+metrics based on a matched pattern.
+
+An archive policy rule has a few properties: a name to identify it, an archive
+policy name that will be used to store the policy name and metric pattern to
+match metric names.
+
+An archive policy rule for example could be a mapping to default a medium archive
+policy for any volume metric with a pattern matching `volume.*`. When a sample metric
+is posted with a name of `volume.size`, that would match the pattern and the
+rule applies and sets the archive policy to medium.
+
+To create a rule, the following API request should be used:
+
+{{ scenarios['create-archive-policy-rule']['doc'] }}
+
+The metric_pattern is used to pattern match so as some examples,
+
+- `*` matches anything
+- `disk.*` matches disk.io
+- `disk.io.*` matches disk.io.rate
+
+Once created, you can retrieve the rule information:
+
+{{ scenarios['get-archive-policy-rule']['doc'] }}
+
+It is also possible to list archive policy rules:
+
+{{ scenarios['list-archive-policy-rule']['doc'] }}
+
+It is possible to delete an archive policy rule:
+
+{{ scenarios['delete-archive-policy-rule']['doc'] }}
+
 Resources
 =========
 

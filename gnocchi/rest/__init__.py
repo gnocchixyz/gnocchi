@@ -252,6 +252,58 @@ class ArchivePoliciesController(rest.RestController):
             abort(400, e)
 
 
+class ArchivePolicyRulesController(rest.RestController):
+    _custom_actions = {
+        'measures': ['GET', 'POST']
+    }
+
+    @pecan.expose('json')
+    def post(self):
+        enforce("create archive policy rule", {})
+        ArchivePolicyRuleSchema = voluptuous.Schema({
+            voluptuous.Required("name"): six.text_type,
+            voluptuous.Required("metric_pattern"): six.text_type,
+            voluptuous.Required("archive_policy_name"): six.text_type,
+            })
+
+        body = deserialize(ArchivePolicyRuleSchema)
+        enforce("create archive policy rule", body)
+        try:
+            ap = pecan.request.indexer.create_archive_policy_rule(
+                body['name'], body['metric_pattern'],
+                body['archive_policy_name']
+            )
+        except indexer.ArchivePolicyRuleAlreadyExists as e:
+            abort(409, e)
+
+        location = "/v1/archive_policy_rule/" + ap['name']
+        set_resp_location_hdr(location)
+        pecan.response.status = 201
+        return ap
+
+    @pecan.expose('json')
+    def get_one(self, name):
+        ap = pecan.request.indexer.get_archive_policy_rule(name)
+        if ap:
+            enforce("get archive policy rule", ap)
+            return ap
+        abort(404)
+
+    @pecan.expose('json')
+    def get_all(self):
+        enforce("list archive policy rule", {})
+        return pecan.request.indexer.list_archive_policy_rules()
+
+    @pecan.expose()
+    def delete(self, name):
+        try:
+            pecan.request.indexer.delete_archive_policy_rule(name)
+        except indexer.NoSuchArchivePolicyRule as e:
+            abort(404, e)
+        except indexer.ArchivePolicyRuleInUse as e:
+            abort(400, e)
+
+
 class AggregatedMetricController(rest.RestController):
     _custom_actions = {
         'measures': ['GET']
@@ -453,7 +505,7 @@ class MetricsController(rest.RestController):
 
     @staticmethod
     def create_metric(created_by_user_id, created_by_project_id,
-                      archive_policy_name,
+                      archive_policy_name=None,
                       user_id=None, project_id=None):
         enforce("create metric", {
             "created_by_user_id": created_by_user_id,
@@ -1034,6 +1086,7 @@ class V1Controller(rest.RestController):
     search = SearchController()
 
     archive_policy = ArchivePoliciesController()
+    archive_policy_rule = ArchivePolicyRulesController()
     metric = MetricsController()
     resource = ResourcesController()
     aggregation = Aggregation()

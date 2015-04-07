@@ -102,6 +102,23 @@ class ArchivePolicyInUse(IndexerException):
         self.archive_policy = archive_policy
 
 
+class NoSuchArchivePolicyRule(IndexerException):
+    """Error raised when an archive policy rule does not exist."""
+    def __init__(self, archive_policy_rule):
+        super(NoSuchArchivePolicyRule, self).__init__(
+            "Archive policy Rule %s does not exist" %
+            str(archive_policy_rule))
+        self.archive_policy_rule = archive_policy_rule
+
+
+class ArchivePolicyRuleInUse(IndexerException):
+    """Error raised when an archive policy rule is still being used."""
+    def __init__(self, archive_policy_rule):
+        super(ArchivePolicyRuleInUse, self).__init__(
+            "Archive policy Rule %s is still in use" % archive_policy_rule)
+        self.archive_policy_rule = archive_policy_rule
+
+
 class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
     def __init__(self, metric):
@@ -142,6 +159,14 @@ class ArchivePolicyAlreadyExists(IndexerException):
     """Error raised when an archive policy already exists."""
     def __init__(self, name):
         super(ArchivePolicyAlreadyExists, self).__init__(
+            "Archive policy %s already exists" % name)
+        self.name = name
+
+
+class ArchivePolicyRuleAlreadyExists(IndexerException):
+    """Error raised when an archive policy rule already exists."""
+    def __init__(self, name):
+        super(ArchivePolicyRuleAlreadyExists, self).__init__(
             "Archive policy %s already exists" % name)
         self.name = name
 
@@ -205,6 +230,22 @@ class IndexerDriver(object):
 
     @staticmethod
     def delete_archive_policy(name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_archive_policy_rule(name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def list_archive_policy_rules():
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def create_archive_policy_rule(name, metric_pattern, archive_policy_name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def delete_archive_policy_rule(name):
         raise exceptions.NotImplementedError
 
     @staticmethod

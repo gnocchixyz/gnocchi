@@ -77,6 +77,38 @@
       "archive_policy_name": "low"
     }
 
+- name: create-archive-policy-rule
+  request: |
+    POST /v1/archive_policy_rule HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "test_rule",
+      "metric_pattern": "disk.io.*",
+      "archive_policy_name": "low"
+    }
+
+- name: get-archive-policy-rule
+  request: GET /v1/archive_policy_rule/{{ scenarios['create-archive-policy-rule']['response'].json['name'] }} HTTP/1.1
+
+- name: list-archive-policy-rule
+  request: GET /v1/archive_policy_rule HTTP/1.1
+
+- name: create-archive-policy-rule-to-delete
+  request: |
+    POST /v1/archive_policy_rule HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "test_rule_delete",
+      "metric_pattern": "disk.io.*",
+      "archive_policy_name": "low"
+    }
+
+- name: delete-archive-policy-rule
+  request: DELETE /v1/archive_policy_rule/{{ scenarios['create-archive-policy-rule-to-delete']['response'].json['name'] }} HTTP/1.1
+
+
 - name: get-metric
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
 

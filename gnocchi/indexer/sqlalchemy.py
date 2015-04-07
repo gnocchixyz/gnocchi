@@ -33,6 +33,7 @@ from gnocchi import utils
 Base = base.Base
 Metric = base.Metric
 ArchivePolicy = base.ArchivePolicy
+ArchivePolicyRule = base.ArchivePolicyRule
 Resource = base.Resource
 ResourceHistory = base.ResourceHistory
 
@@ -127,6 +128,40 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyAlreadyExists(archive_policy.name)
         return ap
+
+    def list_archive_policy_rules(self):
+        session = self.engine_facade.get_session()
+        return session.query(ArchivePolicyRule).all()
+
+    def get_archive_policy_rule(self, name):
+        session = self.engine_facade.get_session()
+        return session.query(ArchivePolicyRule).get(name)
+
+    def delete_archive_policy_rule(self, name):
+        session = self.engine_facade.get_session()
+        try:
+            if session.query(ArchivePolicyRule).filter(
+                    ArchivePolicyRule.name == name).delete() == 0:
+                raise indexer.NoSuchArchivePolicyRule(name)
+        except exception.DBError as e:
+            # TODO(prad): fix foreign key violations when oslo.db supports it
+            if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
+                raise indexer.ArchivePolicyRuleInUse(name)
+
+    def create_archive_policy_rule(self, name, metric_pattern,
+                                   archive_policy_name):
+        apr = ArchivePolicyRule(
+            name=name,
+            archive_policy_name=archive_policy_name,
+            metric_pattern=metric_pattern
+        )
+        session = self.engine_facade.get_session()
+        session.add(apr)
+        try:
+            session.flush()
+        except exception.DBDuplicateEntry:
+            raise indexer.ArchivePolicyRuleAlreadyExists(name)
+        return apr
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
