@@ -16,7 +16,6 @@
 from __future__ import absolute_import
 import itertools
 import operator
-import uuid
 
 from oslo_db import exception
 from oslo_db.sqlalchemy import session
@@ -61,18 +60,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if resource_type not in self._RESOURCE_CLASS_MAPPER:
             raise indexer.UnknownResourceType(resource_type)
         return self._RESOURCE_CLASS_MAPPER[resource_type]
-
-    @staticmethod
-    def _fixup_created_by_uuid(obj):
-        # FIXME(sileht): so weird, sqlachemy_utils.UUIDTYPE try to convert any
-        # input to a UUID to write it in db but don't update the orm object
-        # if the object doesn't come from the database
-        if (obj.created_by_user_id
-           and not isinstance(obj.created_by_user_id, uuid.UUID)):
-            obj.created_by_user_id = uuid.UUID(obj.created_by_user_id)
-        if (obj.created_by_project_id
-           and not isinstance(obj.created_by_project_id, uuid.UUID)):
-            obj.created_by_project_id = uuid.UUID(obj.created_by_project_id)
 
     def list_archive_policies(self):
         session = self.engine_facade.get_session()
@@ -184,7 +171,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # NOTE(jd) Force load of metrics :)
         r.metrics
 
-        self._fixup_created_by_uuid(r)
         return r
 
     def update_resource(self, resource_type,
@@ -235,7 +221,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             # NOTE(jd) Force reload of metrics – do it outside the session!
             r.metrics
 
-        self._fixup_created_by_uuid(r)
         return r
 
     @staticmethod

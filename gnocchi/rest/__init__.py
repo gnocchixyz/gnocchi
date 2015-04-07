@@ -52,15 +52,8 @@ def abort(status_code=None, detail='', headers=None, comment=None, **kw):
                        headers, comment, **kw)
 
 
-def enforce(rule, target):
-    """Return the user and project the request should be limited to.
-
-    :param rule: The rule name
-    :param target: The target to enforce on.
-
-    """
+def get_user_and_project():
     headers = pecan.request.headers
-
     # NOTE(jd) If user_id or project_id are UUID, try to convert them in the
     # proper dashed format. It's indeed possible that a middleware passes
     # theses UUID without the dash representation. It's valid, we can parse,
@@ -79,7 +72,18 @@ def enforce(rule, target):
             project_id = six.text_type(uuid.UUID(project_id))
         except Exception:
             abort(400, "Malformed X-Project-Id")
+    return (user_id, project_id)
 
+
+def enforce(rule, target):
+    """Return the user and project the request should be limited to.
+
+    :param rule: The rule name
+    :param target: The target to enforce on.
+
+    """
+    headers = pecan.request.headers
+    user_id, project_id = get_user_and_project()
     creds = {
         'roles': headers.get("X-Roles", "").split(","),
         'user_id': user_id,
@@ -102,11 +106,6 @@ def set_resp_location_hdr(location):
         location = location.encode('utf-8')
     location = urllib_parse.quote(location)
     pecan.response.headers['Location'] = location
-
-
-def get_user_and_project():
-    return (pecan.request.headers.get('X-User-Id'),
-            pecan.request.headers.get('X-Project-Id'))
 
 
 def deserialize(schema, required=True):
