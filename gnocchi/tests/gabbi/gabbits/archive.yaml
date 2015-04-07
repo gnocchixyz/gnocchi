@@ -1,0 +1,285 @@
+#
+# Test the Archive Policy API to achieve coverage of just the
+# ArchivePoliciesController.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+
+# Retrieve the empty list when there are no archive policies.
+# NOTE(chdent): This demonstrates what used to be considered a
+# security bug in JSON output:
+# http://flask.pocoo.org/docs/0.10/security/#json-security
+# The version described there is supposed to be fixed in most modern
+# browsers but there is a new version of the problem which is only
+# fixed in some:
+# http://haacked.com/archive/2009/06/25/json-hijacking.aspx/
+# The caveats point out that this is only an issue if your data is
+# sensitive, which in this case...?
+# However, the api-wg has made it recommedation that collections
+# be returned as an object with a named key with a value of a list
+# as follows: {"archive_policies": [...]}
+# This allows for extensibility such as future support for pagination.
+# Do we care?
+
+    - name: empty archive policy list
+      url: /v1/archive_policy
+      response_headers:
+          content-type: /application/json/
+      response_strings:
+          - "[]"
+
+    - name: empty list text
+      url: /v1/archive_policy
+      request_headers:
+          accept: text/plain
+      status: 406
+
+    - name: empty list html
+      url: /v1/archive_policy
+      request_headers:
+          accept: text/html
+      status: 406
+
+# Fail to create an archive policy for various reasons.
+
+    - name: wrong content type
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: text/plain
+          x-roles: admin
+      status: 415
+      response_strings:
+          - Unsupported Media Type
+
+    - name: wrong method
+      desc: https://bugs.launchpad.net/pecan/+bug/1334690
+      url: /v1/archive_policy
+      xfail: true
+      method: PUT
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      status: 405 # We actually see 404
+
+    - name: wrong authZ
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: clancy
+      data:
+          name: medium
+          definition:
+              - granularity: 1 second
+      status: 403
+
+    - name: missing authZ
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+      data:
+          name: medium
+          definition:
+              - granularity: 1 second
+      status: 403
+
+    - name: bad request body
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          cowsay: moo
+      status: 400
+      response_strings:
+          - "Invalid input: extra keys not allowed"
+
+    - name: missing definition
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: medium
+      status: 400
+      response_strings:
+          - "Invalid input: required key not provided"
+
+    - name: empty definition
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: medium
+          definition: []
+      status: 400
+      response_strings:
+          - "Invalid input: length of value must be at least 1"
+
+    - name: useless definition
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: medium
+          definition:
+              - cowsay: moo
+      status: 400
+      response_strings:
+          - "Invalid input: extra keys not allowed"
+
+# Create a valid archive policy.
+
+    - name: create archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: medium
+          definition:
+              - granularity: 1 second
+              - granularity: 2 second
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/medium
+      status: 201
+
+# Retrieve it correctly and then poorly
+
+    - name: get archive policy
+      url: $LOCATION
+      response_headers:
+          content-type: /application/json/
+      response_json_paths:
+          $.name: medium
+          $.definition[0].granularity: "0:00:01"
+          $.definition[1].granularity: "0:00:02"
+
+    - name: get wrong accept
+      url: /v1/archive_policy/medium
+      request_headers:
+          accept: text/plain
+      status: 406
+
+# Unexpected methods
+
+    - name: post single archive
+      desc: https://bugs.launchpad.net/pecan/+bug/1334690
+      xfail: true
+      url: /v1/archive_policy/medium
+      method: POST
+      status: 405 # currently 404
+
+    - name: put single archive
+      desc: https://bugs.launchpad.net/pecan/+bug/1334690
+      xfail: true
+      url: /v1/archive_policy/medium
+      method: PUT
+      status: 405 # currently 404
+
+# Create another one and then test duplication
+
+    - name: create second policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: large
+          definition:
+              - granularity: 1 hour
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/large
+      status: 201
+
+    - name: create duplicate policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: large
+          definition:
+              - granularity: 1 hour
+      status: 409
+
+# List the collection
+
+    - name: get archive policy list
+      url: /v1/archive_policy
+      # TODO(chdent): We do not know the order, should we?
+      response_strings:
+          - '"name": "medium"'
+          - '"name": "large"'
+
+# Delete one
+
+    - name: delete single archive
+      url: /v1/archive_policy/medium
+      method: DELETE
+      status: 204
+
+# It really is gone
+
+    - name: confirm delete
+      url: /v1/archive_policy/medium
+      status: 404
+
+# Fail to delete one that does not exist
+
+    - name: delete missing archive
+      url: /v1/archive_policy/grandiose
+      method: DELETE
+      status: 404
+
+# Add metric using the policy and then be unable to delete policy
+
+    - name: create metric
+      url: /v1/metric
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+          x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+      data:
+          archive_policy_name: large
+      status: 201
+
+    - name: delete in use policy
+      url: /v1/archive_policy/large
+      method: DELETE
+      status: 400
+      response_strings:
+          - Archive policy large is still in use
+
+# Attempt to create an illogical policy
+
+    - name: create illogical policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: complex
+          definition:
+              - granularity: 1 second
+                points: 60
+                timespan: "0:01:01"
+      status: 400
+      response_strings:
+          - pan ≠ granularity × points
