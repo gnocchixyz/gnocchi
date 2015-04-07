@@ -122,7 +122,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
-                      name=None, resource_id=None):
+                      name=None, resource_id=None,
+                      details=False):
         m = Metric(id=id,
                    created_by_user_id=created_by_user_id,
                    created_by_project_id=created_by_project_id,
@@ -132,6 +133,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         session.add(m)
         session.flush()
+        if details:
+            # Fetch archive policy
+            m.archive_policy
         return m
 
     def list_metrics(self, user_id=None, project_id=None):
@@ -175,20 +179,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                  ex.key,
                                                  getattr(r, ex.key))
             if metrics is not None:
-                self._set_metrics_for_resource(session, id,
-                                               created_by_user_id,
-                                               created_by_project_id,
-                                               metrics)
+                self._set_metrics_for_resource(session, r, metrics)
+
+        # NOTE(jd) Force load of metrics :)
+        r.metrics
 
         self._fixup_created_by_uuid(r)
-        return self._resource_to_dict(r, with_metrics=True)
-
-    @staticmethod
-    def _resource_to_dict(resource, with_metrics=False):
-        r = dict(resource)
-        if with_metrics and isinstance(resource, Resource):
-            r['metrics'] = dict((m['name'], six.text_type(m['id']))
-                                for m in resource.metrics)
         return r
 
     def update_resource(self, resource_type,
@@ -201,6 +197,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             q = session.query(
                 resource_cls).filter(
                     resource_cls.id == resource_id)
+            # NOTE(jd) Always load metrics. It's sad, but since anyway what we
+            # return will end up on the wire, the user wants full info, so
+            # don't bother providing a with_metrics parameter.
+            q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(resource_id)
@@ -229,28 +229,29 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session.query(Metric).filter(
                         Metric.resource_id == resource_id).update(
                             {"resource_id": None})
-                self._set_metrics_for_resource(session, resource_id,
-                                               r.created_by_user_id,
-                                               r.created_by_project_id,
-                                               metrics)
+                self._set_metrics_for_resource(session, r, metrics)
+
+        if metrics is not _marker:
+            # NOTE(jd) Force reload of metrics – do it outside the session!
+            r.metrics
 
         self._fixup_created_by_uuid(r)
-        return self._resource_to_dict(r, with_metrics=True)
+        return r
 
     @staticmethod
-    def _set_metrics_for_resource(session, resource_id,
-                                  user_id, project_id, metrics):
+    def _set_metrics_for_resource(session, r, metrics):
         for name, metric_id in six.iteritems(metrics):
             try:
                 update = session.query(Metric).filter(
                     Metric.id == metric_id,
-                    Metric.created_by_user_id == user_id,
-                    Metric.created_by_project_id == project_id).update(
-                        {"resource_id": resource_id, "name": name})
+                    Metric.created_by_user_id == r.created_by_user_id,
+                    Metric.created_by_project_id == r.created_by_project_id,
+                ).update({"resource_id": r.id, "name": name})
             except exception.DBDuplicateEntry:
                 raise indexer.NamedMetricAlreadyExists(name)
             if update == 0:
                 raise indexer.NoSuchMetric(metric_id)
+        session.expire(r, ['metrics'])
 
     def delete_resource(self, resource_id, delete_metrics=None):
         session = self.engine_facade.get_session()
@@ -274,9 +275,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 resource_cls.id == resource_id)
         if with_metrics:
             q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
-        r = q.first()
-        if r:
-            return self._resource_to_dict(r, with_metrics)
+        return q.first()
 
     def list_resources(self, resource_type='generic',
                        attribute_filter=None,
@@ -310,17 +309,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     # No need for a second query
                     all_resources.extend(resources)
                 else:
-                    resources_ids = [r.id for r in resources]
-                    all_resources.extend(
-                        session.query(
-                            self._RESOURCE_CLASS_MAPPER[type]).filter(
-                                self._RESOURCE_CLASS_MAPPER[type].id.in_(
-                                    resources_ids)).all())
-        else:
-            all_resources = q.all()
+                    q = session.query(
+                        self._RESOURCE_CLASS_MAPPER[type]).filter(
+                            self._RESOURCE_CLASS_MAPPER[type].id.in_(
+                                [r.id for r in resources])).options(
+                                    # Always include metrics
+                                    sqlalchemy.orm.joinedload(
+                                        resource_cls.metrics))
+                    all_resources.extend(q.all())
+            return all_resources
 
-        return [self._resource_to_dict(r, with_metrics=True)
-                for r in all_resources]
+        return q.all()
 
     def delete_metric(self, id):
         session = self.engine_facade.get_session()

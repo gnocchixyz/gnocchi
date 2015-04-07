@@ -22,12 +22,14 @@ import decimal
 
 from oslo_db.sqlalchemy import models
 from oslo_utils import units
+import six
 import sqlalchemy
 from sqlalchemy.ext import declarative
 from sqlalchemy import types
 import sqlalchemy_utils
 
 from gnocchi import archive_policy
+from gnocchi import indexer
 from gnocchi import storage
 
 Base = declarative.declarative_base()
@@ -173,7 +175,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
                 or (storage.Metric.__eq__(self, other)))
 
 
-class Resource(Base, GnocchiBase):
+class Resource(Base, GnocchiBase, indexer.Resource):
     __tablename__ = 'resource'
     __table_args__ = (
         sqlalchemy.Index('ix_resource_id', 'id'),
@@ -205,6 +207,13 @@ class Resource(Base, GnocchiBase):
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
+
+    def jsonify(self):
+        d = dict(self)
+        if 'metrics' not in sqlalchemy.inspect(self).unloaded:
+            d['metrics'] = dict((m['name'], six.text_type(m['id']))
+                                for m in self.metrics)
+        return d
 
 
 class ResourceExtMixin(object):

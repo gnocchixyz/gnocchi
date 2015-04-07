@@ -29,6 +29,23 @@ OPTS = [
 _marker = object()
 
 
+class Resource(object):
+    def get_metric(self, metric_name):
+        for m in self.metrics:
+            if m.name == metric_name:
+                return m
+
+    def __eq__(self, other):
+        return (self.id == other.id
+                and self.type == other.type
+                and self.created_by_user_id == other.created_by_user_id
+                and self.created_by_project_id == other.created_by_project_id
+                and self.user_id == other.user_id
+                and self.project_id == other.project_id
+                and self.started_at == other.started_at
+                and self.ended_at == other.ended_at)
+
+
 def get_driver(conf):
     """Return the configured driver."""
     split = netutils.urlsplit(conf.indexer.url)
@@ -198,7 +215,8 @@ class IndexerDriver(object):
 
     @staticmethod
     def create_metric(id, created_by_user_id, created_by_project_id,
-                      archive_policy_name, name=None, resource_id=None):
+                      archive_policy_name, name=None, resource_id=None,
+                      details=False):
         raise exceptions.NotImplementedError
 
     @staticmethod
