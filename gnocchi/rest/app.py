@@ -13,17 +13,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import datetime
-
 import os
 
 from flask import json as flask_json
 import keystonemiddleware.auth_token
 from oslo_log import log
 from oslo_policy import policy
-from oslo_serialization import jsonutils
 from oslo_utils import importutils
-from oslo_utils import timeutils
 import pecan
 from pecan import templating
 import webob.exc
@@ -32,6 +28,7 @@ from werkzeug import wsgi
 
 from gnocchi import exceptions
 from gnocchi import indexer
+from gnocchi import json
 from gnocchi import service
 from gnocchi import storage
 
@@ -55,30 +52,13 @@ class GnocchiHook(pecan.hooks.PecanHook):
 
 
 class OsloJSONRenderer(object):
-    def __init__(self, path, extra_vars):
-        self._to_primitive_orig = jsonutils.to_primitive
+    @staticmethod
+    def __init__(*args, **kwargs):
+        pass
 
-    def _to_primitive(self, value, *args, **kwargs):
-        # TODO(jd): Remove that once oslo.serialization is released with
-        # https://review.openstack.org/#/c/166861/
-        if isinstance(value, datetime.datetime):
-            return timeutils.isotime(value, subsecond=True)
-        # This mimics what Pecan implements in its default JSON encoder
-        if hasattr(value, "jsonify"):
-            return self._to_primitive(value.jsonify(), *args, **kwargs)
-        return self._to_primitive_orig(value, *args, **kwargs)
-
-    def to_primitive(self, *args, **kwargs):
-        # TODO(jd) Remove ugly try/finally once strtime() usage if removed and
-        # works in recursive mode – https://review.openstack.org/#/c/166861/
-        try:
-            jsonutils.to_primitive = self._to_primitive
-            return jsonutils.to_primitive(*args, **kwargs)
-        finally:
-            jsonutils.to_primitive = self._to_primitive_orig
-
-    def render(self, template_path, namespace):
-        return jsonutils.dumps(namespace, default=self.to_primitive)
+    @staticmethod
+    def render(template_path, namespace):
+        return json.dumps(namespace)
 
 
 class GnocchiJinjaRenderer(templating.JinjaRenderer):
