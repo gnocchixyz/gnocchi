@@ -6,3 +6,85 @@ tests:
       desc: https://bugs.launchpad.net/gnocchi/+bug/1429949
       url: /v1/metric/foobar
       status: 404
+
+    - name: create archive policy
+      desc: for later use
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: cookies
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: get metric empty
+      url: /v1/metric
+      status: 200
+      response_strings:
+          - "[]"
+
+    - name: create metric bad archive policy
+      url: /v1/metric
+      method: POST
+      request_headers:
+          content-type: application/json
+      data:
+          archive_policy_name: bad-cookie
+      status: 400
+
+    - name: create metric bad content-type
+      url: /v1/metric
+      method: POST
+      request_headers:
+          content-type: plain/text
+      data:
+          archive_policy_name: cookies
+      status: 415
+
+    - name: create valid metric
+      url: /v1/metric
+      method: POST
+      request_headers:
+          content-type: application/json
+      data:
+          archive_policy_name: cookies
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: cookies
+
+    - name: get valid metric id
+      url: /v1/metric/$RESPONSE['$.id']
+      status: 200
+      response_json_paths:
+        $.archive_policy.name: cookies
+
+    - name: push measurements to metric
+      url: /v1/metric/$RESPONSE['$.id']/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 204
+
+    - name: get bad metric id
+      desc: https://bugs.launchpad.net/gnocchi/+bug/1429949
+      url: /v1/metric/bad-cookie
+      xfail: true
+      status: 404
+
+    - name: get metric list
+      url: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy_name: cookies
+
+    - name: get measurements from metric
+      url: /v1/metric/$RESPONSE['$[0].id']/measures
+      status: 200
