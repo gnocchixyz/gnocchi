@@ -508,6 +508,31 @@ class TestIndexerDriver(tests_base.TestCase):
             attribute_filter={"=": {"project_id": uuid.uuid4()}})
         self.assertEqual(0, len(resources))
 
+    def test_list_resources_by_duration(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        g = self.index.create_resource(
+            'generic', r1, user, project,
+            user_id=user, project_id=project,
+            started_at=datetime.datetime(2010, 1, 1, 12, 0),
+            ended_at=datetime.datetime(2010, 1, 1, 13, 0))
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"project_id": project}},
+                {">": {"lifespan": 1800}},
+            ]})
+        self.assertEqual(1, len(resources))
+        self.assertEqual(g, resources[0])
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"project_id": project}},
+                {">": {"lifespan": 7200}},
+            ]})
+        self.assertEqual(0, len(resources))
+
     def test_list_resources(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
         # database for all tests and the tests are running concurrently, but

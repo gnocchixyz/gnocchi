@@ -24,6 +24,7 @@ import six
 import sqlalchemy
 from stevedore import extension
 
+from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy_base as base
 from gnocchi import utils
@@ -272,8 +273,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         q = session.query(resource_cls)
 
         if attribute_filter:
+            engine = self.engine_facade.get_engine()
             try:
-                f = QueryTransformer.build_filter(resource_cls,
+                f = QueryTransformer.build_filter(engine.dialect.name,
+                                                  resource_cls,
                                                   attribute_filter)
             except indexer.QueryAttributeError as e:
                 # NOTE(jd) The QueryAttributeError does not know about
@@ -354,35 +357,45 @@ class QueryTransformer(object):
     }
 
     @classmethod
-    def _handle_multiple_op(cls, table, op, nodes):
+    def _handle_multiple_op(cls, engine, table, op, nodes):
         return op(*[
-            cls.build_filter(table, node)
+            cls.build_filter(engine, table, node)
             for node in nodes
         ])
 
     @classmethod
-    def _handle_unary_op(cls, table, op, node):
-        return op(cls.build_filter(table, node))
+    def _handle_unary_op(cls, engine, table, op, node):
+        return op(cls.build_filter(engine, table, node))
 
     @staticmethod
-    def _handle_binary_op(table, op, nodes):
+    def _handle_binary_op(engine, table, op, nodes):
         try:
             field_name, value = list(nodes.items())[0]
         except Exception:
             raise indexer.QueryError()
-        try:
-            attr = getattr(table, field_name)
-        except AttributeError:
-            raise indexer.QueryAttributeError(table, field_name)
 
-        # Convert value to the right type
-        if value is not None and isinstance(attr.type, base.PreciseTimestamp):
-            value = utils.to_timestamp(value)
+        if field_name == "lifespan":
+            attr = getattr(table, "ended_at") - getattr(table, "started_at")
+            value = utils.to_timespan(value)
+            if engine == "mysql":
+                # NOTE(jd) So subtracting 2 timestamps in MySQL result in some
+                # weird results based on string comparison. It's useless and it
+                # does not work at all with seconds or anything. Just skip it.
+                raise exceptions.NotImplementedError
+        else:
+            try:
+                attr = getattr(table, field_name)
+            except AttributeError:
+                raise indexer.QueryAttributeError(table, field_name)
+            # Convert value to the right type
+            if value is not None and isinstance(attr.type,
+                                                base.PreciseTimestamp):
+                value = utils.to_timestamp(value)
 
         return op(attr, value)
 
     @classmethod
-    def build_filter(cls, table, tree):
+    def build_filter(cls, engine, table, tree):
         try:
             operator, nodes = list(tree.items())[0]
         except Exception:
@@ -398,6 +411,6 @@ class QueryTransformer(object):
                     op = cls.unary_operators[operator]
                 except KeyError:
                     raise indexer.QueryInvalidOperator(operator)
-                return cls._handle_unary_op(op, nodes)
-            return cls._handle_binary_op(table, op, nodes)
-        return cls._handle_multiple_op(table, op, nodes)
+                return cls._handle_unary_op(engine, op, nodes)
+            return cls._handle_binary_op(engine, table, op, nodes)
+        return cls._handle_multiple_op(engine, table, op, nodes)

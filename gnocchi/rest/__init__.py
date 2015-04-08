@@ -21,7 +21,6 @@ from oslo_utils import strutils
 from oslo_utils import timeutils
 import pecan
 from pecan import rest
-from pytimeparse import timeparse
 import six
 from six.moves.urllib import parse as urllib_parse
 from stevedore import extension
@@ -159,20 +158,7 @@ def PositiveNotNullInt(value):
 
 
 def Timespan(value):
-    if value is None:
-        raise ValueError("Invalid timespan")
-    try:
-        seconds = int(value)
-    except Exception:
-        try:
-            seconds = timeparse.timeparse(six.text_type(value))
-        except Exception:
-            raise ValueError("Unable to parse timespan")
-    if seconds is None:
-        raise ValueError("Unable to parse timespan")
-    if seconds <= 0:
-        raise ValueError("Timespan must be positive")
-    return seconds
+    return utils.to_timespan(value).total_seconds()
 
 
 def get_details(params):
