@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2016 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -24,6 +25,7 @@ from oslo_utils import timeutils
 from oslo_utils import units
 import six
 import sqlalchemy
+from sqlalchemy.dialects import mysql
 from sqlalchemy.ext import declarative
 from sqlalchemy import types
 import sqlalchemy_utils
@@ -42,7 +44,11 @@ COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
 
 
 class PreciseTimestamp(types.TypeDecorator):
-    """Represents a timestamp precise to the microsecond."""
+    """Represents a timestamp precise to the microsecond.
+
+    Deprecated in favor of TimestampUTC.
+    Still used in alembic migrations.
+    """
 
     impl = sqlalchemy.DateTime
 
@@ -98,6 +104,25 @@ class PreciseTimestamp(types.TypeDecorator):
         if value is not None:
             return timeutils.normalize_time(value).replace(
                 tzinfo=iso8601.iso8601.UTC)
+
+
+class TimestampUTC(types.TypeDecorator):
+    """Represents a timestamp precise to the microsecond."""
+
+    impl = sqlalchemy.DateTime
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'mysql':
+            return dialect.type_descriptor(mysql.DATETIME(fsp=6))
+        return self.impl
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return timeutils.normalize_time(value)
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return value.replace(tzinfo=iso8601.iso8601.UTC)
 
 
 class GnocchiBase(models.ModelBase):
@@ -249,7 +274,7 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
                                               name="resource_type_state_enum"),
                               nullable=False,
                               server_default="creating")
-    updated_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+    updated_at = sqlalchemy.Column(TimestampUTC, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
                                    # because the type of PreciseTimestamp in
@@ -297,17 +322,11 @@ class ResourceMixin(ResourceJsonifier):
         sqlalchemy.String(255))
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy.String(255))
-    started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
-                                   # NOTE(jd): We would like to use
-                                   # sqlalchemy.func.now, but we can't
-                                   # because the type of PreciseTimestamp in
-                                   # MySQL is not a Timestamp, so it would
-                                   # not store a timestamp but a date as an
-                                   # integer.
+    started_at = sqlalchemy.Column(TimestampUTC, nullable=False,
                                    default=lambda: utils.utcnow())
-    revision_start = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+    revision_start = sqlalchemy.Column(TimestampUTC, nullable=False,
                                        default=lambda: utils.utcnow())
-    ended_at = sqlalchemy.Column(PreciseTimestamp)
+    ended_at = sqlalchemy.Column(TimestampUTC)
     user_id = sqlalchemy.Column(sqlalchemy.String(255))
     project_id = sqlalchemy.Column(sqlalchemy.String(255))
     original_resource_id = sqlalchemy.Column(sqlalchemy.String(255))
@@ -346,7 +365,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                ondelete="CASCADE",
                                name="fk_rh_id_resource_id"),
                            nullable=False)
-    revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+    revision_end = sqlalchemy.Column(TimestampUTC, nullable=False,
                                      default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
         Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
