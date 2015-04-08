@@ -1689,6 +1689,23 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/metric/" + str(metric_id) + "/measures",
                               status=200)
 
+    def test_search_datetime_is_null(self):
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes,
+                           status=201)
+        result = self.app.get("/v1/resource/" + self.resource_type
+                              + "/" + self.attributes['id'])
+        result = json.loads(result.text)
+
+        resources = self.app.post_json(
+            "/v1/search/resource/" + self.resource_type,
+            params={"and": [{"=": {"id": result['id']}},
+                            {"=": {"ended_at": None}}]},
+            status=200)
+        resources = json.loads(resources.text)
+        self.assertGreaterEqual(len(resources), 1)
+        self.assertEqual(result, resources[0])
+
     def test_search_resources_by_user(self):
         u1 = str(uuid.uuid4())
         self.attributes['user_id'] = u1

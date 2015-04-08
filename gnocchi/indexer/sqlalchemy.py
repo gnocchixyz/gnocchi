@@ -376,7 +376,7 @@ class QueryTransformer(object):
             raise indexer.QueryAttributeError(table, field_name)
 
         # Convert value to the right type
-        if isinstance(attr.type, base.PreciseTimestamp):
+        if value is not None and isinstance(attr.type, base.PreciseTimestamp):
             value = utils.to_timestamp(value)
 
         return op(attr, value)
