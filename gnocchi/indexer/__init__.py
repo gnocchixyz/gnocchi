@@ -13,8 +13,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import hashlib
+
 from oslo_config import cfg
 from oslo_utils import netutils
+from oslo_utils import timeutils
+import pytz
+import six
 from stevedore import driver
 
 from gnocchi import exceptions
@@ -47,6 +52,20 @@ class Resource(object):
                 and self.project_id == other.project_id
                 and self.started_at == other.started_at
                 and self.ended_at == other.ended_at)
+
+    @property
+    def etag(self):
+        etag = hashlib.sha1()
+        etag.update(six.text_type(self.id).encode('utf-8'))
+        etag.update(six.text_type(timeutils.isotime(
+            self.revision_start, subsecond=True)).encode('utf-8'))
+        return etag.hexdigest()
+
+    @property
+    def lastmodified(self):
+        # less precise revision start for Last-Modified http header
+        return self.revision_start.replace(microsecond=0,
+                                           tzinfo=pytz.UTC)
 
 
 def get_driver(conf):

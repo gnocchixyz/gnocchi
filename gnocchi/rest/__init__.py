@@ -546,6 +546,37 @@ class NamedMetricController(rest.RestController):
             abort(404, e)
 
 
+def etag_precondition_check(obj):
+    etag, lastmodified = obj.etag, obj.lastmodified
+    # NOTE(sileht): Checks and order come from rfc7232
+    # in webob, the '*' and the absent of the header is handled by
+    # if_match.__contains__() and if_none_match.__contains__()
+    # and are identique...
+    if etag not in pecan.request.if_match:
+        abort(412)
+    elif (not pecan.request.environ.get("HTTP_IF_MATCH")
+          and pecan.request.if_unmodified_since
+          and pecan.request.if_unmodified_since < lastmodified):
+        abort(412)
+
+    if etag in pecan.request.if_none_match:
+        if pecan.request.method in ['GET', 'HEAD']:
+            abort(304)
+        else:
+            abort(412)
+    elif (not pecan.request.environ.get("HTTP_IF_NONE_MATCH")
+          and pecan.request.if_modified_since
+          and (pecan.request.if_modified_since >=
+               lastmodified)
+          and pecan.request.method in ['GET', 'HEAD']):
+        abort(304)
+
+
+def etag_set_headers(obj):
+    pecan.response.etag = obj.etag
+    pecan.response.last_modified = obj.lastmodified
+
+
 def ResourceSchema(schema):
     base_schema = {
         "id": UUID,
@@ -578,32 +609,40 @@ class GenericResourceController(rest.RestController):
             self._resource_type, self.id, with_metrics=True)
         if resource:
             enforce("get resource", resource)
+            etag_precondition_check(resource)
+            etag_set_headers(resource)
             return resource
         abort(404)
 
-    @pecan.expose()
+    @pecan.expose('json')
+    @pecan.expose('resources.j2')
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if not resource:
             abort(404)
         enforce("update resource", resource)
+        etag_precondition_check(resource)
+
         body = deserialize(self.Resource, required=False)
         if len(body) == 0:
-            return
+            etag_set_headers(resource)
+            return resource
 
         try:
             if 'metrics' in body:
                 user, project = get_user_and_project()
                 body['metrics'] = convert_metric_list(
                     body['metrics'], user, project)
-            pecan.request.indexer.update_resource(
+            resource = pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
         except (indexer.NoSuchMetric, ValueError) as e:
             abort(400, e)
         except indexer.NoSuchResource as e:
             abort(404, e)
+        etag_set_headers(resource)
+        return resource
 
     @staticmethod
     def _delete_metrics(metrics):
@@ -625,6 +664,7 @@ class GenericResourceController(rest.RestController):
         if not resource:
             abort(404, indexer.NoSuchResource(self.id))
         enforce("delete resource", resource)
+        etag_precondition_check(resource)
         try:
             pecan.request.indexer.delete_resource(
                 self.id,
@@ -721,6 +761,7 @@ class GenericResourcesController(rest.RestController):
         set_resp_location_hdr("/v1/resource/"
                               + self._resource_type + "/"
                               + six.text_type(resource['id']))
+        etag_set_headers(resource)
         pecan.response.status = 201
         return resource
 

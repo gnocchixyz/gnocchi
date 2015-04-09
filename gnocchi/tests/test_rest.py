@@ -15,8 +15,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import calendar
 import contextlib
 import datetime
+from email import utils as email_utils
+import hashlib
 import json
 import uuid
 
@@ -1277,6 +1280,7 @@ class ResourceTest(RestTest):
         self.assertIsNone(resource['revision_end'])
         self.assertEqual(resource['revision_start'],
                          "2014-01-01T10:23:00.000000Z")
+        self._check_etag(result, resource)
         del resource['revision_start']
         del resource['revision_end']
         self.assertEqual(self.resource, resource)
@@ -1335,6 +1339,19 @@ class ResourceTest(RestTest):
             params=self.attributes,
             status=400)
 
+    @staticmethod
+    def _strtime_to_httpdate(dt):
+        return email_utils.formatdate(calendar.timegm(
+            timeutils.parse_isotime(dt).timetuple()), usegmt=True)
+
+    def _check_etag(self, response, resource):
+        lastmodified = self._strtime_to_httpdate(resource['revision_start'])
+        etag = hashlib.sha1()
+        etag.update(resource['id'].encode('utf-8'))
+        etag.update(resource['revision_start'].encode('utf8'))
+        self.assertEqual(response.headers['Last-Modified'], lastmodified)
+        self.assertEqual(response.headers['ETag'], '"%s"' % etag.hexdigest())
+
     def test_get_resource(self):
         # TODO(jd) Use a fixture as soon as there's one
         timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
@@ -1346,13 +1363,144 @@ class ResourceTest(RestTest):
                               + self.resource_type
                               + "/"
                               + self.attributes['id'])
-        result = json.loads(result.text)
-        self.assertIsNone(result['revision_end'])
-        self.assertEqual(result['revision_start'],
+        resource = json.loads(result.text)
+        self.assertIsNone(resource['revision_end'])
+        self.assertEqual(resource['revision_start'],
                          "2014-01-01T10:23:00.000000Z")
-        del result['revision_start']
-        del result['revision_end']
-        self.assertEqual(self.resource, result)
+        self._check_etag(result, resource)
+        del resource['revision_start']
+        del resource['revision_end']
+        self.assertEqual(self.resource, resource)
+
+    def test_get_resource_etag(self):
+        result = self.app.post_json("/v1/resource/" + self.resource_type,
+                                    params=self.attributes,
+                                    status=201)
+        result = self.app.get("/v1/resource/"
+                              + self.resource_type
+                              + "/"
+                              + self.attributes['id'])
+        resource = json.loads(result.text)
+        etag = hashlib.sha1()
+        etag.update(resource['id'].encode('utf-8'))
+        etag.update(resource['revision_start'].encode('utf-8'))
+        etag = etag.hexdigest()
+        lastmodified = self._strtime_to_httpdate(resource['revision_start'])
+        oldlastmodified = self._strtime_to_httpdate("2000-01-01 00:00:00")
+
+        # if-match and if-unmodified-since
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': 'fake'},
+                     status=412)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': etag},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-unmodified-since': lastmodified},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-unmodified-since': oldlastmodified},
+                     status=412)
+        # Some case with '*'
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-none-match': '*'},
+                     status=304)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/wrongid",
+                     headers={'if-none-match': '*'},
+                     status=404)
+        # always prefers if-match if both provided
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': etag,
+                              'if-unmodified-since': lastmodified},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': etag,
+                              'if-unmodified-since': oldlastmodified},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': '*',
+                              'if-unmodified-since': oldlastmodified},
+                     status=200)
+
+        # if-none-match and if-modified-since
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-none-match': etag},
+                     status=304)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-none-match': 'fake'},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-modified-since': lastmodified},
+                     status=304)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-modified-since': oldlastmodified},
+                     status=200)
+        # always prefers if-none-match if both provided
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-modified-since': oldlastmodified,
+                              'if-none-match': etag},
+                     status=304)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-modified-since': oldlastmodified,
+                              'if-none-match': '*'},
+                     status=304)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-modified-since': lastmodified,
+                              'if-none-match': '*'},
+                     status=304)
+        # Some case with '*'
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-match': '*'},
+                     status=200)
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/wrongid",
+                     headers={'if-match': '*'},
+                     status=404)
+
+        # if-none-match and if-match
+        self.app.get("/v1/resource/" + self.resource_type
+                     + "/" + self.attributes['id'],
+                     headers={'if-none-match': etag,
+                              'if-match': etag},
+                     status=304)
+
+        # if-none-match returns 412 instead 304 for PUT/PATCH/DELETE
+        self.app.patch_json("/v1/resource/" + self.resource_type
+                            + "/" + self.attributes['id'],
+                            headers={'if-none-match': '*'},
+                            status=412)
+        self.app.delete("/v1/resource/" + self.resource_type
+                        + "/" + self.attributes['id'],
+                        headers={'if-none-match': '*'},
+                        status=412)
+
+        # if-modified-since is ignored with PATCH/PUT/DELETE
+        self.app.patch_json("/v1/resource/" + self.resource_type
+                            + "/" + self.attributes['id'],
+                            params=self.patchable_attributes,
+                            headers={'if-modified-since': lastmodified},
+                            status=200)
+        self.app.delete("/v1/resource/" + self.resource_type
+                        + "/" + self.attributes['id'],
+                        headers={'if-modified-since': lastmodified},
+                        status=204)
 
     def test_get_resource_non_admin(self):
         with self.app.use_another_user():
@@ -1478,7 +1626,7 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
             params={'metrics': new_metrics},
-            status=204)
+            status=200)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
@@ -1550,19 +1698,22 @@ class ResourceTest(RestTest):
                            params=self.attributes,
                            status=201)
         timeutils.set_time_override(datetime.datetime(2014, 1, 2, 6, 48))
-        self.app.patch_json(
+        presponse = self.app.patch_json(
             "/v1/resource/" + self.resource_type
             + "/" + self.attributes['id'],
             params=self.patchable_attributes,
-            status=204)
-        result = self.app.get("/v1/resource/" + self.resource_type
-                              + "/" + self.attributes['id'])
-        result = json.loads(result.text)
+            status=200)
+        response = self.app.get("/v1/resource/" + self.resource_type
+                                + "/" + self.attributes['id'])
+        result = json.loads(response.text)
+        presult = json.loads(presponse.text)
+        self.assertEqual(result, presult)
         for k, v in six.iteritems(self.patchable_attributes):
             self.assertEqual(v, result[k])
         self.assertIsNone(result['revision_end'])
         self.assertEqual(result['revision_start'],
                          "2014-01-02T06:48:00.000000Z")
+        self._check_etag(response, result)
 
         # Check the history
         history = self.app.post_json(

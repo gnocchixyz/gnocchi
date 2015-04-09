@@ -191,7 +191,9 @@ tests:
           content-type: application/json
       data:
           host: compute2
-      status: 204
+      status: 200
+      response_json_paths:
+          host: compute2
 
     - name: patch instance with metrics
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
@@ -204,7 +206,9 @@ tests:
           metrics:
               disk.iops:
                   archive_policy_name: medium
-      status: 204
+      status: 200
+      response_strings:
+        - '"disk.iops": '
 
     - name: patch instance bad metric association
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
@@ -253,7 +257,9 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           content-type: application/json
       data: "{}"
-      status: 204
+      status: 200
+      data:
+          host: compute2
 
 # Failure modes for PATCHing a resource
 
