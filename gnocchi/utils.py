@@ -35,3 +35,20 @@ def to_timestamp(v):
                 raise ValueError("Unable to parse timestamp %s" % v)
             return timeutils.utcnow() + datetime.timedelta(seconds=delta)
     return datetime.datetime.utcfromtimestamp(v)
+
+
+def to_timespan(value):
+    if value is None:
+        raise ValueError("Invalid timespan")
+    try:
+        seconds = int(value)
+    except Exception:
+        try:
+            seconds = timeparse.timeparse(six.text_type(value))
+        except Exception:
+            raise ValueError("Unable to parse timespan")
+    if seconds is None:
+        raise ValueError("Unable to parse timespan")
+    if seconds <= 0:
+        raise ValueError("Timespan must be positive")
+    return datetime.timedelta(seconds=seconds)

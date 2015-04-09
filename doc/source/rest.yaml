@@ -144,6 +144,8 @@
       "id": "6868DA77-FA82-4E67-ABA9-270C5AE8CBCA",
       "user_id": "BD3A1E52-1C62-44CB-BF04-660BD88CD74D",
       "project_id": "BD3A1E52-1C62-44CB-BF04-660BD88CD74D",
+      "started_at": "2014-01-02 23:23:34",
+      "ended_at": "2014-01-04 10:00:12",
       "flavor_id": 2,
       "image_ref": "http://image",
       "host": "compute1",
@@ -183,6 +185,13 @@
       {"=": {"user_id": "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}"}},
       {">=": {"started_at": "2010-01-01"}}
     ]}
+
+- name: search-resource-duration
+  request: |
+    POST /v1/search/resource/instance HTTP/1.1
+    Content-Type: application/json
+
+    {">=": {"lifespan": "30 min"}}
 
 - name: get-resource-generic
   request: GET /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
