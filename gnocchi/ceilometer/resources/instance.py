@@ -18,7 +18,6 @@
 import sqlalchemy
 
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Instance(base.ResourceBase):
@@ -56,10 +55,7 @@ class Instance(base.ResourceBase):
                 'cpu_util']
 
 
-class InstanceSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                         sqlalchemy_base.Resource):
-    __tablename__ = 'instance'
-
+class InstanceSQLAlchemy(object):
     flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
     image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)

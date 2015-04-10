@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Stack(base.ResourceBase):
@@ -29,8 +28,3 @@ class Stack(base.ResourceBase):
                 'stack.resume',
                 'stack.suspend',
                 ]
-
-
-class StackSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                      sqlalchemy_base.Resource):
-    __tablename__ = 'stack'

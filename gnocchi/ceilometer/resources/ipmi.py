@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class IPMI(base.ResourceBase):
@@ -29,8 +28,3 @@ class IPMI(base.ResourceBase):
                 'hardware.ipmi.node.current',
                 'hardware.ipmi.node.voltage',
                 ]
-
-
-class IPMISQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                     sqlalchemy_base.Resource):
-    __tablename__ = 'ipmi'

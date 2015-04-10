@@ -1263,6 +1263,9 @@ class ResourceTest(RestTest):
             self.resource['project_id'] = None
 
     def test_post_resource(self):
+        # TODO(jd) Use a fixture as soon as there's one
+        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
+        self.addCleanup(timeutils.clear_time_override)
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
@@ -1271,6 +1274,11 @@ class ResourceTest(RestTest):
         self.assertEqual("http://localhost/v1/resource/"
                          + self.resource_type + "/" + self.attributes['id'],
                          result.headers['Location'])
+        self.assertIsNone(resource['revision_end'])
+        self.assertEqual(resource['revision_start'],
+                         "2014-01-01T10:23:00.000000Z")
+        del resource['revision_start']
+        del resource['revision_end']
         self.assertEqual(self.resource, resource)
 
     def test_post_resource_with_invalid_metric(self):
@@ -1328,6 +1336,9 @@ class ResourceTest(RestTest):
             status=400)
 
     def test_get_resource(self):
+        # TODO(jd) Use a fixture as soon as there's one
+        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
+        self.addCleanup(timeutils.clear_time_override)
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
@@ -1336,6 +1347,11 @@ class ResourceTest(RestTest):
                               + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
+        self.assertIsNone(result['revision_end'])
+        self.assertEqual(result['revision_start'],
+                         "2014-01-01T10:23:00.000000Z")
+        del result['revision_start']
+        del result['revision_end']
         self.assertEqual(self.resource, result)
 
     def test_get_resource_non_admin(self):
@@ -1448,10 +1464,15 @@ class ResourceTest(RestTest):
         self.assertIn("Metric %s does not exist" % metric_id, result.text)
 
     def test_patch_resource_metrics(self):
+        # TODO(jd) Use a fixture as soon as there's one
+        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
+        self.addCleanup(timeutils.clear_time_override)
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
         r = json.loads(result.text)
+
+        timeutils.set_time_override(datetime.datetime(2014, 1, 2, 6, 48))
         new_metrics = {'foo': {'archive_policy_name': "medium"}}
         self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
@@ -1463,8 +1484,18 @@ class ResourceTest(RestTest):
                               + self.attributes['id'])
         result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
+        self.assertIsNone(result['revision_end'])
+        self.assertIsNone(r['revision_end'])
+        self.assertEqual(result['revision_start'],
+                         "2014-01-02T06:48:00.000000Z")
+        self.assertEqual(r['revision_start'], "2014-01-01T10:23:00.000000Z")
+
         del result['metrics']
+        del result['revision_start']
+        del result['revision_end']
         del r['metrics']
+        del r['revision_start']
+        del r['revision_end']
         self.assertEqual(r, result)
 
     def test_patch_resource_existent_metrics_from_another_user(self):
@@ -1511,9 +1542,14 @@ class ResourceTest(RestTest):
         self.assertEqual({}, result['metrics'])
 
     def test_patch_resource_attributes(self):
+        # TODO(jd) Use a fixture as soon as there's one
+        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
+        self.addCleanup(timeutils.clear_time_override)
+
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
                            status=201)
+        timeutils.set_time_override(datetime.datetime(2014, 1, 2, 6, 48))
         self.app.patch_json(
             "/v1/resource/" + self.resource_type
             + "/" + self.attributes['id'],
@@ -1524,6 +1560,27 @@ class ResourceTest(RestTest):
         result = json.loads(result.text)
         for k, v in six.iteritems(self.patchable_attributes):
             self.assertEqual(v, result[k])
+        self.assertIsNone(result['revision_end'])
+        self.assertEqual(result['revision_start'],
+                         "2014-01-02T06:48:00.000000Z")
+
+        # Check the history
+        history = self.app.post_json(
+            "/v1/search/resource/" + self.resource_type,
+            headers={"Accept": "application/json; history=true"},
+            params={"=": {"id": result['id']}},
+            status=200)
+        history = json.loads(history.text)
+        self.assertGreaterEqual(len(history), 2)
+        self.assertEqual(result, history[1])
+
+        h = history[0]
+        for k, v in six.iteritems(self.attributes):
+            self.assertEqual(v, h[k])
+        self.assertEqual(h['revision_end'],
+                         "2014-01-02T06:48:00.000000Z")
+        self.assertEqual(h['revision_start'],
+                         "2014-01-01T10:23:00.000000Z")
 
     def test_patch_resource_attributes_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1564,6 +1621,8 @@ class ResourceTest(RestTest):
                               + self.resource_type + "/"
                               + self.attributes['id'])
         result = json.loads(result.text)
+        del result['revision_start']
+        del result['revision_end']
         self.assertEqual(self.resource, result)
 
     def test_patch_resource_non_existent(self):
@@ -1672,6 +1731,8 @@ class ResourceTest(RestTest):
                          + self.attributes['id'],
                          result.headers['Location'])
         self.resource['metrics'] = self.attributes['metrics']
+        del resource['revision_start']
+        del resource['revision_end']
         self.assertEqual(self.resource, resource)
 
     def test_post_resource_with_null_metrics(self):
@@ -1689,7 +1750,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/metric/" + str(metric_id) + "/measures",
                               status=200)
 
-    def test_search_datetime_is_null(self):
+    def test_search_datetime(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
                            status=201)
@@ -1701,6 +1762,19 @@ class ResourceTest(RestTest):
             "/v1/search/resource/" + self.resource_type,
             params={"and": [{"=": {"id": result['id']}},
                             {"=": {"ended_at": None}}]},
+            status=200)
+        resources = json.loads(resources.text)
+        self.assertGreaterEqual(len(resources), 1)
+        self.assertEqual(result, resources[0])
+
+        resources = self.app.post_json(
+            "/v1/search/resource/" + self.resource_type,
+            headers={"Accept": "application/json; history=true"},
+            params={"and": [
+                {"=": {"id": result['id']}},
+                {"or": [{">=": {"revision_end": '2014-01-03T02:02:02'}},
+                        {"=": {"revision_end": None}}]}
+            ]},
             status=200)
         resources = json.loads(resources.text)
         self.assertGreaterEqual(len(resources), 1)

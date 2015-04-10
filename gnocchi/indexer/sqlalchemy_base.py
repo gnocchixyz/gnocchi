@@ -21,6 +21,7 @@ import datetime
 import decimal
 
 from oslo_db.sqlalchemy import models
+from oslo_utils import timeutils
 from oslo_utils import units
 import six
 import sqlalchemy
@@ -175,15 +176,22 @@ class Metric(Base, GnocchiBase, storage.Metric):
                 or (storage.Metric.__eq__(self, other)))
 
 
-class Resource(Base, GnocchiBase, indexer.Resource):
-    __tablename__ = 'resource'
-    __table_args__ = (
-        sqlalchemy.Index('ix_resource_id', 'id'),
-        COMMON_TABLES_ARGS,
-    )
+class ResourceJsonifier(indexer.Resource):
+    def jsonify(self):
+        d = dict(self)
+        del d['revision']
+        if 'metrics' not in sqlalchemy.inspect(self).unloaded:
+            d['metrics'] = dict((m['name'], six.text_type(m['id']))
+                                for m in self.metrics)
+        return d
 
-    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           primary_key=True)
+
+class ResourceMixin(ResourceJsonifier):
+    @declarative.declared_attr
+    def __table_args__(cls):
+        return (sqlalchemy.Index('ix_%s_id' % cls.__tablename__, 'id'),
+                COMMON_TABLES_ARGS)
+
     type = sqlalchemy.Column(sqlalchemy.Enum('metric', 'generic', 'instance',
                                              'swift_account', 'volume',
                                              'ceph_account', 'network',
@@ -195,7 +203,6 @@ class Resource(Base, GnocchiBase, indexer.Resource):
         sqlalchemy_utils.UUIDType(binary=False))
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False))
-    metrics = sqlalchemy.orm.relationship(Metric)
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -204,16 +211,42 @@ class Resource(Base, GnocchiBase, indexer.Resource):
                                    # not store a timestamp but a date as an
                                    # integer.
                                    default=datetime.datetime.utcnow)
+    revision_start = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+                                       default=timeutils.utcnow)
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False))
 
-    def jsonify(self):
-        d = dict(self)
-        if 'metrics' not in sqlalchemy.inspect(self).unloaded:
-            d['metrics'] = dict((m['name'], six.text_type(m['id']))
-                                for m in self.metrics)
-        return d
+
+class Resource(ResourceMixin, Base, GnocchiBase):
+    __tablename__ = 'resource'
+    _extra_keys = ['revision', 'revision_end']
+    revision = -1
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           primary_key=True)
+    revision_end = None
+    metrics = sqlalchemy.orm.relationship(Metric)
+
+
+class ResourceHistory(ResourceMixin, Base, GnocchiBase):
+    __tablename__ = 'resource_history'
+    revision = sqlalchemy.Column(sqlalchemy.Integer, autoincrement=True,
+                                 primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
+                           sqlalchemy.ForeignKey('resource.id',
+                                                 ondelete="CASCADE"))
+    revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+                                     default=timeutils.utcnow)
+    metrics = sqlalchemy.orm.relationship(
+        Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
+        foreign_keys='Metric.resource_id')
+
+
+class ResourceExt(object):
+    """Default extension class for plugin
+
+    Used for plugin that doesn't need additional columns
+    """
 
 
 class ResourceExtMixin(object):
@@ -227,4 +260,20 @@ class ResourceExtMixin(object):
         return sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                                  sqlalchemy.ForeignKey('resource.id',
                                                        ondelete="CASCADE"),
+                                 primary_key=True)
+
+
+class ResourceHistoryExtMixin(object):
+    @declarative.declared_attr
+    def __table_args__(cls):
+        return (sqlalchemy.Index('ix_%s_revision' % cls.__tablename__,
+                                 'revision'),
+                COMMON_TABLES_ARGS)
+
+    @declarative.declared_attr
+    def revision(cls):
+        return sqlalchemy.Column(sqlalchemy.Integer,
+                                 sqlalchemy.ForeignKey(
+                                     'resource_history.revision',
+                                     ondelete="CASCADE"),
                                  primary_key=True)

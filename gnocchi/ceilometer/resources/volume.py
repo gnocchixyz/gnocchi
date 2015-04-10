@@ -15,7 +15,6 @@
 import sqlalchemy
 
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Volume(base.ResourceBase):
@@ -40,8 +39,5 @@ class Volume(base.ResourceBase):
                 ]
 
 
-class VolumeSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                       sqlalchemy_base.Resource):
-    __tablename__ = 'volume'
-
+class VolumeSQLAlchemy(object):
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)

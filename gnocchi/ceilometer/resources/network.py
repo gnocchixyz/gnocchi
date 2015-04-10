@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Network(base.ResourceBase):
@@ -40,8 +39,3 @@ class Network(base.ResourceBase):
                 'ip.floating.create',
                 'ip.floating.update',
                 ]
-
-
-class NetworkSQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                        sqlalchemy_base.Resource):
-    __tablename__ = 'network'

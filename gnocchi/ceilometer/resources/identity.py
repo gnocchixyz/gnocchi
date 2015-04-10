@@ -13,7 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from gnocchi.ceilometer.resources import base
-from gnocchi.indexer import sqlalchemy_base
 
 
 class Identity(base.ResourceBase):
@@ -43,8 +42,3 @@ class Identity(base.ResourceBase):
                 'identity.role_assignment.created',
                 'identity.role_assignment.deleted',
                 ]
-
-
-class IdentitySQLAlchemy(sqlalchemy_base.ResourceExtMixin,
-                         sqlalchemy_base.Resource):
-    __tablename__ = 'identity'
