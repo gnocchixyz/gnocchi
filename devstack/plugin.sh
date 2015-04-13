@@ -91,9 +91,7 @@ function is_gnocchi_enabled {
 create_gnocchi_accounts() {
     # Gnocchi
     if [[ "$ENABLED_SERVICES" =~ "gnocchi-api" ]]; then
-        local gnocchi_user=$(get_or_create_user "gnocchi" \
-            "$SERVICE_PASSWORD" $SERVICE_TENANT_NAME)
-        get_or_add_user_project_role service $gnocchi_user $SERVICE_TENANT_NAME
+        create_service_user "gnocchi"
 
         if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
             local gnocchi_service=$(get_or_create_service "gnocchi" \
@@ -286,16 +284,19 @@ function start_gnocchi {
     fi
 
     # Create a default policy
+    archive_policy_url="${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy"
     if [ "$GNOCCHI_USE_KEYSTONE" == "True" ]; then
-        token=$(keystone token-get | grep ' id ' | get_field 2)
-        die_if_not_set $LINENO token "Keystone fail to get token"
-        auth="-H 'X-Auth-Token: $token'"
+        token=$(openstack token issue -f value -c id)
+        create_archive_policy() { curl -X POST -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "$1" $archive_policy_url ; }
+    else
+        userid=$(openstack user show admin -f value -c id)
+        projectid=$(openstack project show admin -f value -c id)
+        create_archive_policy() { curl -X POST -H "X-ROLES: admin" -H "X-USER-ID: $userid" -H "X-PROJECT-ID: $projectid" -H "Content-Type: application/json" -d "$1" $archive_policy_url ; }
     fi
 
-    # These will silently fail if GNOCCHI_USE_KEYSTONE is false
-    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
-    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
-    curl -s -X POST $auth ${GNOCCHI_SERVICE_PROTOCOL}://${GNOCCHI_SERVICE_HOST}:${GNOCCHI_SERVICE_PORT}/v1/archive_policy -H "Content-Type: application/json" -d '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
+    create_archive_policy '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
+    create_archive_policy '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
+    create_archive_policy '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
 }
 
 # stop_gnocchi() - Stop running processes
