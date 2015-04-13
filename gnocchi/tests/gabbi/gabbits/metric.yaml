@@ -20,11 +20,45 @@ tests:
               - granularity: 1 second
       status: 201
 
+    - name: create archive policy rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule
+        metric_pattern: "disk.io.*"
+        archive_policy_name: cookies
+      status: 201
+
     - name: get metric empty
       url: /v1/metric
       status: 200
       response_strings:
           - "[]"
+
+    - name: create metric with name
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          name: "disk.io.rate"
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: cookies
+
+    - name: create metric with name no rule
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          name: "volume.io.rate"
+      status: 400
+      response_strings:
+          - No archive policy name specified and no archive policy rule found matching the metric name volume.io.rate
 
     - name: create metric bad archive policy
       url: /v1/metric
