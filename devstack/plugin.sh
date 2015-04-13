@@ -199,6 +199,8 @@ function configure_gnocchi {
 
     if [ "$GNOCCHI_USE_KEYSTONE" != "True" ]; then
         iniset $GNOCCHI_CONF api middlewares ""
+    else
+        inicomment $GNOCCHI_CONF api middlewares
     fi
 
     # Configure the indexer database
