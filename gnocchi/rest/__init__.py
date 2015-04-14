@@ -574,9 +574,10 @@ class NamedMetricController(rest.RestController):
         # heavier.
         resource = pecan.request.indexer.get_resource(
             'generic', self.resource_id, with_metrics=True)
-        m = resource.get_metric(name)
-        if m:
-            return MetricController(m), remainder
+        if resource:
+            m = resource.get_metric(name)
+            if m:
+                return MetricController(m), remainder
         abort(404)
 
     @pecan.expose()

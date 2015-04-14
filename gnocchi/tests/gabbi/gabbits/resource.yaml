@@ -321,6 +321,14 @@ tests:
       response_strings:
           - The resource could not be found.
 
+    - name: get metrics for this not-existing resource
+      url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 404
+
 # List resources
 
     - name: list instance resources no auth
