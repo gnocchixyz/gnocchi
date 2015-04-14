@@ -30,10 +30,10 @@ options you want to change and configure:
 +=====================+===================================================+
 | storage.driver      | The storage driver for metrics, Swift by default. |
 +---------------------+---------------------------------------------------+
-| indexer.driver      | The indexer driver, SQLAlchemy by default.        |
+| indexer.url         | URL to your indexer.                              |
 +---------------------+---------------------------------------------------+
-| database.connection | URL to your database,                             |
-|                     | used by the *sqlalchemy* driver.                  |
+| storage.file_*      | Configuration options to store files              |
+|                     | if you use the file storage driver.               |
 +---------------------+---------------------------------------------------+
 | storage.swift_*     | Configuration options to access Swift             |
 |                     | if you use the Swift storage driver.              |

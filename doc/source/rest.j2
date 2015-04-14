@@ -13,11 +13,11 @@ sent to Gnocchi.
 Metrics
 =======
 
-Gnocchi provides a resource type that is called *metric*. A metric designates
+Gnocchi provides an object type that is called *metric*. A metric designates
 any thing that can be measured: the CPU usage of a server, the temperature of a
 room or the number of bytes sent by a network interface.
 
-A metric only has a few properties: a UUID to identify it, and the archive
+A metric only has a few properties: a UUID to identify it, a name, the archive
 policy that will be used to store and aggregate the measures.
 
 To create a metric, the following API request should be used:
@@ -92,16 +92,18 @@ as 12 points over 1 hour (one point every 5 minutes), or 1 point every 1 hour
 over 1 day (24 points).
 
 By default, new measures can only be processed if they have timestamps in the
-future or part of the last aggregation period. The window size is based on the
-largest granularity defined in the archive policy definition. To enlarge this
-window size, the `back_window` field can be used to set the number of periods
-to keep so it is possible to process measures that are older than the last
-timestamp period boundary.
+future or part of the last aggregation period. The last aggregation period size
+is based on the largest granularity defined in the archive policy definition.
+To allow processing measures that are older than the period, the `back_window`
+parameter can be used to set the number of coarsest periods to keep. That way
+it is possible to process measures that are older than the last timestamp
+period boundary.
 
 For example, if an archive policy is defined with coarsest aggregation of 1
 hour, and the last point processed has a timestamp of 14:34, it's possible to
 process measures back to 14:00 with a `back_window` of 0. If the `back_window`
-is set to 2, it will be possible to send measures with timestamp back to 12:00.
+is set to 2, it will be possible to send measures with timestamp back to 12:00
+(14:00 minus 2 times 1 hour).
 
 The REST API allows to create archive policies this way:
 
@@ -150,9 +152,9 @@ The REST API allows to manipulate resources. To create a generic resource:
 
 {{ scenarios['create-resource-generic']['doc'] }}
 
-The *id*, *user_id* and *project_id* attributes must be UUID and are mandatory.
-The timestamp describing the lifespan of the resource are not, and *started_at*
-is by default set to the current timestamp.
+The *id*, *user_id* and *project_id* attributes must be UUID. The timestamp
+describing the lifespan of the resource are optional, and *started_at* is by
+default set to the current timestamp.
 
 It's possible to retrieve the resource by the URL provided in the `Location`
 header.
@@ -209,7 +211,7 @@ It's also possible to create metrics dynamically while creating a resource:
 
 {{ scenarios['create-resource-instance-with-dynamic-metrics']['doc'] }}
 
-The metric associated with a resource an be accessed and manipulated using the
+The metric associated with a resource can be accessed and manipulated using the
 usual `/v1/metric` endpoint or using the named relationship with the resource:
 
 {{ scenarios['get-resource-named-metrics-measures']['doc'] }}
