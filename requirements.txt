@@ -29,3 +29,4 @@ msgpack-python
 trollius
 retrying
 pytz
+WebOb>=1.4.1

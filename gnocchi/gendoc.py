@@ -115,14 +115,6 @@ def setup(app):
         fake_file.write(template.render(scenarios=scenarios).encode('utf-8'))
         fake_file.seek(0)
         request = webapp.RequestClass.from_file(fake_file)
-        # TODO(jd) Fix this lame bug in webob
-        if request.method in ("PATCH"):
-            # Webob has a bug it does not read the body for PATCH, l4m3r
-            clen = request.content_length
-            if clen is None:
-                request.body = fake_file.read()
-            else:
-                request.body = fake_file.read(clen)
         app.info("Doing request %s: %s" % (entry['name'],
                                            six.text_type(request)))
         with webapp.use_admin_user():
