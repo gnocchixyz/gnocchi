@@ -9,7 +9,7 @@
     "list resource": "",
     "list all resource": "role:admin",
     "search resource": "",
-    "search all resources": "role:admin",
+    "search all resource": "role:admin",
 
     "get archive policy": "",
     "list archive policy": "",
