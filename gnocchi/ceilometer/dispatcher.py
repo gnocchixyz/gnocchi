@@ -93,18 +93,12 @@ def log_and_ignore_unexpected_workflow_error(func):
 class GnocchiDispatcher(dispatcher.Base):
     def __init__(self, conf):
         super(GnocchiDispatcher, self).__init__(conf)
+        self.conf = conf
         self.filter_service_activity = (
             conf.dispatcher_gnocchi.filter_service_activity)
+        self._gnocchi_project_id = None
 
         self._ks_client = utils.get_keystone_client()
-        if self.filter_service_activity:
-            try:
-                self.gnocchi_project_id = self._ks_client.tenants.find(
-                    name=conf.dispatcher_gnocchi.filter_project).id
-            except Exception:
-                LOG.exception('fail to retreive user of Gnocchi service')
-                raise
-
         self.gnocchi_url = conf.dispatcher_gnocchi.url
         self.gnocchi_archive_policy_default = (
             conf.dispatcher_gnocchi.archive_policy)
@@ -157,6 +151,19 @@ class GnocchiDispatcher(dispatcher.Base):
             # Support wild cards such as disk.*
             if fnmatch.fnmatch(metric_name, metric):
                 return policy
+
+    @property
+    def gnocchi_project_id(self):
+        if self._gnocchi_project_id is None:
+            try:
+                project = self._ks_client.tenants.find(
+                    name=self.conf.dispatcher_gnocchi.filter_project)
+            except Exception:
+                LOG.exception('fail to retreive user of Gnocchi service')
+                raise
+            self._gnocchi_project_id = project.id
+            LOG.debug("gnocchi project found: %s" % self.gnocchi_project_id)
+        return self._gnocchi_project_id
 
     def _is_gnocchi_activity(self, sample):
         return (self.filter_service_activity
