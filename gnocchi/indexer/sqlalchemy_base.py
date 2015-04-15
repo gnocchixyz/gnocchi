@@ -277,3 +277,19 @@ class ResourceHistoryExtMixin(object):
                                      'resource_history.revision',
                                      ondelete="CASCADE"),
                                  primary_key=True)
+
+
+class ArchivePolicyRule(Base, GnocchiBase):
+    __tablename__ = 'archive_policy_rule'
+    __table_args__ = (
+        sqlalchemy.Index('ix_archive_policy_rule_name', 'name'),
+        COMMON_TABLES_ARGS,
+    )
+
+    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
+    archive_policy_name = sqlalchemy.Column(
+        sqlalchemy.String(255),
+        sqlalchemy.ForeignKey('archive_policy.name',
+                              ondelete="RESTRICT"),
+        nullable=False)
+    metric_pattern = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
