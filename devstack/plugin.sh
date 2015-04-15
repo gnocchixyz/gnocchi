@@ -230,7 +230,7 @@ function configure_ceilometer_gnocchi {
     iniset $CEILOMETER_CONF dispatcher_gnocchi archive_policy ${GNOCCHI_ARCHIVE_POLICY}
     if is_service_enabled swift; then
         iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "True"
-        iniset $CEILOMETER_CONF dispatcher_gnocchi filter_user "gnocchi_swift"
+        iniset $CEILOMETER_CONF dispatcher_gnocchi filter_project "gnocchi_swift"
     else
         iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "False"
     fi

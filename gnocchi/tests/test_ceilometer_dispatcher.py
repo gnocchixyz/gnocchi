@@ -85,7 +85,8 @@ class DispatcherTest(base.BaseTestCase):
             }]
 
         ks_client = mock.Mock(auth_token='fake_token')
-        ks_client.users.find.return_value = 'gnocchi'
+        ks_client.tenants.find.return_value = mock.Mock(
+            name='gnocchi', id='a2d42c23-d518-46b6-96ab-3fba2e146859')
         self.useFixture(mockpatch.Patch(
             'gnocchi.ceilometer.utils.ksclient.Client',
             return_value=ks_client))
@@ -102,7 +103,8 @@ class DispatcherTest(base.BaseTestCase):
     def _do_test_activity_filter(self, is_gnocchi_activity,
                                  fake_process_samples):
         if is_gnocchi_activity:
-            self.samples[0]['user_id'] = 'gnocchi'
+            self.samples[0]['project_id'] = (
+                'a2d42c23-d518-46b6-96ab-3fba2e146859')
             expected_samples = [self.samples[1]]
         else:
             expected_samples = self.samples
@@ -223,7 +225,8 @@ class DispatcherWorkflowTest(base.BaseTestCase,
         super(DispatcherWorkflowTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
         ks_client = mock.Mock(auth_token='fake_token')
-        ks_client.users.find.return_value = 'gnocchi'
+        ks_client.tenants.find.return_value = mock.Mock(
+            name='gnocchi', id='a2d42c23-d518-46b6-96ab-3fba2e146859')
         self.useFixture(mockpatch.Patch(
             'gnocchi.ceilometer.utils.ksclient.Client',
             return_value=ks_client))
