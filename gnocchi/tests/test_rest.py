@@ -612,7 +612,7 @@ class MetricTest(RestTest):
         metric = json.loads(result.text)
         self.assertEqual("http://localhost/v1/metric/" + metric['id'],
                          result.headers['Location'])
-        self.assertEqual("medium", metric['archive_policy_name'])
+        self.assertEqual("medium", metric['archive_policy']['name'])
 
     def test_get_metric(self):
         result = self.app.post_json("/v1/metric",

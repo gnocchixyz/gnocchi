@@ -535,20 +535,19 @@ class MetricsController(rest.RestController):
                 archive_policy_name)
             if policy is None:
                 abort(400, "Unknown archive policy %s" % archive_policy_name)
-        pecan.request.indexer.create_metric(
+        m = pecan.request.indexer.create_metric(
             id,
             created_by_user_id, created_by_project_id,
-            archive_policy_name=policy.name, name=name)
+            archive_policy_name=policy.name, name=name, details=True)
         pecan.request.storage.create_metric(storage.Metric(id, policy))
-        return {"id": str(id),
-                "archive_policy_name": policy.name}
+        return m
 
     @pecan.expose('json')
     def post(self):
         user, project = get_user_and_project()
         body = deserialize(self.Metric)
         metric_info = self.create_metric(user, project, **body)
-        set_resp_location_hdr("/v1/metric/" + metric_info['id'])
+        set_resp_location_hdr("/v1/metric/" + str(metric_info['id']))
         pecan.response.status = 201
         return metric_info
 

@@ -59,9 +59,9 @@ tests:
   response_headers:
       content-type: /application\/json/
   response_strings:
-      - '"archive_policy_name": "test1"'
+       - '"name": "test1"'
   response_json_paths:
-      $.archive_policy_name: test1
+      $.archive_policy.name: test1
 
 - name: retrieve metric info
   url: $LOCATION
