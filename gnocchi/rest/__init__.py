@@ -154,7 +154,7 @@ def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
         else:
             new_metrics[k] = str(MetricsController.create_metric(
                 created_by_user_id, created_by_project_id,
-                v['archive_policy_name'])['id'])
+                v['archive_policy_name']).id)
     return new_metrics
 
 
@@ -239,7 +239,7 @@ class ArchivePoliciesController(rest.RestController):
         except indexer.ArchivePolicyAlreadyExists as e:
             abort(409, e)
 
-        location = "/v1/archive_policy/" + ap['name']
+        location = "/v1/archive_policy/" + ap.name
         set_resp_location_hdr(location)
         pecan.response.status = 201
         return ap
@@ -291,7 +291,7 @@ class ArchivePolicyRulesController(rest.RestController):
         except indexer.ArchivePolicyRuleAlreadyExists as e:
             abort(409, e)
 
-        location = "/v1/archive_policy_rule/" + ap['name']
+        location = "/v1/archive_policy_rule/" + ap.name
         set_resp_location_hdr(location)
         pecan.response.status = 201
         return ap
@@ -536,9 +536,9 @@ class MetricsController(rest.RestController):
         if name is not None and archive_policy_name is None:
             rules = pecan.request.indexer.list_archive_policy_rules()
             for rule in rules:
-                if fnmatch.fnmatch(name, rule['metric_pattern']):
+                if fnmatch.fnmatch(name, rule.metric_pattern):
                     policy = pecan.request.indexer.get_archive_policy(
-                        rule['archive_policy_name'])
+                        rule.archive_policy_name)
                     break
             else:
                 abort(400, "No archive policy name specified and no archive"
@@ -561,7 +561,7 @@ class MetricsController(rest.RestController):
         user, project = get_user_and_project()
         body = deserialize(self.Metric)
         metric_info = self.create_metric(user, project, **body)
-        set_resp_location_hdr("/v1/metric/" + str(metric_info['id']))
+        set_resp_location_hdr("/v1/metric/" + str(metric_info.id))
         pecan.response.status = 201
         return metric_info
 
@@ -843,7 +843,7 @@ class GenericResourcesController(rest.RestController):
             abort(409, e)
         set_resp_location_hdr("/v1/resource/"
                               + self._resource_type + "/"
-                              + six.text_type(resource['id']))
+                              + six.text_type(resource.id))
         etag_set_headers(resource)
         pecan.response.status = 201
         return resource
@@ -1102,7 +1102,7 @@ class SearchMetricController(rest.RestController):
                     pecan.request.storage.search_value(
                         # NOTE(jd) Don't pass the archive policy as no
                         # driver needs it for now
-                        [storage.Metric(str(metric['id']), None)
+                        [storage.Metric(str(metric.id), None)
                          for metric in metrics],
                         query, start, stop, aggregation)
                 )
