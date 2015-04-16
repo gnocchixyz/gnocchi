@@ -33,7 +33,7 @@ def _to_primitive(value, *args, **kwargs):
     return _ORIG_TP(value, *args, **kwargs)
 
 
-def _jsonutils_to_primitive(*args, **kwargs):
+def to_primitive(*args, **kwargs):
     try:
         jsonutils.to_primitive = _to_primitive
         return jsonutils.to_primitive(*args, **kwargs)
@@ -42,4 +42,7 @@ def _jsonutils_to_primitive(*args, **kwargs):
 
 
 def dumps(obj, *args, **kwargs):
-    return jsonutils.dumps(obj, default=_jsonutils_to_primitive)
+    return jsonutils.dumps(obj, default=to_primitive)
+
+# For convenience
+loads = jsonutils.loads

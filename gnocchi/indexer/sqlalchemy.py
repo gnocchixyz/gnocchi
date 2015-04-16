@@ -103,14 +103,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
                 raise indexer.ArchivePolicyInUse(name)
 
-    def get_metrics(self, uuids, details=False):
+    def get_metrics(self, uuids):
         if not uuids:
             return []
         session = self.engine_facade.get_session()
-        query = session.query(Metric).filter(Metric.id.in_(uuids))
-        if details:
-            query = query.options(sqlalchemy.orm.joinedload(
-                Metric.archive_policy))
+        query = session.query(Metric).filter(Metric.id.in_(uuids)).options(
+            sqlalchemy.orm.joinedload(
+                Metric.archive_policy)).options(
+                    sqlalchemy.orm.joinedload(Metric.resource))
 
         return list(query.all())
 
@@ -317,8 +317,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if r is None:
                 raise indexer.NoSuchResource(resource_id)
             if delete_metrics is not None:
-                delete_metrics(self.get_metrics([m.id for m in r.metrics],
-                                                details=True))
+                delete_metrics(self.get_metrics([m.id for m in r.metrics]))
             q.delete()
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):

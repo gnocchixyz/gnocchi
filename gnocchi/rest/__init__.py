@@ -14,7 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import fnmatch
-import json
 import uuid
 
 from oslo_log import log
@@ -32,6 +31,7 @@ import werkzeug.http
 from gnocchi import aggregates
 from gnocchi import archive_policy
 from gnocchi import indexer
+from gnocchi import json
 from gnocchi import storage
 from gnocchi import utils
 
@@ -75,6 +75,17 @@ def get_user_and_project():
     return (user_id, project_id)
 
 
+# TODO(jd) Move this to oslo.utils as I stole it from Ceilometer
+def recursive_keypairs(d, separator='.'):
+    """Generator that produces sequence of keypairs for nested dictionaries."""
+    for name, value in sorted(six.iteritems(d)):
+        if isinstance(value, dict):
+            for subname, subvalue in recursive_keypairs(value, separator):
+                yield ('%s%s%s' % (name, separator, subname), subvalue)
+        else:
+            yield name, value
+
+
 def enforce(rule, target):
     """Return the user and project the request should be limited to.
 
@@ -92,6 +103,9 @@ def enforce(rule, target):
 
     if not isinstance(target, dict):
         target = target.__dict__
+
+    # Flatten dict
+    target = dict(recursive_keypairs(target))
 
     if not pecan.request.policy_enforcer.enforce(rule, target, creds):
         abort(403)
@@ -393,7 +407,7 @@ class MetricController(rest.RestController):
     }])
 
     def enforce_metric(self, rule):
-        enforce(rule, dict(self.metric))
+        enforce(rule, json.to_primitive(self.metric))
 
     @pecan.expose('json')
     def get_all(self):
@@ -498,7 +512,7 @@ class MetricsController(rest.RestController):
             metric_id = uuid.UUID(id)
         except ValueError:
             abort(404)
-        metrics = pecan.request.indexer.get_metrics([metric_id], details=True)
+        metrics = pecan.request.indexer.get_metrics([metric_id])
         if not metrics:
             abort(404)
         return MetricController(metrics[0]), remainder

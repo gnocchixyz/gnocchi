@@ -799,7 +799,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                  user, project,
                                  archive_policy_name="low")
 
-        metric = self.index.get_metrics([e1], details=True)
+        metric = self.index.get_metrics([e1])
         self.assertEqual(1, len(metric))
         metric = metric[0]
         self.assertEqual(e1, metric.id)
