@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import fnmatch
 import json
 import uuid
 
@@ -139,7 +140,7 @@ def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
         else:
             new_metrics[k] = str(MetricsController.create_metric(
                 created_by_user_id, created_by_project_id,
-                v['archive_policy_name']))
+                v['archive_policy_name'])['id'])
     return new_metrics
 
 
@@ -484,7 +485,8 @@ def UUID(value):
 MetricSchemaDefinition = {
     "user_id": UUID,
     "project_id": UUID,
-    voluptuous.Required('archive_policy_name'): six.text_type,
+    "archive_policy_name": six.text_type,
+    "name": six.text_type,
 }
 
 
@@ -505,7 +507,7 @@ class MetricsController(rest.RestController):
 
     @staticmethod
     def create_metric(created_by_user_id, created_by_project_id,
-                      archive_policy_name=None,
+                      archive_policy_name=None, name=None,
                       user_id=None, project_id=None):
         enforce("create metric", {
             "created_by_user_id": created_by_user_id,
@@ -513,27 +515,42 @@ class MetricsController(rest.RestController):
             "user_id": user_id,
             "project_id": project_id,
             "archive_policy_name": archive_policy_name,
+            "name": name
         })
         id = uuid.uuid4()
-        policy = pecan.request.indexer.get_archive_policy(archive_policy_name)
-        if policy is None:
-            abort(400, "Unknown archive policy %s" % archive_policy_name)
+        policy = None
+        if name is not None and archive_policy_name is None:
+            rules = pecan.request.indexer.list_archive_policy_rules()
+            for rule in rules:
+                if fnmatch.fnmatch(name, rule['metric_pattern']):
+                    policy = pecan.request.indexer.get_archive_policy(
+                        rule['archive_policy_name'])
+                    break
+            else:
+                abort(400, "No archive policy name specified and no archive"
+                           " policy rule found matching the metric name %s"
+                           % name)
+        else:
+            policy = pecan.request.indexer.get_archive_policy(
+                archive_policy_name)
+            if policy is None:
+                abort(400, "Unknown archive policy %s" % archive_policy_name)
         pecan.request.indexer.create_metric(
             id,
             created_by_user_id, created_by_project_id,
-            archive_policy_name=policy.name)
+            archive_policy_name=policy.name, name=name)
         pecan.request.storage.create_metric(storage.Metric(id, policy))
-        return id
+        return {"id": str(id),
+                "archive_policy_name": policy.name}
 
     @pecan.expose('json')
     def post(self):
         user, project = get_user_and_project()
         body = deserialize(self.Metric)
-        id = self.create_metric(user, project, **body)
-        set_resp_location_hdr("/v1/metric/" + str(id))
+        metric_info = self.create_metric(user, project, **body)
+        set_resp_location_hdr("/v1/metric/" + metric_info['id'])
         pecan.response.status = 201
-        return {"id": str(id),
-                "archive_policy_name": str(body['archive_policy_name'])}
+        return metric_info
 
     @staticmethod
     @pecan.expose('json')
