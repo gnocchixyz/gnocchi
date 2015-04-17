@@ -28,7 +28,7 @@ options you want to change and configure:
 +---------------------+---------------------------------------------------+
 | Option name         | Help                                              |
 +=====================+===================================================+
-| storage.driver      | The storage driver for metrics, Swift by default. |
+| storage.driver      | The storage driver for metrics.                   |
 +---------------------+---------------------------------------------------+
 | indexer.url         | URL to your indexer.                              |
 +---------------------+---------------------------------------------------+
@@ -42,6 +42,22 @@ options you want to change and configure:
 |                     | if you use the Ceph storage driver.               |
 +---------------------+---------------------------------------------------+
 
+
+Gnocchi provides these storage drivers:
+
+- File (default)
+- `Swift`_
+- `Ceph`_
+
+Gnocchi provides these indexer drivers:
+
+- `PostgreSQL`_ (recommended)
+- `MySQL`_
+
+.. _`Swift`: https://launchpad.net/swift
+.. _`Ceph`: http://ceph.com/
+.. _`PostgreSQL`: http://postgresql.org
+.. _`MySQL`: http://mysql.com
 
 Indexer Initialization
 ======================
