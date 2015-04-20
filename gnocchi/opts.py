@@ -65,6 +65,9 @@ def list_opts():
             cfg.StrOpt(
                 'archive_policy_name',
                 help='Archive policy name to use when creating metrics'),
+            cfg.FloatOpt(
+                'flush_delay',
+                help='Delay between flushes'),
         )),
         ("archive_policy", gnocchi.archive_policy.OPTS),
     ]
