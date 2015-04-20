@@ -230,7 +230,7 @@
       {">=": {"started_at": "2010-01-01"}}
     ]}
 
-- name: search-resource-duration
+- name: search-resource-lifespan
   request: |
     POST /v1/search/resource/instance HTTP/1.1
     Content-Type: application/json
