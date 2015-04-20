@@ -652,6 +652,32 @@ class MetricTest(RestTest):
                                     status=400)
         self.assertIn('Unknown archive policy %s' % policy, result.text)
 
+    def test_post_archive_policy_no_mean(self):
+        """Test that we have a 404 if mean is not in AP."""
+        ap = str(uuid.uuid4())
+        with self.app.use_admin_user():
+            self.app.post_json(
+                "/v1/archive_policy",
+                params={"name": ap,
+                        "aggregation_methods": ["max"],
+                        "definition": [{
+                            "granularity": "10s",
+                            "points": 20,
+                        }]},
+                status=201)
+        result = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy_name": ap},
+            status=201)
+        metric = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
+                           params=[{"timestamp": '2013-01-01 12:00:01',
+                                    "value": 8},
+                                   {"timestamp": '2013-01-01 12:00:02',
+                                    "value": 16}])
+        self.app.get("/v1/metric/%s/measures" % metric['id'],
+                     status=404)
+
     def test_list_metric(self):
         result = self.app.post_json(
             "/v1/metric",
