@@ -206,6 +206,11 @@ to describe an OpenStack instance as managed by Nova_.
 All specialized types have their own optional and mandatory attributes,
 but they all include attributes from the generic type as well.
 
+It is possible to create metrics at the same time you create a resource to save
+some requests:
+
+{{ scenarios['create-resource-with-new-metrics']['doc'] }}
+
 To retrieve a resource by its URL provided by the `Location` header at creation
 time:
 
