@@ -15,7 +15,7 @@
 
   <div class="page-body">
     <dl>
-      {% for key, value in data.items() %}
+      {% for key, value in data.iteritems() %}
         {%- if key != 'metrics' -%}
           <dt>{{ key }}</dt>
           <dd>{{ value }}</dd>
@@ -25,10 +25,12 @@
       <dt>metrics</dt>
       <dd>
         <ul>
-          {% for key, value in data.metrics.items() %}
+          {% for metric in data.metrics %}
             <li>
-              <a href="/v1/metric/{{ value | e }}/measures">{{ key | e }}</a>
-              <div id="{{ key|e }}-chart"></div>
+              <a href="/v1/metric/{{ metric.id | e }}/measures">
+                {{ metric.name | e }}
+              </a>
+              <div id="{{ metric.name|e }}-chart"></div>
             </li>
           {% endfor %}
         </ul>
@@ -40,10 +42,11 @@
 <script>
 $(function () {
     var metrics = {{ data.metrics|tojson }}
-    $.each(metrics, function(name, id) {
-        url = '/v1/metric/' + id + '/measures'
+    $.each(metrics, function(idx, metric) {
+        debugger
+        url = '/v1/metric/' + metric.id + '/measures'
         $.get(url, function(measures) {
-            drawGraph('#' + name + '-chart', measures)
+            drawGraph('#' + metric.name + '-chart', measures)
         });
     });
 });

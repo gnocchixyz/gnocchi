@@ -15,7 +15,6 @@
 # under the License.
 import os
 
-from flask import json as flask_json
 import keystonemiddleware.auth_token
 from oslo_log import log
 from oslo_policy import policy
@@ -64,7 +63,7 @@ class OsloJSONRenderer(object):
 class GnocchiJinjaRenderer(templating.JinjaRenderer):
     def __init__(self, *args, **kwargs):
         super(GnocchiJinjaRenderer, self).__init__(*args, **kwargs)
-        self.env.filters['tojson'] = flask_json.tojson_filter
+        self.env.filters['tojson'] = json.dumps
 
     def render(self, template_path, namespace):
         namespace = dict(data=namespace)
