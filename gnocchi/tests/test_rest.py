@@ -2283,6 +2283,27 @@ class GenericResourceTest(RestTest):
                 if resource['id'] == resource_id:
                     self.fail("Resource found")
 
+    def test_get_resources_metric_tied_to_user(self):
+        resource_id = str(uuid.uuid4())
+        self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": resource_id,
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": FakeMemcache.USER_ID_2,
+                "project_id": FakeMemcache.PROJECT_ID_2,
+                "metrics": {"foobar": {"archive_policy_name": "low"}},
+            })
+
+        # This user created it, she can access it
+        self.app.get(
+            "/v1/resource/generic/%s/metric/foobar" % resource_id)
+
+        with self.app.use_another_user():
+            # This user "owns it", it should be able to access it
+            self.app.get(
+                "/v1/resource/generic/%s/metric/foobar" % resource_id)
+
     def test_search_resources_invalid_query(self):
         result = self.app.post_json(
             "/v1/search/resource/generic",

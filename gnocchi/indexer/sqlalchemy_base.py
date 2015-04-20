@@ -153,12 +153,16 @@ class Metric(Base, GnocchiBase, storage.Metric):
             "created_by_user_id": self.created_by_user_id,
             "created_by_project_id": self.created_by_project_id,
             "name": self.name,
-            "resource_id": self.resource_id,
         }
-        if 'archive_policy' in sqlalchemy.inspect(self).unloaded:
+        unloaded = sqlalchemy.inspect(self).unloaded
+        if 'archive_policy' in unloaded:
             d['archive_policy_name'] = self.archive_policy_name
         else:
             d['archive_policy'] = self.archive_policy
+        if 'resource' in unloaded:
+            d['resource_id'] = self.resource_id
+        else:
+            d['resource'] = self.resource
         return d
 
     def __eq__(self, other):
@@ -225,7 +229,16 @@ class Resource(ResourceMixin, Base, GnocchiBase):
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            primary_key=True)
     revision_end = None
-    metrics = sqlalchemy.orm.relationship(Metric)
+    metrics = sqlalchemy.orm.relationship(Metric, backref="resource")
+
+    def get_metric(self, metric_name):
+        m = super(Resource, self).get_metric(metric_name)
+        if m:
+            if sqlalchemy.orm.session.object_session(self):
+                # NOTE(jd) The resource is already loaded so that should not
+                # trigger a SELECT
+                m.resource
+            return m
 
 
 class ResourceHistory(ResourceMixin, Base, GnocchiBase):
