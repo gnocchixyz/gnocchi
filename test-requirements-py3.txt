@@ -1,7 +1,7 @@
 http://tarballs.openstack.org/ceilometer/ceilometer-master.tar.gz#egg=ceilometer
 gabbi>=0.6.0
 fixtures
-keystonemiddleware
+keystonemiddleware>=1.5.0
 mock
 oslotest
 python-subunit>=0.0.18
