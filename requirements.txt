@@ -18,7 +18,7 @@ six
 sqlalchemy
 sqlalchemy-utils
 stevedore
-tooz>=0.4
+tooz>=0.11
 voluptuous
 werkzeug
 Jinja2
