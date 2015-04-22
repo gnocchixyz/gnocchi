@@ -72,6 +72,9 @@ GNOCCHI_CEPH_POOL_PGP=${GNOCCHI_CEPH_POOL_PGP:-8}
 # Gnocchi with keystone
 GNOCCHI_USE_KEYSTONE=${GNOCCHI_USE_KEYSTONE:-True}
 
+# Gnocchi backend
+GNOCCHI_STORAGE_BACKEND=${GNOCCHI_STORAGE_BACKEND:-file}
+
 # Functions
 # ---------
 
