@@ -237,7 +237,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
 
     @mock.patch('gnocchi.ceilometer.dispatcher.LOG')
     @mock.patch('gnocchi.ceilometer.dispatcher.requests')
-    def test_workflow(self, requests, logger):
+    def test_workflow(self, fake_requests, logger):
         base_url = self.dispatcher.conf.dispatcher_gnocchi.url
         url_params = {
             'url': urlparse.urljoin(base_url, '/v1/resource'),
@@ -252,12 +252,20 @@ class DispatcherWorkflowTest(base.BaseTestCase,
         patch_responses = []
         post_responses = []
 
-        expected_calls.append(mock.call.post(
-            "%(url)s/%(resource_type)s/%(resource_id)s/"
-            "metric/%(metric_name)s/measures" % url_params,
-            headers=headers,
-            data=json_matcher(self.measures_attributes))
-        )
+        # This is needed to mock Exception in py3
+        fake_requests.ConnectionError = requests.ConnectionError
+
+        expected_calls.extend([
+            mock.call.session(),
+            mock.call.adapters.HTTPAdapter(pool_block=True),
+            mock.call.session().mount('http://', mock.ANY),
+            mock.call.session().mount('https://', mock.ANY),
+            mock.call.session().post(
+                "%(url)s/%(resource_type)s/%(resource_id)s/"
+                "metric/%(metric_name)s/measures" % url_params,
+                headers=headers,
+                data=json_matcher(self.measures_attributes))
+        ])
         post_responses.append(MockResponse(self.measure))
 
         if self.post_resource:
@@ -267,7 +275,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
             attributes['metrics'] = dict((metric_name,
                                           {'archive_policy_name': 'low'})
                                          for metric_name in self.metric_names)
-            expected_calls.append(mock.call.post(
+            expected_calls.append(mock.call.session().post(
                 "%(url)s/%(resource_type)s" % url_params,
                 headers=headers,
                 data=json_matcher(attributes)),
@@ -275,16 +283,17 @@ class DispatcherWorkflowTest(base.BaseTestCase,
             post_responses.append(MockResponse(self.post_resource))
 
         if self.metric:
-            expected_calls.append(mock.call.post(
+            expected_calls.append(mock.call.session().post(
                 "%(url)s/%(resource_type)s/%(resource_id)s/metric"
-                % url_params, headers=headers,
+                % url_params,
+                headers=headers,
                 data=json_matcher({self.sample['counter_name']:
                                    {'archive_policy_name': 'low'}})
             ))
             post_responses.append(MockResponse(self.metric))
 
         if self.measure_retry:
-            expected_calls.append(mock.call.post(
+            expected_calls.append(mock.call.session().post(
                 "%(url)s/%(resource_type)s/%(resource_id)s/"
                 "metric/%(metric_name)s/measures" % url_params,
                 headers=headers,
@@ -293,15 +302,16 @@ class DispatcherWorkflowTest(base.BaseTestCase,
             post_responses.append(MockResponse(self.measure_retry))
 
         if self.patch_resource:
-            expected_calls.append(mock.call.patch(
+            expected_calls.append(mock.call.session().patch(
                 "%(url)s/%(resource_type)s/%(resource_id)s" % url_params,
                 headers=headers,
                 data=json_matcher(self.patchable_attributes)),
             )
             patch_responses.append(MockResponse(self.patch_resource))
 
-        requests.patch.side_effect = patch_responses
-        requests.post.side_effect = post_responses
+        s = fake_requests.session.return_value
+        s.patch.side_effect = patch_responses
+        s.post.side_effect = post_responses
 
         self.dispatcher.record_metering_data([self.sample])
 
@@ -337,7 +347,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
                 self.sample['counter_name'],
                 self.sample['resource_id'])
 
-        self.assertEqual(expected_calls, requests.mock_calls)
+        self.assertEqual(expected_calls, fake_requests.mock_calls)
 
 
 DispatcherWorkflowTest.generate_scenarios()
