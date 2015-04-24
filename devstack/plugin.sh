@@ -260,6 +260,11 @@ function init_gnocchi {
 function install_gnocchi {
     git_clone $GNOCCHI_REPO $GNOCCHI_DIR $GNOCCHI_BRANCH
 
+    if [ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]; then
+        # NOTE(sileht): this is defined into ceilometer lib
+        install_redis
+    fi
+
     # NOTE(sileht): requirements are not yet merged with the global-requirement repo
     # setup_develop $GNOCCHI_DIR
     setup_package $GNOCCHI_DIR -e
