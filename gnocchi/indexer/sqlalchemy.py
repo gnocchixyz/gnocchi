@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 import itertools
 import operator
+import os.path
 
 from oslo_db import exception
 from oslo_db.sqlalchemy import models
@@ -74,9 +75,32 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def disconnect(self):
         self.engine_facade.get_engine().dispose()
 
-    def upgrade(self):
-        engine = self.engine_facade.get_engine()
-        Base.metadata.create_all(engine, checkfirst=True)
+    def _get_alembic_config(self):
+        from alembic import config
+
+        cfg = config.Config(
+            "%s/alembic/alembic.ini" % os.path.dirname(__file__))
+        cfg.set_main_option('sqlalchemy.url',
+                            self.conf.database.connection)
+        return cfg
+
+    def upgrade(self, nocreate=False):
+        from alembic import command
+        from alembic import migration
+
+        cfg = self._get_alembic_config()
+        cfg.conf = self.conf
+        if nocreate:
+            command.upgrade(cfg, "head")
+        else:
+            engine = self.engine_facade.get_engine()
+            ctxt = migration.MigrationContext.configure(engine.connect())
+            current_version = ctxt.get_current_revision()
+            if current_version is None:
+                Base.metadata.create_all(engine)
+                command.stamp(cfg, "head")
+            else:
+                command.upgrade(cfg, "head")
 
     def _resource_type_to_class(self, resource_type, purpose="resource"):
         if resource_type not in self._RESOURCE_CLASS_MAPPER:

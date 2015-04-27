@@ -288,14 +288,19 @@ class TestCase(base.BaseTestCase):
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
         # checkfirst=True, so what we do here is we force the upgrade code
-        # path to be sequential to avoid race conditions as the tests run in
-        # parallel.
+        # path to be sequential to avoid race conditions as the tests run
+        # in parallel.
         self.coord = coordination.get_coordinator(
             os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
             str(uuid.uuid4()).encode('ascii'))
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
-            self.index.upgrade()
+            # Force upgrading using Alembic rather than creating the
+            # database from scratch so we are sure we don't miss anything
+            # in the Alembic upgrades. We have a test to check that
+            # upgrades == create but it misses things such as custom CHECK
+            # constraints.
+            self.index.upgrade(nocreate=True)
 
         self.archive_policies = self.ARCHIVE_POLICIES
         # Used in gnocchi.gendoc

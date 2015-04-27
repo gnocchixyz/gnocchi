@@ -220,7 +220,7 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def upgrade():
+    def upgrade(nocreate=False):
         pass
 
     @staticmethod

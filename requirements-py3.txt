@@ -28,3 +28,4 @@ msgpack-python
 retrying
 pytz
 WebOb>=1.4.1
+alembic>=0.7
