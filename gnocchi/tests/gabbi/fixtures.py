@@ -72,9 +72,6 @@ class ConfigFixture(fixture.GabbiFixture):
         PECAN_CONF.update(app.PECAN_CONFIG)
 
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
-        coordination_dir = os.path.join(data_tmp_dir, 'tooz')
-        os.mkdir(coordination_dir)
-        coordination_url = 'file://%s' % coordination_dir
 
         conf = service.prepare_service([])
 
@@ -99,7 +96,10 @@ class ConfigFixture(fixture.GabbiFixture):
         # and thus should override conf settings.
         if 'DEVSTACK_GATE_TEMPEST' not in os.environ:
             conf.set_override('driver', 'file', 'storage')
-            conf.set_override('coordination_url', coordination_url, 'storage')
+            self.conf.set_override(
+                'coordination_url',
+                os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+                'storage')
             conf.set_override('policy_file',
                               os.path.abspath('etc/gnocchi/policy.json'),
                               group="oslo_policy")

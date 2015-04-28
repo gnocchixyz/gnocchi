@@ -14,3 +14,4 @@ testtools>=0.9.38
 WebTest>=2.0.16
 doc8
 sphinxcontrib-httpdomain
+sysv_ipc

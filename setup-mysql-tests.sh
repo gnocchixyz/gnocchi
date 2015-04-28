@@ -19,7 +19,7 @@ export GNOCCHI_TEST_INDEXER_URL="mysql+pymysql://root@localhost/test?unix_socket
 mysql --no-defaults -S ${MYSQL_DATA}/mysql.socket -e 'CREATE DATABASE test;'
 
 mkdir $MYSQL_DATA/tooz
-export GNOCCHI_COORDINATION_URL="file:///$MYSQL_DATA/tooz"
+export GNOCCHI_COORDINATION_URL="mysql://root@localhost/test?unix_socket=${MYSQL_DATA}/mysql.socket&charset=utf8"
 
 $*
 

@@ -46,6 +46,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             if e.errno != errno.EEXIST:
                 raise
 
+    def stop(self):
+        self._lock.stop()
+
     def _build_metric_path(self, metric, aggregation=None):
         path = os.path.join(self.basepath, str(metric.id))
         if aggregation:

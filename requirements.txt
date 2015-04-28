@@ -23,7 +23,6 @@ voluptuous
 werkzeug
 Jinja2
 PyYAML
-sysv_ipc
 msgpack-python
 trollius
 retrying
