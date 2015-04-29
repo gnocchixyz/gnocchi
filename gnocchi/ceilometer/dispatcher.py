@@ -17,6 +17,7 @@
 # under the License.
 from __future__ import absolute_import
 import fnmatch
+import threading
 
 import itertools
 import json
@@ -82,9 +83,13 @@ class ResourceAlreadyExists(Exception):
 
 
 def log_and_ignore_unexpected_workflow_error(func):
-    def log_and_ignore(*args, **kwargs):
+    def log_and_ignore(self, *args, **kwargs):
         try:
-            func(*args, **kwargs)
+            func(self, *args, **kwargs)
+        except requests.ConnectionError as e:
+            with self._gnocchi_api_lock:
+                self._gnocchi_api = None
+            LOG.warn("Connection error, reconnecting...")
         except UnexpectedWorkflowError as e:
             LOG.error(six.text_type(e))
     return log_and_ignore
@@ -96,8 +101,6 @@ class GnocchiDispatcher(dispatcher.Base):
         self.conf = conf
         self.filter_service_activity = (
             conf.dispatcher_gnocchi.filter_service_activity)
-        self._gnocchi_project_id = None
-
         self._ks_client = utils.get_keystone_client()
         self.gnocchi_url = conf.dispatcher_gnocchi.url
         self.gnocchi_archive_policy_default = (
@@ -106,6 +109,11 @@ class GnocchiDispatcher(dispatcher.Base):
         self.mgmr = stevedore.dispatch.DispatchExtensionManager(
             'gnocchi.ceilometer.resource', lambda x: True,
             invoke_on_load=True)
+
+        self._gnocchi_project_id = None
+        self._gnocchi_project_id_lock = threading.Lock()
+        self._gnocchi_api = None
+        self._gnocchi_api_lock = threading.Lock()
 
     def _get_headers(self, content_type="application/json"):
         return {
@@ -154,16 +162,37 @@ class GnocchiDispatcher(dispatcher.Base):
 
     @property
     def gnocchi_project_id(self):
-        if self._gnocchi_project_id is None:
-            try:
-                project = self._ks_client.tenants.find(
-                    name=self.conf.dispatcher_gnocchi.filter_project)
-            except Exception:
-                LOG.exception('fail to retreive user of Gnocchi service')
-                raise
-            self._gnocchi_project_id = project.id
-            LOG.debug("gnocchi project found: %s" % self.gnocchi_project_id)
-        return self._gnocchi_project_id
+        if self._gnocchi_project_id is not None:
+            return self._gnocchi_project_id
+        with self._gnocchi_project_id_lock:
+            if self._gnocchi_project_id is None:
+                try:
+                    project = self._ks_client.tenants.find(
+                        name=self.conf.dispatcher_gnocchi.filter_project)
+                except Exception:
+                    LOG.exception('fail to retreive user of Gnocchi service')
+                    raise
+                self._gnocchi_project_id = project.id
+                LOG.debug("gnocchi project found: %s" %
+                          self.gnocchi_project_id)
+            return self._gnocchi_project_id
+
+    @property
+    def gnocchi_api(self):
+        """return a working requests session object"""
+        if self._gnocchi_api is not None:
+            return self._gnocchi_api
+
+        with self._gnocchi_api_lock:
+            if self._gnocchi_api is None:
+                self._gnocchi_api = requests.session()
+                # NOTE(sileht): wait when the pool is empty
+                # instead of raising errors.
+                adapter = requests.adapters.HTTPAdapter(pool_block=True)
+                self._gnocchi_api.mount("http://", adapter)
+                self._gnocchi_api.mount("https://", adapter)
+
+            return self._gnocchi_api
 
     def _is_gnocchi_activity(self, sample):
         return (self.filter_service_activity and (
@@ -274,14 +303,14 @@ class GnocchiDispatcher(dispatcher.Base):
 
     def _post_measure(self, resource_type, resource_id, metric_name,
                       measure_attributes):
-        r = requests.post("%s/v1/resource/%s/%s/metric/%s/measures"
-                          % (self.gnocchi_url, resource_type, resource_id,
-                             metric_name),
-                          headers=self._get_headers(),
-                          data=json.dumps(measure_attributes))
+        r = self.gnocchi_api.post("%s/v1/resource/%s/%s/metric/%s/measures"
+                                  % (self.gnocchi_url, resource_type,
+                                     resource_id, metric_name),
+                                  headers=self._get_headers(),
+                                  data=json.dumps(measure_attributes))
         if r.status_code == 404:
             LOG.debug(_("The metric %(metric_name)s of "
-                        "resource %(resource_id)s doesn't exists"
+                        "resource %(resource_id)s doesn't exists: "
                         "%(status_code)d"),
                       {'metric_name': metric_name,
                        'resource_id': resource_id,
@@ -302,10 +331,10 @@ class GnocchiDispatcher(dispatcher.Base):
 
     def _create_resource(self, resource_type, resource_id,
                          resource_attributes):
-        r = requests.post("%s/v1/resource/%s"
-                          % (self.gnocchi_url, resource_type),
-                          headers=self._get_headers(),
-                          data=json.dumps(resource_attributes))
+        r = self.gnocchi_api.post("%s/v1/resource/%s"
+                                  % (self.gnocchi_url, resource_type),
+                                  headers=self._get_headers(),
+                                  data=json.dumps(resource_attributes))
         if r.status_code == 409:
             LOG.debug("Resource %s already exists", resource_id)
             raise ResourceAlreadyExists
@@ -322,7 +351,7 @@ class GnocchiDispatcher(dispatcher.Base):
 
     def _update_resource(self, resource_type, resource_id,
                          resource_attributes):
-        r = requests.patch(
+        r = self.gnocchi_api.patch(
             "%s/v1/resource/%s/%s"
             % (self.gnocchi_url, resource_type, resource_id),
             headers=self._get_headers(),
@@ -340,11 +369,11 @@ class GnocchiDispatcher(dispatcher.Base):
 
     def _create_metric(self, resource_type, resource_id, metric_name):
         params = {metric_name: self.get_archive_policy(metric_name)}
-        r = requests.post("%s/v1/resource/%s/%s/metric"
-                          % (self.gnocchi_url, resource_type,
-                             resource_id),
-                          headers=self._get_headers(),
-                          data=json.dumps(params))
+        r = self.gnocchi_api.post("%s/v1/resource/%s/%s/metric"
+                                  % (self.gnocchi_url, resource_type,
+                                     resource_id),
+                                  headers=self._get_headers(),
+                                  data=json.dumps(params))
         if r.status_code == 409:
             LOG.debug("Metric %s of resource %s already exists",
                       metric_name, resource_id)
