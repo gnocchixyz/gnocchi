@@ -100,15 +100,7 @@ class DispatcherTest(base.BaseTestCase):
 
     @mock.patch('gnocchi.ceilometer.dispatcher.GnocchiDispatcher'
                 '._process_samples')
-    def _do_test_activity_filter(self, is_gnocchi_activity,
-                                 fake_process_samples):
-        if is_gnocchi_activity:
-            self.samples[0]['project_id'] = (
-                'a2d42c23-d518-46b6-96ab-3fba2e146859')
-            expected_samples = [self.samples[1]]
-        else:
-            expected_samples = self.samples
-
+    def _do_test_activity_filter(self, expected_samples, fake_process_samples):
         d = dispatcher.GnocchiDispatcher(self.conf.conf)
         d.record_metering_data(self.samples)
 
@@ -137,11 +129,18 @@ class DispatcherTest(base.BaseTestCase):
                 'foo.disk.rate')['archive_policy_name'], "low")
         archive_policy_cfg_file.close()
 
-    def test_activity_filter_match(self):
-        self._do_test_activity_filter(True)
+    def test_activity_filter_match_project_id(self):
+        self.samples[0]['project_id'] = (
+            'a2d42c23-d518-46b6-96ab-3fba2e146859')
+        self._do_test_activity_filter([self.samples[1]])
+
+    def test_activity_filter_match_swift_event(self):
+        self.samples[0]['counter_name'] = 'storage.api.request'
+        self.samples[0]['resource_id'] = 'a2d42c23-d518-46b6-96ab-3fba2e146859'
+        self._do_test_activity_filter([self.samples[1]])
 
     def test_activity_filter_nomatch(self):
-        self._do_test_activity_filter(False)
+        self._do_test_activity_filter(self.samples)
 
 
 class MockResponse(mock.NonCallableMock):
