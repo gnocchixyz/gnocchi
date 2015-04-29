@@ -1,0 +1,39 @@
+#
+# Gabbi tests for investigating authentication and authorization
+# related error conditions. These are without keystonemiddleware in
+# place and are effectively testing situations that would only
+# happen if the middleware was behaving oddly or not present.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+
+# A project-id or user-id that is not a uuid should cause a 400.
+
+    - name: bad project-id when creating resource
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          content-type: application/json
+          x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+          x-project-id: 99d13f22
+      data:
+          id: 5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
+      status: 400
+      response_strings:
+          - Malformed X-Project-Id
+
+    - name: bad user-id when creating resource
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          content-type: application/json
+          x-user-id: 93180da9
+          x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+      data:
+          id: 5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
+      status: 400
+      response_strings:
+          - Malformed X-User-Id
