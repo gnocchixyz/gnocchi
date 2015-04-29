@@ -484,6 +484,34 @@ tests:
       response_strings:
           - Start timestamp cannot be after end timestamp
 
+# Post metrics to unknown resource
+
+    - name: post to non uuid metrics
+      desc: 404 from GenericResourceController
+      url: /v1/resource/instance/not.a.uuid/metric
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          some.metric:
+              archive_policy_name: medium
+      status: 404
+
+    - name: post to missing uuid metrics
+      desc: 404 from NamedMetricController
+      url: /v1/resource/instance/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          some.metric:
+              archive_policy_name: medium
+      status: 404
+
 # DELETE-ing instances
 
     - name: delete instance
