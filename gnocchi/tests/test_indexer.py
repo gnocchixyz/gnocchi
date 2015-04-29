@@ -86,7 +86,7 @@ class TestIndexerDriver(tests_base.TestCase):
         user = uuid.uuid4()
         project = uuid.uuid4()
         rc = self.index.create_resource('generic', r1, user, project)
-        self.assertIsNotNone(rc['started_at'])
+        self.assertIsNotNone(rc.started_at)
         self.assertIsNotNone(rc.revision_start)
         self.assertEqual({"id": r1,
                           "revision_start": rc.revision_start,
@@ -135,7 +135,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                         image_ref="http://foo/bar",
                                         host="foo",
                                         display_name="lol", **kwargs)
-        self.assertIsNotNone(rc['started_at'])
+        self.assertIsNotNone(rc.started_at)
         self.assertIsNotNone(rc.revision_start)
         self.assertEqual({"id": r1,
                           "revision_start": rc.revision_start,
@@ -155,9 +155,9 @@ class TestIndexerDriver(tests_base.TestCase):
                           "metrics": {}},
                          rc.jsonify())
         rg = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertEqual(rc['id'], rg['id'])
-        self.assertEqual(rc["revision_start"], rg["revision_start"])
-        self.assertEqual(rc['metrics'], rg['metrics'])
+        self.assertEqual(rc.id, rg.id)
+        self.assertEqual(rc.revision_start, rg.revision_start)
+        self.assertEqual(rc.metrics, rg.metrics)
 
     def test_create_instance(self):
         self._do_test_create_instance()
@@ -226,7 +226,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                  archive_policy_name="low")
         rc = self.index.create_resource('generic', r1, user, project,
                                         metrics={'foo': e1, 'bar': e2})
-        self.assertIsNotNone(rc['started_at'])
+        self.assertIsNotNone(rc.started_at)
         self.assertIsNotNone(rc.revision_start)
         self.assertEqual({"id": r1,
                           "revision_start": rc.revision_start,
@@ -241,7 +241,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "metrics": {'foo': str(e1), 'bar': str(e2)}},
                          rc.jsonify())
         r = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertIsNotNone(r['started_at'])
+        self.assertIsNotNone(r.started_at)
         self.assertEqual({"id": r1,
                           "revision_start": r.revision_start,
                           "revision_end": None,
@@ -290,10 +290,10 @@ class TestIndexerDriver(tests_base.TestCase):
             r1,
             ended_at=None)
         r = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertIsNotNone(r['started_at'])
-        self.assertIsNotNone(r["revision_start"])
+        self.assertIsNotNone(r.started_at)
+        self.assertIsNotNone(r.revision_start)
         self.assertEqual({"id": r1,
-                          "revision_start": r["revision_start"],
+                          "revision_start": r.revision_start,
                           "revision_end": None,
                           "ended_at": None,
                           "created_by_user_id": user,
@@ -427,7 +427,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                         metrics={'foo': e1, 'bar': e2})
         self.index.delete_metric(e1)
         r = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertIsNotNone(r['started_at'])
+        self.assertIsNotNone(r.started_at)
         self.assertIsNotNone(r.revision_start)
         self.assertEqual({"id": r1,
                           "started_at": r.started_at,
@@ -575,10 +575,10 @@ class TestIndexerDriver(tests_base.TestCase):
         g_found = False
         i_found = False
         for r in resources:
-            if r['id'] == r1:
+            if r.id == r1:
                 self.assertEqual(g, r)
                 g_found = True
-            elif r['id'] == r2:
+            elif r.id == r2:
                 i_found = True
             if i_found and g_found:
                 break
@@ -588,7 +588,7 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = self.index.list_resources('instance')
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
-            if r['id'] == r2:
+            if r.id == r2:
                 self.assertEqual(i, r)
                 break
         else:
@@ -619,7 +619,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                               details=True)
         self.assertGreaterEqual(len(resources), 1)
         expected_resources = [r.jsonify() for r in resources
-                              if r['id'] == rid]
+                              if r.id == rid]
         self.assertIn(r2, expected_resources)
 
     def test_list_resources_with_history(self):
@@ -646,7 +646,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                         project_id=new_project,
                                         append_metrics=True).jsonify()
 
-        r1['revision_end'] = r2["revision_start"]
+        r1['revision_end'] = r2['revision_start']
         r2['revision_end'] = None
         self.assertEqual({'foo': str(e1),
                           'bar': str(e2)}, r2['metrics'])
@@ -691,7 +691,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                         host="other",
                                         append_metrics=True).jsonify()
 
-        r1['revision_end'] = r2["revision_start"]
+        r1['revision_end'] = r2['revision_start']
         r2['revision_end'] = None
         self.assertEqual({'foo': str(e1),
                           'bar': str(e2)}, r2['metrics'])
@@ -740,10 +740,10 @@ class TestIndexerDriver(tests_base.TestCase):
         g_found = False
         i_found = False
         for r in resources:
-            if r['id'] == r1:
+            if r.id == r1:
                 self.assertEqual(g, r)
                 g_found = True
-            elif r['id'] == r2:
+            elif r.id == r2:
                 i_found = True
             if i_found and g_found:
                 break
@@ -759,7 +759,7 @@ class TestIndexerDriver(tests_base.TestCase):
             })
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
-            if r['id'] == r2:
+            if r.id == r2:
                 self.assertEqual(i, r)
                 break
         else:
