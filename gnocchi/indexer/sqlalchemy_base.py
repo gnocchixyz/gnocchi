@@ -134,17 +134,21 @@ class Metric(Base, GnocchiBase, storage.Metric):
                            primary_key=True)
     archive_policy_name = sqlalchemy.Column(
         sqlalchemy.String(255),
-        sqlalchemy.ForeignKey('archive_policy.name',
-                              ondelete="RESTRICT"),
+        sqlalchemy.ForeignKey(
+            'archive_policy.name',
+            ondelete="RESTRICT",
+            name="fk_metric_archive_policy_name_archive_policy_name"),
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy)
     created_by_user_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False))
     created_by_project_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(binary=False))
-    resource_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                    sqlalchemy.ForeignKey('resource.id',
-                                                          ondelete="CASCADE"))
+    resource_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(binary=False),
+        sqlalchemy.ForeignKey('resource.id',
+                              ondelete="CASCADE",
+                              name="fk_metric_resource_id_resource_id"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
 
     def jsonify(self):
@@ -246,8 +250,10 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
     revision = sqlalchemy.Column(sqlalchemy.Integer, autoincrement=True,
                                  primary_key=True)
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                           sqlalchemy.ForeignKey('resource.id',
-                                                 ondelete="CASCADE"),
+                           sqlalchemy.ForeignKey(
+                               'resource.id',
+                               ondelete="CASCADE",
+                               name="fk_resource_history_id_resource_id"),
                            nullable=False)
     revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                      default=timeutils.utcnow)
@@ -271,10 +277,13 @@ class ResourceExtMixin(object):
 
     @declarative.declared_attr
     def id(cls):
-        return sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
-                                 sqlalchemy.ForeignKey('resource.id',
-                                                       ondelete="CASCADE"),
-                                 primary_key=True)
+        return sqlalchemy.Column(
+            sqlalchemy_utils.UUIDType(binary=False),
+            sqlalchemy.ForeignKey(
+                'resource.id',
+                ondelete="CASCADE",
+                name="fk_%s_id_resource_id" % cls.__tablename__),
+            primary_key=True)
 
 
 class ResourceHistoryExtMixin(object):
@@ -286,11 +295,14 @@ class ResourceHistoryExtMixin(object):
 
     @declarative.declared_attr
     def revision(cls):
-        return sqlalchemy.Column(sqlalchemy.Integer,
-                                 sqlalchemy.ForeignKey(
-                                     'resource_history.revision',
-                                     ondelete="CASCADE"),
-                                 primary_key=True)
+        return sqlalchemy.Column(
+            sqlalchemy.Integer,
+            sqlalchemy.ForeignKey(
+                'resource_history.revision',
+                ondelete="CASCADE",
+                name="fk_%s_revision_resource_history_revision"
+                % cls.__tablename__),
+            primary_key=True)
 
 
 class ArchivePolicyRule(Base, GnocchiBase):
@@ -303,7 +315,10 @@ class ArchivePolicyRule(Base, GnocchiBase):
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
     archive_policy_name = sqlalchemy.Column(
         sqlalchemy.String(255),
-        sqlalchemy.ForeignKey('archive_policy.name',
-                              ondelete="RESTRICT"),
+        sqlalchemy.ForeignKey(
+            'archive_policy.name',
+            ondelete="RESTRICT",
+            name="fk_archive_policy_rule_"
+            "archive_policy_name_archive_policy_name"),
         nullable=False)
     metric_pattern = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
