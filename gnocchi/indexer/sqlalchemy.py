@@ -181,13 +181,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             m.archive_policy
         return m
 
-    def list_metrics(self, user_id=None, project_id=None):
+    def list_metrics(self, user_id=None, project_id=None, details=False,
+                     **kwargs):
         session = self.engine_facade.get_session()
         q = session.query(Metric)
         if user_id is not None:
             q = q.filter(Metric.created_by_user_id == user_id)
         if project_id is not None:
             q = q.filter(Metric.created_by_project_id == project_id)
+        for attr in kwargs:
+            q = q.filter(getattr(Metric, attr) == kwargs[attr])
+        if details:
+            q = q.options(sqlalchemy.orm.joinedload(Metric.archive_policy)
+                          ).options(sqlalchemy.orm.joinedload(Metric.resource))
+
         return q.all()
 
     def create_resource(self, resource_type, id,

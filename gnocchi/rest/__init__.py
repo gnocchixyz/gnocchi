@@ -600,15 +600,12 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        # TODO(jd) There might be an slight optimization to do by using a
-        # dedicated driver method rather than get_resource, which might be
-        # heavier.
-        resource = pecan.request.indexer.get_resource(
-            'generic', self.resource_id, with_metrics=True)
-        if resource:
-            m = resource.get_metric(name)
-            if m:
-                return MetricController(m), remainder
+        m = pecan.request.indexer.list_metrics(details=True,
+                                               name=name,
+                                               resource_id=self.resource_id)
+        if m:
+            return MetricController(m[0]), remainder
+
         abort(404)
 
     @pecan.expose()
