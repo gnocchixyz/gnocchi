@@ -247,7 +247,8 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                  primary_key=True)
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(binary=False),
                            sqlalchemy.ForeignKey('resource.id',
-                                                 ondelete="CASCADE"))
+                                                 ondelete="CASCADE"),
+                           nullable=False)
     revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                      default=timeutils.utcnow)
     metrics = sqlalchemy.orm.relationship(
