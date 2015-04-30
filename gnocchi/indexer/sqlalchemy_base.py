@@ -196,7 +196,7 @@ class ResourceMixin(ResourceJsonifier):
         return (sqlalchemy.Index('ix_%s_id' % cls.__tablename__, 'id'),
                 COMMON_TABLES_ARGS)
 
-    type = sqlalchemy.Column(sqlalchemy.Enum('metric', 'generic', 'instance',
+    type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
                                              'swift_account', 'volume',
                                              'ceph_account', 'network',
                                              'identity', 'ipmi', 'stack',
