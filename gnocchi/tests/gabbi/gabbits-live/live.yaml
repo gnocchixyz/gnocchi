@@ -23,3 +23,25 @@ tests:
           content-type: /application/json/
       response_strings:
           - "[]"
+
+    - name: post unicode archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: ✔éñ☃
+          definition:
+              - granularity: 1 minute
+                points: 20
+      status: 201
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      response_json_paths:
+          name: ✔éñ☃
+
+    - name: get unicode archive policy
+      url:  $LOCATION
+      response_json_paths:
+          $.name: ✔éñ☃
