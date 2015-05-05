@@ -125,6 +125,19 @@ tests:
       response_strings:
           - "Invalid input: length of value must be at least 1"
 
+    - name: wrong value definition
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: somename
+          definition: foobar
+      status: 400
+      response_strings:
+          - "Invalid input: expected a list"
+
     - name: useless definition
       url: /v1/archive_policy
       method: POST
@@ -151,6 +164,7 @@ tests:
           name: medium
           definition:
               - granularity: 1 second
+                points: 20
               - granularity: 2 second
       response_headers:
           location: $SCHEME://$NETLOC/v1/archive_policy/medium
@@ -165,7 +179,11 @@ tests:
       response_json_paths:
           $.name: medium
           $.definition[0].granularity: "0:00:01"
+          $.definition[0].points: 20
+          $.definition[0].timespan: "0:00:20"
           $.definition[1].granularity: "0:00:02"
+          $.definition[1].points: null
+          $.definition[1].timespan: null
 
     - name: get wrong accept
       url: /v1/archive_policy/medium
@@ -216,6 +234,58 @@ tests:
           definition:
               - granularity: 1 hour
       status: 409
+      response_strings:
+          - Archive policy large already exists
+
+# Create a unicode named policy
+
+    - name: post unicode policy name
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: ✔éñ☃
+          definition:
+              - granularity: 1 minute
+                points: 20
+      status: 201
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      response_json_paths:
+          name: ✔éñ☃
+
+    - name: retrieve unicode policy name
+      desc: https://bugs.launchpad.net/pecan/+bug/1451842
+      xfail: True
+      url: $LOCATION
+      response_json_paths:
+          name: ✔éñ☃
+
+    - name: post small unicode policy name
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: æ
+          definition:
+              - granularity: 1 minute
+                points: 20
+      status: 201
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/%C3%A6
+      response_json_paths:
+          name: æ
+
+    - name: retrieve small unicode policy name
+      desc: https://bugs.launchpad.net/pecan/+bug/1451842
+      xfail: True
+      url: $LOCATION
+      response_json_paths:
+          name: æ
 
 # List the collection
 
@@ -245,6 +315,8 @@ tests:
       url: /v1/archive_policy/grandiose
       method: DELETE
       status: 404
+      response_strings:
+          - Archive policy grandiose does not exist
 
 # Add metric using the policy and then be unable to delete policy
 
@@ -266,7 +338,7 @@ tests:
       response_strings:
           - Archive policy large is still in use
 
-# Attempt to create an illogical policy
+# Attempt to create illogical policies
 
     - name: create illogical policy
       url: /v1/archive_policy
@@ -282,4 +354,108 @@ tests:
                 timespan: "0:01:01"
       status: 400
       response_strings:
-          - pan ≠ granularity × points
+          - timespan ≠ granularity × points
+
+    - name: policy invalid unit
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: 227d0e1f-4295-4e4b-8515-c296c47d71d3
+          definition:
+              - granularity: 1 second
+                timespan: "1 shenanigan"
+      status: 400
+
+# Non admin user attempt
+
+    - name: fail to create policy non-admin
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          x-user-id: b45187c5-150b-4730-bcb2-b5e04e234220
+          x-project-id: 16764ee0-bffe-4843-aa36-04b002cdbc7c
+      data:
+          name: f1d150d9-02ad-4fe7-8872-c64b2bcaaa97
+          definition:
+              - granularity: 1 minute
+                points: 20
+      status: 403
+      response_strings:
+          - Access was denied to this resource
+
+# Back windows
+
+    - name: policy with back window
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: 7720a99d-cd3b-4aa4-8a6f-935bf0d46ded
+          back_window: 1
+          definition:
+              - granularity: 10s
+                points: 20
+      status: 201
+      response_json_paths:
+          $.back_window: 1
+          $.definition[0].timespan: "0:03:20"
+
+    - name: policy no back window
+      desc: and default seconds on int granularity
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: 22f2b99f-e629-4170-adc4-09b65635e056
+          back_window: 0
+          definition:
+              - granularity: 10
+                points: 20
+      status: 201
+      response_json_paths:
+          $.back_window: 0
+          $.definition[0].points: 20
+          $.definition[0].timespan: "0:03:20"
+
+# Timespan, points, granularity input tests
+
+    - name: policy float granularity
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: 595228db-ea29-4415-9d5b-ecb5366abb1b
+          definition:
+              - timespan: 1 hour
+                points: 1000
+      status: 201
+      response_json_paths:
+          $.definition[0].points: 1000
+          $.definition[0].granularity: "0:00:04"
+          $.definition[0].timespan: "1:06:40"
+
+    - name: policy float timespan
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: 6bc72791-a27e-4417-a589-afc6d2067a38
+          definition:
+              - timespan: 1 hour
+                granularity: 7s
+      status: 201
+      response_json_paths:
+          $.definition[0].points: 514
+          $.definition[0].granularity: "0:00:07"
+          $.definition[0].timespan: "0:59:58"
