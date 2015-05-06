@@ -114,16 +114,16 @@ class DispatcherTest(base.BaseTestCase):
         self.assertEqual(d.gnocchi_archive_policy_default, "low")
 
     def test_archive_policy_map_config(self):
-        archive_policy_map = yaml.dump([{
+        archive_policy_map = yaml.dump({
             'foo.*': 'low'
-        }])
+        })
         archive_policy_cfg_file = tempfile.NamedTemporaryFile(
             mode='w+b', prefix="foo", suffix=".yaml")
         archive_policy_cfg_file.write(archive_policy_map.encode())
         archive_policy_cfg_file.seek(0)
-        d = dispatcher.GnocchiDispatcher(self.conf.conf)
-        d.conf.dispatcher_gnocchi.archive_policy_file = (
+        self.conf.conf.dispatcher_gnocchi.archive_policy_file = (
             archive_policy_cfg_file.name)
+        d = dispatcher.GnocchiDispatcher(self.conf.conf)
         self.assertEqual(
             d.get_archive_policy(
                 'foo.disk.rate')['archive_policy_name'], "low")
