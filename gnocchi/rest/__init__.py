@@ -762,7 +762,7 @@ class InstanceResourceController(GenericResourceController):
     _resource_type = 'instance'
 
     Resource = ResourceSchema({
-        "flavor_id": int,
+        "flavor_id": six.text_type,
         "image_ref": six.text_type,
         "host": six.text_type,
         "display_name": six.text_type,
