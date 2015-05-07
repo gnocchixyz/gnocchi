@@ -335,8 +335,6 @@ if is_service_enabled gnocchi-api; then
         echo_summary "Configuring Gnocchi"
         configure_gnocchi
         create_gnocchi_accounts
-    elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
-        echo_summary "Initializing Gnocchi"
         if is_service_enabled ceilometer; then
             echo_summary "Configuring Ceilometer for gnocchi"
             configure_ceilometer_gnocchi
@@ -349,6 +347,8 @@ if is_service_enabled gnocchi-api; then
             echo_summary "Configuring Gnocchi for Heat"
             configure_heat_gnocchi
         fi
+    elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
+        echo_summary "Initializing Gnocchi"
         init_gnocchi
         start_gnocchi
     fi
