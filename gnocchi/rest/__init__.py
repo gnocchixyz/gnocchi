@@ -612,6 +612,8 @@ class NamedMetricController(rest.RestController):
     def post(self):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
+        if not resource:
+            abort(404)
         enforce("update resource", resource)
         user, project = get_user_and_project()
         metrics = convert_metric_list(deserialize(Metrics), user, project)
