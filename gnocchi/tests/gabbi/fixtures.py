@@ -115,9 +115,11 @@ class ConfigFixture(fixture.GabbiFixture):
         # Turn off any middleware.
         conf.set_override('middlewares', [], 'api')
 
+        self.index = index
+
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
-        self.conf.reset()
+        self.index.disconnect()
 
         if not self.conf.indexer.url.startswith("null://"):
             # Swallow noise from missing tables when dropping
@@ -128,3 +130,5 @@ class ConfigFixture(fixture.GabbiFixture):
                 sqlalchemy_utils.drop_database(self.conf.indexer.url)
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
+
+        self.conf.reset()
