@@ -604,33 +604,6 @@ class ArchivePolicyTest(RestTest):
 
 
 class MetricTest(RestTest):
-    def test_post_metric(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "medium"},
-                                    status=201)
-        self.assertEqual("application/json", result.content_type)
-        metric = json.loads(result.text)
-        self.assertEqual("http://localhost/v1/metric/" + metric['id'],
-                         result.headers['Location'])
-        self.assertEqual("medium", metric['archive_policy']['name'])
-
-    def test_get_metric(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "medium"},
-                                    status=201)
-        self.assertEqual("application/json", result.content_type)
-
-        result = self.app.get(result.headers['Location'], status=200)
-        metric = json.loads(result.text)
-        self.assertNotIn('archive_policy_name', metric)
-        ap = metric['archive_policy']
-        ap_ref = self.archive_policies['medium']
-        self.assertEqual(ap_ref.aggregation_methods,
-                         set(ap['aggregation_methods']))
-        self.assertEqual(ap_ref.back_window, ap['back_window'])
-        self.assertEqual(ap_ref.name, ap['name'])
-        self.assertEqual([d.jsonify() for d in ap_ref.definition],
-                         ap['definition'])
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
@@ -640,17 +613,6 @@ class MetricTest(RestTest):
 
         with self.app.use_another_user():
             self.app.get(result.headers['Location'], status=403)
-
-    def test_get_metric_with_wrong_metric_id(self):
-        fake_metric_id = uuid.uuid4()
-        self.app.get("/v1/metric/%s" % fake_metric_id, status=404)
-
-    def test_post_metric_wrong_archive_policy(self):
-        policy = str(uuid.uuid4())
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": policy},
-                                    status=400)
-        self.assertIn('Unknown archive policy %s' % policy, result.text)
 
     def test_post_archive_policy_no_mean(self):
         """Test that we have a 404 if mean is not in AP."""
@@ -678,71 +640,12 @@ class MetricTest(RestTest):
         self.app.get("/v1/metric/%s/measures" % metric['id'],
                      status=404)
 
-    def test_list_metric(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"},
-            status=201)
-        metric = json.loads(result.text)
-        result = self.app.get("/v1/metric")
-        self.assertIn(metric['id'],
-                      [r['id'] for r in json.loads(result.text)])
-        # Only test that if we have auth enabled
-        if self.middlewares:
-            result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
-            self.assertIn(metric['id'],
-                          [r['id'] for r in json.loads(result.text)])
-
-    def test_list_metric_filter_as_admin(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": "medium"})
-        metric = json.loads(result.text)
-        with self.app.use_admin_user():
-            result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID)
-        self.assertIn(metric['id'],
-                      [r['id'] for r in json.loads(result.text)])
-
-    def test_list_metric_invalid_user(self):
-        result = self.app.get("/v1/metric?user_id=" + FakeMemcache.USER_ID_2,
-                              status=403)
-        self.assertIn("Insufficient privileges to filter by user/project",
-                      result.text)
-
-    def test_delete_metric(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "medium"})
-        metric = json.loads(result.text)
-        result = self.app.delete("/v1/metric/" + metric['id'], status=204)
-
     def test_delete_metric_another_user(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         with self.app.use_another_user():
             self.app.delete("/v1/metric/" + metric['id'], status=403)
-
-    def test_delete_metric_non_existent(self):
-        e1 = str(uuid.uuid4())
-        self.app.delete("/v1/metric/" + e1, status=404)
-
-    def test_post_metric_bad_archives(self):
-        result = self.app.post_json(
-            "/v1/metric",
-            params={"archive_policy_name": 'foobar123'},
-            status=400)
-        self.assertEqual("text/plain", result.content_type)
-        self.assertIn(b"Unknown archive policy foobar123", result.body)
-
-    def test_add_measure(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "high"})
-        metric = json.loads(result.text)
-        result = self.app.post_json(
-            "/v1/metric/%s/measures" % metric['id'],
-            params=[{"timestamp": '2013-01-01 23:23:23',
-                     "value": 1234.2}],
-            status=204)
 
     def test_add_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
@@ -754,26 +657,6 @@ class MetricTest(RestTest):
                 params=[{"timestamp": '2013-01-01 23:23:23',
                          "value": 1234.2}],
                 status=403)
-
-    def test_add_multiple_measures_per_metric(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "high"},
-                                    status=201)
-        metric = json.loads(result.text)
-        for x in range(5):
-            result = self.app.post_json(
-                "/v1/metric/%s/measures" % metric['id'],
-                params=[{"timestamp": '2013-01-01 23:23:2%d' % x,
-                         "value": 1234.2 + x}],
-                status=204)
-
-    def test_add_measure_no_such_metric(self):
-        e1 = str(uuid.uuid4())
-        self.app.post_json(
-            "/v1/metric/%s/measures" % e1,
-            params=[{"timestamp": '2013-01-01 23:23:23',
-                     "value": 1234.2}],
-            status=404)
 
     def test_add_measures_back_window(self):
         ap_name = str(uuid.uuid4())
@@ -846,49 +729,6 @@ class MetricTest(RestTest):
             b"It can only go back to 2013-01-01 00:00:00",
             result.body)
 
-    def test_get_measure(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "low"})
-        metric = json.loads(result.text)
-        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": '2013-01-01 23:23:23',
-                                    "value": 1234.2}])
-        ret = self.app.get("/v1/metric/%s/measures" % metric['id'], status=200)
-        result = json.loads(ret.text)
-        self.assertEqual(
-            [[u'2013-01-01T00:00:00.000000Z', 86400.0, 1234.2],
-             [u'2013-01-01T23:00:00.000000Z', 3600.0, 1234.2],
-             [u'2013-01-01T23:20:00.000000Z', 300.0, 1234.2]],
-            result)
-
-    def test_get_measure_unknown_metric(self):
-        metric_id = "cee6ef1f-52cc-4a16-bbb5-648aedfd1c37"
-        self.app.get("/v1/metric/%s/measures" % metric_id, status=404)
-
-    def test_get_measure_unknown_aggregation(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "low"})
-        metric = json.loads(result.text)
-        ret = self.app.get("/v1/metric/%s/measures?aggregation=last" %
-                           metric['id'], status=404)
-        self.assertIn("Aggregation method 'last' for metric %s does not "
-                      "exist" % metric['id'], ret.text)
-
-    def test_aggregation_get_measure_unknown_metric(self):
-        metric_id = str(uuid.uuid4())
-        ret = self.app.get("/v1/aggregation/metric?metric=%s" % metric_id,
-                           status=404)
-        self.assertIn('Metric %s does not exist' % metric_id, ret.text)
-
-    def test_aggregation_get_measure_unknown_aggregation(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "low"})
-        metric = json.loads(result.text)
-        ret = self.app.get("/v1/aggregation/metric?metric=%s&"
-                           "aggregation=last" % metric['id'], status=404)
-        self.assertIn("Aggregation method 'last' for metric %s does not "
-                      "exist" % metric['id'], ret.text)
-
     def test_get_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "low"})
@@ -899,21 +739,6 @@ class MetricTest(RestTest):
         with self.app.use_another_user():
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
-
-    def test_get_measure_start(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "high"})
-        metric = json.loads(result.text)
-        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": '2013-01-01 23:23:23',
-                                    "value": 1234.2}])
-        ret = self.app.get(
-            "/v1/metric/%s/measures?start=2013-01-01 23:23:20"
-            % metric['id'],
-            status=200)
-        result = json.loads(ret.text)
-        self.assertEqual([['2013-01-01T23:23:23.000000Z', 1.0, 1234.2]],
-                         result)
 
     def test_get_measure_start_relative(self):
         """Make sure the timestamps can be relative to now."""
