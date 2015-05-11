@@ -64,7 +64,7 @@ class DispatcherTest(base.BaseTestCase):
             'resource_metadata': {
                 'host': 'foo',
                 'image_ref_url': 'imageref!',
-                'instance_flavor_id': 1234,
+                'instance_flavor_id': "1234",
                 'display_name': 'myinstance',
             }},
             {
@@ -79,7 +79,7 @@ class DispatcherTest(base.BaseTestCase):
                 'resource_metadata': {
                     'host': 'foo',
                     'image_ref_url': 'imageref!',
-                    'instance_flavor_id': 1234,
+                    'instance_flavor_id': "1234",
                     'display_name': 'myinstance',
                 }
             }]
@@ -171,7 +171,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
                 'resource_metadata': {
                     'host': 'foo',
                     'image_ref_url': 'imageref!',
-                    'instance_flavor_id': 1234,
+                    'instance_flavor_id': "1234",
                     'display_name': 'myinstance',
                 }
             },
@@ -186,7 +186,7 @@ class DispatcherWorkflowTest(base.BaseTestCase,
             patchable_attributes={
                 'host': 'foo',
                 'image_ref': 'imageref!',
-                'flavor_id': 1234,
+                'flavor_id': "1234",
                 'display_name': 'myinstance',
             },
             metric_names=[

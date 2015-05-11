@@ -131,7 +131,7 @@ class TestIndexerDriver(tests_base.TestCase):
         kwargs = {'server_group': server_group} if server_group else {}
 
         rc = self.index.create_resource('instance', r1, user, project,
-                                        flavor_id=1,
+                                        flavor_id="1",
                                         image_ref="http://foo/bar",
                                         host="foo",
                                         display_name="lol", **kwargs)
@@ -151,7 +151,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "server_group": server_group,
                           "host": "foo",
                           "image_ref": "http://foo/bar",
-                          "flavor_id": 1,
+                          "flavor_id": "1",
                           "metrics": {}},
                          rc.jsonify())
         rg = self.index.get_resource('generic', r1, with_metrics=True)
@@ -365,7 +365,7 @@ class TestIndexerDriver(tests_base.TestCase):
         user = uuid.uuid4()
         project = uuid.uuid4()
         rc = self.index.create_resource('instance', r1, user, project,
-                                        flavor_id=1,
+                                        flavor_id="1",
                                         image_ref="http://foo/bar",
                                         host="foo",
                                         display_name="lol")
@@ -378,7 +378,7 @@ class TestIndexerDriver(tests_base.TestCase):
         user = uuid.uuid4()
         project = uuid.uuid4()
         self.index.create_resource('instance', r1, user, project,
-                                   flavor_id=1,
+                                   flavor_id="1",
                                    image_ref="http://foo/bar",
                                    host="foo",
                                    display_name="lol")
@@ -391,7 +391,7 @@ class TestIndexerDriver(tests_base.TestCase):
     def test_update_resource_unknown_attribute(self):
         r1 = uuid.uuid4()
         self.index.create_resource('instance', r1, uuid.uuid4(), uuid.uuid4(),
-                                   flavor_id=1,
+                                   flavor_id="1",
                                    image_ref="http://foo/bar",
                                    host="foo",
                                    display_name="lol")
@@ -460,7 +460,7 @@ class TestIndexerDriver(tests_base.TestCase):
         r1 = uuid.uuid4()
         created = self.index.create_resource('instance', r1,
                                              uuid.uuid4(), uuid.uuid4(),
-                                             flavor_id=123,
+                                             flavor_id="123",
                                              image_ref="foo",
                                              host="dwq",
                                              display_name="foobar")
@@ -517,7 +517,7 @@ class TestIndexerDriver(tests_base.TestCase):
         i = self.index.create_resource('instance', r2,
                                        user, project,
                                        user, project,
-                                       flavor_id=123,
+                                       flavor_id="123",
                                        image_ref="foo",
                                        host="dwq",
                                        display_name="foobar")
@@ -581,7 +581,7 @@ class TestIndexerDriver(tests_base.TestCase):
         r2 = uuid.uuid4()
         i = self.index.create_resource('instance', r2,
                                        uuid.uuid4(), uuid.uuid4(),
-                                       flavor_id=123,
+                                       flavor_id="123",
                                        image_ref="foo",
                                        host="dwq",
                                        display_name="foobar")
@@ -695,7 +695,7 @@ class TestIndexerDriver(tests_base.TestCase):
 
         r1 = self.index.create_resource('instance', rid, user, project,
                                         user, project,
-                                        flavor_id=123,
+                                        flavor_id="123",
                                         image_ref="foo",
                                         host="dwq",
                                         display_name="foobar_history",
@@ -737,7 +737,7 @@ class TestIndexerDriver(tests_base.TestCase):
         r2 = uuid.uuid4()
         i = self.index.create_resource(
             'instance', r2, user, project,
-            flavor_id=123,
+            flavor_id="123",
             image_ref="foo",
             host="dwq",
             display_name="foobar",

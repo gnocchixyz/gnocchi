@@ -30,10 +30,10 @@ class Instance(base.ResourceBase):
             "display_name": metadata['display_name'],
         }
         if "instance_flavor_id" in metadata:
-            params["flavor_id"] = int(metadata['instance_flavor_id'])
+            params["flavor_id"] = metadata['instance_flavor_id']
         else:
             # NOTE(sileht): instance.exists have the flavor here
-            params["flavor_id"] = int(metadata["flavor"]["id"])
+            params["flavor_id"] = metadata["flavor"]["id"]
 
         server_group = metadata.get('user_metadata', {}).get('server_group')
         if server_group:
@@ -56,7 +56,7 @@ class Instance(base.ResourceBase):
 
 
 class InstanceSQLAlchemy(object):
-    flavor_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    flavor_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)

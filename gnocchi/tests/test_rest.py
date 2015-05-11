@@ -1041,7 +1041,7 @@ class MetricTest(RestTest):
             "started_at": "2014-01-03T02:02:02.000000",
             "host": "foo",
             "image_ref": "imageref!",
-            "flavor_id": 123,
+            "flavor_id": "123",
             "display_name": "myinstance",
             "server_group": str(uuid.uuid4()),
         }
@@ -1135,7 +1135,7 @@ class ResourceTest(RestTest):
                 # Just to test that use case. :)
                 "host": "foo",
                 "image_ref": "imageref!",
-                "flavor_id": 123,
+                "flavor_id": "123",
                 "display_name": "myinstance",
                 "server_group": "as_group",
             },
@@ -1143,7 +1143,7 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02.000000Z",
                 "host": "fooz",
                 "image_ref": "imageref!z",
-                "flavor_id": 1234,
+                "flavor_id": "1234",
                 "display_name": "myinstancez",
                 "server_group": "new_as_group",
             },
@@ -2346,7 +2346,7 @@ class GenericResourceTest(RestTest):
             "started_at": "2014-01-03T02:02:02.000000",
             "host": "computenode42",
             "image_ref": "imageref!",
-            "flavor_id": 123,
+            "flavor_id": "123",
             "display_name": "myinstance",
         }
         result = self.app.post_json(
