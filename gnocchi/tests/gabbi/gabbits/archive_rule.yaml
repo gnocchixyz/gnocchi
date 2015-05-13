@@ -23,7 +23,6 @@ tests:
           location: $SCHEME://$NETLOC/v1/archive_policy/low
       status: 201
 
-
 # Attempt to create an archive policy rule
 
     - name: create archive policy rule
@@ -42,7 +41,6 @@ tests:
         $.archive_policy_name: low
         $.name: test_rule
 
-
 # Attempt to create an invalid policy rule
 
     - name: create invalid archive policy rule
@@ -56,8 +54,6 @@ tests:
         metric_pattern: "disk.foo.*"
       status: 400
 
-# missing auth
-
     - name: missing auth archive policy rule
       url: /v1/archive_policy_rule
       method: POST
@@ -69,12 +65,60 @@ tests:
         archive_policy_name: low
       status: 403
 
+    - name: wrong content type
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: text/plain
+          x-roles: admin
+      status: 415
+      response_strings:
+          - Unsupported Media Type
 
-# get an archive policy rule
+    - name: wrong auth create rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: foo
+      data:
+          name: test_rule_wrong_auth
+          metric_pattern: "disk.foo.*"
+          archive_policy_name: low
+      status: 403
+
+    - name: missing auth createrule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+      data:
+          name: test_rule_miss_auth
+          metric_pattern: "disk.foo.*"
+          archive_policy_name: low
+      status: 403
+
+    - name: bad request body
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          whaa: foobar
+      status: 400
+      response_strings:
+          - "Invalid input: extra keys not allowed"
+
+# get an archive policy rules
 
     - name: get archive policy rule
       url: /v1/archive_policy_rule
       status: 200
+
+    - name: get unknown archive policy rule
+      url: /v1/archive_policy_rule/foo
+      status: 404
 
 # delete rule
 
@@ -83,10 +127,9 @@ tests:
       method: DELETE
       status: 204
 
-
 # delete again
 
-    - name: delete again archive policy rule
+    - name: confirm delete archive policy rule
       url: /v1/archive_policy_rule/test_rule
       method: DELETE
       status: 404
