@@ -69,6 +69,8 @@ tests:
       data:
           archive_policy_name: bad-cookie
       status: 400
+      response_strings:
+          - Unknown archive policy bad-cookie
 
     - name: create metric bad content-type
       url: /v1/metric
@@ -108,6 +110,16 @@ tests:
             value: 12
       status: 204
 
+    - name: add measure unknown metric
+      url: /v1/metric/fake/measures
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+      status: 404
+
     - name: get metric list
       url: /v1/metric
       status: 200
@@ -117,3 +129,51 @@ tests:
     - name: get measurements from metric
       url: /v1/metric/$RESPONSE['$[0].id']/measures
       status: 200
+
+    - name: get metric list for start test
+      url: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy_name: cookies
+
+    - name: get measurements by start
+      url: /v1/metric/$RESPONSE['$[0].id']/measures?start=2015-03-06T14:33:57
+      status: 200
+
+    - name: get measures unknown metric
+      url: /v1/metric/fake/measures
+      status: 404
+
+    - name: get metric list for aggregates
+      url: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy_name: cookies
+
+    - name: get measure unknown aggregates
+      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&aggregation=last
+      status: 404
+      response_strings:
+          - Aggregation method 'last' for metric $RESPONSE['$[0].id'] does not exist
+
+    - name: aggregate measure unknown metric
+      url: /v1/aggregation/metric?metric=cee6ef1f-52cc-4a16-bbb5-648aedfd1c37
+      status: 404
+      response_strings:
+          - Metric cee6ef1f-52cc-4a16-bbb5-648aedfd1c37 does not exist
+
+    - name: get metric list for delete
+      url: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy_name: cookies
+
+    - name: delete metric
+      url: /v1/metric/$RESPONSE['$[0].id']
+      method: DELETE
+      status: 204
+
+    - name: delete non existent metric
+      url: /v1/metric/foo
+      method: DELETE
+      status: 404
