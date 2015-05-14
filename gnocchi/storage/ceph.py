@@ -114,7 +114,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return size > 0
         except rados.ObjectNotFound:
             return False
-        return True
 
     def _create_metric_container(self, metric):
         name = self._get_object_name(metric, 'container')
