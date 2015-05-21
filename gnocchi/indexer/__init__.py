@@ -17,7 +17,6 @@ import hashlib
 
 from oslo_config import cfg
 from oslo_utils import netutils
-from oslo_utils import timeutils
 import pytz
 import six
 from stevedore import driver
@@ -57,8 +56,8 @@ class Resource(object):
     def etag(self):
         etag = hashlib.sha1()
         etag.update(six.text_type(self.id).encode('utf-8'))
-        etag.update(six.text_type(timeutils.isotime(
-            self.revision_start, subsecond=True)).encode('utf-8'))
+        etag.update(six.text_type(
+            self.revision_start.isoformat()).encode('utf-8'))
         return etag.hexdigest()
 
     @property

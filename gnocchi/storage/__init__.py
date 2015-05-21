@@ -13,9 +13,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import collections
-
 from oslo_config import cfg
+from oslo_utils import timeutils
 from stevedore import driver
 
 from gnocchi import exceptions
@@ -28,7 +27,10 @@ OPTS = [
 ]
 
 
-Measure = collections.namedtuple('Measure', ['timestamp', 'value'])
+class Measure(object):
+    def __init__(self, timestamp, value):
+        self.timestamp = timeutils.normalize_time(timestamp)
+        self.value = value
 
 
 class Metric(object):

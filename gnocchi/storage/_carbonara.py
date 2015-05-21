@@ -21,6 +21,7 @@ import random
 import uuid
 
 from concurrent import futures
+import iso8601
 from oslo_config import cfg
 from tooz import coordination
 
@@ -188,7 +189,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
         archive = self._get_measures_archive(metric, aggregation)
-        return archive.fetch(from_timestamp, to_timestamp)
+        return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
+                for timestamp, r, v
+                in archive.fetch(from_timestamp, to_timestamp)]
 
     def _get_measures_archive(self, metric, aggregation):
         contents = self._get_measures(metric, aggregation)
@@ -230,8 +233,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                   [(metric, aggregation)
                                    for metric in metrics])
         try:
-            return carbonara.TimeSerieArchive.aggregated(
-                tss, from_timestamp, to_timestamp, aggregation, needed_overlap)
+            return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
+                    for timestamp, r, v
+                    in carbonara.TimeSerieArchive.aggregated(
+                        tss, from_timestamp, to_timestamp,
+                        aggregation, needed_overlap)]
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
 
@@ -240,7 +246,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         timeserie = self._get_measures_archive(metric, aggregation)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return {metric:
-                [(timestamp, granularity, value)
+                [(timestamp.replace(tzinfo=iso8601.iso8601.UTC),
+                  granularity, value)
                  for timestamp, granularity, value in values
                  if predicate(value)]}
 

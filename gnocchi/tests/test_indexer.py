@@ -20,6 +20,7 @@ import uuid
 from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.tests import base as tests_base
+from gnocchi import utils
 
 
 class TestIndexer(tests_base.TestCase):
@@ -191,7 +192,7 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_create_resource_with_start_timestamp(self):
         r1 = uuid.uuid4()
-        ts = datetime.datetime(2014, 1, 1, 23, 34, 23, 1234)
+        ts = utils.datetime_utc(2014, 1, 1, 23, 34, 23, 1234)
         user = uuid.uuid4()
         project = uuid.uuid4()
         rc = self.index.create_resource(
@@ -272,7 +273,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.update_resource(
             'generic',
             r1,
-            ended_at=datetime.datetime(2043, 1, 1, 2, 3, 4))
+            ended_at=utils.datetime_utc(2043, 1, 1, 2, 3, 4))
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r.started_at)
         self.assertIsNone(r.user_id)
@@ -282,7 +283,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual(r1, r.id)
         self.assertEqual(user, r.created_by_user_id)
         self.assertEqual(project, r.created_by_project_id)
-        self.assertEqual(datetime.datetime(2043, 1, 1, 2, 3, 4), r.ended_at)
+        self.assertEqual(utils.datetime_utc(2043, 1, 1, 2, 3, 4), r.ended_at)
         self.assertEqual("generic", r.type)
         self.assertEqual(0, len(r.metrics))
         self.index.update_resource(
@@ -386,7 +387,7 @@ class TestIndexerDriver(tests_base.TestCase):
             indexer.ResourceValueError,
             self.index.update_resource,
             'instance', r1,
-            ended_at=datetime.datetime(2010, 1, 1, 1, 1, 1))
+            ended_at=utils.datetime_utc(2010, 1, 1, 1, 1, 1))
 
     def test_update_resource_unknown_attribute(self):
         r1 = uuid.uuid4()
@@ -553,8 +554,8 @@ class TestIndexerDriver(tests_base.TestCase):
         g = self.index.create_resource(
             'generic', r1, user, project,
             user_id=user, project_id=project,
-            started_at=datetime.datetime(2010, 1, 1, 12, 0),
-            ended_at=datetime.datetime(2010, 1, 1, 13, 0))
+            started_at=utils.datetime_utc(2010, 1, 1, 12, 0),
+            ended_at=utils.datetime_utc(2010, 1, 1, 13, 0))
         resources = self.index.list_resources(
             'generic',
             attribute_filter={"and": [
@@ -732,8 +733,8 @@ class TestIndexerDriver(tests_base.TestCase):
         project = uuid.uuid4()
         g = self.index.create_resource(
             'generic', r1, user, project,
-            started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
-            ended_at=datetime.datetime(2000, 1, 3, 23, 23, 23))
+            started_at=utils.datetime_utc(2000, 1, 1, 23, 23, 23),
+            ended_at=utils.datetime_utc(2000, 1, 3, 23, 23, 23))
         r2 = uuid.uuid4()
         i = self.index.create_resource(
             'instance', r2, user, project,
@@ -741,16 +742,16 @@ class TestIndexerDriver(tests_base.TestCase):
             image_ref="foo",
             host="dwq",
             display_name="foobar",
-            started_at=datetime.datetime(2000, 1, 1, 23, 23, 23),
-            ended_at=datetime.datetime(2000, 1, 4, 23, 23, 23))
+            started_at=utils.datetime_utc(2000, 1, 1, 23, 23, 23),
+            ended_at=utils.datetime_utc(2000, 1, 4, 23, 23, 23))
         resources = self.index.list_resources(
             'generic',
             attribute_filter={
                 "and":
                 [{">=": {"started_at":
-                         datetime.datetime(2000, 1, 1, 23, 23, 23)}},
+                         utils.datetime_utc(2000, 1, 1, 23, 23, 23)}},
                  {"<": {"ended_at":
-                        datetime.datetime(2000, 1, 5, 23, 23, 23)}}]})
+                        utils.datetime_utc(2000, 1, 5, 23, 23, 23)}}]})
         self.assertGreaterEqual(len(resources), 2)
         g_found = False
         i_found = False

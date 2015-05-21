@@ -20,12 +20,12 @@ try:
 except ImportError:
     import trollius as asyncio
 from oslo_log import log
-from oslo_utils import timeutils
 import six
 
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
+from gnocchi import utils
 
 
 LOG = log.getLogger(__name__)
@@ -64,14 +64,14 @@ class Stats(object):
                     "Invalid sampling for ms: `%d`, should be none"
                     % sampling)
             self.times[metric_name] = storage.Measure(
-                timeutils.utcnow(), value)
+                utils.utcnow(), value)
         elif metric_type == "g":
             if sampling is not None:
                 raise ValueError(
                     "Invalid sampling for g: `%d`, should be none"
                     % sampling)
             self.gauges[metric_name] = storage.Measure(
-                timeutils.utcnow(), value)
+                utils.utcnow(), value)
         elif metric_type == "c":
             sampling = 1 if sampling is None else sampling
             if metric_name in self.counters:
@@ -79,7 +79,7 @@ class Stats(object):
             else:
                 current_value = 0
             self.counters[metric_name] = storage.Measure(
-                timeutils.utcnow(),
+                utils.utcnow(),
                 current_value + (value * (1 / sampling)))
         # TODO(jd) Support "set" type
         # elif metric_type == "s":

@@ -119,6 +119,6 @@ tests:
     location: $SCHEME://$NETLOC/v1/resource/generic/5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
   response_json_paths:
     type: generic
-    started_at: "2014-01-03T02:02:02.000000Z"
+    started_at: "2014-01-03T02:02:02+00:00"
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
     created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f

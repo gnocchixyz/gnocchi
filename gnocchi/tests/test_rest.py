@@ -36,6 +36,7 @@ from gnocchi import archive_policy
 from gnocchi.rest import app
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
+from gnocchi import utils
 
 
 load_tests = testscenarios.load_tests_apply_scenarios
@@ -57,13 +58,11 @@ class FakeMemcache(object):
     PROJECT_ID_2 = str(uuid.uuid4()).replace("-", "")
 
     def get(self, key):
-        dt = datetime.datetime(
-            year=datetime.MAXYEAR, month=12, day=31,
-            hour=23, minute=59, second=59)
+        dt = "2100-01-01T23:59:59"
         if key == "tokens/%s" % self.VALID_TOKEN_ADMIN:
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN_ADMIN,
-                          'expires': timeutils.isotime(dt)},
+                          'expires': dt},
                 'user': {
                     'id': self.USER_ID_ADMIN,
                     'name': 'adminusername',
@@ -72,11 +71,11 @@ class FakeMemcache(object):
                     'roles': [
                         {'name': 'admin'},
                     ]},
-            }}, timeutils.isotime(dt)))
+            }}, dt))
         elif key == "tokens/%s" % self.VALID_TOKEN:
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN,
-                          'expires': timeutils.isotime(dt)},
+                          'expires': dt},
                 'user': {
                     'id': self.USER_ID,
                     'name': 'myusername',
@@ -85,11 +84,11 @@ class FakeMemcache(object):
                     'roles': [
                         {'name': 'member'},
                     ]},
-            }}, timeutils.isotime(dt)))
+            }}, dt))
         elif key == "tokens/%s" % self.VALID_TOKEN_2:
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN_2,
-                          'expires': timeutils.isotime(dt)},
+                          'expires': dt},
                 'user': {
                     'id': self.USER_ID_2,
                     'name': 'myusername2',
@@ -98,7 +97,7 @@ class FakeMemcache(object):
                     'roles': [
                         {'name': 'member'},
                     ]},
-            }}, timeutils.isotime(dt)))
+            }}, dt))
 
     @staticmethod
     def set(key, value, **kwargs):
@@ -378,9 +377,9 @@ class MetricTest(RestTest):
         ret = self.app.get("/v1/metric/%s/measures" % metric['id'])
         result = json.loads(ret.text)
         self.assertEqual(
-            [[u'2013-01-01T23:28:00.000000Z', 60.0, 1234.2],
-             [u'2013-01-01T23:29:00.000000Z', 60.0, 1234.2],
-             [u'2013-01-01T23:30:00.000000Z', 60.0, 1234.2]],
+            [[u'2013-01-01T23:28:00+00:00', 60.0, 1234.2],
+             [u'2013-01-01T23:29:00+00:00', 60.0, 1234.2],
+             [u'2013-01-01T23:30:00+00:00', 60.0, 1234.2]],
             result)
 
     def test_add_measures_too_old(self):
@@ -424,25 +423,24 @@ class MetricTest(RestTest):
                                     params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
         self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": timeutils.isotime(),
+                           params=[{"timestamp": utils.utcnow().isoformat(),
                                     "value": 1234.2}])
         ret = self.app.get(
             "/v1/metric/%s/measures?start=-10 minutes"
             % metric['id'],
             status=200)
         result = json.loads(ret.text)
-        now = timeutils.utcnow()
+        now = utils.utcnow()
         self.assertEqual([
-            [timeutils.isotime(now
-                               - datetime.timedelta(
-                                   seconds=now.second,
-                                   microseconds=now.microsecond),
-                               subsecond=True),
+            [(now
+              - datetime.timedelta(
+                  seconds=now.second,
+                  microseconds=now.microsecond)).isoformat(),
              60.0, 1234.2],
-            [timeutils.isotime(now
-                               - datetime.timedelta(
-                                   microseconds=now.microsecond),
-                               subsecond=True), 1.0, 1234.2]], result)
+            [(now
+              - datetime.timedelta(
+                  microseconds=now.microsecond)).isoformat(),
+             1.0, 1234.2]], result)
 
     def test_get_measure_stop(self):
         result = self.app.post_json("/v1/metric",
@@ -458,9 +456,9 @@ class MetricTest(RestTest):
                            status=200)
         result = json.loads(ret.text)
         self.assertEqual(
-            [[u'2013-01-01T12:00:00.000000Z', 3600.0, 845.1],
-             [u'2013-01-01T12:00:00.000000Z', 60.0, 845.1],
-             [u'2013-01-01T12:00:00.000000Z', 1.0, 1234.2]],
+            [[u'2013-01-01T12:00:00+00:00', 3600.0, 845.1],
+             [u'2013-01-01T12:00:00+00:00', 60.0, 845.1],
+             [u'2013-01-01T12:00:00+00:00', 1.0, 1234.2]],
             result)
 
     def test_get_measure_aggregation(self):
@@ -478,9 +476,9 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures?aggregation=max" % metric['id'],
             status=200)
         result = json.loads(ret.text)
-        self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 12345.2],
-                          [u'2013-01-01T12:00:00.000000Z', 3600.0, 12345.2],
-                          [u'2013-01-01T12:00:00.000000Z', 60.0, 12345.2]],
+        self.assertEqual([[u'2013-01-01T00:00:00+00:00', 86400.0, 12345.2],
+                          [u'2013-01-01T12:00:00+00:00', 3600.0, 12345.2],
+                          [u'2013-01-01T12:00:00+00:00', 60.0, 12345.2]],
                          result)
 
     def test_get_moving_average(self):
@@ -503,7 +501,7 @@ class MetricTest(RestTest):
         ret = self.app.get(path % (metric['id'], 'moving-average', 120),
                            status=200)
         result = json.loads(ret.text)
-        expected = [[u'2013-01-01T12:00:00.000000Z', 120.0, 32.25]]
+        expected = [[u'2013-01-01T12:00:00+00:00', 120.0, 32.25]]
         self.assertEqual(expected, result)
         ret = self.app.get(path % (metric['id'], 'moving-average', 90),
                            status=400)
@@ -578,9 +576,9 @@ class MetricTest(RestTest):
             params={"=": {"server_group": attributes['server_group']}})
 
         measures = json.loads(result.text)
-        self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 16.0],
-                          [u'2013-01-01T12:00:00.000000Z', 3600.0, 16.0],
-                          [u'2013-01-01T12:00:00.000000Z', 60.0, 16.0]],
+        self.assertEqual([[u'2013-01-01T00:00:00+00:00', 86400.0, 16.0],
+                          [u'2013-01-01T12:00:00+00:00', 3600.0, 16.0],
+                          [u'2013-01-01T12:00:00+00:00', 60.0, 16.0]],
                          measures)
 
     def test_search_value(self):
@@ -610,7 +608,7 @@ class MetricTest(RestTest):
             status=200)
         result = json.loads(ret.text)
         self.assertEqual(
-            {metric1: [[u'2013-01-01T12:00:00.000000Z', 1.0, 1234.2]],
+            {metric1: [[u'2013-01-01T12:00:00+00:00', 1.0, 1234.2]],
              metric2: []},
             result)
 
@@ -620,17 +618,17 @@ class ResourceTest(RestTest):
     resource_scenarios = [
         ('generic', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='generic')),
         ('instance', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 # NOTE(jd) We test this one without user_id/project_id!
                 # Just to test that use case. :)
                 "host": "foo",
@@ -640,7 +638,7 @@ class ResourceTest(RestTest):
                 "server_group": "as_group",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
                 "host": "fooz",
                 "image_ref": "imageref!z",
                 "flavor_id": "1234",
@@ -651,93 +649,93 @@ class ResourceTest(RestTest):
         # swift notifications contain UUID user_id
         ('swift_account', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='swift_account')),
         # swift pollsters contain None user_id
         ('swift_account_none_user', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": None,
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='swift_account')),
         # TODO(dbelova): add tests with None project ID when we'll add kwapi,
         # ipmi, hardware, etc. resources that are passed without project ID
         ('volume', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
                 "display_name": "test_volume",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
                 "display_name": "myvolume",
             },
             resource_type='volume')),
         ('ceph_account', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='ceph_account')),
         ('network', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='network')),
         ('identity', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='identity')),
         ('ipmi', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='ipmi')),
         ('stack', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='stack')),
         # image pollsters contain UUID user_id
         ('image', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": str(uuid.uuid4()),
                 "project_id": str(uuid.uuid4()),
                 "name": "test-image",
@@ -745,13 +743,13 @@ class ResourceTest(RestTest):
                 "disk_format": "aki",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='image')),
         # image pollsters contain None user_id
         ('image_none_user', dict(
             attributes={
-                "started_at": "2014-01-03T02:02:02.000000Z",
+                "started_at": "2014-01-03T02:02:02+00:00",
                 "user_id": None,
                 "project_id": str(uuid.uuid4()),
                 "name": "test-image2",
@@ -759,7 +757,7 @@ class ResourceTest(RestTest):
                 "disk_format": "aki",
             },
             patchable_attributes={
-                "ended_at": "2014-01-03T02:02:02.000000Z",
+                "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='image')),
     ]
@@ -805,7 +803,7 @@ class ResourceTest(RestTest):
                          result.headers['Location'])
         self.assertIsNone(resource['revision_end'])
         self.assertEqual(resource['revision_start'],
-                         "2014-01-01T10:23:00.000000Z")
+                         "2014-01-01T10:23:00+00:00")
         self._check_etag(result, resource)
         del resource['revision_start']
         del resource['revision_end']
@@ -854,7 +852,7 @@ class ResourceTest(RestTest):
             params=self.attributes,
             status=201)
         resource = json.loads(result.text)
-        self.assertEqual(u"2014-05-20T10:00:45.856219Z",
+        self.assertEqual(u"2014-05-20T10:00:45.856219+00:00",
                          resource['started_at'])
 
     def test_post_invalid_timestamp(self):
@@ -892,7 +890,7 @@ class ResourceTest(RestTest):
         resource = json.loads(result.text)
         self.assertIsNone(resource['revision_end'])
         self.assertEqual(resource['revision_start'],
-                         "2014-01-01T10:23:00.000000Z")
+                         "2014-01-01T10:23:00+00:00")
         self._check_etag(result, resource)
         del resource['revision_start']
         del resource['revision_end']
@@ -1161,8 +1159,8 @@ class ResourceTest(RestTest):
         self.assertIsNone(result['revision_end'])
         self.assertIsNone(r['revision_end'])
         self.assertEqual(result['revision_start'],
-                         "2014-01-02T06:48:00.000000Z")
-        self.assertEqual(r['revision_start'], "2014-01-01T10:23:00.000000Z")
+                         "2014-01-02T06:48:00+00:00")
+        self.assertEqual(r['revision_start'], "2014-01-01T10:23:00+00:00")
 
         del result['metrics']
         del result['revision_start']
@@ -1238,7 +1236,7 @@ class ResourceTest(RestTest):
             self.assertEqual(v, result[k])
         self.assertIsNone(result['revision_end'])
         self.assertEqual(result['revision_start'],
-                         "2014-01-02T06:48:00.000000Z")
+                         "2014-01-02T06:48:00+00:00")
         self._check_etag(response, result)
 
         # Check the history
@@ -1255,9 +1253,9 @@ class ResourceTest(RestTest):
         for k, v in six.iteritems(self.attributes):
             self.assertEqual(v, h[k])
         self.assertEqual(h['revision_end'],
-                         "2014-01-02T06:48:00.000000Z")
+                         "2014-01-02T06:48:00+00:00")
         self.assertEqual(h['revision_start'],
-                         "2014-01-01T10:23:00.000000Z")
+                         "2014-01-01T10:23:00+00:00")
 
     def test_patch_resource_attributes_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1711,9 +1709,9 @@ class ResourceTest(RestTest):
         if self.resource_type == 'instance':
             self.assertEqual(200, result.status_code, result.text)
             measures = json.loads(result.text)
-            self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 16.0],
-                              [u'2013-01-01T12:00:00.000000Z', 3600.0, 16.0],
-                              [u'2013-01-01T12:00:00.000000Z', 60.0, 16.0]],
+            self.assertEqual([[u'2013-01-01T00:00:00+00:00', 86400.0, 16.0],
+                              [u'2013-01-01T12:00:00+00:00', 3600.0, 16.0],
+                              [u'2013-01-01T12:00:00+00:00', 60.0, 16.0]],
                              measures)
         else:
             self.assertEqual(400, result.status_code)
@@ -1729,9 +1727,9 @@ class ResourceTest(RestTest):
         if self.resource_type == 'instance':
             self.assertEqual(200, result.status_code)
             measures = json.loads(result.text)
-            self.assertEqual([['2013-01-01T00:00:00.000000Z', 86400.0, 0],
-                              ['2013-01-01T12:00:00.000000Z', 3600.0, 0],
-                              ['2013-01-01T12:00:00.000000Z', 60.0, 0]],
+            self.assertEqual([['2013-01-01T00:00:00+00:00', 86400.0, 0],
+                              ['2013-01-01T12:00:00+00:00', 3600.0, 0],
+                              ['2013-01-01T12:00:00+00:00', 60.0, 0]],
                              measures)
         else:
             self.assertEqual(400, result.status_code)
@@ -1774,9 +1772,9 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/aggregation/metric"
                               "?aggregation=mean&metric=%s" % (metric2['id']))
         measures = json.loads(result.text)
-        self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 2.0],
-                          [u'2013-01-01T12:00:00.000000Z', 3600.0, 2.0],
-                          [u'2013-01-01T12:00:00.000000Z', 60.0, 2.0]],
+        self.assertEqual([[u'2013-01-01T00:00:00+00:00', 86400.0, 2.0],
+                          [u'2013-01-01T12:00:00+00:00', 3600.0, 2.0],
+                          [u'2013-01-01T12:00:00+00:00', 60.0, 2.0]],
                          measures)
 
         # Check with two metrics
@@ -1784,9 +1782,9 @@ class ResourceTest(RestTest):
                               "?aggregation=mean&metric=%s&metric=%s" %
                               (metric1['id'], metric2['id']))
         measures = json.loads(result.text)
-        self.assertEqual([[u'2013-01-01T00:00:00.000000Z', 86400.0, 7.0],
-                          [u'2013-01-01T12:00:00.000000Z', 3600.0, 7.0],
-                          [u'2013-01-01T12:00:00.000000Z', 60.0, 7.0]],
+        self.assertEqual([[u'2013-01-01T00:00:00+00:00', 86400.0, 7.0],
+                          [u'2013-01-01T12:00:00+00:00', 3600.0, 7.0],
+                          [u'2013-01-01T12:00:00+00:00', 60.0, 7.0]],
                          measures)
 
 

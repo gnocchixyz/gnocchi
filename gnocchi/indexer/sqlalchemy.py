@@ -21,7 +21,6 @@ import os.path
 from oslo_db import exception
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import session
-from oslo_utils import timeutils
 import six
 import sqlalchemy
 from stevedore import extension
@@ -265,7 +264,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         append_metrics=False,
                         **kwargs):
 
-        now = timeutils.utcnow()
+        now = utils.utcnow()
 
         resource_cls = self._resource_type_to_class(resource_type)
         resource_history_cls = self._resource_type_to_class(resource_type,
@@ -297,8 +296,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     engine = self.engine_facade.get_engine()
                     if engine.dialect.name == "mysql":
                         if r.started_at is not None and ended_at is not None:
-                            # Convert to UTC because we store in UTC :(
-                            ended_at = timeutils.normalize_time(ended_at)
                             if r.started_at > ended_at:
                                 raise indexer.ResourceValueError(
                                     resource_type, "ended_at", ended_at)

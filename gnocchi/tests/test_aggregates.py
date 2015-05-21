@@ -22,6 +22,7 @@ from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
+from gnocchi import utils
 
 
 class TestAggregates(tests_base.TestCase):
@@ -91,7 +92,7 @@ class TestAggregates(tests_base.TestCase):
         result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
-        expected = [(datetime.datetime(2014, 1, 1, 12), 120.0, 32.25)]
+        expected = [(utils.datetime_utc(2014, 1, 1, 12), 120.0, 32.25)]
         self.assertEqual(expected, result)
 
         center = 'True'
@@ -99,7 +100,7 @@ class TestAggregates(tests_base.TestCase):
                                  start=None, stop=None,
                                  window=window, center=center)
 
-        expected = [(datetime.datetime(2014, 1, 1, 12, 1), 120.0, 28.875)]
+        expected = [(utils.datetime_utc(2014, 1, 1, 12, 1), 120.0, 28.875)]
         self.assertEqual(expected, result)
         # (FIXME) atmalagon: doing a centered average when
         # there are only two points in the retrieved data seems weird.
