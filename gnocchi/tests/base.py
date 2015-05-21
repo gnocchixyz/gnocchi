@@ -294,6 +294,8 @@ class TestCase(base.BaseTestCase):
             os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
             str(uuid.uuid4()).encode('ascii'))
 
+        self.coord.start()
+
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             # Force upgrading using Alembic rather than creating the
             # database from scratch so we are sure we don't miss anything
@@ -301,6 +303,8 @@ class TestCase(base.BaseTestCase):
             # upgrades == create but it misses things such as custom CHECK
             # constraints.
             self.index.upgrade(nocreate=True)
+
+        self.coord.stop()
 
         self.archive_policies = self.ARCHIVE_POLICIES
         # Used in gnocchi.gendoc
