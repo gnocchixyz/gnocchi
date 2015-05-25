@@ -52,8 +52,14 @@ GNOCCHI_COORDINATOR_URL=${GNOCCHI_COORDINATOR_URL:-file://${GNOCCHI_DATA_DIR}/lo
 # Toggle for deploying Gnocchi under HTTPD + mod_wsgi
 GNOCCHI_USE_MOD_WSGI=${GNOCCHI_USE_MOD_WSGI:-${ENABLE_HTTPD_MOD_WSGI_SERVICES}}
 
-# Support potential entry-points console scripts
-GNOCCHI_BIN_DIR=$(get_python_exec_prefix)
+# Support potential entry-points console scripts and venvs
+if [[ ${USE_VENV} = True ]]; then
+    PROJECT_VENV["gnocchi"]=${GNOCCHI_DIR}.venv
+    GNOCCHI_BIN_DIR=${PROJECT_VENV["gnocchi"]}/bin
+else
+    GNOCCHI_BIN_DIR=$(get_python_exec_prefix)
+fi
+
 
 # Gnocchi connection info.
 GNOCCHI_SERVICE_PROTOCOL=http
@@ -124,6 +130,11 @@ function _config_gnocchi_apache_wsgi {
     sudo mkdir -p $GNOCCHI_WSGI_DIR
 
     local gnocchi_apache_conf=$(apache_site_config_for gnocchi)
+    local venv_path=""
+
+    if [[ ${USE_VENV} = True ]]; then
+        venv_path="python-path=${PROJECT_VENV["gnocchi"]}/lib/$(python_version)/site-packages"
+    fi
 
     # copy proxy vhost and wsgi file
     sudo cp $GNOCCHI_DIR/gnocchi/rest/app.wsgi $GNOCCHI_WSGI_DIR/
@@ -134,6 +145,7 @@ function _config_gnocchi_apache_wsgi {
         s|%APACHE_NAME%|$APACHE_NAME|g;
         s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
         s|%USER%|$STACK_USER|g
+        s|%VIRTUALENV%|$venv_path|g
     " -i $gnocchi_apache_conf
 }
 
@@ -326,7 +338,7 @@ function stop_gnocchi {
 if is_service_enabled gnocchi-api; then
     if [[ "$1" == "stack" && "$2" == "install" ]]; then
         echo_summary "Installing Gnocchi"
-        install_gnocchi
+        stack_install_service gnocchi
         if is_service_enabled h-api; then
             echo_summary "Installing Gnocchi plugin for Heat"
             setup_develop $HEAT_DIR/contrib/heat_gnocchi
