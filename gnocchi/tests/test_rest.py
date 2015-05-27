@@ -352,17 +352,17 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:30:23',
                      "value": 1234.2}],
-            status=204)
+            status=202)
         self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:29:23',
                      "value": 1234.2}],
-            status=204)
+            status=202)
         self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:28:23',
                      "value": 1234.2}],
-            status=204)
+            status=202)
         result = self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2012-01-01 23:27:23',
@@ -390,7 +390,7 @@ class MetricTest(RestTest):
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2013-01-01 23:23:23',
                      "value": 1234.2}],
-            status=204)
+            status=202)
 
         result = self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
