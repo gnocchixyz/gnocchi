@@ -129,16 +129,25 @@ class BoundTimeSerie(TimeSerie):
                 and self.block_size == other.block_size
                 and self.back_window == other.back_window)
 
-    def set_values(self, values, before_truncate_callback=None):
+    def set_values(self, values, before_truncate_callback=None,
+                   ignore_too_old_timestamps=False):
         if self.block_size is not None and not self.ts.empty:
-            # Check that the smallest timestamp does not go too much back in
-            # time.
-            # TODO(jd) convert keys to timestamp to be sure we can subtract?
-            smallest_timestamp = min(map(operator.itemgetter(0), values))
+            values = sorted(values, key=operator.itemgetter(0))
             first_block_timestamp = self._first_block_timestamp()
-            if smallest_timestamp < first_block_timestamp:
-                raise NoDeloreanAvailable(first_block_timestamp,
-                                          smallest_timestamp)
+            if ignore_too_old_timestamps:
+                for index, (timestamp, value) in enumerate(values):
+                    if timestamp >= first_block_timestamp:
+                        values = values[index:]
+                        break
+                else:
+                    values = []
+            else:
+                # Check that the smallest timestamp does not go too much back
+                # in time.
+                smallest_timestamp = values[0][0]
+                if smallest_timestamp < first_block_timestamp:
+                    raise NoDeloreanAvailable(first_block_timestamp,
+                                              smallest_timestamp)
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
             before_truncate_callback(self)
@@ -361,10 +370,11 @@ class TimeSerieArchive(object):
         for agg in self.agg_timeseries:
             agg.update(timeserie)
 
-    def set_values(self, values):
+    def set_values(self, values, ignore_too_old_timestamps=False):
         self.full_res_timeserie.set_values(
             values,
-            before_truncate_callback=self._update_aggregated_timeseries)
+            before_truncate_callback=self._update_aggregated_timeseries,
+            ignore_too_old_timestamps=ignore_too_old_timestamps)
 
     def to_dict(self):
         return {

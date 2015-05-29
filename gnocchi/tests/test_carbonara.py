@@ -527,6 +527,56 @@ class TestTimeSerieArchive(base.BaseTestCase):
         else:
             self.fail("No exception raised")
 
+    def test_back_window_ignore(self):
+        """Back window testing.
+
+        Test the the back window on an archive is not longer than the window we
+        aggregate on.
+        """
+        ts = carbonara.TimeSerieArchive.from_definitions(
+            [(1, 60)])
+
+        ts.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 1, 2300), 1),
+            (datetime.datetime(2014, 1, 1, 12, 0, 1, 4600), 2),
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 4500), 3),
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 7800), 4),
+            (datetime.datetime(2014, 1, 1, 12, 0, 3, 8), 2.5),
+        ])
+
+        self.assertEqual(
+            [
+                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
+                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
+                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 2.5),
+            ],
+            ts.fetch())
+
+        ts.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
+        ], ignore_too_old_timestamps=True)
+
+        self.assertEqual(
+            [
+                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
+                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
+                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 2.5),
+            ],
+            ts.fetch())
+
+        ts.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
+            (datetime.datetime(2014, 1, 1, 12, 0, 3, 9), 4.5),
+        ], ignore_too_old_timestamps=True)
+
+        self.assertEqual(
+            [
+                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
+                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
+                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 3.5),
+            ],
+            ts.fetch())
+
     def test_aggregated_nominal(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
             [(60, 10),
