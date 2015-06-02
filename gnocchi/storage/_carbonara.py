@@ -15,14 +15,15 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import logging
 import multiprocessing
 import operator
-import random
 import uuid
 
 from concurrent import futures
 import iso8601
 from oslo_config import cfg
+from oslo_serialization import msgpackutils
 from tooz import coordination
 
 from gnocchi import carbonara
@@ -38,6 +39,8 @@ OPTS = [
                default="file:///var/lib/gnocchi/locks"),
 
 ]
+
+LOG = logging.getLogger(__name__)
 
 
 class MeasureQuery(object):
@@ -143,13 +146,14 @@ class CarbonaraBasedStorageToozLock(object):
     def __del__(self):
         self.coord.stop()
 
-    def __call__(self, metric, aggregation):
-        lock_name = (b"gnocchi-" + str(metric.id).encode('ascii')
-                     + b"-" + aggregation.encode('ascii'))
+    def __call__(self, metric):
+        lock_name = b"gnocchi-" + str(metric.id).encode('ascii')
         return self.coord.get_lock(lock_name)
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):
+    MEASURE_PREFIX = "measure"
+
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
         self.executor = futures.ThreadPoolExecutor(
@@ -161,7 +165,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         pass
 
     @staticmethod
-    def _lock(metric, aggregation):
+    def _lock(metric):
         raise NotImplementedError
 
     def create_metric(self, metric):
@@ -198,32 +202,41 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return carbonara.TimeSerieArchive.unserialize(contents)
 
     def _add_measures(self, aggregation, metric, measures):
-        with self._lock(metric, aggregation):
-            contents = self._get_measures(metric, aggregation)
-            archive = carbonara.TimeSerieArchive.unserialize(contents)
-            try:
-                archive.set_values([(m.timestamp, m.value)
-                                    for m in measures])
-            except carbonara.NoDeloreanAvailable as e:
-                raise storage.NoDeloreanAvailable(e.first_timestamp,
-                                                  e.bad_timestamp)
-            self._store_metric_measures(metric, aggregation,
-                                        archive.serialize())
+        contents = self._get_measures(metric, aggregation)
+        archive = carbonara.TimeSerieArchive.unserialize(contents)
+        archive.set_values(measures, ignore_too_old_timestamps=True)
+        self._store_metric_measures(metric, aggregation,
+                                    archive.serialize())
 
     def add_measures(self, metric, measures):
-        # We are going to iterate multiple time over measures, so if it's a
-        # generator we need to build a list out of it right now.
-        measures = list(measures)
-        # NOTE(jd) So this is a (smart?) optimization: since we're going to
-        # lock for each of this aggregation type, if we are using running
-        # Gnocchi with multiple processes, let's randomize what we iter
-        # over so there are less chances we fight for the same lock!
-        agg_methods = list(metric.archive_policy.aggregation_methods)
-        random.shuffle(agg_methods)
-        self._map_in_thread(self._add_measures,
+        self._store_measures(metric, msgpackutils.dumps(
+            list(map(tuple, measures))))
+
+    @staticmethod
+    def _unserialize_measures(data):
+        return msgpackutils.loads(data)
+
+    def process_measures(self, indexer):
+        metrics = indexer.get_metrics(
+            self._list_metric_with_measures_to_process())
+        for metric in metrics:
+            lock = self._lock(metric)
+            agg_methods = list(metric.archive_policy.aggregation_methods)
+            # Do not block if we cannot acquire the lock, that means some other
+            # worker is doing the job. We'll just ignore this metric and may
+            # get back later to it if needed.
+            if lock.acquire(blocking=False):
+                try:
+                    LOG.debug("Processing measures for %s" % metric)
+                    with self._process_measure_for_metric(metric) as measures:
+                        self._map_in_thread(
+                            self._add_measures,
                             list((aggregation, metric, measures)
-                                 for aggregation
-                                 in agg_methods))
+                                 for aggregation in agg_methods))
+                except Exception:
+                    LOG.error("Error processing new measures", exc_info=True)
+                finally:
+                    lock.release()
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',

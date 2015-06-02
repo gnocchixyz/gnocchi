@@ -16,6 +16,7 @@
 import datetime
 import uuid
 
+import mock
 import pandas
 
 from gnocchi import aggregates
@@ -57,6 +58,11 @@ class TestAggregates(tests_base.TestCase):
         measures = [storage.Measure(start_time + incr * n, val)
                     for n, val in enumerate(data)]
         self.storage.add_measures(metric, measures)
+
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [metric]
+            self.storage.process_measures(self.index)
+
         return metric
 
     def test_retrieve_data(self):

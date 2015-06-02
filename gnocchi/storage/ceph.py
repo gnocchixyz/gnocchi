@@ -1,8 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014 eNovance
-#
-# Authors: Mehdi Abaakouk <mehdi.abaakouk@enovance.com>
+# Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -19,6 +17,7 @@
 import contextlib
 import ctypes
 import errno
+import random
 import time
 
 from oslo_config import cfg
@@ -62,6 +61,30 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  rados_id=conf.ceph_username,
                                  conf=options)
         self.rados.connect()
+
+    def add_measures(self, metric, measures):
+        # We are going to iterate multiple time over measures, so if it's a
+        # generator we need to build a list out of it right now.
+        measures = list(measures)
+        # NOTE(jd) So this is a (smart?) optimization: since we're going to
+        # lock for each of this aggregation type, if we are using running
+        # Gnocchi with multiple processes, let's randomize what we iter
+        # over so there are less chances we fight for the same lock!
+        agg_methods = list(metric.archive_policy.aggregation_methods)
+        random.shuffle(agg_methods)
+        self._map_in_thread(self._add_measures,
+                            list((aggregation, metric, measures)
+                                 for aggregation
+                                 in agg_methods))
+
+    def _add_measures(self, aggregation, metric, measures):
+        with self._lock(metric, aggregation):
+            super(CephStorage, self)._add_measures(
+                aggregation, metric, list(map(tuple, measures)))
+
+    @staticmethod
+    def process_measures(indexer):
+        pass
 
     @contextlib.contextmanager
     def _lock(self, metric, lock_name):

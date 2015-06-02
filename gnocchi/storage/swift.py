@@ -13,8 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import contextlib
+import uuid
+
 from oslo_config import cfg
 import retrying
+import six
 from swiftclient import client as swclient
 
 from gnocchi import storage
@@ -64,6 +68,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             tenant_name=conf.swift_tenant_name)
         self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
         self._container_prefix = conf.swift_container_prefix
+        self.swift.put_container(self.MEASURE_PREFIX)
 
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
@@ -77,6 +82,34 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         # means the metric was already created!
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
+
+    def _store_measures(self, metric, data):
+        self.swift.put_object(
+            self.MEASURE_PREFIX,
+            six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()),
+            data)
+
+    def _list_metric_with_measures_to_process(self):
+        headers, files = self.swift.get_container(self.MEASURE_PREFIX,
+                                                  delimiter='/')
+        return set(f['subdir'][:-1] for f in files if 'subdir' in f)
+
+    @contextlib.contextmanager
+    def _process_measure_for_metric(self, metric):
+        headers, files = self.swift.get_container(
+            self.MEASURE_PREFIX, path=six.text_type(metric.id))
+
+        measures = []
+        for f in files:
+            headers, data = self.swift.get_object(
+                self.MEASURE_PREFIX, f['name'])
+            measures.extend(self._unserialize_measures(data))
+
+        yield measures
+
+        # Now clean objects
+        for f in files:
+            self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
 
     def _store_metric_measures(self, metric, aggregation, data):
         self.swift.put_object(self._container_name(metric), aggregation, data)

@@ -162,12 +162,44 @@ class FakeSwiftClient(object):
                 response_dict['status'] = 201
         self.kvs[container] = {}
 
+    def get_container(self, container, delimiter=None,
+                      path=None):
+        try:
+            container = self.kvs[container]
+        except KeyError:
+            raise swexc.ClientException("No such container",
+                                        http_status=404)
+
+        files = []
+        directories = set()
+        for k, v in six.iteritems(container):
+            if path and not k.startswith(path):
+                continue
+
+            if delimiter is not None and delimiter in k:
+                dirname = k.split(delimiter, 1)[0]
+                if dirname not in directories:
+                    directories.add(dirname)
+                    files.append({'subdir': dirname + delimiter})
+            else:
+                files.append({'bytes': len(v),
+                              'last_modified': None,
+                              'hash': None,
+                              'name': k,
+                              'content_type': None})
+
+        return {}, files + list(directories)
+
     def put_object(self, container, key, obj):
         if hasattr(obj, "seek"):
             obj.seek(0)
             obj = obj.read()
             # TODO(jd) Maybe we should reset the seek(), but well…
-        self.kvs[container][key] = obj
+        try:
+            self.kvs[container][key] = obj
+        except KeyError:
+            raise swexc.ClientException("No such container",
+                                        http_status=404)
 
     def get_object(self, container, key):
         try:

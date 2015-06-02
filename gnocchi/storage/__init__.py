@@ -32,6 +32,11 @@ class Measure(object):
         self.timestamp = timeutils.normalize_time(timestamp)
         self.value = value
 
+    def __iter__(self):
+        """Allow to transform measure to tuple."""
+        yield self.timestamp
+        yield self.value
+
 
 class Metric(object):
     def __init__(self, id, archive_policy,
@@ -98,16 +103,6 @@ class MetricAlreadyExists(Exception):
             "Metric %s already exists" % metric)
 
 
-class NoDeloreanAvailable(Exception):
-    """Error raised when trying to insert a value that is too old."""
-
-    def __init__(self, first_timestamp, bad_timestamp):
-        self.first_timestamp = first_timestamp
-        self.bad_timestamp = bad_timestamp
-        super(NoDeloreanAvailable, self).__init__(
-            "%s is before %s" % (bad_timestamp, first_timestamp))
-
-
 class MetricUnaggregatable(Exception):
     """Error raised when metrics can't be aggregated."""
 
@@ -157,6 +152,14 @@ class StorageDriver(object):
         :param measures: The actual measures.
         """
         raise exceptions.NotImplementedError
+
+    @staticmethod
+    def process_measures():
+        """Process addedmeasures in background.
+
+        Some drivers might need to have a background task running that process
+        the measures sent to metrics. This is used for that.
+        """
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,

@@ -16,6 +16,8 @@
 import datetime
 import uuid
 
+import mock
+
 from gnocchi import archive_policy
 from gnocchi import storage
 from gnocchi.storage import null
@@ -77,6 +79,16 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.storage.delete_metric(self.metric)
 
+    def test_delete_nonempty_metric_with_process(self):
+        self.storage.create_metric(self.metric)
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+        ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric]
+            self.storage.process_measures(self.index)
+        self.storage.delete_metric(self.metric)
+
     def test_add_and_get_measures(self):
         self.storage.create_metric(self.metric)
         self.storage.add_measures(self.metric, [
@@ -85,6 +97,9 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 12, 45), 44),
         ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric]
+            self.storage.process_measures(self.index)
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
@@ -177,6 +192,9 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 10, 31), 4),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 13, 10), 4),
         ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric, metric2]
+            self.storage.process_measures(self.index)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -236,6 +254,9 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 6),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 13, 10), 2),
         ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric, metric2]
+            self.storage.process_measures(self.index)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -265,6 +286,9 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 6),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 13, 10), 2),
         ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric, metric2]
+            self.storage.process_measures(self.index)
 
         self.assertEqual(
             {metric2: [],

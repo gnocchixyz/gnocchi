@@ -363,16 +363,12 @@ class MetricTest(RestTest):
             params=[{"timestamp": '2013-01-01 23:28:23',
                      "value": 1234.2}],
             status=202)
-        result = self.app.post_json(
+        # This one is too old and should not be taken into account
+        self.app.post_json(
             "/v1/metric/%s/measures" % metric['id'],
             params=[{"timestamp": '2012-01-01 23:27:23',
                      "value": 1234.2}],
-            status=400)
-        self.assertIn(
-            b"The measure for 2012-01-01 23:27:23 is too old considering "
-            b"the archive policy used by this metric. "
-            b"It can only go back to 2013-01-01 23:28:00.",
-            result.body)
+            status=202)
 
         ret = self.app.get("/v1/metric/%s/measures" % metric['id'])
         result = json.loads(ret.text)
@@ -381,27 +377,6 @@ class MetricTest(RestTest):
              [u'2013-01-01T23:29:00+00:00', 60.0, 1234.2],
              [u'2013-01-01T23:30:00+00:00', 60.0, 1234.2]],
             result)
-
-    def test_add_measures_too_old(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "low"})
-        metric = json.loads(result.text)
-        result = self.app.post_json(
-            "/v1/metric/%s/measures" % metric['id'],
-            params=[{"timestamp": '2013-01-01 23:23:23',
-                     "value": 1234.2}],
-            status=202)
-
-        result = self.app.post_json(
-            "/v1/metric/%s/measures" % metric['id'],
-            params=[{"timestamp": '2012-01-01 23:23:23',
-                     "value": 1234.2}],
-            status=400)
-        self.assertIn(
-            b"The measure for 2012-01-01 23:23:23 is too old considering "
-            b"the archive policy used by this metric. "
-            b"It can only go back to 2013-01-01 00:00:00",
-            result.body)
 
     def test_get_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
