@@ -28,6 +28,6 @@ msgpack-python
 retrying
 pytz
 WebOb>=1.4.1
-alembic>=0.7
+alembic>=0.7.6
 psycopg2
 pymysql

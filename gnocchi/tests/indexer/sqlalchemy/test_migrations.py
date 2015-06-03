@@ -33,10 +33,6 @@ class ModelsMigrationsSync(
 
     def setUp(self):
         super(ModelsMigrationsSync, self).setUp()
-        # NOTE(jd) This only works with PostgreSQL for now because of
-        # https://bitbucket.org/zzzeek/alembic/issue/296/unable-to-compare-custom-with-different
-        if not self.conf.indexer.url.startswith("postgresql"):
-            self.skipTest("This test only works with PostgreSQL")
         self.db = mock.Mock()
 
     @staticmethod
