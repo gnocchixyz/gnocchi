@@ -492,15 +492,13 @@ tests:
           $.archive_policy.name: medium
 
     - name: post cpuutil measures to instance
-      desc: https://bugs.launchpad.net/gnocchi/+bug/1450109
       url: /v1/resource/instance/$RESPONSE['$.resource.id']/metric/cpu.util
-      xfail: true
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           content-type: application/json
-      status: 405 # currently a 404
+      status: 405
 
     - name: list the instances third time
       url: /v1/resource/instance

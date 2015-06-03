@@ -56,14 +56,12 @@ tests:
           - Unsupported Media Type
 
     - name: wrong method
-      desc: https://bugs.launchpad.net/pecan/+bug/1334690
       url: /v1/archive_policy
-      xfail: true
       method: PUT
       request_headers:
           content-type: application/json
           x-roles: admin
-      status: 405 # We actually see 404
+      status: 405
 
     - name: wrong authZ
       url: /v1/archive_policy
@@ -201,11 +199,9 @@ tests:
       status: 405 # currently 404
 
     - name: put single archive
-      desc: https://bugs.launchpad.net/pecan/+bug/1334690
-      xfail: true
       url: /v1/archive_policy/medium
       method: PUT
-      status: 405 # currently 404
+      status: 405
 
 # Create another one and then test duplication
 
@@ -257,8 +253,6 @@ tests:
           name: ✔éñ☃
 
     - name: retrieve unicode policy name
-      desc: https://bugs.launchpad.net/pecan/+bug/1451842
-      xfail: True
       url: $LOCATION
       response_json_paths:
           name: ✔éñ☃
@@ -281,8 +275,6 @@ tests:
           name: æ
 
     - name: retrieve small unicode policy name
-      desc: https://bugs.launchpad.net/pecan/+bug/1451842
-      xfail: True
       url: $LOCATION
       response_json_paths:
           name: æ
