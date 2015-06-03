@@ -89,25 +89,8 @@ class PreciseTimestamp(types.TypeDecorator):
         return value
 
 
-class AvoidDictInterface(TypeError):
-    def __init__(self):
-        super(AvoidDictInterface, self).__init__(
-            "dict interface of oslo.db model must not be used")
-
-
 class GnocchiBase(models.ModelBase):
-    # NOTE(sileht): the other part of gnocchi expects to have objects
-    # but sqlalchemy is the only driver for now, so we ensure
-    # here that we always use the correct interface outside the
-    # driver.
-    def __setitem__(self, key, value):
-        raise AvoidDictInterface()
-
-    def __getitem__(self, key):
-        raise AvoidDictInterface()
-
-    def __contains__(self, key):
-        raise AvoidDictInterface()
+    pass
 
 
 class ArchivePolicyDefinitionType(sqlalchemy_utils.JSONType):
