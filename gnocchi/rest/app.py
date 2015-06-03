@@ -102,7 +102,7 @@ def setup_app(config=PECAN_CONFIG, cfg=None):
     i = config.get('indexer')
     if not i:
         i = indexer.get_driver(cfg)
-    i.connect()
+        i.connect()
 
     root_dir = os.path.dirname(os.path.abspath(__file__))
 

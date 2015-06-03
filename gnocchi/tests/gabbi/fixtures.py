@@ -30,14 +30,18 @@ from gnocchi.rest import app
 from gnocchi import service
 
 
-# NOTE(chdent): Hack to restore semblance of global conf to pass to
-# the WSGI app used per test suite.
+# NOTE(chdent): Hack to restore semblance of global configuration to
+# pass to the WSGI app used per test suite. CONF is the olso
+# configuration, PECAN_CONF is the pecan application configuration of
+# which the critical part is a reference to the current indexer.
 CONF = None
+PECAN_CONF = None
 
 
 def setup_app():
     global CONF
-    return app.setup_app(cfg=CONF)
+    global PECAN_CONF
+    return app.setup_app(config=PECAN_CONF, cfg=CONF)
 
 
 class ConfigFixture(fixture.GabbiFixture):
@@ -62,6 +66,10 @@ class ConfigFixture(fixture.GabbiFixture):
         """Create necessary temp files and do the config dance."""
 
         global CONF
+        global PECAN_CONF
+
+        PECAN_CONF = {}
+        PECAN_CONF.update(app.PECAN_CONFIG)
 
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
         coordination_dir = os.path.join(data_tmp_dir, 'tooz')
@@ -110,6 +118,8 @@ class ConfigFixture(fixture.GabbiFixture):
         index.connect()
         index.upgrade()
 
+        PECAN_CONF['indexer'] = index
+
         conf.set_override('pecan_debug', False, 'api')
 
         # Turn off any middleware.
@@ -119,7 +129,8 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
-        self.index.disconnect()
+        if hasattr(self, 'index'):
+            self.index.disconnect()
 
         if not self.conf.indexer.url.startswith("null://"):
             # Swallow noise from missing tables when dropping

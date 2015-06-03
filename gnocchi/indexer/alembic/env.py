@@ -82,6 +82,8 @@ def run_migrations_online():
         with context.begin_transaction():
             context.run_migrations()
 
+    indexer.disconnect()
+
 # If `alembic' was used directly from the CLI
 if not hasattr(config, "conf"):
     from gnocchi import service
