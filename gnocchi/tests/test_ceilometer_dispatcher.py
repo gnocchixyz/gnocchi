@@ -50,6 +50,8 @@ class DispatcherTest(base.BaseTestCase):
     def setUp(self):
         super(DispatcherTest, self).setUp()
         self.conf = self.useFixture(config_fixture.Config())
+        self.conf.conf.set_override('filter_service_activity', True,
+                                    'dispatcher_gnocchi')
         ceilometer_service.prepare_service([])
         self.resource_id = str(uuid.uuid4())
         self.samples = [{
