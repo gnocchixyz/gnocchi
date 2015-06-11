@@ -43,7 +43,7 @@ GNOCCHI_BRANCH=${GNOCCHI_BRANCH:-master}
 GNOCCHI_DIR=$DEST/gnocchi
 GNOCCHI_CONF_DIR=/etc/gnocchi
 GNOCCHI_CONF=$GNOCCHI_CONF_DIR/gnocchi.conf
-GNOCCHI_API_LOG_DIR=/var/log/gnocchi-api
+GNOCCHI_LOG_DIR=/var/log/gnocchi
 GNOCCHI_AUTH_CACHE_DIR=${GNOCCHI_AUTH_CACHE_DIR:-/var/cache/gnocchi}
 GNOCCHI_WSGI_DIR=${GNOCCHI_WSGI_DIR:-/var/www/gnocchi}
 GNOCCHI_DATA_DIR=${GNOCCHI_DATA_DIR:-${DATA_DIR}/gnocchi}
@@ -164,8 +164,8 @@ function configure_gnocchi {
     [ ! -d $GNOCCHI_CONF_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_CONF_DIR
     sudo chown $STACK_USER $GNOCCHI_CONF_DIR
 
-    [ ! -d $GNOCCHI_API_LOG_DIR ] &&  sudo mkdir -m 755 -p $GNOCCHI_API_LOG_DIR
-    sudo chown $STACK_USER $GNOCCHI_API_LOG_DIR
+    [ ! -d $GNOCCHI_LOG_DIR ] &&  sudo mkdir -m 755 -p $GNOCCHI_LOG_DIR
+    sudo chown $STACK_USER $GNOCCHI_LOG_DIR
 
     [ ! -d $GNOCCHI_DATA_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_DATA_DIR
     sudo chown $STACK_USER $GNOCCHI_DATA_DIR
@@ -297,7 +297,7 @@ function start_gnocchi {
         tail_log gnocchi /var/log/$APACHE_NAME/gnocchi.log
         tail_log gnocchi-api /var/log/$APACHE_NAME/gnocchi-access.log
     else
-        run_process gnocchi-api "gnocchi-api -d -v --log-dir=$GNOCCHI_API_LOG_DIR --config-file $GNOCCHI_CONF"
+        run_process gnocchi-api "gnocchi-api -d -v --log-dir=$GNOCCHI_LOG_DIR --config-file $GNOCCHI_CONF"
     fi
     # only die on API if it was actually intended to be turned on
     if is_service_enabled gnocchi-api; then
