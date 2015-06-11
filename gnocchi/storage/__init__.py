@@ -24,6 +24,10 @@ OPTS = [
     cfg.StrOpt('driver',
                default='file',
                help='Storage driver to use'),
+    cfg.IntOpt('metric_processing_delay',
+               default=5,
+               help="How many seconds to wait between "
+               "new metric measure processing"),
 ]
 
 

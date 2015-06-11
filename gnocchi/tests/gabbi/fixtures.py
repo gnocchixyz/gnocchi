@@ -17,6 +17,8 @@
 import os
 import shutil
 import tempfile
+import threading
+import time
 from unittest import case
 import uuid
 import warnings
@@ -28,6 +30,7 @@ import sqlalchemy_utils
 from gnocchi import indexer
 from gnocchi.rest import app
 from gnocchi import service
+from gnocchi import storage
 
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
@@ -127,8 +130,16 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
+        # start up a thread to async process measures
+        self.metricd_thread = MetricdThread(index, storage.get_driver(conf))
+        self.metricd_thread.start()
+
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
+        if hasattr(self, 'metricd_thread'):
+            self.metricd_thread.stop()
+            self.metricd_thread.join()
+
         if hasattr(self, 'index'):
             self.index.disconnect()
 
@@ -143,3 +154,21 @@ class ConfigFixture(fixture.GabbiFixture):
             shutil.rmtree(self.tmp_dir)
 
         self.conf.reset()
+
+
+class MetricdThread(threading.Thread):
+    """Run metricd in a naive thread to process measures."""
+
+    def __init__(self, index, storer, name='metricd'):
+        super(MetricdThread, self).__init__(name=name)
+        self.index = index
+        self.storage = storer
+        self.flag = True
+
+    def run(self):
+        while self.flag:
+            self.storage.process_measures(self.index)
+            time.sleep(0.1)
+
+    def stop(self):
+        self.flag = False

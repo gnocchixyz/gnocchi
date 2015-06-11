@@ -425,8 +425,6 @@ class MetricController(rest.RestController):
                     m['value']) for m in deserialize(self.Measures)))
         except storage.MetricDoesNotExist as e:
             abort(404, e)
-        # FIXME(jd) This should be done in a separate process later!
-        pecan.request.storage.process_measures(pecan.request.indexer)
         pecan.response.status = 202
 
     @pecan.expose('json')

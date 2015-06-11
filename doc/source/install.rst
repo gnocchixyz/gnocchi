@@ -78,6 +78,8 @@ To run Gnocchi, simple run the HTTP server:
 
     gnocchi-api
 
+You then need to run the `gnocchi-metricd` daemon to enable new measures
+processing in the background.
 
 Running As A WSGI Application
 =============================

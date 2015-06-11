@@ -109,6 +109,8 @@ class TestingApp(webtest.TestApp):
 
     def __init__(self, *args, **kwargs):
         self.auth = kwargs.pop('auth')
+        self.storage = kwargs.pop('storage')
+        self.indexer = kwargs.pop('indexer')
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.extra_environ.update({self.CACHE_NAME: FakeMemcache()})
@@ -138,6 +140,7 @@ class TestingApp(webtest.TestApp):
 
     def do_request(self, req, *args, **kwargs):
         req.headers['X-Auth-Token'] = self.token
+        self.storage.process_measures(self.indexer)
         return super(TestingApp, self).do_request(req, *args, **kwargs)
 
 
@@ -172,6 +175,8 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
                                    self.middlewares, group="api")
 
         self.app = TestingApp(pecan.load_app(c, cfg=self.conf),
+                              storage=self.storage,
+                              indexer=self.index,
                               auth=bool(self.conf.api.middlewares))
 
     def test_deserialize_force_json(self):
