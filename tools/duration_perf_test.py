@@ -136,7 +136,7 @@ class PerfTools(object):
         for name, data in self._timers.iteritems():
             filepath = "%s_%s.csv" % (self.args.result_path, name)
             dirpath = os.path.dirname(filepath)
-            if dirpath:
+            if dirpath and not os.path.exists(dirpath):
                 os.makedirs(dirpath)
             with open(filepath, 'w') as f:
                 f.write("Index,Duration,Count\n")
