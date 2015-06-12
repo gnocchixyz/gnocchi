@@ -29,6 +29,11 @@ import gnocchi.storage.swift
 def list_opts():
     return [
         ("indexer", gnocchi.indexer.OPTS),
+        ("metricd", (
+            cfg.Opt('workers', type=types.Integer(min=1),
+                    help='Number of workers for Gnocchi metric daemons. '
+                    'By default the available number of CPU is used.'),
+        )),
         ("api", (
             cfg.IntOpt('port',
                        default=8041,
