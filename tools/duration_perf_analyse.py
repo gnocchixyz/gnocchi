@@ -60,8 +60,8 @@ def main():
                     datum[-1].rename(columns={'Duration': cname}, inplace=True)
 
     for method in data:
-        merged = pandas.datumFrame(columns=['Index', 'Duration'])
-        append = pandas.datumFrame(columns=['Duration'])
+        merged = pandas.DataFrame(columns=['Index', 'Duration'])
+        append = pandas.DataFrame(columns=['Duration'])
         for datum in data[method]:
             datum.dropna(axis=1, inplace=True)
             datum.drop('Count', axis=1, inplace=True)
