@@ -526,7 +526,7 @@ tests:
             value: 43.1
           - timestamp: "2015-03-06T14:34:12"
             value: 12
-      status: 204
+      status: 202
 
     - name: list the instances fourth time
       url: /v1/resource/instance

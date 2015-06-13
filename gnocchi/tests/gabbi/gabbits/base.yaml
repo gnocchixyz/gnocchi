@@ -91,7 +91,7 @@ tests:
   data:
       - timestamp: "2013-01-01 23:23:20"
         value: 1234.2
-  status: 204
+  status: 202
 
 - name: Get list of resource type and URL
   desc: Resources index page should return list of type associated with a URL

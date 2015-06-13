@@ -431,6 +431,7 @@ class MetricController(rest.RestController):
                   "archive policy used by this metric. "
                   "It can only go back to %s."
                   % (e.bad_timestamp, e.first_timestamp))
+        pecan.response.status = 202
 
     @pecan.expose('json')
     @pecan.expose('measures.j2')
