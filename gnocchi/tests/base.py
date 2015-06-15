@@ -374,4 +374,5 @@ class TestCase(base.BaseTestCase):
 
     def tearDown(self):
         self.index.disconnect()
+        self.storage.stop()
         super(TestCase, self).tearDown()

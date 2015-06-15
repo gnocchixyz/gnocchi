@@ -137,6 +137,10 @@ class StorageDriver(object):
         pass
 
     @staticmethod
+    def stop():
+        pass
+
+    @staticmethod
     def create_metric(metric):
         """Create a metric.
 

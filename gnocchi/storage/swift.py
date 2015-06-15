@@ -70,6 +70,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self._container_prefix = conf.swift_container_prefix
         self.swift.put_container(self.MEASURE_PREFIX)
 
+    def stop(self):
+        self._lock.stop()
+
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 

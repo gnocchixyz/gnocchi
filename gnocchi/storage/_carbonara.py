@@ -143,7 +143,7 @@ class CarbonaraBasedStorageToozLock(object):
             str(uuid.uuid4()).encode('ascii'))
         self.coord.start()
 
-    def __del__(self):
+    def stop(self):
         self.coord.stop()
 
     def __call__(self, metric):
