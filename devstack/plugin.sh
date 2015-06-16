@@ -291,6 +291,8 @@ function install_gnocchi {
 function start_gnocchi {
     local token
 
+    run_process gnocchi-metricd "gnocchi-metricd -d -v --log-dir=$GNOCCHI_LOG_DIR --config-file $GNOCCHI_CONF"
+
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         enable_apache_site gnocchi
         restart_apache_server

@@ -1,0 +1,71 @@
+#
+# Test async processing of measures.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+
+    - name: create archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: moderate
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: make a generic resource
+      url: /v1/resource/generic
+      method: POST
+      request_headers:
+          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
+          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
+          content-type: application/json
+      data:
+          id: 41937416-1644-497d-a0ed-b43d55a2b0ea
+          started_at: "2015-06-06T02:02:02.000000"
+          metrics:
+              some.counter:
+                  archive_policy_name: moderate
+      status: 201
+
+    - name: confirm no metrics yet
+      request_headers:
+          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
+          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
+          content-type: application/json
+      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
+      response_json_paths:
+          $: []
+
+    - name: post some measures
+      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
+      method: post
+      request_headers:
+          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
+          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
+          content-type: application/json
+      data:
+          - timestamp: "2015-06-06T14:33:00"
+            value: 11
+          - timestamp: "2015-06-06T14:35:00"
+            value: 12
+      status: 202
+
+# This requires a poll as the measures are not immediately
+# aggregated.
+
+    - name: get some measures
+      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
+      poll:
+          count: 10
+          delay: .1
+      response_strings:
+          - "2015"
+      response_json_paths:
+          $[-1][-1]: 12

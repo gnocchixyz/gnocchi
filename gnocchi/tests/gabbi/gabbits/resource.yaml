@@ -451,6 +451,7 @@ tests:
 
 
     - name: get metrics for this resource
+      desc: with async measure handling this is a null test
       url: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -476,14 +477,8 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
       status: 200 # currently a 404
 
-    - name: list the instances again
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: request cpuutil metric from instance
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric/cpu.util
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
@@ -491,8 +486,8 @@ tests:
           $.created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           $.archive_policy.name: medium
 
-    - name: post cpuutil measures to instance
-      url: /v1/resource/instance/$RESPONSE['$.resource.id']/metric/cpu.util
+    - name: try post cpuutil measures to instance
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -500,14 +495,9 @@ tests:
           content-type: application/json
       status: 405
 
-    - name: list the instances third time
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: request cpuutil measures from instance
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric/cpu.util/measures
+      desc: with async measure handling this is a null test
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
@@ -515,7 +505,7 @@ tests:
           - "[]"
 
     - name: post cpuutil measures
-      url: $HEADERS['content-location']
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -528,30 +518,21 @@ tests:
             value: 12
       status: 202
 
-    - name: list the instances fourth time
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: request cpuutil measures again
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric/cpu.util/measures
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      poll:
+          count: 10
+          delay: .1
       response_json_paths:
           $[0][0]: "2015-03-06T14:33:57+00:00"
           $[0][1]: 1.0
           $[0][2]: 43.100000000000001
 
-    - name: list the instances fifth time
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: post metric at instance
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -563,14 +544,8 @@ tests:
               archive_policy_name: medium
       response_headers:
 
-    - name: list the instances sixth time
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: duplicate metrics at instance
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -583,14 +558,8 @@ tests:
       response_strings:
           - Named metric electron.spin already exists
 
-    - name: list the instances seventh time
-      url: /v1/resource/instance
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-
     - name: post metrics at instance bad policy
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c

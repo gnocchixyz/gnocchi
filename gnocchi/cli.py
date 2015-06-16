@@ -12,10 +12,21 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+try:
+    import asyncio
+except ImportError:
+    import trollius as asyncio
+import logging
+
+from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy as sql_db
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
+from gnocchi import storage
+
+
+LOG = logging.getLogger(__name__)
 
 
 def storage_dbsync():
@@ -31,3 +42,19 @@ def api():
 
 def statsd():
     statsd_service.start()
+
+
+def metricd():
+    conf = service.prepare_service()
+    s = storage.get_driver(conf)
+    i = indexer.get_driver(conf)
+    i.connect()
+    loop = asyncio.get_event_loop()
+
+    def process():
+        loop.call_later(conf.storage.metric_processing_delay, process)
+        LOG.debug("Processing new measures")
+        s.process_measures(i)
+
+    process()
+    loop.run_forever()
