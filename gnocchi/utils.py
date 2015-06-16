@@ -58,7 +58,7 @@ def to_timespan(value):
 
 def utcnow():
     """Better version of utcnow() that returns utcnow with a correct TZ."""
-    return timeutils.utcnow().replace(tzinfo=iso8601.iso8601.UTC)
+    return timeutils.utcnow(True)
 
 
 def datetime_utc(*args):

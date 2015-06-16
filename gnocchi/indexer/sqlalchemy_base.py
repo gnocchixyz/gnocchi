@@ -231,9 +231,9 @@ class ResourceMixin(ResourceJsonifier):
                                    # MySQL is not a Timestamp, so it would
                                    # not store a timestamp but a date as an
                                    # integer.
-                                   default=utils.utcnow)
+                                   default=lambda: utils.utcnow())
     revision_start = sqlalchemy.Column(PreciseTimestamp, nullable=False,
-                                       default=utils.utcnow)
+                                       default=lambda: utils.utcnow())
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
     project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
@@ -269,7 +269,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                name="fk_resource_history_id_resource_id"),
                            nullable=False)
     revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
-                                     default=utils.utcnow)
+                                     default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
         Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
         foreign_keys='Metric.resource_id')
