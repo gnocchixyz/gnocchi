@@ -44,14 +44,18 @@ load_tests = testscenarios.load_tests_apply_scenarios
 
 class FakeMemcache(object):
     VALID_TOKEN_ADMIN = '4562138218392830'
+    ADMIN_TOKEN_HASH = hashlib.sha256(
+        VALID_TOKEN_ADMIN.encode('utf-8')).hexdigest()
     USER_ID_ADMIN = str(uuid.uuid4())
     PROJECT_ID_ADMIN = str(uuid.uuid4())
 
     VALID_TOKEN = '4562138218392831'
+    TOKEN_HASH = hashlib.sha256(VALID_TOKEN.encode('utf-8')).hexdigest()
     USER_ID = str(uuid.uuid4())
     PROJECT_ID = str(uuid.uuid4())
 
     VALID_TOKEN_2 = '4562138218392832'
+    TOKEN_2_HASH = hashlib.sha256(VALID_TOKEN_2.encode('utf-8')).hexdigest()
     # We replace "-" to simulate a middleware that would send UUID in a non
     # normalized format.
     USER_ID_2 = str(uuid.uuid4()).replace("-", "")
@@ -59,7 +63,8 @@ class FakeMemcache(object):
 
     def get(self, key):
         dt = "2100-01-01T23:59:59"
-        if key == "tokens/%s" % self.VALID_TOKEN_ADMIN:
+        if (key == "tokens/%s" % self.ADMIN_TOKEN_HASH or
+                key == "tokens/%s" % self.VALID_TOKEN_ADMIN):
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN_ADMIN,
                           'expires': dt},
@@ -72,7 +77,8 @@ class FakeMemcache(object):
                         {'name': 'admin'},
                     ]},
             }}, dt))
-        elif key == "tokens/%s" % self.VALID_TOKEN:
+        elif (key == "tokens/%s" % self.TOKEN_HASH or
+                key == "tokens/%s" % self.VALID_TOKEN):
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN,
                           'expires': dt},
@@ -85,7 +91,8 @@ class FakeMemcache(object):
                         {'name': 'member'},
                     ]},
             }}, dt))
-        elif key == "tokens/%s" % self.VALID_TOKEN_2:
+        elif (key == "tokens/%s" % self.TOKEN_2_HASH or
+              key == "tokens/%s" % self.VALID_TOKEN_2):
             return json.dumps(({'access': {
                 'token': {'id': self.VALID_TOKEN_2,
                           'expires': dt},
@@ -174,10 +181,14 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
             self.conf.set_override("middlewares",
                                    self.middlewares, group="api")
 
+        # TODO(chdent) Linting is turned off until a
+        # keystonemiddleware bug is resolved.
+        # See: https://bugs.launchpad.net/keystonemiddleware/+bug/1466499
         self.app = TestingApp(pecan.load_app(c, cfg=self.conf),
                               storage=self.storage,
                               indexer=self.index,
-                              auth=bool(self.conf.api.middlewares))
+                              auth=bool(self.conf.api.middlewares),
+                              lint=False)
 
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
