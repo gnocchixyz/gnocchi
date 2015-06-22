@@ -405,11 +405,10 @@ class MetricTest(RestTest):
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
 
-    def test_get_measure_start_relative(self):
+    @mock.patch.object(utils, 'utcnow')
+    def test_get_measure_start_relative(self, utcnow):
         """Make sure the timestamps can be relative to now."""
-        # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
-        self.addCleanup(timeutils.clear_time_override)
+        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
@@ -780,10 +779,9 @@ class ResourceTest(RestTest):
         if 'project_id' not in self.resource:
             self.resource['project_id'] = None
 
-    def test_post_resource(self):
-        # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
-        self.addCleanup(timeutils.clear_time_override)
+    @mock.patch.object(utils, 'utcnow')
+    def test_post_resource(self, utcnow):
+        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
         result = self.app.post_json(
             "/v1/resource/" + self.resource_type,
             params=self.attributes,
@@ -867,10 +865,9 @@ class ResourceTest(RestTest):
         self.assertEqual(response.headers['Last-Modified'], lastmodified)
         self.assertEqual(response.headers['ETag'], '"%s"' % etag.hexdigest())
 
-    def test_get_resource(self):
-        # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
-        self.addCleanup(timeutils.clear_time_override)
+    @mock.patch.object(utils, 'utcnow')
+    def test_get_resource(self, utcnow):
+        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
@@ -1126,16 +1123,15 @@ class ResourceTest(RestTest):
                                     status=400)
         self.assertIn("Metric %s does not exist" % metric_id, result.text)
 
-    def test_patch_resource_metrics(self):
-        # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
-        self.addCleanup(timeutils.clear_time_override)
+    @mock.patch.object(utils, 'utcnow')
+    def test_patch_resource_metrics(self, utcnow):
+        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
         r = json.loads(result.text)
 
-        timeutils.set_time_override(datetime.datetime(2014, 1, 2, 6, 48))
+        utcnow.return_value = utils.datetime_utc(2014, 1, 2, 6, 49)
         new_metrics = {'foo': {'archive_policy_name': "medium"}}
         self.app.patch_json(
             "/v1/resource/" + self.resource_type + "/"
@@ -1150,7 +1146,7 @@ class ResourceTest(RestTest):
         self.assertIsNone(result['revision_end'])
         self.assertIsNone(r['revision_end'])
         self.assertEqual(result['revision_start'],
-                         "2014-01-02T06:48:00+00:00")
+                         "2014-01-02T06:49:00+00:00")
         self.assertEqual(r['revision_start'], "2014-01-01T10:23:00+00:00")
 
         del result['metrics']
@@ -1204,15 +1200,13 @@ class ResourceTest(RestTest):
         result = json.loads(result.text)
         self.assertEqual({}, result['metrics'])
 
-    def test_patch_resource_attributes(self):
-        # TODO(jd) Use a fixture as soon as there's one
-        timeutils.set_time_override(datetime.datetime(2014, 1, 1, 10, 23))
-        self.addCleanup(timeutils.clear_time_override)
-
+    @mock.patch.object(utils, 'utcnow')
+    def test_patch_resource_attributes(self, utcnow):
+        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
                            status=201)
-        timeutils.set_time_override(datetime.datetime(2014, 1, 2, 6, 48))
+        utcnow.return_value = utils.datetime_utc(2014, 1, 2, 6, 48)
         presponse = self.app.patch_json(
             "/v1/resource/" + self.resource_type
             + "/" + self.attributes['id'],
