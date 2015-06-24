@@ -35,10 +35,6 @@ set +o xtrace
 # Defaults
 # --------
 
-# Setup repository
-GNOCCHI_REPO=${GNOCCHI_REPO:-${GIT_BASE}/openstack/gnocchi.git}
-GNOCCHI_BRANCH=${GNOCCHI_BRANCH:-master}
-
 # Set up default directories
 GNOCCHI_DIR=$DEST/gnocchi
 GNOCCHI_CONF_DIR=/etc/gnocchi
@@ -270,8 +266,6 @@ function init_gnocchi {
 
 # install_gnocchi() - Collect source and prepare
 function install_gnocchi {
-    git_clone $GNOCCHI_REPO $GNOCCHI_DIR $GNOCCHI_BRANCH
-
     if [ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]; then
         # NOTE(sileht): this is defined into ceilometer lib
         install_redis
