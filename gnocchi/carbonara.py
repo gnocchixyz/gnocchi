@@ -69,6 +69,10 @@ class TimeSerie(SerializableMixin):
     def __init__(self, timestamps=None, values=None):
         self.ts = pandas.Series(values, timestamps).sort_index()
 
+    @classmethod
+    def from_tuples(cls, timestamps_values):
+        return cls(*zip(*timestamps_values))
+
     def __eq__(self, other):
         return (isinstance(other, TimeSerie)
                 and self.ts.all() == other.ts.all())
@@ -136,7 +140,10 @@ class BoundTimeSerie(TimeSerie):
 
         """
         super(BoundTimeSerie, self).__init__(timestamps, values)
-        self.block_size = pandas.tseries.frequencies.to_offset(block_size)
+        if isinstance(block_size, (float, six.integer_types)):
+            self.block_size = pandas.tseries.offsets.Nano(block_size * 10e8)
+        else:
+            self.block_size = pandas.tseries.frequencies.to_offset(block_size)
         self.back_window = back_window
         self._truncate()
 
@@ -247,12 +254,6 @@ class AggregatedTimeSerie(TimeSerie):
                 and self.sampling == other.sampling
                 and self.aggregation_method == other.aggregation_method)
 
-    def set_values(self, values):
-        super(AggregatedTimeSerie, self).set_values(values)
-        # See comments in update()
-        self._resample(min(values, key=operator.itemgetter(0))[0])
-        self._truncate()
-
     @classmethod
     def from_dict(cls, d):
         """Build a time series from a dict.
@@ -314,40 +315,30 @@ class AggregatedTimeSerie(TimeSerie):
 
 class TimeSerieArchive(SerializableMixin):
 
-    def __init__(self, full_res_timeserie, agg_timeseries):
+    def __init__(self, agg_timeseries):
         """A raw data buffer and a collection of downsampled timeseries.
 
         Used to represent the set of AggregatedTimeSeries for the range of
         granularities supported for a metric (for a particular aggregation
         function).
 
-        In addition, a single BoundTimeSerie acts as the buffer for full-
-        resolution datapoints feeding into the eager aggregation.
-
         """
-        self.full_res_timeserie = full_res_timeserie
         self.agg_timeseries = sorted(agg_timeseries,
                                      key=operator.attrgetter("sampling"))
 
+    @property
+    def max_block_size(self):
+        return max(agg.sampling for agg in self.agg_timeseries)
+
     @classmethod
-    def from_definitions(cls, definitions, aggregation_method='mean',
-                         back_window=0):
+    def from_definitions(cls, definitions, aggregation_method='mean'):
         """Create a new collection of archived time series.
 
         :param definition: A list of tuple (sampling, max_size)
         :param aggregation_method: Aggregation function to use.
-        :param back_window: Number of block to use as back window.
         """
-        definitions = sorted(definitions, key=operator.itemgetter(0))
-
-        # The block size is the coarse grained archive definition
-        block_size = definitions[-1][0]
-
         # Limit the main timeserie to a timespan mapping
         return cls(
-            BoundTimeSerie(
-                block_size=pandas.tseries.offsets.Nano(block_size * 10e8),
-                back_window=back_window),
             [AggregatedTimeSerie(
                 max_size=size,
                 sampling=pandas.tseries.offsets.Nano(sampling * 10e8),
@@ -380,29 +371,20 @@ class TimeSerieArchive(SerializableMixin):
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerieArchive)
-                and self.full_res_timeserie == other.full_res_timeserie
                 and self.agg_timeseries == other.agg_timeseries)
 
-    def _update_aggregated_timeseries(self, timeserie):
+    def update(self, timeserie):
         for agg in self.agg_timeseries:
             agg.update(timeserie)
 
-    def set_values(self, values, ignore_too_old_timestamps=False):
-        self.full_res_timeserie.set_values(
-            values,
-            before_truncate_callback=self._update_aggregated_timeseries,
-            ignore_too_old_timestamps=ignore_too_old_timestamps)
-
     def to_dict(self):
         return {
-            "timeserie": self.full_res_timeserie.to_dict(),
             "archives": [ts.to_dict() for ts in self.agg_timeseries],
         }
 
     @classmethod
     def from_dict(cls, d):
-        return cls(BoundTimeSerie.from_dict(d['timeserie']),
-                   [AggregatedTimeSerie.from_dict(a) for a in d['archives']])
+        return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
 
     @staticmethod
     def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
@@ -522,8 +504,7 @@ def create_archive_file():
                         help="File name to create")
     args = parser.parse_args()
     ts = TimeSerieArchive.from_definitions(args.definition,
-                                           args.aggregation_method,
-                                           args.back_window)
+                                           args.aggregation_method)
     args.filename[0].write(ts.serialize())
 
 
@@ -543,19 +524,6 @@ def dump_archive_file():
           % (ts.agg_timeseries[0].aggregation_method))
 
     print("Number of aggregated timeseries: %d" % len(ts.agg_timeseries))
-
-    print("Back window: %d × %ds = %ds"
-          % (ts.full_res_timeserie.back_window,
-             ts.full_res_timeserie.block_size.nanos / 1000000000,
-             ts.full_res_timeserie.back_window
-             * ts.full_res_timeserie.block_size.nanos / 1000000000))
-
-    print("\nNumber of full resolution measures: %d"
-          % len(ts.full_res_timeserie))
-    full_res_table = prettytable.PrettyTable(("Timestamp", "Value"))
-    for k, v in ts.full_res_timeserie.ts.iteritems():
-        full_res_table.add_row((k, v))
-    print(full_res_table.get_string())
 
     for idx, agg_ts in enumerate(ts.agg_timeseries):
         sampling = agg_ts.sampling.nanos / 1000000000
@@ -601,7 +569,7 @@ def update_archive_file():
     ts = TimeSerieArchive.unserialize_from_file(args.filename[0])
 
     try:
-        ts.set_values(getattr(args, 'timestamp,value'))
+        ts.update(TimeSerie.from_tuples(getattr(args, 'timestamp,value')))
     except Exception as e:
         print("E: %s: %s" % (e.__class__.__name__, e))
         return 1
