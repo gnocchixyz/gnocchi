@@ -33,3 +33,4 @@ pymysql
 # oslo config object, but once 2.2 will be released,
 # we can moved back this to test-requirements.txt
 keystonemiddleware>=1.5.0
+sphinx_bootstrap_theme

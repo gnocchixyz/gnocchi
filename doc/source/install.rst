@@ -2,11 +2,53 @@
  Installation
 ==============
 
+Project Architecture
+======================
+
+Gnocchi is built around 2 main components: a storage driver and an indexer
+driver. The REST API exposed to the user manipulates both these drivers to
+provide all the features that are needed to provide correct infrastructure
+measurement.
+
+The *storage* is responsible for storing measures of created metrics. It
+receives timestamps and values and computes aggregations according to the
+defined archive policies.
+
+The *indexer* is responsible for storing the index of all resources, along with
+their types and their properties. Gnocchi only knows resource types from the
+OpenStack project, but also provides a *generic* type so you can create basic
+resources and handle the resource properties yourself. The indexer is also
+responsible for linking resources with metrics.
+
+Installation Using Devstack
+===========================
+
+To enable Gnocchi in devstack, add the following to local.conf:
+
+::
+
+    enable_plugin gnocchi https://github.com/openstack/gnocchi master
+    enable_service gnocchi-api,gnocchi-metricd
+
+To enable Grafana support in devstack, you can also enable `gnocchi-grafana`::
+
+    enable_service gnocchi-grafana
+
+Then, you can start devstack:
+
+::
+
+    ./stack.sh
+
+
+Installation Using Sources
+==========================
+
 To install Gnocchi, run the standard Python installation procedure:
 
 ::
 
-    python setup.py install
+    pip install -e .
 
 
 Configuration
@@ -22,7 +64,8 @@ created by running:
     tox -e genconfig
 
 This command will create an `etc/gnocchi/gnocchi.conf` file which can be used
-as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`.
+as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`. If
+you're using _devstack_, this file is already generated and put in place.
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
@@ -77,14 +120,13 @@ Once you have configured Gnocchi properly, you need to initialize the indexer:
 Running Gnocchi
 ===============
 
-To run Gnocchi, simply run the HTTP server:
+To run Gnocchi, simply run the HTTP server and metric daemon:
 
 ::
 
     gnocchi-api
+    gnocchi-metricd
 
-You then need to run the `gnocchi-metricd` daemon to enable new measures
-processing and metrics expunge in the background.
 
 Running As A WSGI Application
 =============================
