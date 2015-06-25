@@ -45,7 +45,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'gnocchi'
+project = u'Gnocchi'
 copyright = u'%s, OpenStack Foundation' % datetime.date.today().year
 
 # The version info for the project you're documenting, acts as replacement for
