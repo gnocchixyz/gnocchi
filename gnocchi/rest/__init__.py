@@ -111,6 +111,7 @@ def enforce(rule, target):
 
 
 def set_resp_location_hdr(location):
+    location = '%s%s' % (pecan.request.script_name, location)
     # NOTE(sileht): according the pep-3333 the headers must be
     # str in py2 and py3 even this is not the same thing in both
     # version
