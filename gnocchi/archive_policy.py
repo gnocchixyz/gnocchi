@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import datetime
+import operator
 
 from oslo_config import cfg
 import six
@@ -56,7 +57,19 @@ class ArchivePolicy(object):
                  aggregation_methods=None):
         self.name = name
         self.back_window = back_window
-        self.definition = definition
+        self.definition = []
+        for d in definition:
+            if isinstance(d, ArchivePolicyItem):
+                self.definition.append(d)
+            elif isinstance(d, dict):
+                self.definition.append(ArchivePolicyItem(**d))
+            elif len(d) == 2:
+                self.definition.append(
+                    ArchivePolicyItem(points=d[0], granularity=d[1]))
+            else:
+                raise ValueError(
+                    "Unable to understand policy definition %s" % d)
+
         if aggregation_methods is None:
             self.aggregation_methods = self.DEFAULT_AGGREGATION_METHODS
         else:
@@ -94,8 +107,7 @@ class ArchivePolicy(object):
     def from_dict(cls, d):
         return cls(d['name'],
                    d['back_window'],
-                   [ArchivePolicyItem(**definition)
-                    for definition in d['definition']],
+                   d['definition'],
                    d.get('aggregation_methods'))
 
     def __eq__(self, other):
@@ -112,6 +124,12 @@ class ArchivePolicy(object):
             "definition": self.definition,
             "aggregation_methods": self.aggregation_methods,
         }
+
+    @property
+    def max_block_size(self):
+        # The biggest block size is the coarse grained archive definition
+        return sorted(self.definition,
+                      key=operator.attrgetter("granularity"))[-1].granularity
 
 
 class ArchivePolicyItem(dict):
