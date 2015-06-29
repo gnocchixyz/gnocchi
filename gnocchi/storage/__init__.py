@@ -162,8 +162,8 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def process_measures():
-        """Process addedmeasures in background.
+    def process_measures(indexer=None):
+        """Process added measures in background.
 
         Some drivers might need to have a background task running that process
         the measures sent to metrics. This is used for that.
