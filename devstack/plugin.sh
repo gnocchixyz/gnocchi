@@ -108,9 +108,9 @@ create_gnocchi_accounts() {
                 "$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT/"
         fi
         if is_service_enabled swift; then
-            get_or_create_project "gnocchi_swift"
+            get_or_create_project "gnocchi_swift" default
             local gnocchi_swift_user=$(get_or_create_user "gnocchi_swift" \
-                "$SERVICE_PASSWORD" "gnocchi_swift@example.com")
+                "$SERVICE_PASSWORD" default "gnocchi_swift@example.com")
             get_or_add_user_project_role "ResellerAdmin" $gnocchi_swift_user "gnocchi_swift"
         fi
     fi
