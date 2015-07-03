@@ -132,8 +132,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session = self.engine_facade.get_session()
         query = session.query(Metric).filter(Metric.id.in_(uuids)).options(
             sqlalchemy.orm.joinedload(
-                Metric.archive_policy)).options(
-                    sqlalchemy.orm.joinedload(Metric.resource))
+                'archive_policy')).options(
+                    sqlalchemy.orm.joinedload('resource'))
 
         return list(query.all())
 
@@ -215,8 +215,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         for attr in kwargs:
             q = q.filter(getattr(Metric, attr) == kwargs[attr])
         if details:
-            q = q.options(sqlalchemy.orm.joinedload(Metric.archive_policy)
-                          ).options(sqlalchemy.orm.joinedload(Metric.resource))
+            q = q.options(sqlalchemy.orm.joinedload(
+                'archive_policy')).options(
+                    sqlalchemy.orm.joinedload('resource'))
 
         return q.all()
 
@@ -348,7 +349,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with session.begin():
             q = session.query(Resource).filter(
                 Resource.id == resource_id).options(
-                    sqlalchemy.orm.joinedload(Resource.metrics))
+                    sqlalchemy.orm.joinedload('metrics'))
             r = q.first()
             if r is None:
                 raise indexer.NoSuchResource(resource_id)
@@ -363,7 +364,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             resource_cls).filter(
                 resource_cls.id == resource_id)
         if with_metrics:
-            q = q.options(sqlalchemy.orm.joinedload(resource_cls.metrics))
+            q = q.options(sqlalchemy.orm.joinedload('metrics'))
         return q.first()
 
     def _get_history_result_mapper(self, resource_type):
@@ -456,8 +457,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                     q = session.query(target_cls).filter(f)
                     # Always include metrics
-                    q = q.options(
-                        sqlalchemy.orm.joinedload(target_cls.metrics))
+                    q = q.options(sqlalchemy.orm.joinedload('metrics'))
                     all_resources.extend(q.all())
         return all_resources
 
