@@ -34,14 +34,12 @@ export GNOCCHI_DIR="$BASE/new/gnocchi"
 sudo chown -R stack:stack $GNOCCHI_DIR
 cd $GNOCCHI_DIR
 
-keystone endpoint-list
-keystone service-list
-keystone endpoint-get --service metric
+openstack endpoint list
+gnocchi_url = $(openstack endpoint show metric -c publicurl -f value)
 
-curl -X GET http://localhost:8041/v1/archive_policy -H "Content-Type: application/json"
+curl -X GET ${gnocchi_url}/v1/archive_policy -H "Content-Type: application/json"
 
-export GNOCCHI_SERVICE_HOST=localhost
-export GNOCCHI_SERVICE_PORT=8041
+export GNOCCHI_SERVICE_URL=${gnocchi_url}
 
 # Run tests
 echo "Running gnocchi functional test suite"
