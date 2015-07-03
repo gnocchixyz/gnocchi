@@ -47,7 +47,24 @@ class UnAggregableTimeseries(Exception):
         super(UnAggregableTimeseries, self).__init__(reason)
 
 
-class TimeSerie(object):
+class SerializableMixin(object):
+
+    @classmethod
+    def unserialize(cls, data):
+        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
+
+    @classmethod
+    def unserialize_from_file(cls, stream):
+        return cls.from_dict(msgpack.unpack(stream, encoding='utf-8'))
+
+    def serialize(self):
+        return msgpack.dumps(self.to_dict())
+
+    def serialize_to_file(self, stream):
+        return msgpack.pack(self.to_dict(), stream)
+
+
+class TimeSerie(SerializableMixin):
 
     def __init__(self, timestamps=None, values=None):
         self.ts = pandas.Series(values, timestamps).sort_index()
@@ -295,7 +312,7 @@ class AggregatedTimeSerie(TimeSerie):
         self._truncate()
 
 
-class TimeSerieArchive(object):
+class TimeSerieArchive(SerializableMixin):
 
     def __init__(self, full_res_timeserie, agg_timeseries):
         """A raw data buffer and a collection of downsampled timeseries.
@@ -386,20 +403,6 @@ class TimeSerieArchive(object):
     def from_dict(cls, d):
         return cls(BoundTimeSerie.from_dict(d['timeserie']),
                    [AggregatedTimeSerie.from_dict(a) for a in d['archives']])
-
-    @classmethod
-    def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
-
-    @classmethod
-    def unserialize_from_file(cls, stream):
-        return cls.from_dict(msgpack.unpack(stream, encoding='utf-8'))
-
-    def serialize(self):
-        return msgpack.dumps(self.to_dict())
-
-    def serialize_to_file(self, stream):
-        return msgpack.pack(self.to_dict(), stream)
 
     @staticmethod
     def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
