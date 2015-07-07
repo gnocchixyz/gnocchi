@@ -17,8 +17,8 @@
 import contextlib
 import ctypes
 import errno
-import random
 import time
+import uuid
 
 from oslo_config import cfg
 from oslo_utils import importutils
@@ -45,6 +45,51 @@ OPTS = [
 ]
 
 
+class CephLock(object):
+    # NOTE(sileht): current stable python binding (0.80.X) doesn't
+    # have rados_lock_XXX method, so do ourself the call with ctypes
+    #
+    # When we raise required with something >= 0.94, we can use:
+    # - ctx.lock_exclusive(name, 'lock', 'gnocchi')
+    # - ctx.unlock(name, 'lock', 'gnocchi')
+
+    # TODO(sileht): Do this in tooz ?
+
+    def __init__(self, get_ioctx, name):
+        self._get_ioctx = get_ioctx
+        self._name = name
+
+    def acquire(self, blocking=True):
+        with self._get_ioctx() as ctx:
+            while True:
+                ret = rados.run_in_thread(
+                    ctx.librados.rados_lock_exclusive,
+                    (ctx.io, ctypes.c_char_p(self._name.encode('ascii')),
+                        ctypes.c_char_p(b"lock"),
+                        ctypes.c_char_p(b"gnocchi"),
+                        ctypes.c_char_p(b""), None, ctypes.c_int8(0)))
+                if ret in [errno.EBUSY, errno.EEXIST]:
+                    if blocking:
+                        time.sleep(0.1)
+                    else:
+                        return False
+                elif ret < 0:
+                    rados.make_ex(ret, "Error while getting lock of %s" %
+                                  self._name)
+                else:
+                    return True
+
+    def release(self):
+        with self._get_ioctx() as ctx:
+            ret = rados.run_in_thread(
+                ctx.librados.rados_unlock,
+                (ctx.io, ctypes.c_char_p(self._name.encode('ascii')),
+                    ctypes.c_char_p(b"lock"), ctypes.c_char_p(b"gnocchi")))
+            if ret < 0:
+                rados.make_ex(ret, "Error while releasing lock of %s" %
+                              self._name)
+
+
 class CephStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
@@ -62,64 +107,53 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  conf=options)
         self.rados.connect()
 
-    def add_measures(self, metric, measures):
-        # We are going to iterate multiple time over measures, so if it's a
-        # generator we need to build a list out of it right now.
-        measures = list(measures)
-        # NOTE(jd) So this is a (smart?) optimization: since we're going to
-        # lock for each of this aggregation type, if we are using running
-        # Gnocchi with multiple processes, let's randomize what we iter
-        # over so there are less chances we fight for the same lock!
-        agg_methods = list(metric.archive_policy.aggregation_methods)
-        random.shuffle(agg_methods)
-        self._map_in_thread(self._add_measures,
-                            list((aggregation, metric, measures)
-                                 for aggregation
-                                 in agg_methods))
+    def _store_measures(self, metric, data):
+        # NOTE(sileht): list all objects in a pool is too slow with
+        # many objects (2min for 20000 objects in 50osds cluster),
+        # and enforce us to iterrate over all objects
+        # So we create an object MEASURE_PREFIX, that have as
+        # xattr the list of objects to process
+        with self._get_ioctx() as ioctx:
+            name = "_".join((self.MEASURE_PREFIX, str(metric.id),
+                             str(uuid.uuid4())))
+            ioctx.write_full(name, data)
+            ioctx.set_xattr(self.MEASURE_PREFIX, name, "")
 
-    def _add_measures(self, aggregation, metric, measures):
-        with self._lock(metric, aggregation):
-            super(CephStorage, self)._add_measures(
-                aggregation, metric, list(map(tuple, measures)))
+    @classmethod
+    def _list_object_names_to_process(cls, ioctx, prefix=None):
+        try:
+            xattrs_iterator = ioctx.get_xattrs(cls.MEASURE_PREFIX)
+        except rados.ObjectNotFound:
+            return []
+        return [name for name, __ in xattrs_iterator
+                if prefix is None or name.startswith(prefix)]
 
-    @staticmethod
-    def process_measures(indexer):
-        pass
+    def _list_metric_with_measures_to_process(self):
+        with self._get_ioctx() as ioctx:
+            return [name.split("_")[1] for name in
+                    self._list_object_names_to_process(ioctx)]
 
     @contextlib.contextmanager
-    def _lock(self, metric, lock_name):
-        # NOTE(sileht): current stable python binding (0.80.X) doesn't
-        # have rados_lock_XXX method, so do ourself the call with ctypes
-        #
-        # https://github.com/ceph/ceph/commit/f5bf75fa4109b6449a88c7ffdce343cf4691a4f9
-        # When ^^ is released, we can drop this code and directly use:
-        # - ctx.lock_exclusive(name, 'lock', 'gnocchi')
-        # - ctx.unlock(name, 'lock', 'gnocchi')
-        name = self._get_object_name(metric, lock_name)
+    def _process_measure_for_metric(self, metric):
         with self._get_ioctx() as ctx:
-            while True:
-                ret = rados.run_in_thread(
-                    ctx.librados.rados_lock_exclusive,
-                    (ctx.io, ctypes.c_char_p(name.encode('ascii')),
-                     ctypes.c_char_p(b"lock"),
-                     ctypes.c_char_p(b"gnocchi"),
-                     ctypes.c_char_p(b""), None, ctypes.c_int8(0)))
-                if ret in [errno.EBUSY, errno.EEXIST]:
-                    time.sleep(0.1)
-                elif ret < 0:
-                    rados.make_ex(ret, "Error while getting lock of %s" % name)
-                else:
-                    break
-            try:
-                yield
-            finally:
-                ret = rados.run_in_thread(
-                    ctx.librados.rados_unlock,
-                    (ctx.io, ctypes.c_char_p(name.encode('ascii')),
-                     ctypes.c_char_p(b"lock"), ctypes.c_char_p(b"gnocchi")))
-                if ret < 0:
-                    rados.make_ex(ret,
-                                  "Error while releasing lock of %s" % name)
+            object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
+            object_names = self._list_object_names_to_process(ctx,
+                                                              object_prefix)
+
+            measures = []
+            for n in object_names:
+                data = self._get_object_content(ctx, n)
+                measures.extend(self._unserialize_measures(data))
+
+            yield measures
+
+            # Now clean objects and xattrs
+            for n in object_names:
+                ctx.rm_xattr(self.MEASURE_PREFIX, n)
+                ctx.remove_object(n)
+
+    def _lock(self, metric):
+        return CephLock(self._get_ioctx, self._get_object_name(metric, "lock"))
 
     def _get_ioctx(self):
         return self.rados.open_ioctx(self.pool)
@@ -169,14 +203,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         try:
             with self._get_ioctx() as ioctx:
                 name = self._get_object_name(metric, aggregation)
-                offset = 0
-                content = b''
-                while True:
-                    data = ioctx.read(name, offset=offset)
-                    if not data:
-                        break
-                    content += data
-                    offset += len(content)
+                content = self._get_object_content(ioctx, name)
                 if len(content) == 0:
                     # NOTE(sileht: the object have been created by
                     # the lock code
@@ -190,3 +217,15 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                     raise storage.AggregationDoesNotExist(metric, aggregation)
                 else:
                     raise storage.MetricDoesNotExist(metric)
+
+    @staticmethod
+    def _get_object_content(ioctx, name):
+        offset = 0
+        content = b''
+        while True:
+            data = ioctx.read(name, offset=offset)
+            if not data:
+                break
+            content += data
+            offset += len(content)
+        return content
