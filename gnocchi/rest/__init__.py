@@ -924,8 +924,8 @@ class ImageResourcesController(GenericResourcesController):
 
 
 class ResourcesController(rest.RestController):
-    resources_class_by_type = dict(
-        (ext.name, ext.plugin)
+    resources_ctrl_by_type = dict(
+        (ext.name, ext.plugin())
         for ext in extension.ExtensionManager(
             'gnocchi.controller.resources').extensions)
 
@@ -934,12 +934,15 @@ class ResourcesController(rest.RestController):
         return dict(
             (type_name,
              pecan.request.application_url + '/v1/resource/' + type_name)
-            for type_name in self.resources_class_by_type.keys())
+            for type_name in self.resources_ctrl_by_type.keys())
 
-
-for resource_type, resource_class in (
-        ResourcesController.resources_class_by_type.items()):
-    setattr(ResourcesController, resource_type, resource_class())
+    @pecan.expose()
+    def _lookup(self, resource_type, *remainder):
+        ctrl = self.resources_ctrl_by_type.get(resource_type)
+        if ctrl:
+            return ctrl, remainder
+        else:
+            abort(404)
 
 
 def _ResourceSearchSchema(v):
@@ -1017,8 +1020,10 @@ class SearchResourceTypeController(rest.RestController):
 class SearchResourceController(rest.RestController):
     @pecan.expose()
     def _lookup(self, resource_type, *remainder):
-        # TODO(jd) Check that resource_type is valid
-        return SearchResourceTypeController(resource_type), remainder
+        if resource_type in ResourcesController.resources_ctrl_by_type:
+            return SearchResourceTypeController(resource_type), remainder
+        else:
+            abort(404)
 
 
 def _MetricSearchSchema(v):
@@ -1106,7 +1111,7 @@ class SearchMetricController(rest.RestController):
             abort(400, e)
 
 
-class SearchController(rest.RestController):
+class SearchController(object):
     resource = SearchResourceController()
     metric = SearchMetricController()
 
@@ -1151,28 +1156,26 @@ class Aggregation(rest.RestController):
             arg_to_list(metric), start, stop, aggregation, needed_overlap)
 
 
-class V1Controller(rest.RestController):
-    search = SearchController()
-
-    archive_policy = ArchivePoliciesController()
-    archive_policy_rule = ArchivePolicyRulesController()
-    metric = MetricsController()
-    resource = ResourcesController()
-    aggregation = Aggregation()
-
-    _custom_actions = {
-        'capabilities': ['GET'],
-    }
-
+class CapabilityController(rest.RestController):
     @staticmethod
     @pecan.expose('json')
-    def get_capabilities():
+    def get():
         aggregation_methods = set(
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
         aggregation_methods.update(
             ext.name for ext in extension.ExtensionManager(
                 namespace='gnocchi.aggregates'))
         return dict(aggregation_methods=aggregation_methods)
+
+
+class V1Controller(object):
+    search = SearchController()
+    archive_policy = ArchivePoliciesController()
+    archive_policy_rule = ArchivePolicyRulesController()
+    metric = MetricsController()
+    resource = ResourcesController()
+    aggregation = Aggregation()
+    capabilities = CapabilityController()
 
 
 class RootController(object):

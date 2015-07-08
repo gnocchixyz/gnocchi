@@ -1,0 +1,16 @@
+#
+# Test the search API to achieve coverage of just the
+# SearchController and SearchResourceController class code.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: typo of search
+      url: /v1/search/notexists
+      status: 404
+
+    - name: typo of search in resource
+      url: /v1/search/resource/foobar
+      status: 404
