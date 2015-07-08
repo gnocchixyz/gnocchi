@@ -63,18 +63,19 @@ def _metricd(conf, cpu_number):
     loop.run_forever()
 
 
+def _wrap_metricd(cpu_number):
+    """Small wrapper for _metricd() that ensure it ALWAYS return.
+
+    Otherwise multiprocessing.Pool is stuck for ever.
+    """
+    try:
+        return _metricd(service.prepare_service(), cpu_number)
+    finally:
+        return
+
+
 def metricd():
     conf = service.prepare_service()
-
-    def _wrap_metricd(cpu_number):
-        """Small wrapper for _metricd() that ensure it ALWAYS return.
-
-        Otherwise multiprocessing.Pool is stuck for ever.
-        """
-        try:
-            return _metricd(conf, cpu_number)
-        finally:
-            return
     p = multiprocessing.Pool(conf.metricd.workers)
     p.map(_wrap_metricd, range(conf.metricd.workers))
     p.terminate()
