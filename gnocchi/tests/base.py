@@ -58,8 +58,9 @@ class FakeRadosModule(object):
         pass
 
     class ioctx(object):
-        def __init__(self, kvs):
+        def __init__(self, kvs, kvs_xattrs):
             self.kvs = kvs
+            self.kvs_xattrs = kvs_xattrs
             self.librados = self
             self.io = self
 
@@ -70,21 +71,24 @@ class FakeRadosModule(object):
         def __exit__(exc_type, exc_value, traceback):
             pass
 
+        def _ensure_key_exists(self, key):
+            if key not in self.kvs:
+                self.kvs[key] = ""
+                self.kvs_xattrs[key] = {}
+
         def rados_lock_exclusive(self, ctx, name, lock, locker, desc, timeval,
                                  flags):
             # Locking a not existing object create an empty one
             # so, do the same in test
             key = name.value.decode('ascii')
-            if key not in self.kvs:
-                self.kvs[key] = ""
+            self._ensure_key_exists(key)
             return 0
 
         def rados_unlock(self, ctx, name, lock, locker):
             # Locking a not existing object create an empty one
             # so, do the same in test
             key = name.value.decode('ascii')
-            if key not in self.kvs:
-                self.kvs[key] = ""
+            self._ensure_key_exists(key)
             return 0
 
         @staticmethod
@@ -98,6 +102,7 @@ class FakeRadosModule(object):
 
         def write_full(self, key, value):
             self._validate_key(key)
+            self._ensure_key_exists(key)
             self.kvs[key] = value
 
         def stat(self, key):
@@ -114,15 +119,33 @@ class FakeRadosModule(object):
             else:
                 return self.kvs[key][offset:offset+length]
 
+        def get_xattrs(self, key):
+            if key not in self.kvs:
+                raise FakeRadosModule.ObjectNotFound
+            return iter((k, v) for k, v in
+                        self.kvs_xattrs.get(key, {}).items())
+
+        def set_xattr(self, key, attr, value):
+            self._ensure_key_exists(key)
+            xattrs = self.kvs_xattrs.setdefault(key, {})
+            xattrs[attr] = value
+
+        def rm_xattr(self, key, attr):
+            if key not in self.kvs:
+                raise FakeRadosModule.ObjectNotFound
+            del self.kvs_xattrs[key][attr]
+
         def remove_object(self, key):
             self._validate_key(key)
             if key not in self.kvs:
                 raise FakeRadosModule.ObjectNotFound
             del self.kvs[key]
+            del self.kvs_xattrs[key]
 
     class FakeRados(object):
-        def __init__(self, kvs):
+        def __init__(self, kvs, kvs_xattrs):
             self.kvs = kvs
+            self.kvs_xattrs = kvs_xattrs
 
         @staticmethod
         def connect():
@@ -133,13 +156,14 @@ class FakeRadosModule(object):
             pass
 
         def open_ioctx(self, pool):
-            return FakeRadosModule.ioctx(self.kvs)
+            return FakeRadosModule.ioctx(self.kvs, self.kvs_xattrs)
 
     def __init__(self):
         self.kvs = {}
+        self.kvs_xattrs = {}
 
     def Rados(self, *args, **kwargs):
-        return FakeRadosModule.FakeRados(self.kvs)
+        return FakeRadosModule.FakeRados(self.kvs, self.kvs_xattrs)
 
     @staticmethod
     def run_in_thread(method, args):
