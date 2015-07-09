@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -9,30 +11,26 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+from __future__ import absolute_import
+
 import sqlalchemy
 
-from gnocchi.ceilometer.resources import base
 
-
-class Image(base.ResourceBase):
-    @staticmethod
-    def get_resource_extra_attributes(sample):
-        metadata = sample['resource_metadata']
-        params = {
-            "name": metadata['name'],
-            "container_format": metadata["container_format"],
-            "disk_format": metadata["disk_format"]
-        }
-        return params
-
-    @staticmethod
-    def get_metrics_names():
-        return ['image',
-                'image.size']
-
-
-class ImageSQLAlchemy(object):
+class Image(object):
     name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     container_format = sqlalchemy.Column(sqlalchemy.String(255),
                                          nullable=False)
     disk_format = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+
+
+class Instance(object):
+    flavor_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    server_group = sqlalchemy.Column(sqlalchemy.String(255))
+
+
+class Volume(object):
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
