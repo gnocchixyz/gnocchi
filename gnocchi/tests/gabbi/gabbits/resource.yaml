@@ -49,6 +49,14 @@ tests:
       response_json_paths:
           $.volume: $SCHEME://$NETLOC/v1/resource/volume
 
+    - name: typo of resource
+      url: /v1/resoue
+      status: 404
+
+    - name: typo of resource extra
+      url: /v1/resource/foobar
+      status: 404
+
 # Explore that GETting a list of resources demonstrates the expected
 # behaviors notably with regard to content negotiation.
 
