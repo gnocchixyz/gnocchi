@@ -108,7 +108,7 @@ function create_gnocchi_accounts {
                 "$(gnocchi_service_url)/" \
                 "$(gnocchi_service_url)/"
         fi
-        if is_service_enabled swift; then
+        if is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
             get_or_create_project "gnocchi_swift" default
             local gnocchi_swift_user=$(get_or_create_user "gnocchi_swift" \
                 "$SERVICE_PASSWORD" default "gnocchi_swift@example.com")
@@ -210,24 +210,23 @@ function configure_gnocchi {
     configure_auth_token_middleware $GNOCCHI_CONF gnocchi $GNOCCHI_AUTH_CACHE_DIR
 
     # Configure the storage driver
-    if is_service_enabled ceph; then
+    if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
         iniset $GNOCCHI_CONF storage driver ceph
         iniset $GNOCCHI_CONF storage ceph_username ${GNOCCHI_CEPH_USER}
         iniset $GNOCCHI_CONF storage ceph_keyring ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
-    elif is_service_enabled swift; then
+    elif is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
         iniset $GNOCCHI_CONF storage driver swift
         iniset $GNOCCHI_CONF storage swift_user gnocchi_swift
         iniset $GNOCCHI_CONF storage swift_key $SERVICE_PASSWORD
         iniset $GNOCCHI_CONF storage swift_tenant_name "gnocchi_swift"
         iniset $GNOCCHI_CONF storage swift_auth_version 2
         iniset $GNOCCHI_CONF storage swift_authurl $KEYSTONE_SERVICE_URI/v2.0/
-    else
+    elif [[ "$GNOCCHI_STORAGE_BACKEND" = 'file' ]] ; then
         iniset $GNOCCHI_CONF storage driver file
         iniset $GNOCCHI_CONF storage file_basepath $GNOCCHI_DATA_DIR/
-    fi
-
-    if [ "$GNOCCHI_STORAGE_BACKEND" ]; then
-        iniset $GNOCCHI_CONF storage driver "$GNOCCHI_STORAGE_BACKEND"
+    else
+        echo "ERROR: could not configure storage driver"
+        exit 1
     fi
 
     if [ "$GNOCCHI_USE_KEYSTONE" != "True" ]; then
@@ -267,7 +266,7 @@ function configure_ceilometer_gnocchi {
     iniset $CEILOMETER_CONF alarms gnocchi_url $gnocchi_url
     iniset $CEILOMETER_CONF dispatcher_gnocchi url $gnocchi_url
     iniset $CEILOMETER_CONF dispatcher_gnocchi archive_policy ${GNOCCHI_ARCHIVE_POLICY}
-    if is_service_enabled swift; then
+    if is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
         iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "True"
         iniset $CEILOMETER_CONF dispatcher_gnocchi filter_project "gnocchi_swift"
     else
@@ -371,7 +370,7 @@ if is_service_enabled gnocchi-api; then
             echo_summary "Configuring Ceilometer for gnocchi"
             configure_ceilometer_gnocchi
         fi
-        if is_service_enabled ceph; then
+        if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
             configure_ceph_gnocchi
         fi
