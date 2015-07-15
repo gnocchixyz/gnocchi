@@ -4,8 +4,10 @@
 # To enable Gnocchi service, add the following to localrc:
 #
 #   enable_plugin gnocchi https://github.com/openstack/gnocchi master
-#   enable_service gnocchi-api
 #
+# This will turn on both gnocchi-api and gnocchi-metricd services.
+# If you don't want one of those (you do) you can use the
+# disable_service command in local.conf.
 
 # Dependencies:
 #
@@ -34,49 +36,6 @@ set +o xtrace
 
 # Defaults
 # --------
-
-# Set up default directories
-GNOCCHI_DIR=$DEST/gnocchi
-GNOCCHI_CONF_DIR=/etc/gnocchi
-GNOCCHI_CONF=$GNOCCHI_CONF_DIR/gnocchi.conf
-GNOCCHI_LOG_DIR=/var/log/gnocchi
-GNOCCHI_AUTH_CACHE_DIR=${GNOCCHI_AUTH_CACHE_DIR:-/var/cache/gnocchi}
-GNOCCHI_WSGI_DIR=${GNOCCHI_WSGI_DIR:-/var/www/gnocchi}
-GNOCCHI_DATA_DIR=${GNOCCHI_DATA_DIR:-${DATA_DIR}/gnocchi}
-GNOCCHI_COORDINATOR_URL=${GNOCCHI_COORDINATOR_URL:-file://${GNOCCHI_DATA_DIR}/locks}
-
-# Toggle for deploying Gnocchi under HTTPD + mod_wsgi
-GNOCCHI_USE_MOD_WSGI=${GNOCCHI_USE_MOD_WSGI:-${ENABLE_HTTPD_MOD_WSGI_SERVICES}}
-
-# Support potential entry-points console scripts and venvs
-if [[ ${USE_VENV} = True ]]; then
-    PROJECT_VENV["gnocchi"]=${GNOCCHI_DIR}.venv
-    GNOCCHI_BIN_DIR=${PROJECT_VENV["gnocchi"]}/bin
-else
-    GNOCCHI_BIN_DIR=$(get_python_exec_prefix)
-fi
-
-
-# Gnocchi connection info.
-GNOCCHI_SERVICE_PROTOCOL=http
-GNOCCHI_SERVICE_PORT=${GNOCCHI_SERVICE_PORT:-''}
-GNOCCHI_SERVICE_PREFIX=${GNOCCHI_SERVICE_PREFIX:-'/metric'}
-GNOCCHI_SERVICE_HOST=$SERVICE_HOST
-
-# Gnocchi ceilometer default archive_policy
-GNOCCHI_ARCHIVE_POLICY=${GNOCCHI_ARCHIVE_POLICY:-low}
-
-# ceph gnochi info
-GNOCCHI_CEPH_USER=${GNOCCHI_CEPH_USER:-gnocchi}
-GNOCCHI_CEPH_POOL=${GNOCCHI_CEPH_POOL:-gnocchi}
-GNOCCHI_CEPH_POOL_PG=${GNOCCHI_CEPH_POOL_PG:-8}
-GNOCCHI_CEPH_POOL_PGP=${GNOCCHI_CEPH_POOL_PGP:-8}
-
-# Gnocchi with keystone
-GNOCCHI_USE_KEYSTONE=${GNOCCHI_USE_KEYSTONE:-True}
-
-# Gnocchi backend
-GNOCCHI_STORAGE_BACKEND=${GNOCCHI_STORAGE_BACKEND:-file}
 
 # Functions
 # ---------
@@ -385,6 +344,7 @@ if is_service_enabled gnocchi-api; then
     fi
 
     if [[ "$1" == "unstack" ]]; then
+        echo_summary "Stopping Gnocchi"
         stop_gnocchi
     fi
 
@@ -400,5 +360,3 @@ $XTRACE
 ## Local variables:
 ## mode: shell-script
 ## End:
-
-
