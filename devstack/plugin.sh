@@ -143,9 +143,6 @@ function configure_gnocchi {
     [ ! -d $GNOCCHI_CONF_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_CONF_DIR
     sudo chown $STACK_USER $GNOCCHI_CONF_DIR
 
-    [ ! -d $GNOCCHI_LOG_DIR ] &&  sudo mkdir -m 755 -p $GNOCCHI_LOG_DIR
-    sudo chown $STACK_USER $GNOCCHI_LOG_DIR
-
     [ ! -d $GNOCCHI_DATA_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_DATA_DIR
     sudo chown $STACK_USER $GNOCCHI_DATA_DIR
 
@@ -267,7 +264,7 @@ function install_gnocchi {
 function start_gnocchi {
     local token
 
-    run_process gnocchi-metricd "gnocchi-metricd -d -v --log-dir=$GNOCCHI_LOG_DIR --config-file $GNOCCHI_CONF"
+    run_process gnocchi-metricd "gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         enable_apache_site gnocchi
@@ -275,7 +272,7 @@ function start_gnocchi {
         tail_log gnocchi /var/log/$APACHE_NAME/gnocchi.log
         tail_log gnocchi-api /var/log/$APACHE_NAME/gnocchi-access.log
     else
-        run_process gnocchi-api "gnocchi-api -d -v --log-dir=$GNOCCHI_LOG_DIR --config-file $GNOCCHI_CONF"
+        run_process gnocchi-api "gnocchi-api -d -v --config-file $GNOCCHI_CONF"
     fi
     # only die on API if it was actually intended to be turned on
     if is_service_enabled gnocchi-api; then
