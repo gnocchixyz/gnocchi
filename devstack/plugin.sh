@@ -313,8 +313,17 @@ function start_gnocchi {
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         enable_apache_site gnocchi
         restart_apache_server
-        tail_log gnocchi /var/log/$APACHE_NAME/gnocchi.log
-        tail_log gnocchi-api /var/log/$APACHE_NAME/gnocchi-access.log
+        if [[ -n $GNOCCHI_SERVICE_PORT ]]; then
+            tail_log gnocchi /var/log/$APACHE_NAME/gnocchi.log
+            tail_log gnocchi-api /var/log/$APACHE_NAME/gnocchi-access.log
+        else
+            # NOTE(chdent): At the moment this is very noisy as it
+            # will tail the entire apache logs, not just the gnocchi
+            # parts. If you don't like this either USE_SCREEN=False
+            # or set GNOCCHI_SERVICE_PORT.
+            tail_log gnocchi /var/log/$APACHE_NAME/error[._]log
+            tail_log gnocchi-api /var/log/$APACHE_NAME/access[._]log
+        fi
     else
         run_process gnocchi-api "gnocchi-api -d -v --log-dir=$GNOCCHI_LOG_DIR --config-file $GNOCCHI_CONF"
     fi
