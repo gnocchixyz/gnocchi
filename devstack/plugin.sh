@@ -31,7 +31,7 @@
 
 # Save trace setting
 XTRACE=$(set +o | grep xtrace)
-set +o xtrace
+set -o xtrace
 
 
 # Defaults
@@ -83,6 +83,24 @@ function gnocchi_service_url {
     else
         echo "$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST$GNOCCHI_SERVICE_PREFIX"
     fi
+}
+
+# install redis
+# NOTE(chdent): We shouldn't rely on ceilometer being present so cannot
+# use its install_redis. There are enough packages now using redis
+# that there should probably be something devstack itself for
+# installing it.
+function _gnocchi_install_redis {
+    if is_ubuntu; then
+        install_package redis-server
+        restart_service redis-server
+    else
+        # This will fail (correctly) where a redis package is unavailable
+        install_package redis
+        restart_service redis
+    fi
+
+    pip_install_gr redis
 }
 
 function _cleanup_gnocchi_apache_wsgi {
@@ -246,8 +264,7 @@ function init_gnocchi {
 # install_gnocchi() - Collect source and prepare
 function install_gnocchi {
     if [ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]; then
-        # NOTE(sileht): this is defined into ceilometer lib
-        install_redis
+        _gnocchi_install_redis
     fi
 
     # NOTE(sileht): requirements are not yet merged with the global-requirement repo
