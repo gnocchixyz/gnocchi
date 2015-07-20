@@ -18,6 +18,8 @@ except ImportError:
     import trollius as asyncio
 import logging
 import multiprocessing
+import signal
+import sys
 import time
 
 from gnocchi import indexer
@@ -77,6 +79,8 @@ def _wrap_metricd(cpu_number):
 def metricd():
     conf = service.prepare_service()
     p = multiprocessing.Pool(conf.metricd.workers)
-    p.map(_wrap_metricd, range(conf.metricd.workers))
-    p.terminate()
-    p.join()
+
+    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(0))
+
+    p.map_async(_wrap_metricd, range(conf.metricd.workers))
+    signal.pause()
