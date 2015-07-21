@@ -230,10 +230,6 @@ function configure_ceph_gnocchi {
     sudo chown ${STACK_USER}:$(id -g -n $whoami) ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
 }
 
-function configure_heat_gnocchi {
-    iniset $HEAT_CONF DEFAULT plugin_dirs $HEAT_DIR/contrib/heat_gnocchi
-}
-
 function configure_ceilometer_gnocchi {
     gnocchi_url=$(gnocchi_service_url)
     iniset $CEILOMETER_CONF DEFAULT dispatcher gnocchi
@@ -340,10 +336,6 @@ if is_service_enabled gnocchi-api; then
     if [[ "$1" == "stack" && "$2" == "install" ]]; then
         echo_summary "Installing Gnocchi"
         stack_install_service gnocchi
-        if is_service_enabled h-api; then
-            echo_summary "Installing Gnocchi plugin for Heat"
-            setup_develop $HEAT_DIR/contrib/heat_gnocchi
-        fi
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         echo_summary "Configuring Gnocchi"
         configure_gnocchi
@@ -355,10 +347,6 @@ if is_service_enabled gnocchi-api; then
         if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
             configure_ceph_gnocchi
-        fi
-        if is_service_enabled h-api; then
-            echo_summary "Configuring Gnocchi for Heat"
-            configure_heat_gnocchi
         fi
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         echo_summary "Initializing Gnocchi"
