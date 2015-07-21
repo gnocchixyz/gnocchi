@@ -74,6 +74,27 @@ class TestBoundTimeSerie(base.BaseTestCase):
                        (datetime.datetime(2014, 1, 1, 12, 0, 10), 4)])
         self.assertEqual(2, len(ts))
 
+    def test_duplicate_timestamps(self):
+        ts = carbonara.BoundTimeSerie(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 9),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            [10, 5, 23])
+        self.assertEqual(2, len(ts))
+        self.assertEqual(10.0, ts[0])
+        self.assertEqual(23.0, ts[1])
+
+        ts.set_values([(datetime.datetime(2014, 1, 1, 13, 0, 10), 3),
+                       (datetime.datetime(2014, 1, 1, 13, 0, 11), 9),
+                       (datetime.datetime(2014, 1, 1, 13, 0, 11), 8),
+                       (datetime.datetime(2014, 1, 1, 13, 0, 11), 7),
+                       (datetime.datetime(2014, 1, 1, 13, 0, 11), 4)])
+        self.assertEqual(4, len(ts))
+        self.assertEqual(10.0, ts[0])
+        self.assertEqual(23.0, ts[1])
+        self.assertEqual(3.0, ts[2])
+        self.assertEqual(4.0, ts[3])
+
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
     @staticmethod

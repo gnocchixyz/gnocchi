@@ -65,9 +65,15 @@ class SerializableMixin(object):
 
 
 class TimeSerie(SerializableMixin):
+    """A representation of series of a timestamp with a value.
+
+    Duplicate timestamps are not allowed and will be filtered to use the
+    last in the group when the TimeSerie is created or extended.
+    """
 
     def __init__(self, timestamps=None, values=None):
-        self.ts = pandas.Series(values, timestamps).sort_index()
+        self.ts = pandas.Series(values, timestamps).groupby(
+            level=0).last().sort_index()
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerie)
@@ -77,7 +83,8 @@ class TimeSerie(SerializableMixin):
         return self.ts[key]
 
     def set_values(self, values):
-        t = pandas.Series(*reversed(list(zip(*values))))
+        t = pandas.Series(*reversed(list(zip(*values)))).groupby(
+            level=0).last()
         self.ts = t.combine_first(self.ts).sort_index()
 
     def __len__(self):
