@@ -108,11 +108,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policies(self):
         session = self.engine_facade.get_session()
-        return session.query(ArchivePolicy).all()
+        aps = list(session.query(ArchivePolicy).all())
+        session.expunge_all()
+        return aps
 
     def get_archive_policy(self, name):
         session = self.engine_facade.get_session()
-        return session.query(ArchivePolicy).get(name)
+        ap = session.query(ArchivePolicy).get(name)
+        session.expunge_all()
+        return ap
 
     def delete_archive_policy(self, name):
         session = self.engine_facade.get_session()
@@ -135,7 +139,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 'archive_policy')).options(
                     sqlalchemy.orm.joinedload('resource'))
 
-        return list(query.all())
+        metrics = list(query.all())
+        session.expunge_all()
+        return metrics
 
     def create_archive_policy(self, archive_policy):
         ap = ArchivePolicy(
@@ -150,15 +156,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             session.flush()
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyAlreadyExists(archive_policy.name)
+        session.expunge_all()
         return ap
 
     def list_archive_policy_rules(self):
         session = self.engine_facade.get_session()
-        return session.query(ArchivePolicyRule).all()
+        aps = session.query(ArchivePolicyRule).all()
+        session.expunge_all()
+        return aps
 
     def get_archive_policy_rule(self, name):
         session = self.engine_facade.get_session()
-        return session.query(ArchivePolicyRule).get(name)
+        ap = session.query(ArchivePolicyRule).get(name)
+        session.expunge_all()
+        return ap
 
     def delete_archive_policy_rule(self, name):
         session = self.engine_facade.get_session()
@@ -184,6 +195,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             session.flush()
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyRuleAlreadyExists(name)
+        session.expunge_all()
         return apr
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
@@ -202,6 +214,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if details:
             # Fetch archive policy
             m.archive_policy
+        session.expunge_all()
         return m
 
     def list_metrics(self, user_id=None, project_id=None, details=False,
@@ -219,7 +232,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 'archive_policy')).options(
                     sqlalchemy.orm.joinedload('resource'))
 
-        return q.all()
+        metrics = list(q.all())
+        session.expunge_all()
+        return metrics
 
     def create_resource(self, resource_type, id,
                         created_by_user_id, created_by_project_id,
@@ -258,6 +273,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # NOTE(jd) Force load of metrics :)
         r.metrics
 
+        session.expunge_all()
         return r
 
     def update_resource(self, resource_type,
@@ -327,6 +343,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # NOTE(jd) Force load of metrics – do it outside the session!
         r.metrics
 
+        session.expunge_all()
         return r
 
     @staticmethod
@@ -365,7 +382,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 resource_cls.id == resource_id)
         if with_metrics:
             q = q.options(sqlalchemy.orm.joinedload('metrics'))
-        return q.first()
+        r = q.first()
+        session.expunge_all()
+        return r
 
     def _get_history_result_mapper(self, resource_type):
         resource_cls = self._resource_type_to_class(resource_type)
@@ -459,6 +478,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     # Always include metrics
                     q = q.options(sqlalchemy.orm.joinedload('metrics'))
                     all_resources.extend(q.all())
+        session.expunge_all()
         return all_resources
 
     def delete_metric(self, id):
