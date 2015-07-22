@@ -67,9 +67,7 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
-        with mock.patch.object(self.stats.indexer, 'get_metrics') as f:
-            f.return_value = [metric]
-            self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_measures(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -88,9 +86,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        with mock.patch.object(self.stats.indexer, 'get_metrics') as f:
-            f.return_value = [metric]
-            self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_measures(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -121,9 +117,7 @@ class TestStatsd(tests_base.TestCase):
                                             with_metrics=True)
         metric = r.get_metric(metric_key)
 
-        with mock.patch.object(self.stats.indexer, 'get_metrics') as f:
-            f.return_value = [metric]
-            self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_measures(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -140,9 +134,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        with mock.patch.object(self.stats.indexer, 'get_metrics') as f:
-            f.return_value = [metric]
-            self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_measures(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
