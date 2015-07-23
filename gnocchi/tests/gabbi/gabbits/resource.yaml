@@ -532,7 +532,7 @@ tests:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
       poll:
-          count: 10
+          count: 50
           delay: .1
       response_json_paths:
           $[0][0]: "2015-03-06T14:33:57+00:00"
