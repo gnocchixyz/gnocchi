@@ -63,7 +63,7 @@ tests:
     - name: get some measures
       url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
       poll:
-          count: 10
+          count: 50
           delay: .1
       response_strings:
           - "2015"
