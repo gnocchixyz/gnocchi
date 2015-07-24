@@ -81,7 +81,14 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         except IOError as e:
             if e.errno != errno.ENOENT:
                 raise
-            os.mkdir(self._build_measure_path(metric.id))
+            try:
+                os.mkdir(self._build_measure_path(metric.id))
+            except OSError as e:
+                # NOTE(jd) It's possible that another process created the path
+                # just before us! In this case, good for us, let's do nothing
+                # then! (see bug #1475684)
+                if e.errno != errno.EEXIST:
+                    raise
             measure_file = open(path, 'wb')
         measure_file.write(data)
         measure_file.close()
