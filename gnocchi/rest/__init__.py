@@ -601,7 +601,12 @@ class NamedMetricController(rest.RestController):
         if m:
             return MetricController(m[0]), remainder
 
-        abort(404)
+        resource = pecan.request.indexer.get_resource(self.resource_type,
+                                                      self.resource_id)
+        if resource:
+            abort(404, indexer.NoSuchMetric(name))
+        else:
+            abort(404)
 
     @pecan.expose()
     def post(self):
