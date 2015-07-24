@@ -634,6 +634,23 @@ tests:
               archive_policy_name: medium
       status: 404
 
+# Post measurements on unknown things
+
+    - name: post measure on unknown metric
+      desc: 404 from NamedMetricController with metric error
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+      status: 404
+      response_strings:
+          - Metric unknown does not exist
+
 # DELETE-ing instances
 
     - name: delete instance
