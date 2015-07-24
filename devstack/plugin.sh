@@ -263,9 +263,9 @@ function install_gnocchi {
         _gnocchi_install_redis
     fi
 
-    # NOTE(sileht): requirements are not yet merged with the global-requirement repo
+    # NOTE(sileht): requirements are not merged with the global-requirement repo
     # setup_develop $GNOCCHI_DIR
-    setup_package $GNOCCHI_DIR -e
+    USE_CONSTRAINTS=False setup_package $GNOCCHI_DIR -e
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         install_apache_wsgi
