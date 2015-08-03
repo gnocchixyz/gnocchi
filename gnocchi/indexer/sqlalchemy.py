@@ -135,9 +135,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return []
         session = self.engine_facade.get_session()
         query = session.query(Metric).filter(Metric.id.in_(uuids)).options(
-            sqlalchemy.orm.joinedload(
-                'archive_policy')).options(
-                    sqlalchemy.orm.joinedload('resource'))
+            sqlalchemy.orm.joinedload('resource'))
 
         metrics = list(query.all())
         session.expunge_all()
@@ -228,9 +226,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         for attr in kwargs:
             q = q.filter(getattr(Metric, attr) == kwargs[attr])
         if details:
-            q = q.options(sqlalchemy.orm.joinedload(
-                'archive_policy')).options(
-                    sqlalchemy.orm.joinedload('resource'))
+            q = q.options(sqlalchemy.orm.joinedload('resource'))
 
         metrics = list(q.all())
         session.expunge_all()
