@@ -35,6 +35,7 @@ OPTS = [
                help='Number of workers to run during adding new measures for '
                     'pre-aggregation needs.'),
     cfg.StrOpt('coordination_url',
+               secret=True,
                help='Coordination driver URL',
                default="file:///var/lib/gnocchi/locks"),
 

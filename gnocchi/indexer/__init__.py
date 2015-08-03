@@ -25,6 +25,7 @@ from gnocchi import exceptions
 
 OPTS = [
     cfg.StrOpt('url',
+               secret=True,
                default="null://",
                help='Indexer driver to use'),
 ]
