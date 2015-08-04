@@ -16,6 +16,8 @@
 
 source $BASE/new/devstack/openrc admin admin
 
+set -e
+
 function generate_testr_results {
     if [ -f .testrepository/0 ]; then
         sudo .tox/py27-gate/bin/testr last --subunit > $WORKSPACE/testrepository.subunit
@@ -34,12 +36,13 @@ export GNOCCHI_DIR="$BASE/new/gnocchi"
 sudo chown -R stack:stack $GNOCCHI_DIR
 cd $GNOCCHI_DIR
 
-openstack endpoint list
-gnocchi_url = $(openstack endpoint show metric -c publicurl -f value)
+openstack catalog list
 
-curl -X GET ${gnocchi_url}/v1/archive_policy -H "Content-Type: application/json"
+export GNOCCHI_SERVICE_TOKEN=$(openstack token issue -c id -f value)
+export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value | awk '/publicURL/{print $2}')
 
-export GNOCCHI_SERVICE_URL=${gnocchi_url}
+curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: application/json"
+
 
 # Run tests
 echo "Running gnocchi functional test suite"

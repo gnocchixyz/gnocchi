@@ -3,6 +3,10 @@
 #
 # These act as a very basic sanity check.
 
+defaults:
+    request_headers:
+        x-auth-token: $ENVIRON['GNOCCHI_SERVICE_TOKEN']
+
 tests:
 
     - name: check /
@@ -45,3 +49,8 @@ tests:
       url:  $LOCATION
       response_json_paths:
           $.name: ✔éñ☃
+
+    - name: delete unicode archive policy
+      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      method: DELETE
+      status: 204
