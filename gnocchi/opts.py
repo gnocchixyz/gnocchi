@@ -50,6 +50,10 @@ def list_opts():
             cfg.IntOpt('workers', min=1,
                        help='Number of workers for Gnocchi API server. '
                        'By default the available number of CPU is used.'),
+            cfg.IntOpt('max_limit',
+                       default=1000,
+                       help=('The maximum number of items returned in a '
+                             'single response from a collection resource')),
         )),
         ("storage", itertools.chain(gnocchi.storage._carbonara.OPTS,
                                     gnocchi.storage.OPTS,

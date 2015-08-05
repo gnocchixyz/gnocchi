@@ -199,6 +199,32 @@ def get_details(params):
     return get_header_option('details', params)
 
 
+RESOURCE_DEFAULT_PAGINATION = ['revision_start:asc',
+                               'started_at:asc']
+
+
+def get_pagination_options(params, default):
+    max_limit = pecan.request.conf.api.max_limit
+    limit = params.get('limit', max_limit)
+    marker = params.get('marker')
+    sorts = params.get('sort', default)
+    if not isinstance(sorts, list):
+        sorts = [sorts]
+
+    try:
+        limit = int(limit)
+        if limit <= 0:
+            raise ValueError
+    except ValueError:
+        abort(400, "Invalid 'limit' value: %s" % params.get('limit'))
+
+    limit = min(limit, max_limit)
+
+    return {'limit': limit,
+            'marker': marker,
+            'sorts': sorts}
+
+
 def ValidAggMethod(value):
     value = six.text_type(value)
     if value in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES:
@@ -852,6 +878,8 @@ class GenericResourcesController(rest.RestController):
     def get_all(self, **kwargs):
         details = get_details(kwargs)
         history = get_history(kwargs)
+        pagination_opts = get_pagination_options(
+            kwargs, RESOURCE_DEFAULT_PAGINATION)
 
         try:
             enforce("list all resource", {
@@ -868,11 +896,15 @@ class GenericResourcesController(rest.RestController):
             attr_filter = None
 
         try:
+            # FIXME(sileht): next API version should returns
+            # {'resources': [...], 'links': [ ... pagination rel ...]}
             return pecan.request.indexer.list_resources(
                 self._resource_type,
                 attribute_filter=attr_filter,
                 details=details,
-                history=history)
+                history=history,
+                **pagination_opts
+            )
         except indexer.IndexerException as e:
             abort(400, e)
 
@@ -991,6 +1023,8 @@ class SearchResourceTypeController(rest.RestController):
 
         details = get_details(kwargs)
         history = get_history(kwargs)
+        pagination_opts = get_pagination_options(
+            kwargs, RESOURCE_DEFAULT_PAGINATION)
 
         try:
             enforce("search all resource", {
@@ -1017,7 +1051,8 @@ class SearchResourceTypeController(rest.RestController):
                 self._resource_type,
                 attribute_filter=attr_filter,
                 details=details,
-                history=history)
+                history=history,
+                **pagination_opts)
         except indexer.IndexerException as e:
             abort(400, e)
 

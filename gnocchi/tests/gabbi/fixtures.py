@@ -128,6 +128,9 @@ class ConfigFixture(fixture.GabbiFixture):
         # Turn off any middleware.
         conf.set_override('middlewares', [], 'api')
 
+        # Set pagination to a testable value
+        conf.set_override('max_limit', 7, 'api')
+
         self.index = index
 
         # start up a thread to async process measures
