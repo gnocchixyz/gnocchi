@@ -1,0 +1,63 @@
+#
+# Test the search API to achieve coverage of just the
+# SearchController and SearchMetricController class code.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+        content-type: application/json
+        x-roles: admin
+      data:
+        name: high
+        definition:
+          - granularity: 1 second
+      status: 201
+
+    - name: create metric
+      url: /v1/metric
+      request_headers:
+        content-type: application/json
+      method: post
+      data:
+        archive_policy_name: "high"
+      status: 201
+
+    - name: search measure with wrong start
+      url: /v1/search/metric?metric_id=$RESPONSE['$.id']&start=foobar
+      method: post
+      request_headers:
+        content-type: application/json
+      data:
+        ∧:
+          - ≥: 1000
+      status: 400
+      response_strings:
+        - Invalid value for start
+
+    - name: create metric 2
+      url: /v1/metric
+      request_headers:
+        content-type: application/json
+      method: post
+      data:
+        archive_policy_name: "high"
+      status: 201
+
+    - name: search measure with wrong stop
+      url: /v1/search/metric?metric_id=$RESPONSE['$.id']&stop=foobar
+      method: post
+      request_headers:
+        content-type: application/json
+      data:
+        ∧:
+          - ≥: 1000
+      status: 400
+      response_strings:
+        - Invalid value for stop
