@@ -150,7 +150,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
             ondelete="RESTRICT",
             name="fk_metric_archive_policy_name_archive_policy_name"),
         nullable=False)
-    archive_policy = sqlalchemy.orm.relationship(ArchivePolicy)
+    archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
     created_by_user_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType())
     created_by_project_id = sqlalchemy.Column(
@@ -168,12 +168,9 @@ class Metric(Base, GnocchiBase, storage.Metric):
             "created_by_user_id": self.created_by_user_id,
             "created_by_project_id": self.created_by_project_id,
             "name": self.name,
+            "archive_policy": self.archive_policy,
         }
         unloaded = sqlalchemy.inspect(self).unloaded
-        if 'archive_policy' in unloaded:
-            d['archive_policy_name'] = self.archive_policy_name
-        else:
-            d['archive_policy'] = self.archive_policy
         if 'resource' in unloaded:
             d['resource_id'] = self.resource_id
         else:

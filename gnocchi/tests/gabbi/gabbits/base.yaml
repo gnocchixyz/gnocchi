@@ -78,7 +78,7 @@ tests:
   url: /v1/metric
   status: 200
   response_json_paths:
-      $[0].archive_policy_name: test1
+      $[0].archive_policy.name: test1
 
 - name: post a single measure
   desc: post one measure

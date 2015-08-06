@@ -124,7 +124,7 @@ tests:
       url: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy_name: cookies
+          $[0].archive_policy.name: cookies
 
     - name: get measurements from metric
       url: /v1/metric/$RESPONSE['$[0].id']/measures
@@ -134,7 +134,7 @@ tests:
       url: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy_name: cookies
+          $[0].archive_policy.name: cookies
 
     - name: get measurements by start
       url: /v1/metric/$RESPONSE['$[0].id']/measures?start=2015-03-06T14:33:57
@@ -148,7 +148,7 @@ tests:
       url: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy_name: cookies
+          $[0].archive_policy.name: cookies
 
     - name: get measure unknown aggregates
       url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&aggregation=last
@@ -166,7 +166,7 @@ tests:
       url: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy_name: cookies
+          $[0].archive_policy.name: cookies
 
     - name: delete metric
       url: /v1/metric/$RESPONSE['$[0].id']
