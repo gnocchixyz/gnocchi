@@ -1117,11 +1117,7 @@ class SearchMetricController(rest.RestController):
                 str(metric.id): values
                 for metric, values in six.iteritems(
                     pecan.request.storage.search_value(
-                        # NOTE(jd) Don't pass the archive policy as no
-                        # driver needs it for now
-                        [storage.Metric(str(metric.id), None)
-                         for metric in metrics],
-                        query, start, stop, aggregation)
+                        metrics, query, start, stop, aggregation)
                 )
             }
         except storage.InvalidQuery as e:

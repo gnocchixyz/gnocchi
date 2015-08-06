@@ -194,6 +194,8 @@ class Metric(Base, GnocchiBase, storage.Metric):
                  and self.resource_id == other.resource_id)
                 or (storage.Metric.__eq__(self, other)))
 
+    __hash__ = storage.Metric.__hash__
+
 
 class ResourceJsonifier(indexer.Resource):
     def jsonify(self):

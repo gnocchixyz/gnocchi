@@ -58,9 +58,6 @@ class Metric(object):
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.id)
 
-    def __hash__(self):
-        return id(self)
-
     def __str__(self):
         return str(self.id)
 
@@ -72,6 +69,8 @@ class Metric(object):
                 and self.created_by_project_id == other.created_by_project_id
                 and self.name == other.name
                 and self.resource_id == other.resource_id)
+
+    __hash__ = object.__hash__
 
 
 class InvalidQuery(Exception):
