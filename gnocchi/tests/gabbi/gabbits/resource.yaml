@@ -38,11 +38,13 @@ tests:
           $.versions[0].links[0].href: $SCHEME://$NETLOC/v1/
 
     - name: root of v1
-      desc: https://bugs.launchpad.net/gnocchi/+bug/1424627
       url: /v1
-      xfail: true
-      response_strings:
-          - some hypermedia
+      redirects: true
+      response_json_paths:
+          $.version: "1.0"
+          $.links.`len`: 8
+          $.links[0].href: $SCHEME://$NETLOC/v1
+          $.links[7].href: $SCHEME://$NETLOC/v1/search
 
     - name: root of resource
       url: /v1/resource

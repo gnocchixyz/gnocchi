@@ -1174,13 +1174,33 @@ class CapabilityController(rest.RestController):
 
 
 class V1Controller(object):
-    search = SearchController()
-    archive_policy = ArchivePoliciesController()
-    archive_policy_rule = ArchivePolicyRulesController()
-    metric = MetricsController()
-    resource = ResourcesController()
-    aggregation = Aggregation()
-    capabilities = CapabilityController()
+
+    def __init__(self):
+        self.sub_controllers = {
+            "search": SearchController(),
+            "archive_policy": ArchivePoliciesController(),
+            "archive_policy_rule": ArchivePolicyRulesController(),
+            "metric": MetricsController(),
+            "resource": ResourcesController(),
+            "aggregation": Aggregation(),
+            "capabilities": CapabilityController()
+        }
+        for name, ctrl in self.sub_controllers.items():
+            setattr(self, name, ctrl)
+
+    @pecan.expose('json')
+    def index(self):
+        return {
+            "version": "1.0",
+            "links": [
+                {"rel": "self",
+                 "href": pecan.request.application_url + "/v1"}
+            ] + [
+                {"rel": name,
+                 "href": pecan.request.application_url + "/v1/" + name}
+                for name in sorted(self.sub_controllers)
+            ]
+        }
 
 
 class RootController(object):
