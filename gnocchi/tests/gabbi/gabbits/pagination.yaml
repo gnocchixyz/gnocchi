@@ -1,0 +1,309 @@
+#
+# Test the pagination API
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+
+#
+# Creation resources for this scenarion
+#
+    - name: post resource 1
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 57a9e836-87b8-4a21-9e30-18a474b98fef
+          started_at: "2014-01-01T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 2
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 4facbf7e-a900-406d-a828-82393f7006b3
+          started_at: "2014-01-02T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 3
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 36775172-ebc9-4060-9870-a649361bc3ab
+          started_at: "2014-01-03T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 4
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 28593168-52bb-43b5-a6db-fc2343aac02a
+          started_at: "2014-01-04T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 5
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          started_at: "2014-01-05T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+#
+# Basic resource limit/ordering tests
+#
+    - name: list first two items default order
+      url: /v1/resource/generic?limit=2
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: 57a9e836-87b8-4a21-9e30-18a474b98fef
+          $[1].id: 4facbf7e-a900-406d-a828-82393f7006b3
+
+    - name: list next third items default order
+      url: /v1/resource/generic?limit=4&marker=4facbf7e-a900-406d-a828-82393f7006b3
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 3
+          $[0].id: 36775172-ebc9-4060-9870-a649361bc3ab
+          $[1].id: 28593168-52bb-43b5-a6db-fc2343aac02a
+          $[2].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+
+    - name: list first two items order by id witouth direction
+      url: /v1/resource/generic?limit=2&sort=id
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          $[1].id: 28593168-52bb-43b5-a6db-fc2343aac02a
+
+    - name: list first two items order by id
+      url: /v1/resource/generic?limit=2&sort=id:asc
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          $[1].id: 28593168-52bb-43b5-a6db-fc2343aac02a
+
+    - name: list next third items order by id
+      url: /v1/resource/generic?limit=4&sort=id:asc&marker=28593168-52bb-43b5-a6db-fc2343aac02a
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 3
+          $[0].id: 36775172-ebc9-4060-9870-a649361bc3ab
+          $[1].id: 4facbf7e-a900-406d-a828-82393f7006b3
+          $[2].id: 57a9e836-87b8-4a21-9e30-18a474b98fef
+
+    - name: search for some resources with limit, order and marker
+      url: /v1/search/resource/generic?limit=2&sort=id:asc&marker=36775172-ebc9-4060-9870-a649361bc3ab
+      method: POST
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+        "or": [
+            {"=": {"id": 36775172-ebc9-4060-9870-a649361bc3ab}},
+            {"=": {"id": 4facbf7e-a900-406d-a828-82393f7006b3}},
+            {"=": {"id": 57a9e836-87b8-4a21-9e30-18a474b98fef}},
+        ]
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: 4facbf7e-a900-406d-a828-82393f7006b3
+          $[1].id: 57a9e836-87b8-4a21-9e30-18a474b98fef
+
+#
+# Invalid limit/ordering
+#
+    - name: invalid sort_key
+      url: /v1/resource/generic?sort=invalid:asc
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+    - name: invalid sort_dir
+      url: /v1/resource/generic?sort=id:invalid
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+    - name: invalid marker
+      url: /v1/resource/generic?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+    - name: invalid negative limit
+      url: /v1/resource/generic?limit=-2
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+    - name: invalid limit
+      url: /v1/resource/generic?limit=invalid
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+#
+# Default limit
+#
+
+    - name: post resource 6
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 465f87b2-61f7-4118-adec-1d96a78af401
+          started_at: "2014-01-02T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 7
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 9b6af245-57df-4ed6-a8c0-f64b77d8867f
+          started_at: "2014-01-28T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: post resource 8
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: d787aa85-5743-4443-84f9-204270bc141a
+          started_at: "2014-01-31T02:02:02.000000"
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      status: 201
+
+    - name: default limit
+      url: /v1/resource/generic
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 7
+          $[-1].id: 9b6af245-57df-4ed6-a8c0-f64b77d8867f
+
+
+    - name: update resource 5
+      url: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          ended_at: "2014-01-30T02:02:02.000000"
+
+    - name: update resource 5 bis
+      url: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          ended_at: "2014-01-31T02:02:02.000000"
+
+    - name: default limit with history and multiple sort key
+      desc: need https://review.openstack.org/#/c/209518/ to ensure same result on mysql/postgres
+      xfail: true
+      url: /v1/resource/generic?history=true&sort=id:asc&sort=ended_at:desc-nullslast
+      method: get
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 7
+          $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          $[0].ended_at: "2014-01-31T02:02:02+00:00"
+          $[1].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          $[1].ended_at: "2014-01-30T02:02:02+00:00"
+          $[2].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
+          $[2].ended_at: null
