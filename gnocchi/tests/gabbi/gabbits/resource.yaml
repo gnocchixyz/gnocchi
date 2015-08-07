@@ -479,13 +479,23 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
 
     - name: request metrics from one of the instances
-      desc: https://bugs.launchpad.net/gnocchi/+bug/1450093
       url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
-      xfail: true
       request_headers:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-      status: 200 # currently a 404
+      response_json_paths:
+          $.`len`: 1
+          $[0].name: cpu.util
+          $[0].resource_id: 85c44741-cc60-4033-804e-2d3098c7d2e9
+
+    - name: request metrics from non uuid metrics
+      desc: 404 from GenericResourceController
+      url: /v1/resource/instance/not.a.uuid/metric
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 404
 
     - name: request cpuutil metric from instance
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util

@@ -1047,6 +1047,16 @@ class ResourceTest(RestTest):
                      + "/metric/foo/measures",
                      status=200)
 
+    def test_list_resource_metrics_unauthorized(self):
+        self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+        with self.app.use_another_user():
+            self.app.get(
+                "/v1/resource/" + self.resource_type
+                + "/" + self.attributes['id'] + "/metric",
+                status=403)
+
     def test_delete_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
