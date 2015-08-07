@@ -192,11 +192,9 @@ tests:
 # Unexpected methods
 
     - name: post single archive
-      desc: https://bugs.launchpad.net/pecan/+bug/1334690
-      xfail: true
       url: /v1/archive_policy/medium
       method: POST
-      status: 405 # currently 404
+      status: 405
 
     - name: put single archive
       url: /v1/archive_policy/medium

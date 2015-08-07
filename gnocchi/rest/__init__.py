@@ -206,7 +206,33 @@ def ValidAggMethod(value):
     raise ValueError("Invalid aggregation method")
 
 
+class ArchivePolicyController(rest.RestController):
+    def __init__(self, archive_policy):
+        self.archive_policy = archive_policy
+
+    @pecan.expose('json')
+    def get(self):
+        ap = pecan.request.indexer.get_archive_policy(self.archive_policy)
+        if ap:
+            enforce("get archive policy", ap)
+            return ap
+        abort(404)
+
+    @pecan.expose()
+    def delete(self):
+        try:
+            pecan.request.indexer.delete_archive_policy(self.archive_policy)
+        except indexer.NoSuchArchivePolicy as e:
+            abort(404, e)
+        except indexer.ArchivePolicyInUse as e:
+            abort(400, e)
+
+
 class ArchivePoliciesController(rest.RestController):
+    @pecan.expose()
+    def _lookup(self, archive_policy, *remainder):
+        return ArchivePolicyController(archive_policy), remainder
+
     @pecan.expose('json')
     def post(self):
         # NOTE(jd): Initialize this one at run-time because we rely on conf
@@ -245,26 +271,9 @@ class ArchivePoliciesController(rest.RestController):
         return ap
 
     @pecan.expose('json')
-    def get_one(self, id):
-        ap = pecan.request.indexer.get_archive_policy(id)
-        if ap:
-            enforce("get archive policy", ap)
-            return ap
-        abort(404)
-
-    @pecan.expose('json')
     def get_all(self):
         enforce("list archive policy", {})
         return pecan.request.indexer.list_archive_policies()
-
-    @pecan.expose()
-    def delete(self, name):
-        try:
-            pecan.request.indexer.delete_archive_policy(name)
-        except indexer.NoSuchArchivePolicy as e:
-            abort(404, e)
-        except indexer.ArchivePolicyInUse as e:
-            abort(400, e)
 
 
 class ArchivePolicyRulesController(rest.RestController):
