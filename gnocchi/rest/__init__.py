@@ -628,6 +628,15 @@ class NamedMetricController(rest.RestController):
         except indexer.NoSuchResource as e:
             abort(404, e)
 
+    @pecan.expose('json')
+    def get_all(self):
+        resource = pecan.request.indexer.get_resource(
+            self.resource_type, self.resource_id)
+        if not resource:
+            abort(404)
+        enforce("get resource", resource)
+        return pecan.request.indexer.list_metrics(resource_id=self.resource_id)
+
 
 def etag_precondition_check(obj):
     etag, lastmodified = obj.etag, obj.lastmodified
