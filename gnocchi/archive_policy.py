@@ -18,18 +18,8 @@ import datetime
 import operator
 
 from oslo_config import cfg
+from oslo_config import types
 import six
-
-
-OPTS = [
-    cfg.ListOpt(
-        'default_aggregation_methods',
-        default=['mean', 'min', 'max', 'sum',
-                 'std', 'median', 'count', '95pct'],
-        # TODO(jd) Validate values
-        # choices=ArchivePolicy.VALID_AGGREGATION_METHODS,
-        help='Default aggregation methods to use in created archive policies'),
-]
 
 
 class ArchivePolicy(object):
@@ -130,6 +120,18 @@ class ArchivePolicy(object):
         # The biggest block size is the coarse grained archive definition
         return sorted(self.definition,
                       key=operator.attrgetter("granularity"))[-1].granularity
+
+
+OPTS = [
+    cfg.Opt(
+        'default_aggregation_methods',
+        default=['mean', 'min', 'max', 'sum',
+                 'std', 'median', 'count', '95pct'],
+        type=types.List(
+            item_type=types.String(
+                choices=ArchivePolicy.VALID_AGGREGATION_METHODS)),
+        help='Default aggregation methods to use in created archive policies'),
+]
 
 
 class ArchivePolicyItem(dict):
