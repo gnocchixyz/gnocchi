@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import contextlib
+import datetime
 import uuid
 
 from oslo_config import cfg
@@ -89,9 +90,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricAlreadyExists(metric)
 
     def _store_measures(self, metric, data):
+        now = datetime.datetime.utcnow().strftime("_%Y%M%d_%H:%M:%S")
         self.swift.put_object(
             self.MEASURE_PREFIX,
-            six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()),
+            six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
             data)
 
     def _list_metric_with_measures_to_process(self):
