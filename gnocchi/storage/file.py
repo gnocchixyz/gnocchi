@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import contextlib
+import datetime
 import errno
 import os
 import shutil
@@ -59,9 +60,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         path = os.path.join(self.measure_path, six.text_type(metric_id))
         if random_id:
             if random_id is True:
-                # TODO(jd) include a timestamp in the filename
-                return os.path.join(path,
-                                    six.text_type(uuid.uuid4()))
+                now = datetime.datetime.utcnow().strftime("_%Y%M%d_%H:%M:%S")
+                random_id = six.text_type(uuid.uuid4()) + now
             return os.path.join(path, random_id)
         return path
 
