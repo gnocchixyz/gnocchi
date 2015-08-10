@@ -2,8 +2,7 @@
  Installation
 ==============
 
-To install Gnocchi, you just need to run the standard Python installation
-procedure:
+To install Gnocchi, run the standard Python installation procedure:
 
 ::
 
@@ -13,13 +12,17 @@ procedure:
 Configuration
 =============
 
-Then configure Gnocchi by editing the `/etc/gnocchi/gnocchi.conf` sample. No
-config file is provided with the source code, but one can be easily created by
-running:
+Configure Gnocchi by editing `/etc/gnocchi/gnocchi.conf`.
+
+No config file is provided with the source code, but one can be easily
+created by running:
 
 ::
 
     tox -e genconfig
+
+The will create an `etc/gnocchi/gnocchi.conf` file which can be used as a
+base for the default configuration file at `/etc/gnocchi/gnocchi.conf`.
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
@@ -72,7 +75,7 @@ Once you have configured Gnocchi properly, you need to initialize the indexer:
 Running Gnocchi
 ===============
 
-To run Gnocchi, simple run the HTTP server:
+To run Gnocchi, simply run the HTTP server:
 
 ::
 
