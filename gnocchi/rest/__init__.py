@@ -752,6 +752,11 @@ class GenericResourceController(rest.RestController):
         etag_precondition_check(resource)
 
         body = deserialize(self.Resource, required=False)
+
+        if not self._resource_need_update(resource, body):
+            # No need to go further, we assume the db resource
+            # doesn't change between the get and update
+            return resource
         if len(body) == 0:
             etag_set_headers(resource)
             return resource
@@ -770,6 +775,15 @@ class GenericResourceController(rest.RestController):
             abort(404, e)
         etag_set_headers(resource)
         return resource
+
+    @staticmethod
+    def _resource_need_update(resource, new_attributes):
+        if 'metrics' in new_attributes:
+            return True
+        for k, v in new_attributes.items():
+            if getattr(resource, k) != v:
+                return True
+        return False
 
     @staticmethod
     def _delete_metrics(metrics):
