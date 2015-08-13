@@ -125,11 +125,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if session.query(ArchivePolicy).filter(
                     ArchivePolicy.name == name).delete() == 0:
                 raise indexer.NoSuchArchivePolicy(name)
-        except exception.DBError as e:
-            # TODO(jd) Add an exception in oslo.db to match foreign key
-            # violations
-            if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
+        except exception.DBReferenceError as e:
+            if (e.constraint ==
+               'fk_metric_archive_policy_name_archive_policy_name'):
                 raise indexer.ArchivePolicyInUse(name)
+            raise
 
     def get_metrics(self, uuids):
         if not uuids:
