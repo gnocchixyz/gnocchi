@@ -172,14 +172,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def delete_archive_policy_rule(self, name):
         session = self.engine_facade.get_session()
-        try:
-            if session.query(ArchivePolicyRule).filter(
-                    ArchivePolicyRule.name == name).delete() == 0:
-                raise indexer.NoSuchArchivePolicyRule(name)
-        except exception.DBError as e:
-            # TODO(prad): fix foreign key violations when oslo.db supports it
-            if isinstance(e.inner_exception, sqlalchemy.exc.IntegrityError):
-                raise indexer.ArchivePolicyRuleInUse(name)
+        if session.query(ArchivePolicyRule).filter(
+                ArchivePolicyRule.name == name).delete() == 0:
+            raise indexer.NoSuchArchivePolicyRule(name)
 
     def create_archive_policy_rule(self, name, metric_pattern,
                                    archive_policy_name):

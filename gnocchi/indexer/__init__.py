@@ -130,14 +130,6 @@ class NoSuchArchivePolicyRule(IndexerException):
         self.archive_policy_rule = archive_policy_rule
 
 
-class ArchivePolicyRuleInUse(IndexerException):
-    """Error raised when an archive policy rule is still being used."""
-    def __init__(self, archive_policy_rule):
-        super(ArchivePolicyRuleInUse, self).__init__(
-            "Archive policy Rule %s is still in use" % archive_policy_rule)
-        self.archive_policy_rule = archive_policy_rule
-
-
 class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
     def __init__(self, metric):
