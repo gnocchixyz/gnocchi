@@ -522,7 +522,7 @@ tests:
           $.created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           $.archive_policy.name: medium
 
-    - name: try post cpuutil measures to instance
+    - name: try post cpuutil metric to instance
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       method: post
       request_headers:
