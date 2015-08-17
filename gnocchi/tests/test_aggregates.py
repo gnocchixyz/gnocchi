@@ -52,7 +52,6 @@ class TestAggregates(tests_base.TestCase):
     def _test_create_metric_and_data(self, data, spacing):
         metric = storage.Metric(
             uuid.uuid4(), self.archive_policies['medium'])
-        self.storage.create_metric(metric)
         start_time = datetime.datetime(2014, 1, 1, 12)
         incr = datetime.timedelta(seconds=spacing)
         measures = [storage.Measure(start_time + incr * n, val)

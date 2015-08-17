@@ -79,7 +79,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 
-    def _create_metric_container(self, metric):
+    def _create_metric(self, metric):
         # TODO(jd) A container per user in their account?
         resp = {}
         self.swift.put_container(self._container_name(metric),
@@ -101,10 +101,19 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                                                   delimiter='/')
         return set(f['subdir'][:-1] for f in files if 'subdir' in f)
 
+    def _list_measure_files_for_metric_id(self, metric_id):
+        headers, files = self.swift.get_container(
+            self.MEASURE_PREFIX, path=six.text_type(metric_id))
+        return files
+
+    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+        files = self._list_measure_files_for_metric(metric_id)
+        for f in files:
+            self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
+
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):
-        headers, files = self.swift.get_container(
-            self.MEASURE_PREFIX, path=six.text_type(metric.id))
+        files = self._list_measure_files_for_metric_id(metric.id)
 
         measures = []
         for f in files:
@@ -121,21 +130,20 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _store_metric_measures(self, metric, aggregation, data):
         self.swift.put_object(self._container_name(metric), aggregation, data)
 
-    def delete_metric(self, metric):
+    def _delete_metric(self, metric):
+        for aggregation in metric.archive_policy.aggregation_methods:
+            try:
+                self.swift.delete_object(self._container_name(metric),
+                                         aggregation)
+            except swclient.ClientException as e:
+                if e.http_status != 404:
+                    raise
         try:
-            for aggregation in metric.archive_policy.aggregation_methods:
-                try:
-                    self.swift.delete_object(self._container_name(metric),
-                                             aggregation)
-                except swclient.ClientException as e:
-                    if e.http_status != 404:
-                        raise
-
             self.swift.delete_container(self._container_name(metric))
         except swclient.ClientException as e:
-            if e.http_status == 404:
-                raise storage.MetricDoesNotExist(metric)
-            raise
+            if e.http_status != 404:
+                # Maybe it never has been created (no measure)
+                raise
 
     @retrying.retry(stop_max_attempt_number=4,
                     wait_fixed=500,

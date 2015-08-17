@@ -27,6 +27,7 @@ from oslo_config import cfg
 from oslo_utils import timeutils
 import retrying
 
+from gnocchi import exceptions
 from gnocchi import storage
 from gnocchi import utils
 
@@ -97,13 +98,12 @@ class InfluxDBStorage(storage.StorageDriver):
         try:
             return self.influx.query(query, database=self.database)
         except influxdb.client.InfluxDBClientError as e:
-            if "measurement not found" in e.content:
-                raise storage.MetricDoesNotExist(metric)
             # NOTE(ityaptin) If metric exists but doesn't have any measures
-            # with `value` field influxdb client may rise exception
-            # for aggregate query. It's not error in Gnocchi context and
-            # we should to return empty list in this case.
-            if "unknown field or tag name" in e.content:
+            # with `value` field influxdb client may raise exception for
+            # (aggregate) query. It's not error in Gnocchi context and we
+            # should to return empty list in this case.
+            if ("unknown field or tag name" in e.content
+               or "measurement not found" in e.content):
                 return {self._get_metric_id(metric): []}
             raise
 
@@ -132,20 +132,7 @@ class InfluxDBStorage(storage.StorageDriver):
         if not result:
             raise utils.Retry
 
-    def create_metric(self, metric):
-        if self._metric_exists(metric):
-            raise storage.MetricAlreadyExists(metric)
-        metric_id = self._get_metric_id(metric)
-        self.influx.write_points([dict(measurement=metric_id,
-                                       fields=dict(created=1))],
-                                 time_precision='n',
-                                 retention_policy="default",
-                                 database=self.database)
-        self._wait_points_exists(metric_id, "\"created\" = 1")
-
     def delete_metric(self, metric):
-        if not self._metric_exists(metric):
-            raise storage.MetricDoesNotExist(metric)
         metric_id = self._get_metric_id(metric)
         self._query(metric, "DROP MEASUREMENT \"%s\"" % metric_id)
 
@@ -165,25 +152,28 @@ class InfluxDBStorage(storage.StorageDriver):
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
+        super(InfluxDBStorage, self).get_measures(
+            metric, from_timestamp, to_timestamp, aggregation)
+
         if from_timestamp:
             from_timestamp = self._timestamp_to_utc(from_timestamp)
         if to_timestamp:
             to_timestamp = self._timestamp_to_utc(to_timestamp)
-
-        if aggregation not in metric.archive_policy.aggregation_methods:
-            raise storage.AggregationDoesNotExist(metric, aggregation)
 
         metric_id = self._get_metric_id(metric)
 
         result = self._query(metric, "select * from \"%(metric_id)s\"" %
                              dict(metric_id=metric_id))
         result = list(result[metric_id])
-        if not result:
-            raise storage.MetricDoesNotExist(metric)
 
-        if not from_timestamp:
-            first_measure_timestamp = self._timestamp_to_utc(
-                timeutils.parse_isotime(result[0]['time']))
+        if from_timestamp:
+            first_measure_timestamp = from_timestamp
+        else:
+            if result:
+                first_measure_timestamp = self._timestamp_to_utc(
+                    timeutils.parse_isotime(result[0]['time']))
+            else:
+                first_measure_timestamp = None
 
         query = ("SELECT %(aggregation)s(value) FROM \"%(metric_id)s\""
                  % dict(aggregation=aggregation,
@@ -212,7 +202,7 @@ class InfluxDBStorage(storage.StorageDriver):
                 metric.archive_policy.definition,
                 key=operator.attrgetter('granularity')):
             time_query = self._make_time_query(
-                from_timestamp or first_measure_timestamp,
+                first_measure_timestamp,
                 to_timestamp,
                 definition.granularity)
             subquery = (query +
@@ -272,6 +262,13 @@ class InfluxDBStorage(storage.StorageDriver):
 
         return ("time >= '%s'" % left_time) + (" and time < '%s'" % right_time
                                                if right_time else "")
+
+    def get_cross_metric_measures(self, metrics, from_timestamp=None,
+                                  to_timestamp=None, aggregation='mean',
+                                  needed_overlap=None):
+        super(InfluxDBStorage, self).get_cross_metric_measures(
+            metrics, from_timestamp, to_timestamp, aggregation, needed_overlap)
+        raise exceptions.NotImplementedError
 
 
 def find_nearest_stable_point(timestamp, granularity, next=False):

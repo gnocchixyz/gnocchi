@@ -19,17 +19,4 @@ from gnocchi import storage
 
 
 class NullStorage(storage.StorageDriver):
-
-    def __init__(self, conf):
-        self.metrics = {}
-
-    def create_metric(self, metric):
-        if metric.id in self.metrics:
-            raise storage.MetricAlreadyExists(metric)
-        self.metrics[metric.id] = True
-
-    def delete_metric(self, metric):
-        try:
-            del self.metrics[metric.id]
-        except KeyError:
-            raise storage.MetricDoesNotExist(metric)
+    pass

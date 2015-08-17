@@ -584,7 +584,6 @@ class MetricsController(rest.RestController):
             id,
             created_by_user_id, created_by_project_id,
             archive_policy_name=policy.name, name=name, details=True)
-        pecan.request.storage.create_metric(storage.Metric(id, policy))
         return m
 
     @pecan.expose('json')
