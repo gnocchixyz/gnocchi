@@ -507,8 +507,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def delete_metric(self, id):
         session = self.engine_facade.get_session()
-        session.query(Metric).filter(Metric.id == id).delete()
-        session.flush()
+        if session.query(Metric).filter(Metric.id == id).delete() == 0:
+            raise indexer.NoSuchMetric(id)
 
 
 class QueryTransformer(object):

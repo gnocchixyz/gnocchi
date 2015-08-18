@@ -442,6 +442,9 @@ class TestIndexerDriver(tests_base.TestCase):
         rc = self.index.create_resource('generic', r1, user, project,
                                         metrics={'foo': e1, 'bar': e2})
         self.index.delete_metric(e1)
+        self.assertRaises(indexer.NoSuchMetric,
+                          self.index.delete_metric,
+                          e1)
         r = self.index.get_resource('generic', r1, with_metrics=True)
         self.assertIsNotNone(r.started_at)
         self.assertIsNotNone(r.revision_start)
