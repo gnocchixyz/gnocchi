@@ -19,6 +19,7 @@ import datetime
 import errno
 import os
 import shutil
+import tempfile
 import uuid
 
 from oslo_config import cfg
@@ -32,6 +33,9 @@ OPTS = [
     cfg.StrOpt('file_basepath',
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
+    cfg.StrOpt('file_basepath_tmp',
+               default='${file_basepath}/tmp',
+               help='Path used to store Gnocchi temporary files.'),
 ]
 
 
@@ -39,6 +43,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
+        self.basepath_tmp = conf.file_basepath_tmp
         self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
         self.measure_path = os.path.join(self.basepath, self.MEASURE_PREFIX)
         try:
@@ -46,6 +51,16 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
+        try:
+            os.mkdir(self.basepath_tmp)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+    def _get_tempfile(self):
+        return tempfile.NamedTemporaryFile(prefix='gnocchi',
+                                           dir=self.basepath_tmp,
+                                           delete=False)
 
     def stop(self):
         self._lock.stop()
@@ -75,12 +90,15 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             raise
 
     def _store_measures(self, metric, data):
+        tmpfile = self._get_tempfile()
+        tmpfile.write(data)
+        tmpfile.close()
         path = self._build_measure_path(metric.id, True)
         while True:
             try:
-                measure_file = open(path, 'wb')
+                os.rename(tmpfile.name, path)
                 break
-            except IOError as e:
+            except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
                 try:
@@ -91,8 +109,6 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                     # nothing then! (see bug #1475684)
                     if e.errno != errno.EEXIST:
                         raise
-        measure_file.write(data)
-        measure_file.close()
 
     def _list_metric_with_measures_to_process(self):
         return os.listdir(self.measure_path)
