@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import itertools
 import operator
 import os.path
+import uuid
 
 from oslo_db import exception
 from oslo_db.sqlalchemy import models
@@ -340,17 +341,39 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @staticmethod
     def _set_metrics_for_resource(session, r, metrics):
-        for name, metric_id in six.iteritems(metrics):
-            try:
-                update = session.query(Metric).filter(
-                    Metric.id == metric_id,
-                    Metric.created_by_user_id == r.created_by_user_id,
-                    Metric.created_by_project_id == r.created_by_project_id,
-                ).update({"resource_id": r.id, "name": name})
-            except exception.DBDuplicateEntry:
-                raise indexer.NamedMetricAlreadyExists(name)
-            if update == 0:
-                raise indexer.NoSuchMetric(metric_id)
+        for name, value in six.iteritems(metrics):
+            if isinstance(value, uuid.UUID):
+                try:
+                    update = session.query(Metric).filter(
+                        Metric.id == value,
+                        (Metric.created_by_user_id
+                         == r.created_by_user_id),
+                        (Metric.created_by_project_id
+                         == r.created_by_project_id),
+                    ).update({"resource_id": r.id, "name": name})
+                except exception.DBDuplicateEntry:
+                    raise indexer.NamedMetricAlreadyExists(name)
+                if update == 0:
+                    raise indexer.NoSuchMetric(value)
+            else:
+                ap_name = value['archive_policy_name']
+                m = Metric(id=uuid.uuid4(),
+                           created_by_user_id=r.created_by_user_id,
+                           created_by_project_id=r.created_by_project_id,
+                           archive_policy_name=ap_name,
+                           name=name,
+                           resource_id=r.id)
+                session.add(m)
+                try:
+                    session.flush()
+                except exception.DBDuplicateEntry:
+                    raise indexer.NamedMetricAlreadyExists(name)
+                except exception.DBReferenceError as e:
+                    if (e.constraint ==
+                       'fk_metric_archive_policy_name_archive_policy_name'):
+                        raise indexer.NoSuchArchivePolicy(ap_name)
+                    raise
+
         session.expire(r, ['metrics'])
 
     def delete_resource(self, resource_id, delete_metrics=None):

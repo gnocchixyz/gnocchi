@@ -263,7 +263,7 @@ tests:
                   archive_policy_name: noexist
       status: 400
       response_strings:
-          - Unknown archive policy noexist
+          - Archive policy noexist does not exist
 
     - name: get patched resource
       desc: confirm the patched resource is properly patched
@@ -603,10 +603,10 @@ tests:
           content-type: application/json
       status: 400
       data:
-          electron.spin:
+          electron.charge:
               archive_policy_name: high
       response_strings:
-          - Unknown archive policy high
+          - Archive policy high does not exist
 
 # Check bad timestamps
 

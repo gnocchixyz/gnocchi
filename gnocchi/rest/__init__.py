@@ -149,20 +149,6 @@ def Timestamp(v):
     return utils.to_timestamp(v)
 
 
-def convert_metric_list(metrics, created_by_user_id, created_by_project_id):
-    # Replace an archive policy as value for an metric by a brand
-    # a new metric
-    new_metrics = {}
-    for k, v in six.iteritems(metrics):
-        if isinstance(v, uuid.UUID):
-            new_metrics[k] = v
-        else:
-            new_metrics[k] = str(MetricsController.create_metric(
-                created_by_user_id, created_by_project_id,
-                v['archive_policy_name']).id)
-    return new_metrics
-
-
 def PositiveOrNullInt(value):
     value = int(value)
     if value < 0:
@@ -669,13 +655,14 @@ class NamedMetricController(rest.RestController):
         if not resource:
             abort(404)
         enforce("update resource", resource)
-        user, project = get_user_and_project()
-        metrics = convert_metric_list(deserialize(Metrics), user, project)
+        metrics = deserialize(Metrics)
         try:
             pecan.request.indexer.update_resource(
                 self.resource_type, self.resource_id, metrics=metrics,
                 append_metrics=True)
-        except (indexer.NoSuchMetric, ValueError) as e:
+        except (indexer.NoSuchMetric,
+                indexer.NoSuchArchivePolicy,
+                ValueError) as e:
             abort(400, e)
         except indexer.NamedMetricAlreadyExists as e:
             abort(409, e)
@@ -783,12 +770,12 @@ class GenericResourceController(rest.RestController):
         try:
             if 'metrics' in body:
                 user, project = get_user_and_project()
-                body['metrics'] = convert_metric_list(
-                    body['metrics'], user, project)
             resource = pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
-        except (indexer.NoSuchMetric, ValueError) as e:
+        except (indexer.NoSuchMetric,
+                indexer.NoSuchArchivePolicy,
+                ValueError) as e:
             abort(400, e)
         except indexer.NoSuchResource as e:
             abort(404, e)
@@ -906,15 +893,15 @@ class GenericResourcesController(rest.RestController):
         target.update(body)
         enforce("create resource", target)
         user, project = get_user_and_project()
-        body['metrics'] = convert_metric_list(
-            body.get('metrics', {}), user, project)
         rid = body['id']
         del body['id']
         try:
             resource = pecan.request.indexer.create_resource(
                 self._resource_type, rid, user, project,
                 **body)
-        except (ValueError, indexer.NoSuchMetric) as e:
+        except (ValueError,
+                indexer.NoSuchMetric,
+                indexer.NoSuchArchivePolicy) as e:
             abort(400, e)
         except indexer.ResourceAlreadyExists as e:
             abort(409, e)

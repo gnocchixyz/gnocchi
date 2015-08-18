@@ -125,6 +125,17 @@ class TestIndexerDriver(tests_base.TestCase):
                           self.index.create_resource,
                           'generic', r1, user, project)
 
+    def test_create_resource_with_new_metrics(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        rc = self.index.create_resource(
+            'generic', r1, user, project,
+            metrics={"foobar": {"archive_policy_name": "low"}})
+        self.assertEqual(1, len(rc.metrics))
+        m = self.index.get_metrics([rc.metrics[0].id])
+        self.assertEqual(m[0], rc.metrics[0])
+
     def _do_test_create_instance(self, server_group=None):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
