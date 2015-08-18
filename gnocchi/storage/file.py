@@ -158,11 +158,10 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self._delete_measures_files_for_metric_id(metric.id, files)
 
     def _store_metric_measures(self, metric, aggregation, data):
-        atomic_path = self._build_metric_path(metric, aggregation)
-        path = '%s.tmp' % atomic_path
-        with open(path, 'wb') as aggregation_file:
-            aggregation_file.write(data)
-        os.rename(path, atomic_path)
+        tmpfile = self._get_tempfile()
+        tmpfile.write(data)
+        tmpfile.close()
+        os.rename(tmpfile.name, self._build_metric_path(metric, aggregation))
 
     def delete_metric(self, metric):
         path = self._build_metric_path(metric)
