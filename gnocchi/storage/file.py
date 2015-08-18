@@ -76,20 +76,21 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
 
     def _store_measures(self, metric, data):
         path = self._build_measure_path(metric.id, True)
-        try:
-            measure_file = open(path, 'wb')
-        except IOError as e:
-            if e.errno != errno.ENOENT:
-                raise
+        while True:
             try:
-                os.mkdir(self._build_measure_path(metric.id))
-            except OSError as e:
-                # NOTE(jd) It's possible that another process created the path
-                # just before us! In this case, good for us, let's do nothing
-                # then! (see bug #1475684)
-                if e.errno != errno.EEXIST:
+                measure_file = open(path, 'wb')
+                break
+            except IOError as e:
+                if e.errno != errno.ENOENT:
                     raise
-            measure_file = open(path, 'wb')
+                try:
+                    os.mkdir(self._build_measure_path(metric.id))
+                except OSError as e:
+                    # NOTE(jd) It's possible that another process created the
+                    # path just before us! In this case, good for us, let's do
+                    # nothing then! (see bug #1475684)
+                    if e.errno != errno.EEXIST:
+                        raise
         measure_file.write(data)
         measure_file.close()
 
