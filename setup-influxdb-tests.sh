@@ -31,7 +31,8 @@ cat > $INFLUXDB_DATA/config <<EOF
   enabled = true
 EOF
 
-influxd -config $INFLUXDB_DATA/config > ${INFLUXDB_DATA}/out 2>&1 &
+# Influxdb distributed rpms and debs install to opt by default
+PATH=$PATH:/opt/influxdb influxd -config $INFLUXDB_DATA/config > ${INFLUXDB_DATA}/out 2>&1 &
 # Wait for InfluxDB to start listening to connections
 wait_for_line "listening on HTTP" ${INFLUXDB_DATA}/out
 
