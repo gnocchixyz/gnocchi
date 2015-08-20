@@ -25,6 +25,18 @@ tests:
               - granularity: 1 second
       status: 201
 
+    - name: create archive policy rule
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule
+        metric_pattern: "disk.io.*"
+        archive_policy_name: medium
+      status: 201
+
 # The top of the API is a bit confusing and presents some URIs which
 # are not very useful. This isn't strictly a bug but does represent
 # a measure of unfriendliness that we may wish to address. Thus the
@@ -265,6 +277,32 @@ tests:
       response_strings:
           - Archive policy noexist does not exist
 
+    - name: patch instance with no archive policy rule
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          metrics:
+              disk.iops: {}
+      status: 400
+      response_strings:
+          - No archive policy name specified and no archive policy rule found matching the metric name disk.iops
+
+    - name: patch instance with archive policy rule
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          metrics:
+              disk.io.rate: {}
+      status: 200
+
     - name: get patched resource
       desc: confirm the patched resource is properly patched
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
@@ -419,6 +457,46 @@ tests:
               cpu.util:
                   archive_policy_name: noexist
       status: 400
+
+    - name: post new instance with metrics no policy rule
+      url: /v1/resource/instance
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 85BABE39-F7F7-455A-877B-62C22E11AA40
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          flavor_id: "2"
+          image_ref: http://image
+          host: compute3
+          display_name: myvm2
+          metrics:
+              cpu.util: {}
+      status: 400
+      response_strings:
+        - No archive policy name specified and no archive policy rule found matching the metric name cpu.util
+
+    - name: post new instance with metrics using policy rule
+      url: /v1/resource/instance
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 85BABE39-F7F7-455A-877B-62C22E11AA40
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          flavor_id: "2"
+          image_ref: http://image
+          host: compute3
+          display_name: myvm2
+          metrics:
+              disk.io.rate: {}
+      status: 201
 
     - name: post new instance with metrics
       url: /v1/resource/instance
@@ -579,6 +657,30 @@ tests:
           electron.spin:
               archive_policy_name: medium
       response_headers:
+
+    - name: post metric at instance with empty definition
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+      data:
+          foo.bar: {}
+      response_strings:
+        - No archive policy name specified and no archive policy rule found matching the metric name foo.bar
+
+    - name: post metric at instance using archive policy rule
+      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      status: 204
+      data:
+          disk.io.rate: {}
 
     - name: duplicate metrics at instance
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric

@@ -205,7 +205,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                    resource_id=resource_id)
         session = self.engine_facade.get_session()
         session.add(m)
-        session.flush()
+        try:
+            session.flush()
+        except exception.DBReferenceError as e:
+            if (e.constraint ==
+               'fk_metric_archive_policy_name_archive_policy_name'):
+                raise indexer.NoSuchArchivePolicy(archive_policy_name)
+            raise
         if details:
             # Fetch archive policy
             m.archive_policy

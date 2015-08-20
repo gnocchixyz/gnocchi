@@ -70,7 +70,7 @@ tests:
           archive_policy_name: bad-cookie
       status: 400
       response_strings:
-          - Unknown archive policy bad-cookie
+          - Archive policy bad-cookie does not exist
 
     - name: create metric bad content-type
       url: /v1/metric
