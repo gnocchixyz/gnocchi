@@ -103,6 +103,37 @@ function _gnocchi_install_redis {
     pip_install_gr redis
 }
 
+# install influxdb
+# NOTE(chdent): InfluxDB is not currently packaged by the distro at the
+# version that gnocchi needs. Until that is true we're downloading
+# the debs and rpms packaged by the InfluxDB company. When it is
+# true this method can be changed to be similar to
+# _gnocchi_install_redis above.
+function _gnocchi_install_influxdb {
+    if is_package_installed influxdb; then
+        echo "influxdb already installed"
+    else
+        local file=$(mktemp /tmp/influxpkg-XXXXX)
+
+        if is_ubuntu; then
+            wget -O $file $GNOCCHI_INFLUXDB_DEB_PKG
+            sudo dpkg -i $file
+        elif is_fedora; then
+            wget -O $file $GNOCCHI_INFLUXDB_RPM_PKG
+            sudo rpm -i $file
+        fi
+        rm $file
+    fi
+
+    # restart influxdb via its initscript
+    sudo /opt/influxdb/init.sh restart
+}
+
+# remove the influxdb database
+function _gnocchi_cleanup_influxdb {
+    curl -G 'http://localhost:8086/query' --data-urlencode "q=DROP DATABASE $GNOCCHI_INFLUXDB_DBNAME"
+}
+
 function _cleanup_gnocchi_apache_wsgi {
     sudo rm -f $GNOCCHI_WSGI_DIR/*.wsgi
     sudo rm -f $(apache_site_config_for gnocchi)
@@ -197,6 +228,9 @@ function configure_gnocchi {
     elif [[ "$GNOCCHI_STORAGE_BACKEND" = 'file' ]] ; then
         iniset $GNOCCHI_CONF storage driver file
         iniset $GNOCCHI_CONF storage file_basepath $GNOCCHI_DATA_DIR/
+    elif [[ "$GNOCCHI_STORAGE_BACKEND" == 'influxdb' ]] ; then
+        iniset $GNOCCHI_CONF storage driver influxdb
+        iniset $GNOCCHI_CONF storage influxdb_database $GNOCCHI_INFLUXDB_DBNAME
     else
         echo "ERROR: could not configure storage driver"
         exit 1
@@ -268,6 +302,11 @@ function install_gnocchi {
         _gnocchi_install_redis
     fi
 
+    if [[ "${GNOCCHI_STORAGE_BACKEND}" == 'influxdb' ]] ; then
+        _gnocchi_install_influxdb
+        pip_install influxdb
+    fi
+
     # NOTE(sileht): requirements are not merged with the global-requirement repo
     # setup_develop $GNOCCHI_DIR
     USE_CONSTRAINTS=False setup_package $GNOCCHI_DIR -e
@@ -335,6 +374,10 @@ function stop_gnocchi {
     for serv in gnocchi-api; do
         stop_process $serv
     done
+
+    if [[ "${GNOCCHI_STORAGE_BACKEND}" == 'influxdb' ]] ; then
+        _gnocchi_cleanup_influxdb
+    fi
 }
 
 if is_service_enabled gnocchi-api; then
