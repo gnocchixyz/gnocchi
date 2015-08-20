@@ -291,8 +291,6 @@ tests:
           ended_at: "2014-01-31T02:02:02.000000"
 
     - name: default limit with history and multiple sort key
-      desc: need https://review.openstack.org/#/c/209518/ to ensure same result on mysql/postgres
-      xfail: true
       url: /v1/resource/generic?history=true&sort=id:asc&sort=ended_at:desc-nullslast
       method: get
       request_headers:
