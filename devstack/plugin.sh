@@ -129,21 +129,20 @@ function _config_gnocchi_apache_wsgi {
         sudo cp $GNOCCHI_DIR/devstack/apache-ported-gnocchi.template $gnocchi_apache_conf
         sudo sed -e "
             s|%GNOCCHI_PORT%|$GNOCCHI_SERVICE_PORT|g;
-            s|%APACHE_NAME%|$APACHE_NAME|g;
-            s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
-            s|%USER%|$STACK_USER|g
-            s|%VIRTUALENV%|$venv_path|g
         " -i $gnocchi_apache_conf
     else
         sudo cp $GNOCCHI_DIR/devstack/apache-gnocchi.template $gnocchi_apache_conf
         sudo sed -e "
-            s|%APACHE_NAME%|$APACHE_NAME|g;
             s|%SCRIPT_NAME%|$script_name|g;
-            s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
-            s|%USER%|$STACK_USER|g
-            s|%VIRTUALENV%|$venv_path|g
         " -i $gnocchi_apache_conf
     fi
+    sudo sed -e "
+            s|%APACHE_NAME%|$APACHE_NAME|g;
+            s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
+            s|%USER%|$STACK_USER|g
+            s|%APIWORKERS%|$API_WORKERS|g
+            s|%VIRTUALENV%|$venv_path|g
+        " -i $gnocchi_apache_conf
 }
 
 

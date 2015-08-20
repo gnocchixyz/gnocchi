@@ -1,5 +1,5 @@
 
-WSGIDaemonProcess gnocchi lang='en_US.UTF-8' locale='en_US.UTF-8' user=%USER% display-name=%{GROUP} processes=2 threads=10 %VIRTUALENV%
+WSGIDaemonProcess gnocchi lang='en_US.UTF-8' locale='en_US.UTF-8' user=%USER% display-name=%{GROUP} processes=%APIWORKERS% threads=10 %VIRTUALENV%
 WSGIProcessGroup gnocchi
 WSGIScriptAlias %SCRIPT_NAME% %WSGI%
 <Location %SCRIPT_NAME%>
