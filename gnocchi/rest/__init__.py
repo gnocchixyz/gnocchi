@@ -34,6 +34,11 @@ from gnocchi import json
 from gnocchi import storage
 from gnocchi import utils
 
+# uuid5 namespace for id transformation.
+# NOTE(chdent): This UUID must stay the same, forever, across all
+# of gnocchi to preserve its value as a URN namespace.
+RESOURCE_ID_NAMESPACE = uuid.UUID('0a7a15ff-aa13-4ac2-897c-9bdf30ce175b')
+
 LOG = log.getLogger(__name__)
 
 
@@ -520,6 +525,21 @@ class MetricController(rest.RestController):
         pecan.request.indexer.delete_metric(self.metric.id)
 
 
+def ResourceUUID(value):
+    try:
+        try:
+            return uuid.UUID(value)
+        except ValueError:
+            if len(value) <= 255:
+                if six.PY2:
+                    value = value.encode('utf-8')
+                return uuid.uuid5(RESOURCE_ID_NAMESPACE, value)
+            raise ValueError(
+                'transformable resource id >255 max allowed characters')
+    except Exception as e:
+        raise ValueError(e)
+
+
 def UUID(value):
     try:
         return uuid.UUID(value)
@@ -706,7 +726,7 @@ def etag_set_headers(obj):
 
 def ResourceSchema(schema):
     base_schema = {
-        "id": UUID,
+        "id": ResourceUUID,
         voluptuous.Optional('started_at'): Timestamp,
         voluptuous.Optional('ended_at'): Timestamp,
         voluptuous.Optional('user_id'): voluptuous.Any(None, UUID),
@@ -724,10 +744,10 @@ class GenericResourceController(rest.RestController):
 
     def __init__(self, id):
         try:
-            self.id = uuid.UUID(id)
+            self.id = ResourceUUID(id)
         except ValueError:
             abort(404)
-        self.metric = NamedMetricController(id, self._resource_type)
+        self.metric = NamedMetricController(str(self.id), self._resource_type)
 
     @pecan.expose('json')
     @pecan.expose('resources.j2')

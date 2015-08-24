@@ -1383,16 +1383,6 @@ class ResourceTest(RestTest):
             "Resource %s does not exist" % self.attributes['id'],
             result.text)
 
-    def test_post_resource_invalid_uuid(self):
-        result = self.app.post_json("/v1/resource/" + self.resource_type,
-                                    params={"id": "foobar"},
-                                    status=400)
-        self.assertEqual("text/plain", result.content_type)
-        self.assertIn(b"Invalid input: not a valid value "
-                      b"for dictionary value @ data["
-                      + repr(u'id').encode('ascii') + b"]",
-                      result.body)
-
     def test_post_resource_with_metrics(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"})
