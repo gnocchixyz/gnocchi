@@ -266,6 +266,9 @@
 
     {"host": "compute2"}
 
+- name: get-patched-instance-history
+  request: GET /v1/resource/instance/{{ scenarios['create-resource-instance']['response'].json['id'] }}/history HTTP/1.1
+
 - name: get-patched-instance
   request: GET /v1/resource/instance/{{ scenarios['create-resource-instance']['response'].json['id'] }} HTTP/1.1
 
