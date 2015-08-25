@@ -1,0 +1,134 @@
+#
+# Test the resource API to achieve coverage of just the
+# ResourcesController and ResourceController class code.
+#
+
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+      x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+      x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      content-type: application/json
+
+tests:
+
+# We will need an archive for use in later tests so we create it
+# here. This could be done in a fixture but since the API allows it
+# may as well use it.
+
+    - name: create archive policy
+      desc: for later use
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          x-roles: admin
+      data:
+          name: medium
+          definition:
+              - granularity: 1 second
+      status: 201
+# Check transformed uuids across the URL hierarchy
+
+    - name: post new resource non uuid
+      url: /v1/resource/generic
+      method: post
+      data:
+          id: generic one
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 201
+      response_json_paths:
+          created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      response_headers:
+          # is a UUID
+          location: /v1/resource/generic/[a-f0-9-]{36}/
+
+    - name: get new non uuid resource by external id
+      url: /v1/resource/generic/generic%20one
+      response_json_paths:
+          $.id: $RESPONSE['$.id']
+
+    - name: get new non uuid resource by internal id
+      url: /v1/resource/generic/$RESPONSE['$.id']
+      response_json_paths:
+          $.id: $RESPONSE['$.id']
+
+    - name: patch by external id
+      url: /v1/resource/generic/generic%20one
+      method: PATCH
+      data:
+          metrics:
+              cattle:
+                  archive_policy_name: medium
+      status: 200
+      response_strings:
+          - '"cattle"'
+
+    - name: list metric by external resource id
+      url: /v1/resource/generic/generic%20one/metric
+      response_json_paths:
+          $[0].name: cattle
+
+    - name: list empty measures by external resource id
+      url: /v1/resource/generic/generic%20one/metric/cattle/measures
+      response_json_paths:
+          $: []
+
+    - name: post measures by external resource id
+      url: /v1/resource/generic/generic%20one/metric/cattle/measures
+      method: POST
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 202
+
+    - name: list two measures by external resource id
+      url: /v1/resource/generic/generic%20one/metric/cattle/measures
+      poll:
+          count: 10
+          delay: 1
+      response_json_paths:
+          $[0][2]: 43.1
+          $[1][2]: 12
+
+    - name: delete the resource by external id
+      url: /v1/resource/generic/generic%20one
+      method: DELETE
+      status: 204
+
+# Check length handling
+
+    - name: fail to post too long non uuid resource id
+      url: /v1/resource/generic
+      method: post
+      data:
+          id: four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 400
+      response_strings:
+          - not a valid value for
+
+    - name: post long non uuid resource id
+      url: /v1/resource/generic
+      method: post
+      data:
+          # 255 char string
+          id: four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 201
