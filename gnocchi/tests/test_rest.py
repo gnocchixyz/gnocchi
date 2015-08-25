@@ -34,7 +34,6 @@ import webtest
 
 from gnocchi import archive_policy
 from gnocchi.rest import app
-from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
@@ -1361,11 +1360,6 @@ class ResourceTest(RestTest):
                      status=404)
         self.app.get("/v1/metric/" + metric_id,
                      status=404)
-        # Test that storage deleted it
-        self.assertRaises(storage.MetricDoesNotExist,
-                          self.storage.get_measures,
-                          storage.Metric(metric_id,
-                                         self.archive_policies['high']))
 
     def test_delete_resource_unauthorized(self):
         self.app.post_json("/v1/resource/" + self.resource_type,

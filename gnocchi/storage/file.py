@@ -65,7 +65,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             return os.path.join(path, random_id)
         return path
 
-    def _create_metric_container(self, metric):
+    def _create_metric(self, metric):
         path = self._build_metric_path(metric)
         try:
             os.mkdir(path, 0o750)
@@ -96,16 +96,40 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def _list_metric_with_measures_to_process(self):
         return os.listdir(self.measure_path)
 
-    @contextlib.contextmanager
-    def _process_measure_for_metric(self, metric):
+    def _list_measures_container_for_metric_id(self, metric_id):
         try:
-            files = os.listdir(self._build_measure_path(metric.id))
+            return os.listdir(self._build_measure_path(metric_id))
         except OSError as e:
             # Some other process treated this one, then do nothing
             if e.errno == errno.ENOENT:
-                yield []
-                return
+                return []
             raise
+
+    def _delete_measures_files_for_metric_id(self, metric_id, files):
+        for f in files:
+            try:
+                os.unlink(self._build_measure_path(metric_id, f))
+            except OSError as e:
+                # Another process deleted it in the meantime, no prob'
+                if e.errno != errno.ENOENT:
+                    raise
+        try:
+            os.rmdir(self._build_measure_path(metric_id))
+        except OSError as e:
+            # ENOENT: ok, it has been removed at almost the same time
+            #         by another process
+            # ENOTEMPTY: ok, someone pushed measure in the meantime,
+            #            we'll delete the measures and directory later
+            if e.errno != errno.ENOENT and e.errno != errno.ENOTEMPTY:
+                raise
+
+    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+        files = self._list_measures_container_for_metric_id(metric_id)
+        self._delete_measures_files_for_metric_id(metric_id, files)
+
+    @contextlib.contextmanager
+    def _process_measure_for_metric(self, metric):
+        files = self._list_measures_container_for_metric_id(metric.id)
         measures = []
         for f in files:
             abspath = self._build_measure_path(metric.id, f)
@@ -114,16 +138,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
 
         yield measures
 
-        # Now clean files
-        for f in files:
-            os.unlink(self._build_measure_path(metric.id, f))
-
-        try:
-            os.rmdir(self._build_measure_path(metric.id))
-        except OSError as e:
-            # New measures have been added, it's ok
-            if e.errno != errno.ENOTEMPTY:
-                raise
+        self._delete_measures_files_for_metric_id(metric.id, files)
 
     def _store_metric_measures(self, metric, aggregation, data):
         atomic_path = self._build_metric_path(metric, aggregation)
@@ -137,15 +152,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         try:
             shutil.rmtree(path)
         except OSError as e:
-            if e.errno == errno.ENOENT:
-                raise storage.MetricDoesNotExist(metric)
-            raise
-        try:
-            shutil.rmtree(os.path.join(self.measure_path,
-                                       six.text_type(metric.id)))
-        except OSError as e:
-            # This metric may have never received any measure
             if e.errno != errno.ENOENT:
+                # NOTE(jd) Maybe the metric has never been created (no
+                # measures)
                 raise
 
     def _get_measures(self, metric, aggregation):

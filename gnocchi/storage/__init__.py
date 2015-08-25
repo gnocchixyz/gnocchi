@@ -142,14 +142,6 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def create_metric(metric):
-        """Create a metric.
-
-        :param metric: The metric object.
-        """
-        raise exceptions.NotImplementedError
-
-    @staticmethod
     def add_measures(metric, measures):
         """Add a measure to a metric.
 
@@ -176,7 +168,8 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         """
-        raise exceptions.NotImplementedError
+        if aggregation not in metric.archive_policy.aggregation_methods:
+            raise AggregationDoesNotExist(metric, aggregation)
 
     @staticmethod
     def delete_metric(metric):
@@ -193,7 +186,9 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         """
-        raise exceptions.NotImplementedError
+        for metric in metrics:
+            if aggregation not in metric.archive_policy.aggregation_methods:
+                raise AggregationDoesNotExist(metric, aggregation)
 
     @staticmethod
     def search_value(metrics, query, from_timestamp=None,

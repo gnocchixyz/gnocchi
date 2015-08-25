@@ -137,6 +137,15 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return [name.split("_")[1] for name in
                     self._list_object_names_to_process(ioctx)]
 
+    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+        with self._get_ioctx() as ctx:
+            object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
+            object_names = self._list_object_names_to_process(ctx,
+                                                              object_prefix)
+            for n in object_names:
+                ctx.rm_xattr(self.MEASURE_PREFIX, n)
+                ctx.remove_object(n)
+
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):
         with self._get_ioctx() as ctx:
@@ -176,7 +185,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         except rados.ObjectNotFound:
             return False
 
-    def _create_metric_container(self, metric):
+    def _create_metric(self, metric):
         name = self._get_object_name(metric, 'container')
         with self._get_ioctx() as ioctx:
             if self._object_exists(ioctx, name):
@@ -195,7 +204,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             try:
                 ioctx.remove_object(name)
             except rados.ObjectNotFound:
-                raise storage.MetricDoesNotExist(metric)
+                # Maybe it never got measures
+                pass
             for aggregation in metric.archive_policy.aggregation_methods:
                 name = self._get_object_name(metric, aggregation)
                 try:

@@ -75,16 +75,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _lock(metric):
         raise NotImplementedError
 
-    def create_metric(self, metric):
-        self._create_metric_container(metric)
-        for aggregation in metric.archive_policy.aggregation_methods:
-            archive = carbonara.TimeSerieArchive.from_definitions(
-                [(v.granularity, v.points)
-                 for v in metric.archive_policy.definition],
-                aggregation_method=aggregation)
-            self._store_metric_measures(metric, aggregation,
-                                        archive.serialize())
-
     @staticmethod
     def _get_measures(metric, aggregation):
         raise NotImplementedError
@@ -95,18 +85,25 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean'):
+        super(CarbonaraBasedStorage, self).get_measures(
+            metric, from_timestamp, to_timestamp, aggregation)
         archive = self._get_measures_archive(metric, aggregation)
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                 for timestamp, r, v
                 in archive.fetch(from_timestamp, to_timestamp)]
 
     def _get_measures_archive(self, metric, aggregation):
-        contents = self._get_measures(metric, aggregation)
+        try:
+            contents = self._get_measures(metric, aggregation)
+        except (storage.MetricDoesNotExist, storage.AggregationDoesNotExist):
+            return carbonara.TimeSerieArchive.from_definitions(
+                [(v.granularity, v.points)
+                 for v in metric.archive_policy.definition],
+                aggregation_method=aggregation)
         return carbonara.TimeSerieArchive.unserialize(contents)
 
     def _add_measures(self, aggregation, metric, timeserie):
-        contents = self._get_measures(metric, aggregation)
-        archive = carbonara.TimeSerieArchive.unserialize(contents)
+        archive = self._get_measures_archive(metric, aggregation)
         archive.update(timeserie)
         self._store_metric_measures(metric, aggregation,
                                     archive.serialize())
@@ -116,12 +113,30 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             list(map(tuple, measures))))
 
     @staticmethod
+    def _store_measures(metric, data):
+        raise NotImplementedError
+
+    @staticmethod
+    def _delete_metric(metric):
+        raise NotImplementedError
+
+    def delete_metric(self, metric):
+        with self._lock(metric):
+            self._delete_metric(metric)
+
+    @staticmethod
     def _unserialize_measures(data):
         return msgpackutils.loads(data)
 
     def process_measures(self, indexer):
-        metrics = indexer.get_metrics(
-            self._list_metric_with_measures_to_process())
+        metrics_to_process = self._list_metric_with_measures_to_process()
+        metrics = indexer.get_metrics(metrics_to_process)
+        # This build the list of deleted metrics, i.e. the metrics we have
+        # measures to process for but that are not in the indexer anymore.
+        deleted_metrics_id = (set(map(uuid.UUID, metrics_to_process))
+                              - set(m.id for m in metrics))
+        for metric_id in deleted_metrics_id:
+            self._delete_unprocessed_measures_for_metric(metric_id)
         for metric in metrics:
             lock = self._lock(metric)
             agg_methods = list(metric.archive_policy.aggregation_methods)
@@ -134,6 +149,18 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     with self._process_measure_for_metric(metric) as measures:
                         try:
                             raw_measures = self._get_measures(metric, 'none')
+                        except storage.MetricDoesNotExist:
+                            try:
+                                self._create_metric(metric)
+                            except storage.MetricDoesNotExist:
+                                # Created in the mean time, do not worry
+                                pass
+                            # This is the first time we treat measures for this
+                            # metric, create a new one
+                            mbs = metric.archive_policy.max_block_size
+                            ts = carbonara.BoundTimeSerie(
+                                block_size=mbs,
+                                back_window=metric.archive_policy.back_window)
                         except storage.AggregationDoesNotExist:
                             # This is the first time we treat measures for this
                             # metric, create a new one
@@ -166,6 +193,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
                                   needed_overlap=100.0):
+        super(CarbonaraBasedStorage, self).get_cross_metric_measures(
+            metrics, from_timestamp, to_timestamp, aggregation, needed_overlap)
 
         tss = self._map_in_thread(self._get_measures_archive,
                                   [(metric, aggregation)
