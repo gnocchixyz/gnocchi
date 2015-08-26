@@ -508,7 +508,10 @@ class MetricController(rest.RestController):
             pecan.request.storage.delete_metric(self.metric)
         except storage.MetricDoesNotExist as e:
             abort(404, e)
-        pecan.request.indexer.delete_metric(self.metric.id)
+        try:
+            pecan.request.indexer.delete_metric(self.metric.id)
+        except indexer.NoSuchMetric as e:
+            abort(404, e)
 
 
 def ResourceUUID(value):
