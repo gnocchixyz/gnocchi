@@ -157,9 +157,6 @@ function cleanup_gnocchi {
 
 # configure_gnocchi() - Set config files, create data dirs, etc
 function configure_gnocchi {
-    [ ! -d $GNOCCHI_CONF_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_CONF_DIR
-    sudo chown $STACK_USER $GNOCCHI_CONF_DIR
-
     [ ! -d $GNOCCHI_DATA_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_DATA_DIR
     sudo chown $STACK_USER $GNOCCHI_DATA_DIR
 
@@ -276,6 +273,9 @@ function install_gnocchi {
         install_apache_wsgi
     fi
 
+    # Create configuration directory
+    [ ! -d $GNOCCHI_CONF_DIR ] && sudo mkdir -m 755 -p $GNOCCHI_CONF_DIR
+    sudo chown $STACK_USER $GNOCCHI_CONF_DIR
 }
 
 # start_gnocchi() - Start running processes, including screen
