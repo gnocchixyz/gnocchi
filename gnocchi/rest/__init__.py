@@ -704,6 +704,38 @@ class NamedMetricController(rest.RestController):
         return pecan.request.indexer.list_metrics(resource_id=self.resource_id)
 
 
+class ResourceHistoryController(rest.RestController):
+    def __init__(self, resource_id, resource_type):
+        self.resource_id = resource_id
+        self.resource_type = resource_type
+
+    @pecan.expose('json')
+    def get(self, **kwargs):
+        details = get_details(kwargs)
+        pagination_opts = get_pagination_options(
+            kwargs, RESOURCE_DEFAULT_PAGINATION)
+
+        resource = pecan.request.indexer.get_resource(
+            self.resource_type, self.resource_id)
+        if not resource:
+            abort(404, "foo")
+
+        enforce("get resource", resource)
+
+        try:
+            # FIXME(sileht): next API version should returns
+            # {'resources': [...], 'links': [ ... pagination rel ...]}
+            return pecan.request.indexer.list_resources(
+                self.resource_type,
+                attribute_filter={"=": {"id": self.resource_id}},
+                details=details,
+                history=True,
+                **pagination_opts
+            )
+        except indexer.IndexerException as e:
+            abort(400, e)
+
+
 def etag_precondition_check(obj):
     etag, lastmodified = obj.etag, obj.lastmodified
     # NOTE(sileht): Checks and order come from rfc7232
@@ -759,6 +791,8 @@ class GenericResourceController(rest.RestController):
         except ValueError:
             abort(404)
         self.metric = NamedMetricController(str(self.id), self._resource_type)
+        self.history = ResourceHistoryController(str(self.id),
+                                                 self._resource_type)
 
     @pecan.expose('json')
     @pecan.expose('resources.j2')
