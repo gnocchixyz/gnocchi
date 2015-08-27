@@ -39,6 +39,9 @@ case $STORAGE_DRIVER in
         ENABLED_SERVICES+="ceph"
         DEVSTACK_LOCAL_CONFIG+=$'\nexport GNOCCHI_STORAGE_BACKEND=ceph'
         ;;
+    influxdb)
+        DEVSTACK_LOCAL_CONFIG+=$'\nexport GNOCCHI_STORAGE_BACKEND=influxdb'
+        ;;
 esac
 
 
