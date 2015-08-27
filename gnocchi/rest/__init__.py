@@ -883,6 +883,22 @@ class SwiftAccountResourceController(GenericResourceController):
     _resource_type = 'swift_account'
 
 
+class InstanceDisksResourceController(GenericResourceController):
+    _resource_type = 'instance_disk'
+    Resource = ResourceSchema({
+        "name": six.text_type,
+        "instance_id": UUID,
+    })
+
+
+class InstanceNetworkInterfacesResourceController(GenericResourceController):
+    _resource_type = 'instance_network_interface'
+    Resource = ResourceSchema({
+        "name": six.text_type,
+        "instance_id": UUID,
+    })
+
+
 class InstanceResourceController(GenericResourceController):
     _resource_type = 'instance'
 

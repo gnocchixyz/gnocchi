@@ -47,14 +47,15 @@ def get_resource_mappers(ext):
         resource_ext = ext.plugin
         resource_history_ext = ResourceHistory
     else:
+        tablename = getattr(ext.plugin, '__tablename__', ext.name)
         resource_ext = type(str(ext.name),
                             (ext.plugin, base.ResourceExtMixin, Resource),
-                            {"__tablename__": ext.name})
+                            {"__tablename__": tablename})
         resource_history_ext = type(str("%s_history" % ext.name),
                                     (ext.plugin, base.ResourceHistoryExtMixin,
                                      ResourceHistory),
                                     {"__tablename__": (
-                                        "%s_history" % ext.name)})
+                                        "%s_history" % tablename)})
 
     return {'resource': resource_ext,
             'history': resource_history_ext}
