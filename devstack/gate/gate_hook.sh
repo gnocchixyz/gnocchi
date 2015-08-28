@@ -17,9 +17,7 @@
 STORAGE_DRIVER="$1"
 SQL_DRIVER="$2"
 
-ENABLED_SERVICES="key,gnocchi-api,gnocchi-metricd"
-ENABLED_SERVICES+="ceilometer-acentral,ceilometer-collector,ceilometer-api,"
-ENABLED_SERVICES+="ceilometer-alarm-notifier,ceilometer-alarm-evaluator,ceilometer-anotification,"
+ENABLED_SERVICES="key,gnocchi-api,gnocchi-metricd,"
 
 export DEVSTACK_GATE_INSTALL_TESTONLY=1
 export DEVSTACK_GATE_NO_SERVICES=1
