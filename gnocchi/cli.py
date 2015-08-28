@@ -59,7 +59,11 @@ def _metricd(conf, cpu_number):
     def process():
         loop.call_later(conf.storage.metric_processing_delay, process)
         LOG.debug("Processing new measures")
-        s.process_measures(i)
+        try:
+            s.process_measures(i)
+        except Exception:
+            LOG.error("Unexpected error during measures processing",
+                      exc_info=True)
 
     process()
     loop.run_forever()

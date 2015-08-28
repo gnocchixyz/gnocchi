@@ -136,7 +136,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         deleted_metrics_id = (set(map(uuid.UUID, metrics_to_process))
                               - set(m.id for m in metrics))
         for metric_id in deleted_metrics_id:
-            self._delete_unprocessed_measures_for_metric(metric_id)
+            self._delete_unprocessed_measures_for_metric_id(metric_id)
         for metric in metrics:
             lock = self._lock(metric)
             agg_methods = list(metric.archive_policy.aggregation_methods)
