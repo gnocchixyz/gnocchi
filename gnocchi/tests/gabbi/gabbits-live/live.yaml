@@ -54,3 +54,48 @@ tests:
       url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       method: DELETE
       status: 204
+
+    - name: post instance resource
+      url: /v1/resource/instance
+      method: post
+      request_headers:
+          content-type: application/json
+      data:
+          id: 75C44741-CC60-4033-804E-2D3098C7D2E9
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          flavor_id: "2"
+          image_ref: http://image
+          host: compute1
+          display_name: myvm
+          metrics:
+              vcpus:
+                  archive_policy_name: medium
+      status: 201
+
+    - name: post some measures to the metric on instance
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/metric/vcpus/measures
+      request_headers:
+          content-type: application/json
+      method: POST
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 2
+          - timestamp: "2015-03-06T14:34:12"
+            value: 2
+      status: 202
+
+    - name: get instance measures with poll
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/metric/vcpus/measures
+      # wait up to 60 seconds
+      poll:
+          count: 60
+          delay: 1
+      response_json_paths:
+          $[0][2]: 2
+          $[1][2]: 2
+
+    - name: delete the instance resource
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      method: DELETE
+      status: 204
