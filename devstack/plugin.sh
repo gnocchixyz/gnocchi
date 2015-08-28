@@ -321,7 +321,7 @@ function install_gnocchi {
 function start_gnocchi {
     local token
 
-    run_process gnocchi-metricd "gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
+    run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         enable_apache_site gnocchi
@@ -338,7 +338,7 @@ function start_gnocchi {
             tail_log gnocchi-api /var/log/$APACHE_NAME/access[._]log
         fi
     else
-        run_process gnocchi-api "gnocchi-api -d -v --config-file $GNOCCHI_CONF"
+        run_process gnocchi-api "$GNOCCHI_BIN_DIR/gnocchi-api -d -v --config-file $GNOCCHI_CONF"
     fi
     # only die on API if it was actually intended to be turned on
     if is_service_enabled gnocchi-api; then
