@@ -29,3 +29,7 @@ WebOb>=1.4.1
 alembic>=0.7.6,!=0.8.1
 psycopg2
 pymysql
+# TODO(sileht): We currently require it to setup correclty
+# oslo config object, but once 2.2 will be released,
+# we can moved back this to test-requirements.txt
+keystonemiddleware>=1.5.0
