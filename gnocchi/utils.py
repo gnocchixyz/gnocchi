@@ -19,6 +19,28 @@ import iso8601
 from oslo_utils import timeutils
 from pytimeparse import timeparse
 import six
+import uuid
+
+
+# uuid5 namespace for id transformation.
+# NOTE(chdent): This UUID must stay the same, forever, across all
+# of gnocchi to preserve its value as a URN namespace.
+RESOURCE_ID_NAMESPACE = uuid.UUID('0a7a15ff-aa13-4ac2-897c-9bdf30ce175b')
+
+
+def ResourceUUID(value):
+    try:
+        try:
+            return uuid.UUID(value)
+        except ValueError:
+            if len(value) <= 255:
+                if six.PY2:
+                    value = value.encode('utf-8')
+                return uuid.uuid5(RESOURCE_ID_NAMESPACE, value)
+            raise ValueError(
+                'transformable resource id >255 max allowed characters')
+    except Exception as e:
+        raise ValueError(e)
 
 
 def to_timestamp(v):

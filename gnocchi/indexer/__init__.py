@@ -187,6 +187,12 @@ class QueryError(IndexerException):
         super(QueryError, self).__init__("Unable to parse this query")
 
 
+class QueryValueError(QueryError, ValueError):
+    def __init__(self, v, f):
+        super(QueryError, self).__init__("Invalid value: `%s' for field `%s'"
+                                         % (v, f))
+
+
 class QueryInvalidOperator(QueryError):
     def __init__(self, op):
         self.op = op

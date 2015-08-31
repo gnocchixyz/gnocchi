@@ -25,6 +25,7 @@ from oslo_db.sqlalchemy import session
 from oslo_db.sqlalchemy import utils as oslo_db_utils
 import six
 import sqlalchemy
+import sqlalchemy_utils
 from stevedore import extension
 
 from gnocchi import exceptions
@@ -618,9 +619,15 @@ class QueryTransformer(object):
                 raise indexer.QueryAttributeError(table, field_name)
 
             # Convert value to the right type
-            if value is not None and isinstance(attr.type,
-                                                base.PreciseTimestamp):
-                value = utils.to_timestamp(value)
+            if value is not None:
+                if isinstance(attr.type, base.PreciseTimestamp):
+                        value = utils.to_timestamp(value)
+                elif (isinstance(attr.type, sqlalchemy_utils.UUIDType)
+                      and not isinstance(value, uuid.UUID)):
+                    try:
+                        value = utils.ResourceUUID(value)
+                    except Exception:
+                        raise indexer.QueryValueError(value, field_name)
 
         return op(attr, value)
 

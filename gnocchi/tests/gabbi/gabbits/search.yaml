@@ -14,3 +14,12 @@ tests:
     - name: typo of search in resource
       url: /v1/search/resource/foobar
       status: 404
+
+    - name: search with invalid uuid
+      url: /v1/search/resource/generic
+      method: POST
+      request_headers:
+        content-type: application/json
+      data:
+        =:
+          id: "cd9eef"
