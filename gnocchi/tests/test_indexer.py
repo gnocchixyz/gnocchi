@@ -634,6 +634,13 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             attribute_filter={"=": {"id": "f00bar" * 50}})
 
+    def test_list_resource_weird_date(self):
+        self.assertRaises(
+            indexer.QueryValueError,
+            self.index.list_resources,
+            'generic',
+            attribute_filter={"=": {"started_at": "f00bar"}})
+
     def test_list_resources_without_history(self):
         e = uuid.uuid4()
         rid = uuid.uuid4()

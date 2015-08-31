@@ -620,12 +620,17 @@ class QueryTransformer(object):
 
             # Convert value to the right type
             if value is not None:
+                converter = None
+
                 if isinstance(attr.type, base.PreciseTimestamp):
-                        value = utils.to_timestamp(value)
+                    converter = utils.to_timestamp
                 elif (isinstance(attr.type, sqlalchemy_utils.UUIDType)
                       and not isinstance(value, uuid.UUID)):
+                    converter = utils.ResourceUUID
+
+                if converter:
                     try:
-                        value = utils.ResourceUUID(value)
+                        value = converter(value)
                     except Exception:
                         raise indexer.QueryValueError(value, field_name)
 
