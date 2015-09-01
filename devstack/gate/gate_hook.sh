@@ -50,7 +50,6 @@ case $SQL_DRIVER in
         ;;
 esac
 
-DEVSTACK_LOCAL_CONFIG+=$'\nexport GNOCCHI_USE_KEYSTONE=False'
 export ENABLED_SERVICES
 export DEVSTACK_LOCAL_CONFIG
 
