@@ -1645,7 +1645,7 @@ class ResourceTest(RestTest):
                      {"=": {"display_name": "myinstance"}}]},
             status=400)
         if self.resource_type == 'instance':
-            self.assertIn(b"One of the metric to aggregated doesn't have "
+            self.assertIn(b"One of the metrics being aggregated doesn't have "
                           b"matching granularity",
                           result.body)
 
