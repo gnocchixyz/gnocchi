@@ -47,5 +47,5 @@ GNOCCHI_STORAGE_BACKEND=${GNOCCHI_STORAGE_BACKEND:-file}
 
 # InfluxDB Settings
 GNOCCHI_INFLUXDB_DBNAME=${GNOCCHI_INFLUXDB_DBNAME:-gnocchidevstack}
-GNOCCHI_INFLUXDB_RPM_PKG=${GNOCCHI_INFLUXDB_RPM_PKG:-https://s3.amazonaws.com/influxdb/influxdb-0.9.2-1.x86_64.rpm}
-GNOCCHI_INFLUXDB_DEB_PKG=${GNOCCHI_INFLUXDB_DEB_PKG:-https://s3.amazonaws.com/influxdb/influxdb_0.9.2_amd64.deb}
+GNOCCHI_INFLUXDB_RPM_PKG=${GNOCCHI_INFLUXDB_RPM_PKG:-https://s3.amazonaws.com/influxdb/influxdb-0.9.3-1.x86_64.rpm}
+GNOCCHI_INFLUXDB_DEB_PKG=${GNOCCHI_INFLUXDB_DEB_PKG:-https://s3.amazonaws.com/influxdb/influxdb_0.9.3_amd64.deb}
