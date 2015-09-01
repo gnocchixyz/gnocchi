@@ -624,6 +624,16 @@ class TestIndexerDriver(tests_base.TestCase):
         else:
             self.fail("Some resources were not found")
 
+    def test_list_resource_weird_uuid(self):
+        r = self.index.list_resources(
+            'generic', attribute_filter={"=": {"id": "f00bar"}})
+        self.assertEqual(0, len(r))
+        self.assertRaises(
+            indexer.QueryValueError,
+            self.index.list_resources,
+            'generic',
+            attribute_filter={"=": {"id": "f00bar" * 50}})
+
     def test_list_resources_without_history(self):
         e = uuid.uuid4()
         rid = uuid.uuid4()
