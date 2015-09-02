@@ -402,9 +402,9 @@ class AggregatedMetricController(rest.RestController):
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
-        except storage.MetricUnaggregatable:
-            abort(400, "One of the metric to aggregated doesn't have "
-                  "matching granularity")
+        except storage.MetricUnaggregatable as e:
+            abort(400, ("One of the metrics being aggregated doesn't have "
+                        "matching granularity: %s") % str(e))
         except storage.MetricDoesNotExist as e:
             abort(404, e)
         except storage.AggregationDoesNotExist as e:
