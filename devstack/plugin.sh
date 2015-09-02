@@ -130,6 +130,24 @@ function _gnocchi_install_influxdb {
     sudo /opt/influxdb/init.sh restart
 }
 
+function _gnocchi_install_grafana {
+    if is_ubuntu; then
+        local file=$(mktemp /tmp/grafanapkg-XXXXX)
+        wget -O "$file" "$GRAFANA_DEB_PKG"
+        sudo dpkg -i "$file"
+        rm $file
+    elif is_fedora; then
+        sudo yum install "$GRAFANA_RPM_PKG"
+    fi
+
+    git_clone ${GRAFANA_PLUGINS_REPO} ${GRAFANA_PLUGINS_DIR}
+    # Grafana-server does not handle symlink :(
+    sudo mkdir -p /usr/share/grafana/public/app/plugins/datasource/gnocchi
+    sudo mount -o bind ${GRAFANA_PLUGINS_DIR}/datasources/gnocchi /usr/share/grafana/public/app/plugins/datasource/gnocchi
+
+    sudo service grafana-server restart
+}
+
 # remove the influxdb database
 function _gnocchi_cleanup_influxdb {
     curl -G 'http://localhost:8086/query' --data-urlencode "q=DROP DATABASE $GNOCCHI_INFLUXDB_DBNAME"
@@ -232,10 +250,26 @@ function configure_gnocchi {
         exit 1
     fi
 
-    if ! is_service_enabled key; then
-        iniset $GNOCCHI_CONF api middlewares ""
+    if is_service_enabled key; then
+        if is_service_enabled gnocchi-grafana; then
+            iniset_multiline $GNOCCHI_CONF api middlewares oslo_middleware.cors.CORS keystonemiddleware.auth_token.AuthProtocol
+            for conf in $GNOCCHI_CONF $KEYSTONE_CONF; do
+                iniset $conf cors allowed_origin ${GRAFANA_URL}
+                iniset $conf cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD
+                iniset $conf cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
+                iniset $conf cors expose_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
+            done
+            iniset $KEYSTONE_PASTE_INI filter:cors paste.filter_factory oslo_middleware.cors:CORS.factory
+            iniset $KEYSTONE_PASTE_INI filter:cors oslo_config_project keystone
+            # This should be not required, see: https://bugs.launchpad.net/oslo.middleware/+bug/1491293
+            iniset $KEYSTONE_PASTE_INI filter:cors allowed_origin ${GRAFANA_URL}
+            local ks_pipeline=$(iniget $KEYSTONE_PASTE_INI pipeline:api_v3 pipeline)
+            iniset $KEYSTONE_PASTE_INI pipeline:api_v3 pipeline "cors $ks_pipeline"
+        else
+            iniset $GNOCCHI_CONF api middlewares keystonemiddleware.auth_token.AuthProtocol
+        fi
     else
-        inicomment $GNOCCHI_CONF api middlewares
+        iniset $GNOCCHI_CONF api middlewares ""
     fi
 
     # Configure the indexer database
@@ -301,6 +335,11 @@ function install_gnocchi {
     if [[ "${GNOCCHI_STORAGE_BACKEND}" == 'influxdb' ]] ; then
         _gnocchi_install_influxdb
         pip_install influxdb
+    fi
+
+    if is_service_enabled gnocchi-grafana
+    then
+        _gnocchi_install_grafana
     fi
 
     # NOTE(sileht): requirements are not merged with the global-requirement repo
