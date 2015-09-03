@@ -16,7 +16,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """Time series data manipulation, better with pancetta."""
+
 import functools
+import logging
 import operator
 import re
 
@@ -25,6 +27,8 @@ import numpy
 import pandas
 import six
 
+
+LOG = logging.getLogger(__name__)
 
 AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
                            'std', 'median', 'first', 'count'))
@@ -450,6 +454,15 @@ class TimeSerieArchive(SerializableMixin):
         elif (right_boundary_ts == left_boundary_ts or
               (right_boundary_ts is None
                and maybe_next_timestamp_is_left_boundary)):
+            LOG.debug("We didn't find points that overlap in those "
+                      "timeseries. "
+                      "right_boundary_ts=%(right_boundary_ts)s, "
+                      "left_boundary_ts=%(left_boundary_ts)s, "
+                      "groups=%(groups)s" % {
+                          'right_boundary_ts': right_boundary_ts,
+                          'left_boundary_ts': left_boundary_ts,
+                          'groups': list(grouped)
+                      })
             raise UnAggregableTimeseries('No overlap')
 
         # NOTE(sileht): this call the aggregation method on already
