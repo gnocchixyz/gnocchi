@@ -193,9 +193,7 @@ function configure_gnocchi {
 
     # Configure logging
     iniset $GNOCCHI_CONF DEFAULT verbose True
-    if [ "$GNOCCHI_USE_MOD_WSGI" != "True" ]; then
-        iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
-    fi
+    iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
 
     # Install the policy file for the API server
     cp $GNOCCHI_DIR/etc/gnocchi/policy.json $GNOCCHI_CONF_DIR
