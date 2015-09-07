@@ -451,9 +451,10 @@ class TimeSerieArchive(SerializableMixin):
                     'Less than %f%% of datapoints overlap in this '
                     'timespan (%.2f%%)' % (needed_percent_of_overlap,
                                            percent_of_overlap))
-        elif (right_boundary_ts == left_boundary_ts or
-              (right_boundary_ts is None
-               and maybe_next_timestamp_is_left_boundary)):
+        elif (needed_percent_of_overlap > 0 and
+                (right_boundary_ts == left_boundary_ts or
+                 (right_boundary_ts is None
+                  and maybe_next_timestamp_is_left_boundary))):
             LOG.debug("We didn't find points that overlap in those "
                       "timeseries. "
                       "right_boundary_ts=%(right_boundary_ts)s, "

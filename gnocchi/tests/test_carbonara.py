@@ -705,6 +705,22 @@ class TestTimeSerieArchive(base.BaseTestCase):
                           carbonara.TimeSerieArchive.aggregated,
                           [tsc1, tsc2])
 
+    def test_aggregated_different_archive_no_overlap_but_dont_care(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions(
+            [(60, 50),
+             (120, 24)])
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
+        tsc2 = carbonara.TimeSerieArchive.from_definitions(
+            [(60, 50)])
+
+        tsb1.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 0), 4)],
+                        before_truncate_callback=tsc1.update)
+
+        res = carbonara.TimeSerieArchive.aggregated(
+            [tsc1, tsc2], needed_percent_of_overlap=0)
+        self.assertEqual([(pandas.Timestamp('2014-01-01 12:03:00'),
+                           60.0, 4.0)], res)
+
     def test_aggregated_different_archive_overlap(self):
         tsc1 = carbonara.TimeSerieArchive.from_definitions(
             [(60, 10),
