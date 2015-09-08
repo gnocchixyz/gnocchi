@@ -12,15 +12,14 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-try:
-    import asyncio
-except ImportError:
-    import trollius as asyncio
 import logging
 import multiprocessing
 import signal
 import sys
 import time
+
+from oslo_utils import timeutils
+import retrying
 
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy as sql_db
@@ -48,36 +47,47 @@ def statsd():
     statsd_service.start()
 
 
-def _metricd(conf, cpu_number):
-    # Sleep a bit just not to start and poll everything at the same time.
-    time.sleep(cpu_number)
-    s = storage.get_driver(conf)
-    i = indexer.get_driver(conf)
-    i.connect()
-    loop = asyncio.get_event_loop()
+class MetricProcessor(multiprocessing.Process):
 
-    def process():
-        loop.call_later(conf.storage.metric_processing_delay, process)
+    def __init__(self, conf, worker_number):
+        super(MetricProcessor, self).__init__()
+        self.conf = conf
+        self.delay = worker_number
+
+    # Retry with exponential backoff for up to 5 minutes
+    @retrying.retry(wait_exponential_multiplier=500,
+                    wait_exponential_max=60000,
+                    stop_max_delay=300000)
+    def _configure(self):
+        self.store = storage.get_driver(self.conf)
+        self.index = indexer.get_driver(self.conf)
+        self.index.connect()
+
+    def run(self):
+        self._configure()
+        # Delay startup so workers are jittered.
+        time.sleep(self.delay)
+
+        while True:
+            try:
+                with timeutils.StopWatch() as timer:
+                    self._process(self.store, self.index)
+                    time.sleep(
+                        max(0, self.conf.storage.metric_processing_delay
+                            - timer.elapsed()))
+            except KeyboardInterrupt:
+                # Ignore KeyboardInterrupt so parent handler can kill
+                # all children.
+                pass
+
+    @staticmethod
+    def _process(store, index):
         LOG.debug("Processing new measures")
         try:
-            s.process_measures(i)
+            store.process_measures(index)
         except Exception:
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
-
-    process()
-    loop.run_forever()
-
-
-def _wrap_metricd(cpu_number):
-    """Small wrapper for _metricd() that ensure it ALWAYS return.
-
-    Otherwise multiprocessing.Pool is stuck for ever.
-    """
-    try:
-        return _metricd(service.prepare_service(), cpu_number)
-    finally:
-        return
 
 
 def metricd():
@@ -89,9 +99,33 @@ def metricd():
         LOG.debug("This storage driver does not need metricd to run, exiting")
         return 0
 
-    p = multiprocessing.Pool(conf.metricd.workers)
+    signal.signal(signal.SIGTERM, _metricd_terminate)
 
-    signal.signal(signal.SIGTERM, lambda signum, frame: sys.exit(0))
+    try:
+        workers = []
+        for worker in range(conf.metricd.workers):
+            metric_worker = MetricProcessor(conf, worker)
+            metric_worker.start()
+            workers.append(metric_worker)
 
-    p.map_async(_wrap_metricd, range(conf.metricd.workers))
-    signal.pause()
+        for worker in workers:
+            worker.join()
+    except KeyboardInterrupt:
+        _metricd_cleanup(workers)
+        sys.exit(0)
+    except Exception:
+        LOG.warn("exiting", exc_info=True)
+        _metricd_cleanup(workers)
+        sys.exit(1)
+
+
+def _metricd_cleanup(workers):
+    for worker in workers:
+        worker.terminate()
+    for worker in workers:
+        worker.join()
+
+
+def _metricd_terminate(signum, frame):
+    _metricd_cleanup(multiprocessing.active_children())
+    sys.exit(0)
