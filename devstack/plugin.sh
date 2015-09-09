@@ -416,6 +416,10 @@ function stop_gnocchi {
     if [[ "${GNOCCHI_STORAGE_BACKEND}" == 'influxdb' ]] ; then
         _gnocchi_cleanup_influxdb
     fi
+
+    if is_service_enabled gnocchi-grafana; then
+        sudo umount /usr/share/grafana/public/app/plugins/datasource/gnocchi
+    fi
 }
 
 if is_service_enabled gnocchi-api; then
