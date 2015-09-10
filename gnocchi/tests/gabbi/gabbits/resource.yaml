@@ -559,17 +559,6 @@ tests:
           created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
 
-    - name: get metrics in a browser for this resource
-      url: /v1/resource/instance/$RESPONSE['$.id']/
-      request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-          accept: text/html
-      status: 200
-      response_strings:
-          - "<!DOCTYPE html>"
-          - "<h1>Resource $RESPONSE['$.id']"
-
     - name: post new instance with metrics and un-normalized user/project id from keystone middleware
       url: /v1/resource/instance
       method: post

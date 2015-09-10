@@ -349,7 +349,6 @@ class AggregatedMetricController(rest.RestController):
         self.metric_ids = metric_ids
 
     @pecan.expose('json')
-    @pecan.expose('measures.j2')
     def get_measures(self, start=None, stop=None, aggregation='mean',
                      needed_overlap=100.0):
         return self.get_cross_metric_measures_from_ids(
@@ -450,7 +449,6 @@ class MetricController(rest.RestController):
         pecan.response.status = 202
 
     @pecan.expose('json')
-    @pecan.expose('measures.j2')
     def get_measures(self, start=None, stop=None, aggregation='mean', **param):
         self.enforce_metric("get measures")
         if not (aggregation
@@ -773,7 +771,6 @@ class GenericResourceController(rest.RestController):
                                                  self._resource_type)
 
     @pecan.expose('json')
-    @pecan.expose('resources.j2')
     def get(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id, with_metrics=True)
@@ -785,7 +782,6 @@ class GenericResourceController(rest.RestController):
         abort(404)
 
     @pecan.expose('json')
-    @pecan.expose('resources.j2')
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
@@ -1261,7 +1257,6 @@ class AggregationResource(rest.RestController):
         self.metric_name = metric_name
 
     @pecan.expose('json')
-    @pecan.expose('measures.j2')
     def post(self, start=None, stop=None, aggregation='mean',
              needed_overlap=100.0):
         resources = SearchResourceTypeController(self.resource_type).post()
@@ -1287,7 +1282,6 @@ class Aggregation(rest.RestController):
                                                 metric_name, *remainder)
 
     @pecan.expose('json')
-    @pecan.expose('measures.j2')
     def get_metric(self, metric=None, start=None,
                    stop=None, aggregation='mean',
                    needed_overlap=100.0):
