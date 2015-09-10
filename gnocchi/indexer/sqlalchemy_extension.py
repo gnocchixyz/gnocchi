@@ -15,6 +15,7 @@
 from __future__ import absolute_import
 
 import sqlalchemy
+import sqlalchemy_utils
 
 
 class Image(object):
@@ -30,6 +31,19 @@ class Instance(object):
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     server_group = sqlalchemy.Column(sqlalchemy.String(255))
+
+
+class InstanceDisk(object):
+    name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    instance_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
+                                    nullable=False)
+
+
+class InstanceNetworkInterface(object):
+    __tablename__ = 'instance_net_int'
+    name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    instance_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
+                                    nullable=False)
 
 
 class Volume(object):

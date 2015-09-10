@@ -216,7 +216,8 @@ class ResourceMixin(ResourceJsonifier):
                                              'swift_account', 'volume',
                                              'ceph_account', 'network',
                                              'identity', 'ipmi', 'stack',
-                                             'image',
+                                             'image', 'instance_disk',
+                                             'instance_network_interface',
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
