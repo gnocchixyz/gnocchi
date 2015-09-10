@@ -197,8 +197,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
-                      name=None, resource_id=None,
-                      details=False):
+                      name=None, resource_id=None):
         m = Metric(id=id,
                    created_by_user_id=created_by_user_id,
                    created_by_project_id=created_by_project_id,
@@ -214,9 +213,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                'fk_metric_archive_policy_name_archive_policy_name'):
                 raise indexer.NoSuchArchivePolicy(archive_policy_name)
             raise
-        if details:
-            # Fetch archive policy
-            m.archive_policy
         session.expunge_all()
         return m
 

@@ -110,8 +110,7 @@ class Stats(object):
                         self.conf.statsd.project_id,
                         archive_policy_name=ap_name,
                         name=metric_name,
-                        resource_id=self.conf.statsd.resource_id,
-                        details=True)
+                        resource_id=self.conf.statsd.resource_id)
                 self.storage.add_measures(metric, (measure,))
             except Exception as e:
                 LOG.error("Unable to add measure %s: %s"

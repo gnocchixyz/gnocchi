@@ -585,9 +585,7 @@ class MetricsController(rest.RestController):
                 uuid.uuid4(),
                 user, project,
                 name=body.get('name'),
-                archive_policy_name=body['archive_policy_name'],
-                # FIXME(jd) Really?
-                details=True)
+                archive_policy_name=body['archive_policy_name'])
         except indexer.NoSuchArchivePolicy as e:
             abort(400, e)
         set_resp_location_hdr("/v1/metric/" + str(m.id))

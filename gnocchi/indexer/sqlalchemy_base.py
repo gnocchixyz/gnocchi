@@ -168,13 +168,16 @@ class Metric(Base, GnocchiBase, storage.Metric):
             "created_by_user_id": self.created_by_user_id,
             "created_by_project_id": self.created_by_project_id,
             "name": self.name,
-            "archive_policy": self.archive_policy,
         }
         unloaded = sqlalchemy.inspect(self).unloaded
         if 'resource' in unloaded:
             d['resource_id'] = self.resource_id
         else:
             d['resource'] = self.resource
+        if 'archive_policy' in unloaded:
+            d['archive_policy_name'] = self.archive_policy_name
+        else:
+            d['archive_policy'] = self.archive_policy
         return d
 
     def __eq__(self, other):
