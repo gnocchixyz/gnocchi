@@ -253,18 +253,10 @@ function configure_gnocchi {
     if is_service_enabled key; then
         if is_service_enabled gnocchi-grafana; then
             iniset_multiline $GNOCCHI_CONF api middlewares oslo_middleware.cors.CORS keystonemiddleware.auth_token.AuthProtocol
-            for conf in $GNOCCHI_CONF $KEYSTONE_CONF; do
-                iniset $conf cors allowed_origin ${GRAFANA_URL}
-                iniset $conf cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD
-                iniset $conf cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
-                iniset $conf cors expose_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma
-            done
-            iniset $KEYSTONE_PASTE_INI filter:cors paste.filter_factory oslo_middleware.cors:CORS.factory
-            iniset $KEYSTONE_PASTE_INI filter:cors oslo_config_project keystone
-            # This should be not required, see: https://bugs.launchpad.net/oslo.middleware/+bug/1491293
-            iniset $KEYSTONE_PASTE_INI filter:cors allowed_origin ${GRAFANA_URL}
-            local ks_pipeline=$(iniget $KEYSTONE_PASTE_INI pipeline:api_v3 pipeline)
-            iniset $KEYSTONE_PASTE_INI pipeline:api_v3 pipeline "cors $ks_pipeline"
+            iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
+            iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
+            iniset $GNOCCHI_CONF cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH
+            iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
         else
             iniset $GNOCCHI_CONF api middlewares keystonemiddleware.auth_token.AuthProtocol
         fi
