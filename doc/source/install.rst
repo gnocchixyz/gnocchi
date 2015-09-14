@@ -21,8 +21,8 @@ created by running:
 
     tox -e genconfig
 
-The will create an `etc/gnocchi/gnocchi.conf` file which can be used as a
-base for the default configuration file at `/etc/gnocchi/gnocchi.conf`.
+This command will create an `etc/gnocchi/gnocchi.conf` file which can be used
+as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`.
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
