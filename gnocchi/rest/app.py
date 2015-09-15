@@ -13,17 +13,13 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os
-
 import keystonemiddleware.auth_token
 from oslo_log import log
 from oslo_policy import policy
 from oslo_utils import importutils
 import pecan
-from pecan import templating
 import webob.exc
 from werkzeug import serving
-from werkzeug import wsgi
 
 from gnocchi import exceptions
 from gnocchi import indexer
@@ -60,17 +56,6 @@ class OsloJSONRenderer(object):
         return json.dumps(namespace)
 
 
-class GnocchiJinjaRenderer(templating.JinjaRenderer):
-    def __init__(self, *args, **kwargs):
-        super(GnocchiJinjaRenderer, self).__init__(*args, **kwargs)
-        self.env.filters['tojson'] = json.dumps
-
-    def render(self, template_path, namespace):
-        namespace = dict(data=namespace)
-        return super(GnocchiJinjaRenderer, self).render(
-            template_path, namespace)
-
-
 PECAN_CONFIG = {
     'app': {
         'root': 'gnocchi.rest.RootController',
@@ -104,8 +89,6 @@ def setup_app(config=PECAN_CONFIG, cfg=None):
         i = indexer.get_driver(cfg)
         i.connect()
 
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-
     # NOTE(sileht): pecan debug won't work in multi-process environment
     pecan_debug = cfg.api.pecan_debug
     if cfg.api.workers != 1 and pecan_debug:
@@ -118,16 +101,8 @@ def setup_app(config=PECAN_CONFIG, cfg=None):
         debug=pecan_debug,
         hooks=(GnocchiHook(s, i, cfg),),
         guess_content_type_from_ext=False,
-        custom_renderers={'json': OsloJSONRenderer,
-                          'gnocchi_jinja': GnocchiJinjaRenderer},
-        default_renderer='gnocchi_jinja',
-        template_path=root_dir + "/templates",
+        custom_renderers={'json': OsloJSONRenderer},
     )
-
-    app = wsgi.SharedDataMiddleware(
-        app,
-        {"/static": root_dir + "/static"},
-        cache=not cfg.api.pecan_debug)
 
     if config.get('not_implemented_middleware', True):
         app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
