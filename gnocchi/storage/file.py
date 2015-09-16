@@ -163,7 +163,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         tmpfile.close()
         os.rename(tmpfile.name, self._build_metric_path(metric, aggregation))
 
-    def delete_metric(self, metric):
+    def _delete_metric(self, metric):
         path = self._build_metric_path(metric)
         try:
             shutil.rmtree(path)

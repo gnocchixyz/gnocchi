@@ -90,6 +90,12 @@ class CephLock(object):
                 rados.make_ex(ret, "Error while releasing lock of %s" %
                               self._name)
 
+    def __enter__(self):
+        return self.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        return self.release()
+
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
@@ -198,7 +204,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         with self._get_ioctx() as ioctx:
             ioctx.write_full(name, data)
 
-    def delete_metric(self, metric):
+    def _delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
             name = self._get_object_name(metric, 'container')
             try:
