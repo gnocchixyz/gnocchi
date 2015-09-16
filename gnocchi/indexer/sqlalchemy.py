@@ -134,12 +134,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ArchivePolicyInUse(name)
             raise
 
-    def get_metrics(self, uuids):
+    def get_metrics(self, uuids, active_only=True):
         if not uuids:
             return []
         session = self.engine_facade.get_session()
         query = session.query(Metric).filter(Metric.id.in_(uuids)).options(
             sqlalchemy.orm.joinedload('resource'))
+        if active_only:
+            query = query.filter(Metric.status == 'active')
 
         metrics = list(query.all())
         session.expunge_all()
@@ -219,7 +221,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def list_metrics(self, user_id=None, project_id=None, details=False,
                      **kwargs):
         session = self.engine_facade.get_session()
-        q = session.query(Metric)
+        q = session.query(Metric).filter(Metric.status == 'active')
         if user_id is not None:
             q = q.filter(Metric.created_by_user_id == user_id)
         if project_id is not None:
@@ -328,7 +330,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if metrics is not _marker:
                     if not append_metrics:
                         session.query(Metric).filter(
-                            Metric.resource_id == resource_id).update(
+                            Metric.resource_id == resource_id,
+                            Metric.status == 'active').update(
                                 {"resource_id": None})
                     self._set_metrics_for_resource(session, r, metrics)
         except exception.DBConstraintError as e:
@@ -350,6 +353,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 try:
                     update = session.query(Metric).filter(
                         Metric.id == value,
+                        Metric.status == 'active',
                         (Metric.created_by_user_id
                          == r.created_by_user_id),
                         (Metric.created_by_project_id
@@ -380,18 +384,19 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         session.expire(r, ['metrics'])
 
-    def delete_resource(self, resource_id, delete_metrics=None):
+    def delete_resource(self, resource_id):
         session = self.engine_facade.get_session()
         with session.begin():
-            q = session.query(Resource).filter(
-                Resource.id == resource_id).options(
-                    sqlalchemy.orm.joinedload('metrics'))
-            r = q.first()
-            if r is None:
+            # We are going to delete the resource; the on delete will set the
+            # resource_id of the attached metrics to NULL, we just have to mark
+            # their status as 'delete'
+            session.query(Metric).filter(
+                Metric.resource_id == resource_id).update(
+                    {"status": "delete"})
+            if session.query(Resource).filter(
+                    Resource.id == resource_id).options(
+                        sqlalchemy.orm.joinedload('metrics')).delete() == 0:
                 raise indexer.NoSuchResource(resource_id)
-            if delete_metrics is not None:
-                delete_metrics(self.get_metrics([m.id for m in r.metrics]))
-            q.delete()
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         resource_cls = self._resource_type_to_class(resource_type)
@@ -436,7 +441,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             properties={
                 'metrics': sqlalchemy.orm.relationship(
                     Metric,
-                    primaryjoin=Metric.resource_id == stmt.c.id,
+                    primaryjoin=sqlalchemy.and_(
+                        Metric.resource_id == stmt.c.id,
+                        Metric.status == 'active'),
                     foreign_keys=Metric.resource_id)
             })
 
@@ -532,9 +539,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session.expunge_all()
         return all_resources
 
+    def expunge_metric(self, id):
+        session = self.engine_facade.get_session()
+        if session.query(Metric).filter(Metric.id == id).delete == 0:
+            raise indexer.NoSuchMetric(id)
+
     def delete_metric(self, id):
         session = self.engine_facade.get_session()
-        if session.query(Metric).filter(Metric.id == id).delete() == 0:
+        if session.query(Metric).filter(
+                Metric.id == id).update({"status": "delete"}) == 0:
             raise indexer.NoSuchMetric(id)
 
 

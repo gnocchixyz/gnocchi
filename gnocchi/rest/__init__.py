@@ -498,10 +498,6 @@ class MetricController(rest.RestController):
     def delete(self):
         self.enforce_metric("delete metric")
         try:
-            pecan.request.storage.delete_metric(self.metric)
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        try:
             pecan.request.indexer.delete_metric(self.metric.id)
         except indexer.NoSuchMetric as e:
             abort(404, e)
@@ -824,19 +820,6 @@ class GenericResourceController(rest.RestController):
                 return True
         return False
 
-    @staticmethod
-    def _delete_metrics(metrics):
-        for metric in metrics:
-            enforce("delete metric", metric)
-        for metric in metrics:
-            try:
-                pecan.request.storage.delete_metric(metric)
-            except Exception:
-                LOG.error(
-                    "Unable to delete metric `%s' from storage, "
-                    "you will need to delete it manually" % metric.id,
-                    exc_info=True)
-
     @pecan.expose()
     def delete(self):
         resource = pecan.request.indexer.get_resource(
@@ -846,9 +829,7 @@ class GenericResourceController(rest.RestController):
         enforce("delete resource", resource)
         etag_precondition_check(resource)
         try:
-            pecan.request.indexer.delete_resource(
-                self.id,
-                delete_metrics=self._delete_metrics)
+            pecan.request.indexer.delete_resource(self.id)
         except indexer.NoSuchResource as e:
             abort(404, e)
 

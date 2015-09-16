@@ -147,7 +147,7 @@ class TestingApp(webtest.TestApp):
     def do_request(self, req, *args, **kwargs):
         req.headers['X-Auth-Token'] = self.token
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        self.storage.process_measures(self.indexer)
+        self.storage.process_background_tasks(self.indexer)
         return response
 
 

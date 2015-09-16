@@ -170,7 +170,7 @@ class MetricdThread(threading.Thread):
 
     def run(self):
         while self.flag:
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
             time.sleep(0.1)
 
     def stop(self):

@@ -71,16 +71,12 @@ class MetricProcessBase(multiprocessing.Process):
         while True:
             try:
                 with timeutils.StopWatch() as timer:
-                    self._run_job()
+                    self.store.process_background_tasks(self.index)
                     time.sleep(max(0, self.interval_delay - timer.elapsed()))
             except KeyboardInterrupt:
                 # Ignore KeyboardInterrupt so parent handler can kill
                 # all children.
                 pass
-
-    @staticmethod
-    def _run_job():
-        raise NotImplementedError
 
 
 class MetricReporting(MetricProcessBase):
@@ -107,12 +103,6 @@ class MetricProcessor(MetricProcessBase):
 
 def metricd():
     conf = service.prepare_service()
-
-    # Check that the storage driver actually needs this daemon to run
-    s = storage.get_driver_class(conf)
-    if s.process_measures == storage.StorageDriver.process_measures:
-        LOG.debug("This storage driver does not need metricd to run, exiting")
-        return 0
 
     signal.signal(signal.SIGTERM, _metricd_terminate)
 

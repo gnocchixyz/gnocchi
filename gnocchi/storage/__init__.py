@@ -13,12 +13,14 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import logging
 import operator
 from oslo_config import cfg
 from oslo_utils import timeutils
 from stevedore import driver
 
 from gnocchi import exceptions
+from gnocchi import indexer
 
 
 OPTS = [
@@ -34,6 +36,8 @@ OPTS = [
                help="How many seconds to wait between "
                "metric ingestion reporting"),
 ]
+
+LOG = logging.getLogger(__name__)
 
 
 class Measure(object):
@@ -144,6 +148,35 @@ class StorageDriver(object):
     @staticmethod
     def stop():
         pass
+
+    def process_background_tasks(self, index):
+        LOG.debug("Processing new and to delete measures")
+        try:
+            self.process_measures(index)
+        except Exception:
+            LOG.error("Unexpected error during measures processing",
+                      exc_info=True)
+        LOG.debug("Expunging deleted metrics")
+        try:
+            self.expunge_metrics(index)
+        except Exception:
+            LOG.error("Unexpected error during deleting metrics",
+                      exc_info=True)
+
+    def expunge_metrics(self, index):
+        metrics_to_expunge = index.list_metrics(status='delete')
+        for m in metrics_to_expunge:
+            try:
+                self.delete_metric(m)
+            except Exception:
+                LOG.error("Unable to expunge metric %s from storage" % m,
+                          exc_info=True)
+            try:
+                self.index.expunge_metric(m.id)
+            except indexer.NoSuchMetric:
+                # It's possible another process deleted the metric in the mean
+                # time, not a big deal
+                pass
 
     @staticmethod
     def add_measures(metric, measures):

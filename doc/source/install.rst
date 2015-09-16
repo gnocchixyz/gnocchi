@@ -84,8 +84,7 @@ To run Gnocchi, simply run the HTTP server:
     gnocchi-api
 
 You then need to run the `gnocchi-metricd` daemon to enable new measures
-processing in the background. Some storage drivers (such as `influxdb`) do not
-need this process to run – so it will exit gracefully at startup.
+processing and metrics expunge in the background.
 
 Running As A WSGI Application
 =============================

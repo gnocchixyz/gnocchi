@@ -278,10 +278,11 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def get_metrics(uuids):
+    def get_metrics(uuids, active_only=True):
         """Get metrics informations from the indexer.
 
         :param uuids: A list of metric UUID.
+        :param active_only: Whether to only get active metrics
         """
         raise exceptions.NotImplementedError
 
@@ -317,4 +318,8 @@ class IndexerDriver(object):
 
     @staticmethod
     def delete_metric(id):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def expunge_metric(id):
         raise exceptions.NotImplementedError
