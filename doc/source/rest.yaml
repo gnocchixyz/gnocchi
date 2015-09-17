@@ -115,11 +115,6 @@
 - name: list-metric
   request: GET /v1/metric HTTP/1.1
 
-- name: get-metric-details-in-accept
-  request: |
-    GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
-    Accept: application/json; details=true
-
 - name: post-measures
   request: |
     POST /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures HTTP/1.1
