@@ -1649,6 +1649,69 @@ class ResourceTest(RestTest):
                           b"matching granularity",
                           result.body)
 
+    def test_get_res_named_metric_measure_aggregation_nooverlap(self):
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "medium"})
+        metric1 = json.loads(result.text)
+        self.app.post_json("/v1/metric/%s/measures" % metric1['id'],
+                           params=[{"timestamp": '2013-01-01 12:00:01',
+                                    "value": 8},
+                                   {"timestamp": '2013-01-01 12:00:02',
+                                    "value": 16}])
+
+        result = self.app.post_json("/v1/metric",
+                                    params={"archive_policy_name": "medium"})
+        metric2 = json.loads(result.text)
+
+        # NOTE(sileht): because the database is never cleaned between each test
+        # we must ensure that the query will not match resources from an other
+        # test, to achieve this we set a different server_group on each test.
+        server_group = str(uuid.uuid4())
+        if self.resource_type == 'instance':
+            self.attributes['server_group'] = server_group
+
+        self.attributes['metrics'] = {'foo': metric1['id']}
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+
+        self.attributes['id'] = str(uuid.uuid4())
+        self.attributes['metrics'] = {'foo': metric2['id']}
+        self.app.post_json("/v1/resource/" + self.resource_type,
+                           params=self.attributes)
+
+        result = self.app.post_json(
+            "/v1/aggregation/resource/" + self.resource_type
+            + "/metric/foo?aggregation=max",
+            params={"and":
+                    [{"=": {"server_group": server_group}},
+                     {"=": {"display_name": "myinstance"}}]},
+            expect_errors=True)
+
+        if self.resource_type == 'instance':
+            self.assertEqual(400, result.status_code, result.text)
+            self.assertIn("No overlap", result.text)
+        else:
+            self.assertEqual(400, result.status_code)
+
+        result = self.app.post_json(
+            "/v1/aggregation/resource/"
+            + self.resource_type + "/metric/foo?aggregation=min"
+            + "&needed_overlap=0",
+            params={"and":
+                    [{"=": {"server_group": server_group}},
+                     {"=": {"display_name": "myinstance"}}]},
+            expect_errors=True)
+
+        if self.resource_type == 'instance':
+            self.assertEqual(200, result.status_code, result.text)
+            measures = json.loads(result.text)
+            self.assertEqual([['2013-01-01T00:00:00+00:00', 86400.0, 8.0],
+                              ['2013-01-01T12:00:00+00:00', 3600.0, 8.0],
+                              ['2013-01-01T12:00:00+00:00', 60.0, 8.0]],
+                             measures)
+        else:
+            self.assertEqual(400, result.status_code)
+
     def test_get_res_named_metric_measure_aggregation_nominal(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"})

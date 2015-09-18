@@ -373,6 +373,10 @@ class AggregatedMetricController(rest.RestController):
     def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
                                             aggregation='mean',
                                             needed_overlap=100.0):
+        try:
+            needed_overlap = float(needed_overlap)
+        except ValueError:
+            abort(400, 'needed_overlap must be a number')
 
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
