@@ -289,10 +289,6 @@ class ArchivePoliciesController(rest.RestController):
 
 
 class ArchivePolicyRulesController(rest.RestController):
-    _custom_actions = {
-        'measures': ['GET', 'POST']
-    }
-
     @pecan.expose('json')
     def post(self):
         enforce("create archive policy rule", {})
