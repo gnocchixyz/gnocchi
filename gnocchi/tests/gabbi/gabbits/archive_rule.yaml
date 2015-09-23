@@ -120,11 +120,20 @@ tests:
       url: /v1/archive_policy_rule/foo
       status: 404
 
+# delete rule as non admin
+
+    - name: delete archive policy rule non admin
+      url: /v1/archive_policy_rule/test_rule
+      method: DELETE
+      status: 403
+
 # delete rule
 
     - name: delete archive policy rule
       url: /v1/archive_policy_rule/test_rule
       method: DELETE
+      request_headers:
+          x-roles: admin
       status: 204
 
 # delete again
@@ -132,4 +141,6 @@ tests:
     - name: confirm delete archive policy rule
       url: /v1/archive_policy_rule/test_rule
       method: DELETE
+      request_headers:
+        x-roles: admin
       status: 404
