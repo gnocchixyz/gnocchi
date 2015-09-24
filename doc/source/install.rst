@@ -51,7 +51,7 @@ Gnocchi provides these storage drivers:
 - File (default)
 - `Swift`_
 - `Ceph`_
-- `InfluxDB`_
+- `InfluxDB`_ (experimental)
 
 Gnocchi provides these indexer drivers:
 
