@@ -138,6 +138,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         return [name for name, __ in xattrs_iterator
                 if prefix is None or name.startswith(prefix)]
 
+    def _pending_measures_to_process_count(self, metric_id):
+        with self._get_ioctx() as ioctx:
+            object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
+            return len(self._list_object_names_to_process(ioctx,
+                                                          object_prefix))
+
     def _list_metric_with_measures_to_process(self):
         with self._get_ioctx() as ioctx:
             return [name.split("_")[1] for name in

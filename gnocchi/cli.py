@@ -47,12 +47,12 @@ def statsd():
     statsd_service.start()
 
 
-class MetricProcessor(multiprocessing.Process):
-
-    def __init__(self, conf, worker_number):
-        super(MetricProcessor, self).__init__()
+class MetricProcessBase(multiprocessing.Process):
+    def __init__(self, conf, startup_delay=0, interval_delay=0):
+        super(MetricProcessBase, self).__init__()
         self.conf = conf
-        self.delay = worker_number
+        self.startup_delay = startup_delay
+        self.interval_delay = interval_delay
 
     # Retry with exponential backoff for up to 5 minutes
     @retrying.retry(wait_exponential_multiplier=500,
@@ -66,28 +66,43 @@ class MetricProcessor(multiprocessing.Process):
     def run(self):
         self._configure()
         # Delay startup so workers are jittered.
-        time.sleep(self.delay)
+        time.sleep(self.startup_delay)
 
         while True:
             try:
                 with timeutils.StopWatch() as timer:
-                    self._process(self.store, self.index)
-                    time.sleep(
-                        max(0, self.conf.storage.metric_processing_delay
-                            - timer.elapsed()))
+                    self._run_job()
+                    time.sleep(max(0, self.interval_delay - timer.elapsed()))
             except KeyboardInterrupt:
                 # Ignore KeyboardInterrupt so parent handler can kill
                 # all children.
                 pass
 
     @staticmethod
-    def _process(store, index):
-        LOG.debug("Processing new measures")
+    def _run_job():
+        raise NotImplementedError
+
+
+class MetricReporting(MetricProcessBase):
+    def _run_job(self):
         try:
-            store.process_measures(index)
+            report = self.store.measures_report(self.index)
+            LOG.info("Metricd reporting: %d measurements bundles across %d "
+                     "metrics wait to be processed." %
+                     (len(report), sum(report.values())))
         except Exception:
-            LOG.error("Unexpected error during measures processing",
+            LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)
+
+
+class MetricProcessor(MetricProcessBase):
+    def _run_job(self):
+            LOG.debug("Processing new measures")
+            try:
+                self.store.process_measures(self.index)
+            except Exception:
+                LOG.error("Unexpected error during measures processing",
+                          exc_info=True)
 
 
 def metricd():
@@ -102,9 +117,14 @@ def metricd():
     signal.signal(signal.SIGTERM, _metricd_terminate)
 
     try:
-        workers = []
+        metric_report = MetricReporting(
+            conf, 0, conf.storage.metric_reporting_delay)
+        metric_report.start()
+
+        workers = [metric_report]
         for worker in range(conf.metricd.workers):
-            metric_worker = MetricProcessor(conf, worker)
+            metric_worker = MetricProcessor(
+                conf, worker, conf.storage.metric_processing_delay)
             metric_worker.start()
             workers.append(metric_worker)
 
