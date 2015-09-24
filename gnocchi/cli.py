@@ -34,9 +34,9 @@ LOG = logging.getLogger(__name__)
 
 def storage_dbsync():
     conf = service.prepare_service()
-    indexer = sql_db.SQLAlchemyIndexer(conf)
-    indexer.connect()
-    indexer.upgrade()
+    index = sql_db.SQLAlchemyIndexer(conf)
+    index.connect()
+    index.upgrade()
 
 
 def api():
