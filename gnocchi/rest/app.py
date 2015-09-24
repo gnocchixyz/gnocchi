@@ -127,8 +127,24 @@ def setup_app(config=PECAN_CONFIG, cfg=None):
     return app
 
 
+class WerkzeugApp(object):
+    # NOTE(sileht): The purpose of this class is only to be used
+    # with werkzeug to create the app after the werkzeug
+    # fork gnocchi-api and avoid creation of connection of the
+    # storage/indexer by the main process.
+
+    def __init__(self, conf):
+        self.app = None
+        self.conf = conf
+
+    def __call__(self, environ, start_response):
+        if self.app is None:
+            self.app = setup_app(cfg=self.conf)
+        return self.app(environ, start_response)
+
+
 def build_server():
     conf = service.prepare_service()
     serving.run_simple(conf.api.host, conf.api.port,
-                       setup_app(cfg=conf),
+                       WerkzeugApp(conf),
                        processes=conf.api.workers)
