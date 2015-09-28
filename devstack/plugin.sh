@@ -375,8 +375,8 @@ function start_gnocchi {
             # will tail the entire apache logs, not just the gnocchi
             # parts. If you don't like this either USE_SCREEN=False
             # or set GNOCCHI_SERVICE_PORT.
-            tail_log gnocchi /var/log/$APACHE_NAME/error[._]log
-            tail_log gnocchi-api /var/log/$APACHE_NAME/access[._]log
+            tail_log gnocchi /var/log/$APACHE_NAME/error[_\.]log
+            tail_log gnocchi-api /var/log/$APACHE_NAME/access[_\.]log
         fi
     else
         run_process gnocchi-api "$GNOCCHI_BIN_DIR/gnocchi-api -d -v --config-file $GNOCCHI_CONF"
