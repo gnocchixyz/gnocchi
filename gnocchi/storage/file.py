@@ -144,6 +144,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         files = self._list_measures_container_for_metric_id(metric_id)
         self._delete_measures_files_for_metric_id(metric_id, files)
 
+    def _pending_measures_to_process_count(self, metric_id):
+        return len(self._list_measures_container_for_metric_id(metric_id))
+
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):
         files = self._list_measures_container_for_metric_id(metric.id)

@@ -106,6 +106,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             self.MEASURE_PREFIX, path=six.text_type(metric_id))
         return files
 
+    def _pending_measures_to_process_count(self, metric_id):
+        return len(self._list_measure_files_for_metric_id(metric_id))
+
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric(metric_id)
         for f in files:

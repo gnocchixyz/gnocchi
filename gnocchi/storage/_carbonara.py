@@ -120,6 +120,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric(metric):
         raise NotImplementedError
 
+    @staticmethod
+    def _list_metric_with_measures_to_process(metric_id):
+        raise NotImplementedError
+
+    @staticmethod
+    def _pending_measures_to_process_count(metric_id):
+        raise NotImplementedError
+
     def delete_metric(self, metric):
         with self._lock(metric):
             self._delete_metric(metric)
@@ -127,6 +135,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     @staticmethod
     def _unserialize_measures(data):
         return msgpackutils.loads(data)
+
+    def measures_report(self, indexer):
+        metrics_to_process = self._list_metric_with_measures_to_process()
+        return dict(
+            (metric_id, self._pending_measures_to_process_count(metric_id))
+            for metric_id in metrics_to_process)
 
     def process_measures(self, indexer):
         metrics_to_process = self._list_metric_with_measures_to_process()

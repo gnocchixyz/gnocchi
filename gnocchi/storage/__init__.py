@@ -29,6 +29,10 @@ OPTS = [
                default=5,
                help="How many seconds to wait between "
                "new metric measure processing"),
+    cfg.IntOpt('metric_reporting_delay',
+               default=10,
+               help="How many seconds to wait between "
+               "metric ingestion reporting"),
 ]
 
 
@@ -157,6 +161,15 @@ class StorageDriver(object):
         Some drivers might need to have a background task running that process
         the measures sent to metrics. This is used for that.
         """
+
+    def measures_report(indexer=None):
+        """Return a report of pending to process measures.
+
+        Only usefull for drivers that process measurements in background
+
+        :return: {metric_id: pending_measures_count}
+        """
+        return {}
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
