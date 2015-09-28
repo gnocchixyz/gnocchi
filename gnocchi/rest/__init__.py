@@ -232,6 +232,10 @@ class ArchivePolicyController(rest.RestController):
 
     @pecan.expose()
     def delete(self):
+        # NOTE(jd) I don't think there's any point in fetching and passing the
+        # archive policy here, as the rule is probably checking the actual role
+        # of the user, not the content of the AP.
+        enforce("delete archive policy", {})
         try:
             pecan.request.indexer.delete_archive_policy(self.archive_policy)
         except indexer.NoSuchArchivePolicy as e:

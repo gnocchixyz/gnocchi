@@ -286,11 +286,20 @@ tests:
           - '"name": "medium"'
           - '"name": "large"'
 
+# Delete one as non-admin
+
+    - name: delete single archive non admin
+      url: /v1/archive_policy/medium
+      method: DELETE
+      status: 403
+
 # Delete one
 
     - name: delete single archive
       url: /v1/archive_policy/medium
       method: DELETE
+      request_headers:
+        x-roles: admin
       status: 204
 
 # It really is gone
@@ -304,6 +313,8 @@ tests:
     - name: delete missing archive
       url: /v1/archive_policy/grandiose
       method: DELETE
+      request_headers:
+        x-roles: admin
       status: 404
       response_strings:
           - Archive policy grandiose does not exist
@@ -324,6 +335,8 @@ tests:
     - name: delete in use policy
       url: /v1/archive_policy/large
       method: DELETE
+      request_headers:
+        x-roles: admin
       status: 400
       response_strings:
           - Archive policy large is still in use
