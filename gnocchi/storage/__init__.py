@@ -162,6 +162,7 @@ class StorageDriver(object):
         the measures sent to metrics. This is used for that.
         """
 
+    @staticmethod
     def measures_report(indexer=None):
         """Return a report of pending to process measures.
 
@@ -169,7 +170,7 @@ class StorageDriver(object):
 
         :return: {metric_id: pending_measures_count}
         """
-        return {}
+        raise exceptions.NotImplementedError
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
