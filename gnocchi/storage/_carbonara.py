@@ -136,7 +136,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _unserialize_measures(data):
         return msgpackutils.loads(data)
 
-    def measures_report(self, indexer):
+    def measures_report(self):
         metrics_to_process = self._list_metric_with_measures_to_process()
         return dict(
             (metric_id, self._pending_measures_to_process_count(metric_id))

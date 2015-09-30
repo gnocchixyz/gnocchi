@@ -163,7 +163,7 @@ class StorageDriver(object):
         """
 
     @staticmethod
-    def measures_report(indexer=None):
+    def measures_report():
         """Return a report of pending to process measures.
 
         Only usefull for drivers that process measurements in background
