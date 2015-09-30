@@ -395,3 +395,6 @@
 
 - name: get-capabilities
   request: GET /v1/capabilities HTTP/1.1
+
+- name: get-status
+  request: GET /v1/status HTTP/1.1

@@ -212,6 +212,15 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
                 sorted(aggregation_methods),
                 sorted(json.loads(result.text)['aggregation_methods']))
 
+    def test_status(self):
+        with self.app.use_admin_user():
+            r = self.app.get("/v1/status")
+        status = json.loads(r.text)
+        # We are sure this is empty because we call process_measures() each
+        # time we do a REST request in this TestingApp.
+        self.assertEqual({},
+                         status['storage']['measures_to_process'])
+
     @staticmethod
     def runTest():
         pass
