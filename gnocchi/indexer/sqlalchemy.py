@@ -165,7 +165,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policy_rules(self):
         session = self.engine_facade.get_session()
-        aps = session.query(ArchivePolicyRule).all()
+        aps = session.query(ArchivePolicyRule).order_by(
+            ArchivePolicyRule.metric_pattern.desc()).all()
         session.expunge_all()
         return aps
 

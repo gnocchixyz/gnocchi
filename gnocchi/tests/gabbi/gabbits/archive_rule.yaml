@@ -25,21 +25,54 @@ tests:
 
 # Attempt to create an archive policy rule
 
-    - name: create archive policy rule
+    - name: create archive policy rule1
       url: /v1/archive_policy_rule
       method: POST
       request_headers:
           content-type: application/json
           x-roles: admin
       data:
-        name: test_rule
+        name: test_rule1
+        metric_pattern: "*"
+        archive_policy_name: low
+      status: 201
+      response_json_paths:
+        $.metric_pattern: "*"
+        $.archive_policy_name: low
+        $.name: test_rule1
+
+    - name: create archive policy rule 2
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule2
         metric_pattern: "disk.foo.*"
         archive_policy_name: low
       status: 201
       response_json_paths:
         $.metric_pattern: disk.foo.*
         $.archive_policy_name: low
-        $.name: test_rule
+        $.name: test_rule2
+
+    - name: create archive policy rule 3
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_rule3
+        metric_pattern: "disk.*"
+        archive_policy_name: low
+      status: 201
+      response_json_paths:
+        $.metric_pattern: disk.*
+        $.archive_policy_name: low
+        $.name: test_rule3
+
 
 # Attempt to create an invalid policy rule
 
@@ -115,6 +148,10 @@ tests:
     - name: get archive policy rule
       url: /v1/archive_policy_rule
       status: 200
+      response_json_paths:
+        $.[0].metric_pattern: disk.foo.*
+        $.[1].metric_pattern: disk.*
+        $.[2].metric_pattern: "*"
 
     - name: get unknown archive policy rule
       url: /v1/archive_policy_rule/foo
@@ -123,14 +160,29 @@ tests:
 # delete rule as non admin
 
     - name: delete archive policy rule non admin
-      url: /v1/archive_policy_rule/test_rule
+      url: /v1/archive_policy_rule/test_rule1
       method: DELETE
       status: 403
 
 # delete rule
 
-    - name: delete archive policy rule
-      url: /v1/archive_policy_rule/test_rule
+    - name: delete archive policy rule1
+      url: /v1/archive_policy_rule/test_rule1
+      method: DELETE
+      request_headers:
+          x-roles: admin
+      status: 204
+
+    - name: delete archive policy rule2
+      url: /v1/archive_policy_rule/test_rule2
+      method: DELETE
+      request_headers:
+          x-roles: admin
+      status: 204
+
+
+    - name: delete archive policy rule3
+      url: /v1/archive_policy_rule/test_rule3
       method: DELETE
       request_headers:
           x-roles: admin
@@ -139,7 +191,7 @@ tests:
 # delete again
 
     - name: confirm delete archive policy rule
-      url: /v1/archive_policy_rule/test_rule
+      url: /v1/archive_policy_rule/test_rule1
       method: DELETE
       request_headers:
         x-roles: admin
