@@ -89,7 +89,7 @@ class MetricReporting(MetricProcessBase):
             report = self.store.measures_report(self.index)
             LOG.info("Metricd reporting: %d measurements bundles across %d "
                      "metrics wait to be processed." %
-                     (len(report), sum(report.values())))
+                     (sum(report.values()), len(report)))
         except Exception:
             LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)
