@@ -136,6 +136,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
     __tablename__ = 'metric'
     __table_args__ = (
         sqlalchemy.Index('ix_metric_id', 'id'),
+        sqlalchemy.Index('ix_metric_status', 'status'),
         sqlalchemy.UniqueConstraint("resource_id", "name",
                                     name="uniq_metric0resource_id0name"),
         COMMON_TABLES_ARGS,
@@ -158,9 +159,13 @@ class Metric(Base, GnocchiBase, storage.Metric):
     resource_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey('resource.id',
-                              ondelete="CASCADE",
+                              ondelete="SET NULL",
                               name="fk_metric_resource_id_resource_id"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
+    status = sqlalchemy.Column(sqlalchemy.Enum('active', 'delete',
+                                               name="metric_status_enum"),
+                               nullable=False,
+                               default='active')
 
     def jsonify(self):
         d = {
@@ -249,7 +254,10 @@ class Resource(ResourceMixin, Base, GnocchiBase):
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
                            primary_key=True)
     revision_end = None
-    metrics = sqlalchemy.orm.relationship(Metric, backref="resource")
+    metrics = sqlalchemy.orm.relationship(
+        Metric, backref="resource",
+        primaryjoin="and_(Resource.id == Metric.resource_id, "
+        "Metric.status == 'active')")
 
     def get_metric(self, metric_name):
         m = super(Resource, self).get_metric(metric_name)

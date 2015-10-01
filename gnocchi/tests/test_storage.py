@@ -42,7 +42,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
         self.storage.delete_metric(self.metric)
 
     def test_delete_nonempty_metric_unprocessed(self):
@@ -57,7 +57,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
         self.storage.delete_metric(self.metric)
 
     def test_measures_reporting(self):
@@ -96,7 +96,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
@@ -212,7 +212,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -272,7 +272,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -302,7 +302,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_measures(self.index)
+            self.storage.process_background_tasks(self.index)
 
         self.assertEqual(
             {metric2: [],

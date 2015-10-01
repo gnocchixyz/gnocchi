@@ -67,7 +67,7 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
-        self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_background_tasks(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -86,7 +86,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_background_tasks(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -117,7 +117,7 @@ class TestStatsd(tests_base.TestCase):
                                             with_metrics=True)
         metric = r.get_metric(metric_key)
 
-        self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_background_tasks(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
@@ -134,7 +134,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.stats.storage.process_measures(self.stats.indexer)
+        self.stats.storage.process_background_tasks(self.stats.indexer)
 
         measures = self.stats.storage.get_measures(metric)
         self.assertEqual([
