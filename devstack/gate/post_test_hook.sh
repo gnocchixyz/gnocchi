@@ -20,7 +20,7 @@ set -e
 
 function generate_testr_results {
     if [ -f .testrepository/0 ]; then
-        sudo .tox/py27-gate/bin/testr last --subunit > $WORKSPACE/testrepository.subunit
+        sudo /usr/os-testr-env/bin/testr last --subunit > $WORKSPACE/testrepository.subunit
         sudo mv $WORKSPACE/testrepository.subunit $BASE/logs/testrepository.subunit
         sudo /usr/os-testr-env/bin/subunit2html $BASE/logs/testrepository.subunit $BASE/logs/testr_results.html
         sudo gzip -9 $BASE/logs/testrepository.subunit
