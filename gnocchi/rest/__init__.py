@@ -1309,6 +1309,15 @@ class CapabilityController(rest.RestController):
         return dict(aggregation_methods=aggregation_methods)
 
 
+class StatusController(rest.RestController):
+    @staticmethod
+    @pecan.expose('json')
+    def get():
+        enforce("get status", {})
+        report = pecan.request.storage.measures_report()
+        return {"storage": {"measures_to_process": report}}
+
+
 class V1Controller(object):
 
     def __init__(self):
@@ -1319,7 +1328,8 @@ class V1Controller(object):
             "metric": MetricsController(),
             "resource": ResourcesController(),
             "aggregation": Aggregation(),
-            "capabilities": CapabilityController()
+            "capabilities": CapabilityController(),
+            "status": StatusController(),
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)

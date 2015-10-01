@@ -3,6 +3,8 @@
     "resource_owner": "project_id:%(project_id)s",
     "metric_owner": "project_id:%(resource.project_id)s",
 
+    "get status": "role:admin",
+
     "create resource": "",
     "get resource": "rule:admin_or_creator or rule:resource_owner",
     "update resource": "rule:admin_or_creator",
