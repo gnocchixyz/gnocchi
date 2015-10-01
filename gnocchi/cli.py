@@ -86,7 +86,7 @@ class MetricProcessBase(multiprocessing.Process):
 class MetricReporting(MetricProcessBase):
     def _run_job(self):
         try:
-            report = self.store.measures_report(self.index)
+            report = self.store.measures_report()
             LOG.info("Metricd reporting: %d measurements bundles across %d "
                      "metrics wait to be processed." %
                      (len(report), sum(report.values())))
