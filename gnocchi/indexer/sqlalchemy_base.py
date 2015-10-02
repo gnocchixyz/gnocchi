@@ -165,7 +165,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
     status = sqlalchemy.Column(sqlalchemy.Enum('active', 'delete',
                                                name="metric_status_enum"),
                                nullable=False,
-                               default='active')
+                               server_default='active')
 
     def jsonify(self):
         d = {

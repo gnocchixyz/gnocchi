@@ -33,12 +33,12 @@ depends_on = None
 
 
 def upgrade():
-    enum = sa.Enum("active", "delete", name="metric_active_enum")
+    enum = sa.Enum("active", "delete", name="metric_status_enum")
     enum.create(op.get_bind(), checkfirst=False)
     op.add_column("metric",
                   sa.Column('status', enum,
                             nullable=False,
-                            default="active"))
+                            server_default="active"))
     op.create_index('ix_metric_status', 'metric', ['status'], unique=False)
 
     op.drop_constraint("fk_metric_resource_id_resource_id",
