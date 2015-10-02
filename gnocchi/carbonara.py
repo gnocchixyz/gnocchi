@@ -299,7 +299,7 @@ class AggregatedTimeSerie(TimeSerie):
         if self.sampling:
             self.ts = self.ts[after:].resample(
                 self.sampling,
-                how=self.aggregation_method_func).combine_first(
+                how=self.aggregation_method_func).dropna().combine_first(
                     self.ts[:after][:-1])
 
     def update(self, ts):
