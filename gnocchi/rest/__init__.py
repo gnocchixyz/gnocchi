@@ -45,8 +45,10 @@ def arg_to_list(value):
     return []
 
 
-def abort(status_code=None, detail='', headers=None, comment=None, **kw):
+def abort(status_code, detail='', headers=None, comment=None, **kw):
     """Like pecan.abort, but make sure detail is a string."""
+    if status_code == 404 and not detail:
+        raise RuntimeError("http code 404 must have 'detail' set")
     return pecan.abort(status_code, six.text_type(detail),
                        headers, comment, **kw)
 
@@ -228,7 +230,7 @@ class ArchivePolicyController(rest.RestController):
         if ap:
             enforce("get archive policy", ap)
             return ap
-        abort(404)
+        abort(404, indexer.NoSuchArchivePolicy(self.archive_policy))
 
     @pecan.expose()
     def delete(self):
@@ -323,7 +325,7 @@ class ArchivePolicyRulesController(rest.RestController):
         if ap:
             enforce("get archive policy rule", ap)
             return ap
-        abort(404)
+        abort(404, indexer.NoSuchArchivePolicyRule(name))
 
     @pecan.expose('json')
     def get_all(self):
@@ -525,10 +527,10 @@ class MetricsController(rest.RestController):
         try:
             metric_id = uuid.UUID(id)
         except ValueError:
-            abort(404)
+            abort(404, indexer.NoSuchMetric(id))
         metrics = pecan.request.indexer.get_metrics([metric_id])
         if not metrics:
-            abort(404)
+            abort(404, indexer.NoSuchMetric(id))
         return MetricController(metrics[0]), remainder
 
     _MetricSchema = voluptuous.Schema({
@@ -651,14 +653,14 @@ class NamedMetricController(rest.RestController):
         if resource:
             abort(404, indexer.NoSuchMetric(name))
         else:
-            abort(404)
+            abort(404, indexer.NoSuchResource(self.resource_id))
 
     @pecan.expose()
     def post(self):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404)
+            abort(404, indexer.NoSuchResource(self.resource_id))
         enforce("update resource", resource)
         metrics = deserialize(MetricsSchema)
         try:
@@ -679,7 +681,7 @@ class NamedMetricController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404)
+            abort(404, indexer.NoSuchResource(self.resource_id))
         enforce("get resource", resource)
         return pecan.request.indexer.list_metrics(resource_id=self.resource_id)
 
@@ -769,7 +771,7 @@ class GenericResourceController(rest.RestController):
         try:
             self.id = utils.ResourceUUID(id)
         except ValueError:
-            abort(404)
+            abort(404, indexer.NoSuchResource(id))
         self.metric = NamedMetricController(str(self.id), self._resource_type)
         self.history = ResourceHistoryController(str(self.id),
                                                  self._resource_type)
@@ -783,14 +785,14 @@ class GenericResourceController(rest.RestController):
             etag_precondition_check(resource)
             etag_set_headers(resource)
             return resource
-        abort(404)
+        abort(404, indexer.NoSuchResource(self.id))
 
     @pecan.expose('json')
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if not resource:
-            abort(404)
+            abort(404, indexer.NoSuchResource(self.id))
         enforce("update resource", resource)
         etag_precondition_check(resource)
 
@@ -1069,7 +1071,7 @@ class ResourcesController(rest.RestController):
         if ctrl:
             return ctrl, remainder
         else:
-            abort(404)
+            abort(404, indexer.UnknownResourceType(resource_type))
 
 
 def _ResourceSearchSchema(v):
@@ -1153,7 +1155,7 @@ class SearchResourceController(rest.RestController):
         if resource_type in ResourcesController.resources_ctrl_by_type:
             return SearchResourceTypeController(resource_type), remainder
         else:
-            abort(404)
+            abort(404, indexer.UnknownResourceType(resource_type))
 
 
 def _MetricSearchSchema(v):
