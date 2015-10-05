@@ -125,7 +125,7 @@ class NoSuchArchivePolicyRule(IndexerException):
     """Error raised when an archive policy rule does not exist."""
     def __init__(self, archive_policy_rule):
         super(NoSuchArchivePolicyRule, self).__init__(
-            "Archive policy Rule %s does not exist" %
+            "Archive policy rule %s does not exist" %
             str(archive_policy_rule))
         self.archive_policy_rule = archive_policy_rule
 
