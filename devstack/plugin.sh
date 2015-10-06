@@ -345,9 +345,8 @@ function install_gnocchi {
 
     install_gnocchiclient
 
-    # NOTE(sileht): requirements are not merged with the global-requirement repo
-    # setup_develop $GNOCCHI_DIR
-    USE_CONSTRAINTS=False setup_package $GNOCCHI_DIR -e
+    # We don't use setup_package because we don't follow openstack/requirements
+    sudo -H pip install -e "$GNOCCHI_DIR"
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         install_apache_wsgi
