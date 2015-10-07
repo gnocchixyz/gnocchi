@@ -630,6 +630,32 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='generic')),
+        ('instance_disk', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02+00:00",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "name": "disk-name",
+                "instance_id": str(uuid.uuid4()),
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02+00:00",
+                "name": "new-disk-name",
+            },
+            resource_type='instance_disk')),
+        ('instance_network_interface', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02+00:00",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "name": "nic-name",
+                "instance_id": str(uuid.uuid4()),
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02+00:00",
+                "name": "new-nic-name",
+            },
+            resource_type='instance_network_interface')),
         ('instance', dict(
             attributes={
                 "started_at": "2014-01-03T02:02:02+00:00",

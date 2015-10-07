@@ -846,7 +846,7 @@ class SwiftAccountResourceController(GenericResourceController):
     _resource_type = 'swift_account'
 
 
-class InstanceDisksResourceController(GenericResourceController):
+class InstanceDiskResourceController(GenericResourceController):
     _resource_type = 'instance_disk'
     Resource = ResourceSchema({
         "name": six.text_type,
@@ -854,7 +854,7 @@ class InstanceDisksResourceController(GenericResourceController):
     })
 
 
-class InstanceNetworkInterfacesResourceController(GenericResourceController):
+class InstanceNetworkInterfaceResourceController(GenericResourceController):
     _resource_type = 'instance_network_interface'
     Resource = ResourceSchema({
         "name": six.text_type,
@@ -988,6 +988,20 @@ class GenericResourcesController(rest.RestController):
 class SwiftAccountsResourcesController(GenericResourcesController):
     _resource_type = 'swift_account'
     _resource_rest_class = SwiftAccountResourceController
+
+
+class InstanceDisksResourcesController(GenericResourcesController):
+    _resource_type = 'instance_disk'
+    _resource_rest_class = InstanceDiskResourceController
+
+    Resource = InstanceDiskResourceController.Resource
+
+
+class InstanceNetworkInterfacesResourcesController(GenericResourcesController):
+    _resource_type = 'instance_network_interface'
+    _resource_rest_class = InstanceNetworkInterfaceResourceController
+
+    Resource = InstanceNetworkInterfaceResourceController.Resource
 
 
 class InstancesResourcesController(GenericResourcesController):
