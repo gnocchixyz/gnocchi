@@ -211,7 +211,7 @@ class BoundTimeSerie(TimeSerie):
         return basic
 
     def _first_block_timestamp(self):
-        ts = self.ts.resample(self.block_size)
+        ts = self.ts[-1:].resample(self.block_size)
         return (ts.index[-1] - (self.block_size * self.back_window))
 
     def _truncate(self):
