@@ -361,8 +361,6 @@ function install_gnocchi {
 
 # start_gnocchi() - Start running processes, including screen
 function start_gnocchi {
-    local token
-
     run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
@@ -392,18 +390,16 @@ function start_gnocchi {
 
     # Create a default policy
     archive_policy_url="$(gnocchi_service_url)/v1/archive_policy"
-    if is_service_enabled key; then
-        token=$(openstack token issue -f value -c id)
-        create_archive_policy() { curl -X POST -H "X-Auth-Token: $token" -H "Content-Type: application/json" -d "$1" $archive_policy_url ; }
-    else
-        userid=`uuidgen`
-        projectid=`uuidgen`
-        create_archive_policy() { curl -X POST -H "X-ROLES: admin" -H "X-USER-ID: $userid" -H "X-PROJECT-ID: $projectid" -H "Content-Type: application/json" -d "$1" $archive_policy_url ; }
+    if ! is_service_enabled key; then
+        export OS_AUTH_TYPE=gnocchi-noauth
+        export GNOCCHI_USER_ID=`uuidgen`
+        export GNOCCHI_PROJECT_ID=`uuidgen`
+        export GNOCCHI_ENDPOINT="${gnocchi_service_url}"
     fi
 
-    create_archive_policy '{"name":"low","definition":[{"granularity": "5m","points": 12},{"granularity": "1h","points": 24},{"granularity": "1d","points": 30}]}'
-    create_archive_policy '{"name":"medium","definition":[{"granularity": "60s","points": 60},{"granularity": "1h","points": 168},{"granularity": "1d","points": 365}]}'
-    create_archive_policy '{"name":"high","definition":[{"granularity": "1s","points": 86400},{"granularity": "1m","points": 43200},{"granularity": "1h","points": 8760}]}'
+    gnocchi archive-policy create -d granularity:5m,points:12 -d granularity:1h,points:24 -d granularity:1d,points:30 low
+    gnocchi archive-policy create -d granularity:60s,points:60 -d granularity:1h,points:168 -d granularity:1d,points:365 medium
+    gnocchi archive-policy create -d granularity:1s,points:86400 -d granularity:1m,points:43200 -d granularity:1h,points:8760 high
 }
 
 # stop_gnocchi() - Stop running processes
