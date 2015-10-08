@@ -165,3 +165,49 @@ For example::
 
 .. _`tooz`: http://docs.openstack.org/developer/tooz/
 .. _`tooz backends`: http://docs.openstack.org/developer/tooz/drivers.html
+
+
+Ceph driver implementation details
+----------------------------------
+
+Each batch of measurements to process is stored into one rados object.
+These objects are named `measures_<metric_id>_<random_uuid>_<timestamp>`
+
+Also a special empty object called `measures` has the list of measures to
+process stored in its xattr attributes.
+
+Because of the asynchronous nature of how we store measurements in Gnocchi,
+`gnocchi-metricd` need to known the list of objects that wait to be processed:
+
+- Listing rados objects for this is not a solution since it takes too much
+  time.
+- Using a custom format into a rados object, would force us to use a lock
+  each time we would change it.
+
+Instead, the xattrs of one empty rados object are used. No lock is needed to
+add/remove a xattr.
+
+But depending of the filesystem used by ceph OSDs, this xattrs can have
+limitation in term of numbers and size if Ceph if not correctly configured.
+See `Ceph extended attributes documentation`_ for more details.
+
+Then, each Carbonara generated file is stored in *one* rados object.
+So each metric has one rados object per aggregation in the archive policy.
+
+Because of this, the OSDs filling can look less balanced comparing of the RBD.
+Some other objects will be big and some others small depending on how archive
+policies are set up.
+
+We can imagine an unrealisting case like 1 point per second during one year,
+the rados object size will be ~384MB.
+
+And a more realistic scenario, a 4MB rados object (like rbd uses) could
+come from:
+
+- 20 days with 1 point every seconds
+- 100 days with 1 point every 5 seconds
+
+So, in realistic scenarios, the direct relation between the archive policy and
+the size of the rados objects created by Gnocchi is not a problem.
+
+.. _`Ceph extended attributes documentation`: http://docs.ceph.com/docs/master/rados/configuration/filestore-config-ref/#extended-attributes
