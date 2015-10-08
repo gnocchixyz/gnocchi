@@ -97,3 +97,29 @@ For other WSGI setup you can refer to the `pecan deployement`_ documentation.
 
 .. _`mod_wsgi`: https://modwsgi.readthedocs.org/en/master/
 .. _`pecan deployement`: http://pecan.readthedocs.org/en/latest/deployment.html#deployment
+
+
+Drivers notes
+=============
+
+Carbonara based drivers (file, swift, ceph)
+-------------------------------------------
+
+To ensure consistency accross all gnocchi-api and gnocchi-metricd workers,
+these drivers need a distributed locking mechanism. This is provided by the
+'coordinator' of the `tooz`_ library.
+
+By default, the configured backend for `tooz`_ is 'file', this allows locking
+across workers on the same node.
+
+In a multi-nodes deployement, the coordinator needs to be changed via
+the storage/coordination_url configuration options to one of the other
+`tooz backends`_.
+
+For example::
+
+    coordination_url = redis://<sentinel host>?sentinel=<master name>
+    coordination_url = zookeeper:///hosts=<zookeeper_host1>&hosts=<zookeeper_host2>
+
+.. _`tooz`: http://docs.openstack.org/developer/tooz/
+.. _`tooz backends`: http://docs.openstack.org/developer/tooz/drivers.html
