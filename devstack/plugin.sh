@@ -92,6 +92,8 @@ function install_gnocchiclient {
     if use_library_from_git python-gnocchiclient; then
         git_clone_by_name python-gnocchiclient
         setup_dev_lib python-gnocchiclient
+    else
+        pip_install gnocchiclient
     fi
 }
 
