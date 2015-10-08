@@ -32,6 +32,31 @@ tests:
         archive_policy_name: cookies
       status: 201
 
+    - name: create alt archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: cream
+          definition:
+              - granularity: 5 second
+      status: 201
+
+    - name: create alt archive policy rule
+      desc: extra rule that won't be matched
+      url: /v1/archive_policy_rule
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: test_ignore_rule
+        metric_pattern: "disk.*"
+        archive_policy_name: cream
+      status: 201
+
     - name: get metric empty
       url: /v1/metric
       status: 200

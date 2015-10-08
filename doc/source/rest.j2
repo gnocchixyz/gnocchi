@@ -152,13 +152,16 @@ match metric names.
 An archive policy rule for example could be a mapping to default a medium archive
 policy for any volume metric with a pattern matching `volume.*`. When a sample metric
 is posted with a name of `volume.size`, that would match the pattern and the
-rule applies and sets the archive policy to medium.
+rule applies and sets the archive policy to medium. If multiple rules match,
+the longest matching rule is taken. For example, if two rules exists which
+match `*` and `disk.*`, a `disk.io.rate` metric would match the `disk.*` rule
+rather than `*` rule.
 
 To create a rule, the following API request should be used:
 
 {{ scenarios['create-archive-policy-rule']['doc'] }}
 
-The metric_pattern is used to pattern match so as some examples,
+The `metric_pattern` is used to pattern match so as some examples,
 
 - `*` matches anything
 - `disk.*` matches disk.io
@@ -168,7 +171,8 @@ Once created, you can retrieve the rule information:
 
 {{ scenarios['get-archive-policy-rule']['doc'] }}
 
-It is also possible to list archive policy rules:
+It is also possible to list archive policy rules. The result set is ordered by
+the `metric_pattern`, in reverse alphabetical order:
 
 {{ scenarios['list-archive-policy-rule']['doc'] }}
 

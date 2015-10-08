@@ -69,6 +69,19 @@ class TestIndexerDriver(tests_base.TestCase):
                           "low")
         self.index.delete_metric(metric_id)
 
+    def test_list_ap_rules_ordered(self):
+        name = str(uuid.uuid4())
+        self.index.create_archive_policy(
+            archive_policy.ArchivePolicy(name, 0, {}))
+        self.index.create_archive_policy_rule('rule1', 'abc.*', name)
+        self.index.create_archive_policy_rule('rule2', 'abc.xyz.*', name)
+        self.index.create_archive_policy_rule('rule3', 'abc.xyz', name)
+        rules = self.index.list_archive_policy_rules()
+        self.assertEqual(3, len(rules))
+        self.assertEqual('abc.xyz.*', rules[0]['metric_pattern'])
+        self.assertEqual('abc.xyz', rules[1]['metric_pattern'])
+        self.assertEqual('abc.*', rules[2]['metric_pattern'])
+
     def test_create_metric(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
