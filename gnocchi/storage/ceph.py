@@ -15,10 +15,7 @@
 # under the License.
 
 import contextlib
-import ctypes
 import datetime
-import errno
-import time
 import uuid
 
 from oslo_config import cfg
@@ -46,61 +43,11 @@ OPTS = [
 ]
 
 
-class CephLock(object):
-    # NOTE(sileht): current stable python binding (0.80.X) doesn't
-    # have rados_lock_XXX method, so do ourself the call with ctypes
-    #
-    # When we raise required with something >= 0.94, we can use:
-    # - ctx.lock_exclusive(name, 'lock', 'gnocchi')
-    # - ctx.unlock(name, 'lock', 'gnocchi')
-
-    # TODO(sileht): Do this in tooz ?
-
-    def __init__(self, get_ioctx, name):
-        self._get_ioctx = get_ioctx
-        self._name = name
-
-    def acquire(self, blocking=True):
-        with self._get_ioctx() as ctx:
-            while True:
-                ret = rados.run_in_thread(
-                    ctx.librados.rados_lock_exclusive,
-                    (ctx.io, ctypes.c_char_p(self._name.encode('ascii')),
-                        ctypes.c_char_p(b"lock"),
-                        ctypes.c_char_p(b"gnocchi"),
-                        ctypes.c_char_p(b""), None, ctypes.c_int8(0)))
-                if ret in [errno.EBUSY, errno.EEXIST]:
-                    if blocking:
-                        time.sleep(0.1)
-                    else:
-                        return False
-                elif ret < 0:
-                    rados.make_ex(ret, "Error while getting lock of %s" %
-                                  self._name)
-                else:
-                    return True
-
-    def release(self):
-        with self._get_ioctx() as ctx:
-            ret = rados.run_in_thread(
-                ctx.librados.rados_unlock,
-                (ctx.io, ctypes.c_char_p(self._name.encode('ascii')),
-                    ctypes.c_char_p(b"lock"), ctypes.c_char_p(b"gnocchi")))
-            if ret < 0:
-                rados.make_ex(ret, "Error while releasing lock of %s" %
-                              self._name)
-
-    def __enter__(self):
-        return self.acquire()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        return self.release()
-
-
 class CephStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.pool = conf.ceph_pool
+        self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
         options = {}
         if conf.ceph_keyring:
             options['keyring'] = conf.ceph_keyring
@@ -176,9 +123,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             for n in object_names:
                 ctx.rm_xattr(self.MEASURE_PREFIX, n)
                 ctx.remove_object(n)
-
-    def _lock(self, metric):
-        return CephLock(self._get_ioctx, self._get_object_name(metric, "lock"))
 
     def _get_ioctx(self):
         return self.rados.open_ioctx(self.pool)
