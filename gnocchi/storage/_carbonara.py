@@ -23,6 +23,7 @@ from concurrent import futures
 import iso8601
 from oslo_config import cfg
 from oslo_serialization import msgpackutils
+from oslo_utils import timeutils
 from tooz import coordination
 
 from gnocchi import carbonara
@@ -162,7 +163,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     LOG.debug("Processing measures for %s" % metric)
                     with self._process_measure_for_metric(metric) as measures:
                         try:
-                            raw_measures = self._get_measures(metric, 'none')
+                            with timeutils.StopWatch() as sw:
+                                raw_measures = self._get_measures(metric,
+                                                                  'none')
+                                LOG.debug(
+                                    "Retrieve unaggregated measures "
+                                    "for %s in %.2fs"
+                                    % (metric.id, sw.elapsed()))
                         except storage.MetricDoesNotExist:
                             try:
                                 self._create_metric(metric)
@@ -192,10 +199,15 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 list((aggregation, metric, bound_timeserie)
                                      for aggregation in agg_methods))
 
-                        ts.set_values(
-                            measures,
-                            before_truncate_callback=_map_add_measures,
-                            ignore_too_old_timestamps=True)
+                        with timeutils.StopWatch() as sw:
+                            ts.set_values(
+                                measures,
+                                before_truncate_callback=_map_add_measures,
+                                ignore_too_old_timestamps=True)
+                            LOG.debug(
+                                "Computed new metric %s with %d new measures "
+                                "in %.2f seconds"
+                                % (metric.id, len(measures), sw.elapsed()))
 
                         self._store_metric_measures(metric, 'none',
                                                     ts.serialize())
