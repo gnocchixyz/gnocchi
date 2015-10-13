@@ -61,6 +61,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  conf=options)
         self.rados.connect()
 
+    def stop(self):
+        self._lock.stop()
+
     def _store_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
         # many objects (2min for 20000 objects in 50osds cluster),
