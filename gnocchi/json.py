@@ -45,3 +45,4 @@ def dumps(obj, *args, **kwargs):
 
 # For convenience
 loads = jsonutils.loads
+load = jsonutils.load

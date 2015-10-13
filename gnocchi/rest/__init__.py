@@ -130,8 +130,8 @@ def deserialize(schema, required=True):
     if mime_type != "application/json":
         abort(415)
     try:
-        params = json.loads(pecan.request.body.decode(
-            options.get('charset', 'ascii')))
+        params = json.load(pecan.request.body_file_raw,
+                           encoding=options.get('charset', 'ascii'))
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
     try:
