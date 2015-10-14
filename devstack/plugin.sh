@@ -225,8 +225,8 @@ function configure_gnocchi {
     iniset $GNOCCHI_CONF DEFAULT verbose True
     iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
 
-    # Install the policy file for the API server
-    cp $GNOCCHI_DIR/etc/gnocchi/policy.json $GNOCCHI_CONF_DIR
+    # Install the configuration files
+    cp $GNOCCHI_DIR/etc/gnocchi/* $GNOCCHI_CONF_DIR
 
     iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
     if [ "${GNOCCHI_COORDINATOR_URL:0:7}" == "file://" ]; then
@@ -263,16 +263,14 @@ function configure_gnocchi {
 
     if is_service_enabled key; then
         if is_service_enabled gnocchi-grafana; then
-            iniset_multiline $GNOCCHI_CONF api middlewares oslo_middleware.cors.CORS keystonemiddleware.auth_token.AuthProtocol
+            iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline "cors keystone_authtoken gnocchi"
             iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH
             iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
-        else
-            iniset $GNOCCHI_CONF api middlewares keystonemiddleware.auth_token.AuthProtocol
         fi
     else
-        iniset $GNOCCHI_CONF api middlewares ""
+        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi
     fi
 
     # Configure the indexer database

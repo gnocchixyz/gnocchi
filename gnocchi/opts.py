@@ -35,6 +35,9 @@ def list_opts():
                        'By default the available number of CPU is used.'),
         )),
         ("api", (
+            cfg.StrOpt('paste_config',
+                       default='api-paste.ini',
+                       help='Path to API Paste configuration.'),
             cfg.IntOpt('port',
                        default=8041,
                        help='The port for the Gnocchi API server.'),
@@ -46,8 +49,9 @@ def list_opts():
                         help='Toggle Pecan Debug Middleware.'),
             cfg.MultiStrOpt(
                 'middlewares',
-                default=['keystonemiddleware.auth_token.AuthProtocol'],
-                help='Middlewares to use',),
+                deprecated_for_removal=True,
+                default=[],
+                help='Middlewares to use. Use Paste config instead.',),
             cfg.IntOpt('workers', min=1,
                        help='Number of workers for Gnocchi API server. '
                        'By default the available number of CPU is used.'),
