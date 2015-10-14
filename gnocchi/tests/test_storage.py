@@ -36,6 +36,44 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, null.NullStorage)
 
+    @mock.patch('gnocchi.storage._carbonara.LOG')
+    def test_corrupted_data(self, logger):
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+        ])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [self.metric]
+            self.storage.process_background_tasks(self.index)
+
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 13, 0, 1), 1),
+        ])
+        with mock.patch.object(self.index, 'get_metrics',
+                               return_value=[self.metric]):
+            with mock.patch('gnocchi.carbonara.msgpack.unpack',
+                            side_effect=ValueError("boom!")):
+                with mock.patch('gnocchi.carbonara.msgpack.loads',
+                                side_effect=ValueError("boom!")):
+                    self.storage.process_background_tasks(self.index)
+
+        expected_calls = [
+            mock.call.debug('Processing measures for %s' % self.metric.id),
+            mock.call.debug('Processing measures for %s' % self.metric.id),
+        ]
+        aggs = ["none"] + self.conf.archive_policy.default_aggregation_methods
+        for agg in aggs:
+            expected_calls.append(mock.call.error(
+                'Data are corrupted for metric %s and aggregation %s, '
+                'recreating an empty timeserie.' % (self.metric.id, agg)))
+
+        logger.assert_has_calls(expected_calls, any_order=True)
+
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1), 86400.0, 1),
+            (utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1),
+            (utils.datetime_utc(2014, 1, 1, 13), 300.0, 1),
+        ], self.storage.get_measures(self.metric))
+
     def test_delete_nonempty_metric(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),

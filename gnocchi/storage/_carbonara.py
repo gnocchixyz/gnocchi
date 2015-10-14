@@ -93,15 +93,30 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 for timestamp, r, v
                 in archive.fetch(from_timestamp, to_timestamp)]
 
+    @staticmethod
+    def _log_data_corruption(metric, aggregation):
+        LOG.error("Data are corrupted for metric %(metric)s and aggregation "
+                  "%(aggregation)s, recreating an empty timeserie." %
+                  dict(metric=metric.id, aggregation=aggregation))
+
     def _get_measures_archive(self, metric, aggregation):
         try:
             contents = self._get_measures(metric, aggregation)
         except (storage.MetricDoesNotExist, storage.AggregationDoesNotExist):
-            return carbonara.TimeSerieArchive.from_definitions(
+            ts = None
+        else:
+            try:
+                ts = carbonara.TimeSerieArchive.unserialize(contents)
+            except ValueError:
+                self._log_data_corruption(metric, aggregation)
+                ts = None
+
+        if ts is None:
+            ts = carbonara.TimeSerieArchive.from_definitions(
                 [(v.granularity, v.points)
                  for v in metric.archive_policy.definition],
                 aggregation_method=aggregation)
-        return carbonara.TimeSerieArchive.unserialize(contents)
+        return ts
 
     def _add_measures(self, aggregation, metric, timeserie):
         archive = self._get_measures_archive(metric, aggregation)
@@ -176,22 +191,25 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             except storage.MetricDoesNotExist:
                                 # Created in the mean time, do not worry
                                 pass
-                            # This is the first time we treat measures for this
-                            # metric, create a new one
-                            mbs = metric.archive_policy.max_block_size
-                            ts = carbonara.BoundTimeSerie(
-                                block_size=mbs,
-                                back_window=metric.archive_policy.back_window)
+                            ts = None
                         except storage.AggregationDoesNotExist:
+                            ts = None
+                        else:
+                            try:
+                                ts = carbonara.BoundTimeSerie.unserialize(
+                                    raw_measures)
+                            except ValueError:
+                                ts = None
+                                self._log_data_corruption(metric, "none")
+
+                        if ts is None:
                             # This is the first time we treat measures for this
-                            # metric, create a new one
+                            # metric, or data are corrupted,
+                            # create a new one
                             mbs = metric.archive_policy.max_block_size
                             ts = carbonara.BoundTimeSerie(
                                 block_size=mbs,
                                 back_window=metric.archive_policy.back_window)
-                        else:
-                            ts = carbonara.BoundTimeSerie.unserialize(
-                                raw_measures)
 
                         def _map_add_measures(bound_timeserie):
                             self._map_in_thread(
