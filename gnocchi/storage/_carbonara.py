@@ -85,13 +85,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean'):
+                     aggregation='mean', granularity=None):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
         archive = self._get_measures_archive(metric, aggregation)
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                 for timestamp, r, v
-                in archive.fetch(from_timestamp, to_timestamp)]
+                in archive.fetch(from_timestamp, to_timestamp)
+                if granularity is None or r == granularity]
 
     @staticmethod
     def _log_data_corruption(metric, aggregation):

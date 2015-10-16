@@ -151,7 +151,7 @@ class InfluxDBStorage(storage.StorageDriver):
                                       value=points[-1]["fields"]["value"]))
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean'):
+                     aggregation='mean', granularity=None):
         super(InfluxDBStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
 
@@ -198,9 +198,13 @@ class InfluxDBStorage(storage.StorageDriver):
         # That's good enough until we support continuous query or the like.
 
         results = []
-        for definition in sorted(
-                metric.archive_policy.definition,
-                key=operator.attrgetter('granularity')):
+        defs = sorted(
+            (d
+             for d in metric.archive_policy.definition
+             if granularity is None or granularity == d.granularity),
+            key=operator.attrgetter('granularity'))
+
+        for definition in defs:
             time_query = self._make_time_query(
                 first_measure_timestamp,
                 to_timestamp,

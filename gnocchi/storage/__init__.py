@@ -207,13 +207,14 @@ class StorageDriver(object):
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean'):
+                     aggregation='mean', granularity=None):
         """Get a measure to a metric.
 
         :param metric: The metric measured.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
+        :param granularity: The granularity to retrieve.
         """
         if aggregation not in metric.archive_policy.aggregation_methods:
             raise AggregationDoesNotExist(metric, aggregation)
