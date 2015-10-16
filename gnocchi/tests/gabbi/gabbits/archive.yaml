@@ -359,6 +359,23 @@ tests:
       response_strings:
           - timespan ≠ granularity × points
 
+    - name: create identical granularities policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: complex
+          definition:
+              - granularity: 1 second
+                points: 60
+              - granularity: 1 second
+                points: 120
+      status: 400
+      response_strings:
+          - "More than one archive policy uses granularity `1.0'"
+
     - name: policy invalid unit
       url: /v1/archive_policy
       method: POST

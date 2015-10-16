@@ -19,6 +19,14 @@ from gnocchi import service
 
 class TestArchivePolicy(base.BaseTestCase):
 
+    def test_several_equal_granularities(self):
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicy,
+                          "foobar",
+                          0,
+                          [(10, 12), (20, 30), (20, 30)],
+                          ["*"])
+
     def test_aggregation_methods(self):
         conf = service.prepare_service([])
 
