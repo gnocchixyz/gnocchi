@@ -45,12 +45,52 @@ variants using, for example::
   pip install -e .[postgresql,ceph]
 
 
-Initialization and upgrade
-==========================
+Initialization
+==============
 
 Once you have configured Gnocchi properly (see :doc:`configuration`), you need
-to initialize (or upgrade) the indexer and storage:
+to initialize the indexer and storage:
 
 ::
 
     gnocchi-upgrade
+
+
+Upgrading
+=========
+In order to upgrade from a previous version of Gnocchi, you need to make sure
+that your indexer and storage are properly upgraded. Run the following:
+
+1. Stop the old version of Gnocchi API server and metric daemon
+
+2. Install the new version of Gnocchi
+
+2. Run `gnocchi-upgrade`
+   This can take several hours depending on the size of your index and
+   storage.
+
+3. Start the new Gnocchi API server and metric daemon
+
+Minimal interruption upgrade
+============================
+Gnocchi supports online upgrade of its storage system, which avoids
+interrupting Gnocchi for a long time. In order to upgrade from previous
+versions, you need to follow the following steps:
+
+1. Stop the old Gnocchi API server and metric daemon
+
+2. Run `gnocchi-upgrade --skip-storage` with the new version of Gnocchi.
+   This can take several minutes depending on the size of your index.
+
+3. Start the new Gnocchi API server.
+
+4. Run `gnocchi-upgrade` with the new version of Gnocchi
+   This can take several hours depending on the size of your storage.
+
+5. Start the new Gnocchi metric daemon.
+
+This will upgrade the indexer and storage in two passes. While a new version of
+Gnocchi API cannot run with an old version of the indexer, it can run with an
+old version of its storage back-end. For performance reasons, _metricd_ needs
+to run an upgraded storage back-end, otherwise it would spend too much time
+checking for upgrade pattern on each run.

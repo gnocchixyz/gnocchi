@@ -42,9 +42,9 @@ tests:
 
     - name: get measurements invalid granularity
       url: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=42
-      status: 200
-      response_json_paths:
-          $: []
+      status: 404
+      response_strings:
+        - Granularity '42.0' for metric $RESPONSE['$[0].id'] does not exist
 
     - name: get metric list for granularity
       url: /v1/metric

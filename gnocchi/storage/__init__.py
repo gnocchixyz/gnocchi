@@ -110,6 +110,17 @@ class AggregationDoesNotExist(StorageError):
             (method, metric))
 
 
+class GranularityDoesNotExist(StorageError):
+    """Error raised when the granularity doesn't exist for a metric."""
+
+    def __init__(self, metric, granularity):
+        self.metric = metric
+        self.granularity = granularity
+        super(GranularityDoesNotExist, self).__init__(
+            "Granularity '%s' for metric %s does not exist" %
+            (granularity, metric))
+
+
 class MetricAlreadyExists(StorageError):
     """Error raised when this metric already exists."""
 

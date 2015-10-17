@@ -414,7 +414,12 @@ class TestCase(base.BaseTestCase):
                                        'storage')
 
         self.storage = storage.get_driver(self.conf)
-        self.storage.upgrade(self.index)
+        # NOTE(jd) Do not upgrade the storage. We don't really need the storage
+        # upgrade for now, and the code that upgrade from pre-1.3
+        # (TimeSerieArchive) uses a lot of parallel lock, which makes tooz
+        # explodes because MySQL does not support that many connections in real
+        # life.
+        # self.storage.upgrade(self.index)
 
         self.mgr = extension.ExtensionManager('gnocchi.aggregates',
                                               invoke_on_load=True)

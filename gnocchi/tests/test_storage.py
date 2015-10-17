@@ -199,7 +199,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric,
             from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2),
-            granularity=3600))
+            granularity=3600.0))
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
@@ -207,10 +207,12 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric,
             from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2),
-            granularity=300))
+            granularity=300.0))
 
-        self.assertEqual([], self.storage.get_measures(self.metric,
-                                                       granularity=42))
+        self.assertRaises(storage.GranularityDoesNotExist,
+                          self.storage.get_measures,
+                          self.metric,
+                          granularity=42)
 
     def test_get_cross_metric_measures_unknown_metric(self):
         self.assertEqual([],
@@ -382,10 +384,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual(
             {metric2: [],
-             self.metric: [(utils.datetime_utc(2014, 1, 1, 12), 300, 69)]},
+             self.metric: [
+                 (utils.datetime_utc(2014, 1, 1), 86400, 33),
+                 (utils.datetime_utc(2014, 1, 1, 12), 3600, 33),
+                 (utils.datetime_utc(2014, 1, 1, 12), 300, 69),
+                 (utils.datetime_utc(2014, 1, 1, 12, 10), 300, 42)]},
             self.storage.search_value(
                 [metric2, self.metric],
-                {u"≥": 50}))
+                {u"≥": 30}))
 
         self.assertEqual(
             {metric2: [], self.metric: []},

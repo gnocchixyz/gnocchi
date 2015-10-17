@@ -14,7 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
-import os
 import subprocess
 import tempfile
 
@@ -114,7 +113,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6], sampling="4s")
 
-    def test_fetch(self):
+    def test_fetch_basic(self):
         ts = carbonara.AggregatedTimeSerie(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
@@ -258,12 +257,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(ts, ts2)
 
     def test_aggregated_different_archive_no_overlap(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=50)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=50)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.sampling)
 
         tsb1.set_values([(datetime.datetime(2014, 1, 1, 11, 46, 4), 4)],
                         before_truncate_callback=tsc1.update)
@@ -271,49 +268,26 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                         before_truncate_callback=tsc2.update)
 
         dtfrom = datetime.datetime(2014, 1, 1, 11, 0, 0)
-        self.assertRaises(
-            carbonara.UnAggregableTimeseries,
-            carbonara.AggregatedTimeSerie.aggregated,
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries],
-            from_timestamp=dtfrom)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom)
 
     def test_aggregated_different_archive_no_overlap2(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=50)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=50)
 
         tsb1.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 0), 4)],
                         before_truncate_callback=tsc1.update)
-        self.assertRaises(
-            carbonara.UnAggregableTimeseries,
-            carbonara.AggregatedTimeSerie.aggregated,
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries])
-
-    def test_aggregated_different_archive_no_overlap_but_dont_care(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 50)])
-
-        tsb1.set_values([(datetime.datetime(2014, 1, 1, 12, 3, 0), 4)],
-                        before_truncate_callback=tsc1.update)
-
-        res = carbonara.AggregatedTimeSerie.aggregated(
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries],
-            needed_percent_of_overlap=0)
-        self.assertEqual([(pandas.Timestamp('2014-01-01 12:03:00'),
-                           60.0, 4.0)], res)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          [tsc1, tsc2])
 
     def test_aggregated_different_archive_overlap(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.sampling)
 
         # NOTE(sileht): minute 8 is missing in both and
         # minute 7 in tsc2 too, but it looks like we have
@@ -347,18 +321,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         # By default we require 100% of point that overlap
         # so that fail
-        self.assertRaises(
-            carbonara.UnAggregableTimeseries,
-            carbonara.AggregatedTimeSerie.aggregated,
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries
-             if ts.sampling],
-            from_timestamp=dtfrom,
-            to_timestamp=dtto)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom,
+                          to_timestamp=dtto)
 
         # Retry with 80% and it works
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries],
-            from_timestamp=dtfrom, to_timestamp=dtto,
+        output = carbonara.AggregatedTimeSerie.aggregated([
+            tsc1, tsc2], from_timestamp=dtfrom, to_timestamp=dtto,
             needed_percent_of_overlap=80.0)
 
         self.assertEqual([
@@ -373,10 +343,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ], output)
 
     def test_aggregated_different_archive_overlap_edge_missing1(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.sampling)
 
         tsb1.set_values([
             (datetime.datetime(2014, 1, 1, 12, 3, 0), 9),
@@ -400,9 +370,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         # By default we require 100% of point that overlap
         # but we allow that the last datapoint is missing
         # of the precisest granularity
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries],
-            aggregation='sum')
+        output = carbonara.AggregatedTimeSerie.aggregated([
+            tsc1, tsc2], aggregation='sum')
 
         self.assertEqual([
             (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 33.0),
@@ -412,10 +381,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ], output)
 
     def test_aggregated_different_archive_overlap_edge_missing2(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions([(60, 10)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.sampling)
 
         tsb1.set_values([
             (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
@@ -426,108 +395,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 3, 0), 4),
         ], before_truncate_callback=tsc2.update)
 
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries]
-        )
+        output = carbonara.AggregatedTimeSerie.aggregated([tsc1, tsc2])
         self.assertEqual([
             (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
         ], output)
 
-    def test_aggregated_partial_overlap(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions([(1, 86400)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions([(1, 86400)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
-
-        tsb1.set_values([
-            (datetime.datetime(2015, 12, 3, 13, 19, 15), 1),
-            (datetime.datetime(2015, 12, 3, 13, 20, 15), 1),
-            (datetime.datetime(2015, 12, 3, 13, 21, 15), 1),
-            (datetime.datetime(2015, 12, 3, 13, 22, 15), 1),
-        ], before_truncate_callback=tsc1.update)
-
-        tsb2.set_values([
-            (datetime.datetime(2015, 12, 3, 13, 21, 15), 10),
-            (datetime.datetime(2015, 12, 3, 13, 22, 15), 10),
-            (datetime.datetime(2015, 12, 3, 13, 23, 15), 10),
-            (datetime.datetime(2015, 12, 3, 13, 24, 15), 10),
-        ], before_truncate_callback=tsc2.update)
-
-        timeseries = [ts for tsa in [tsc1, tsc2]
-                      for ts in tsa.agg_timeseries]
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            timeseries, aggregation="sum")
-
-        self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-        ], output)
-
-        dtfrom = datetime.datetime(2015, 12, 3, 13, 17, 0)
-        dtto = datetime.datetime(2015, 12, 3, 13, 25, 0)
-
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            timeseries, from_timestamp=dtfrom, to_timestamp=dtto,
-            aggregation="sum", needed_percent_of_overlap=0)
-
-        self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
-            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
-        ], output)
-
-        # By default we require 100% of point that overlap
-        # so that fail if from or to is set
-        self.assertRaises(carbonara.UnAggregableTimeseries,
-                          carbonara.AggregatedTimeSerie.aggregated,
-                          timeseries, to_timestamp=dtto)
-        self.assertRaises(carbonara.UnAggregableTimeseries,
-                          carbonara.AggregatedTimeSerie.aggregated,
-                          timeseries, from_timestamp=dtfrom)
-
-        # Retry with 50% and it works
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            timeseries, from_timestamp=dtfrom,
-            aggregation="sum",
-            needed_percent_of_overlap=50.0)
-        self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-        ], output)
-
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            timeseries, to_timestamp=dtto,
-            aggregation="sum",
-            needed_percent_of_overlap=50.0)
-        self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
-            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
-        ], output)
-
-
-class TestTimeSerieArchive(base.BaseTestCase):
-
-    def test_empty_update(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10),
-             (300, 6)])
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
-        tsb.set_values([], before_truncate_callback=tsc.update)
-
-        self.assertEqual([], tsc.fetch())
-
     def test_fetch(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10),
-             (300, 6)])
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
@@ -545,19 +420,14 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 4, 9), 7),
             (datetime.datetime(2014, 1, 1, 12, 5, 1), 15),
             (datetime.datetime(2014, 1, 1, 12, 5, 12), 1),
-            (datetime.datetime(2014, 1, 1, 12, 6, 0), 3),
-        ], before_truncate_callback=tsc.update)
+            (datetime.datetime(2014, 1, 1, 12, 6, 0, 2), 3),
+        ], before_truncate_callback=ts.update)
 
         tsb.set_values([
-            (datetime.datetime(2014, 1, 1, 12, 5, 13), 5),
-        ], before_truncate_callback=tsc.update)
+            (datetime.datetime(2014, 1, 1, 12, 6), 5),
+        ], before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 11, 45), 300.0, 6.0),
-            (datetime.datetime(2014, 1, 1, 11, 50), 300.0, 27.0),
-            (datetime.datetime(2014, 1, 1, 11, 55), 300.0, 5.0),
-            (datetime.datetime(2014, 1, 1, 12, 00), 300.0, 6.166666666666667),
-            (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 6.0),
             (datetime.datetime(2014, 1, 1, 11, 54), 60.0, 4.0),
             (datetime.datetime(2014, 1, 1, 11, 56), 60.0, 4.0),
             (datetime.datetime(2014, 1, 1, 11, 57), 60.0, 6.0),
@@ -566,39 +436,31 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 2), 60.0, 8.0),
             (datetime.datetime(2014, 1, 1, 12, 3), 60.0, 3.0),
             (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
-            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 7.0),
-            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 3.0)
-        ], tsc.fetch())
+            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 8.0),
+            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 4.0)
+        ], ts.fetch())
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 12), 300.0, 6.166666666666667),
-            (datetime.datetime(2014, 1, 1, 12, 5), 300.0, 6.0),
             (datetime.datetime(2014, 1, 1, 12, 1), 60.0, 5.5),
             (datetime.datetime(2014, 1, 1, 12, 2), 60.0, 8.0),
             (datetime.datetime(2014, 1, 1, 12, 3), 60.0, 3.0),
             (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
-            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 7.0),
-            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 3.0)
-        ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+            (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 8.0),
+            (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 4.0)
+        ], ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_fetch_agg_pct(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(1, 3600 * 24),
-             (60, 24 * 60 * 30)],
-            aggregation_method='90pct')
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=1, max_size=3600 * 24,
+                                           aggregation_method='90pct')
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
-        # NOTE(jd) What's interesting in this test is that we lack a point for
-        # a second, so we have an interval with no value
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
                         (datetime.datetime(2014, 1, 1, 12, 0, 0, 123), 4),
                         (datetime.datetime(2014, 1, 1, 12, 0, 2), 4)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
-        result = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
+        result = ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
         reference = [
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             60.0, 4),
             (pandas.Timestamp('2014-01-01 12:00:00'),
              1.0, 3.9),
             (pandas.Timestamp('2014-01-01 12:00:02'),
@@ -614,12 +476,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
             self.assertAlmostEqual(ref[2], res[2])
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 2, 113), 110)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
-        result = tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
+        result = ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
         reference = [
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             60.0, 78.2),
             (pandas.Timestamp('2014-01-01 12:00:00'),
              1.0, 3.9),
             (pandas.Timestamp('2014-01-01 12:00:02'),
@@ -635,10 +495,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
             self.assertAlmostEqual(ref[2], res[2])
 
     def test_fetch_nano(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(0.2, 10),
-             (0.5, 6)])
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=0.2, max_size=10)
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 0, 200123), 4),
@@ -646,95 +504,78 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 11, 47, 0, 323154), 50),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 590903), 4),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 903291), 4),
-        ], before_truncate_callback=tsc.update)
+        ], before_truncate_callback=ts.update)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 821312), 5),
-        ], before_truncate_callback=tsc.update)
+        ], before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 11, 46), 0.5, 6.0),
-            (datetime.datetime(2014, 1, 1, 11, 47), 0.5, 50.0),
-            (datetime.datetime(2014, 1, 1, 11, 48, 0, 500000), 0.5,
-             4.333333333333333),
             (datetime.datetime(2014, 1, 1, 11, 46, 0, 200000), 0.2, 6.0),
             (datetime.datetime(2014, 1, 1, 11, 47, 0, 200000), 0.2, 50.0),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 400000), 0.2, 4.0),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 800000), 0.2, 4.5)
-        ], tsc.fetch())
+        ], ts.fetch())
 
     def test_fetch_agg_std(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 60),
-             (300, 24)],
-            aggregation_method='std')
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=60, max_size=60,
+                                           aggregation_method='std')
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
                         (datetime.datetime(2014, 1, 1, 12, 1, 4), 4),
                         (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
                         (datetime.datetime(2014, 1, 1, 12, 2, 1), 15),
                         (datetime.datetime(2014, 1, 1, 12, 2, 12), 1)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             300.0, 5.4772255750516612),
             (pandas.Timestamp('2014-01-01 12:01:00'),
              60.0, 2.1213203435596424),
             (pandas.Timestamp('2014-01-01 12:02:00'),
              60.0, 9.8994949366116654),
-        ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             300.0, 42.739521132865619),
             (pandas.Timestamp('2014-01-01 12:01:00'),
              60.0, 2.1213203435596424),
             (pandas.Timestamp('2014-01-01 12:02:00'),
              60.0, 59.304300012730948),
-        ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_fetch_agg_max(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 60),
-             (300, 24)],
-            aggregation_method='max')
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=60, max_size=60,
+                                           aggregation_method='max')
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
                         (datetime.datetime(2014, 1, 1, 12, 1, 4), 4),
                         (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
                         (datetime.datetime(2014, 1, 1, 12, 2, 1), 15),
                         (datetime.datetime(2014, 1, 1, 12, 2, 12), 1)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'), 300.0, 15),
             (pandas.Timestamp('2014-01-01 12:00:00'), 60.0, 3),
             (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 7),
             (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 15),
-        ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
-                       before_truncate_callback=tsc.update)
+                       before_truncate_callback=ts.update)
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'), 300.0, 110),
             (pandas.Timestamp('2014-01-01 12:00:00'), 60.0, 3),
             (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 7),
             (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 110),
-        ], tsc.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], ts.fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_serialize(self):
-        tsc = carbonara.TimeSerieArchive.from_definitions(
-            [(0.5, None),
-             (2, None)])
-
-        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=0.5)
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 0, 1234), 3),
@@ -742,43 +583,14 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 1, 4, 234), 5),
             (datetime.datetime(2014, 1, 1, 12, 1, 9, 32), 7),
             (datetime.datetime(2014, 1, 1, 12, 2, 12, 532), 1),
-        ], before_truncate_callback=tsc.update)
+        ], before_truncate_callback=ts.update)
 
-        self.assertEqual(tsc,
-                         carbonara.TimeSerieArchive.unserialize(
-                             tsc.serialize()))
-
-    def test_from_dict_resampling_stddev(self):
-        d = {'timeserie': {'values': {u'2013-01-01 23:45:01.182000': 1.0,
-                                      u'2013-01-01 23:45:02.975000': 2.0,
-                                      u'2013-01-01 23:45:03.689000': 3.0,
-                                      u'2013-01-01 23:45:04.292000': 4.0,
-                                      u'2013-01-01 23:45:05.416000': 5.0,
-                                      u'2013-01-01 23:45:06.995000': 6.0,
-                                      u'2013-01-01 23:45:07.065000': 7.0,
-                                      u'2013-01-01 23:45:08.634000': 8.0,
-                                      u'2013-01-01 23:45:09.572000': 9.0,
-                                      u'2013-01-01 23:45:10.672000': 10.0},
-                           'timespan': u'120S'},
-             'archives': [{'aggregation_method': u'std',
-                           'values': {u'2013-01-01 23:40:00':
-                                      3.0276503540974917,
-                                      u'2013-01-01 23:45:00':
-                                      3.0276503540974917},
-                           'max_size': 3600,
-                           'sampling': u'60S'}]}
-        timeseries = carbonara.TimeSerieArchive.from_dict(d)
-        measure = timeseries.fetch()
-        self.assertEqual(2, len(measure))
-        measure = timeseries.fetch('2013-01-01 23:45:00',
-                                   '2013-01-01 23:46:00')
-        self.assertEqual(pandas.Timestamp('2013-01-01 23:45:00'),
-                         measure[0][0])
-        self.assertAlmostEquals(measure[0][2], 3.0276503540974917)
+        self.assertEqual(ts,
+                         carbonara.AggregatedTimeSerie.unserialize(
+                             ts.serialize()))
 
     def test_no_truncation(self):
-        ts = carbonara.TimeSerieArchive.from_definitions(
-            [(60, None)])
+        ts = carbonara.AggregatedTimeSerie(sampling=60)
         tsb = carbonara.BoundTimeSerie()
 
         for i in six.moves.range(1, 11):
@@ -796,9 +608,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
         Test the back window on an archive is not longer than the window we
         aggregate on.
         """
-        ts = carbonara.TimeSerieArchive.from_definitions(
-            [(1, 60)])
-        tsb = carbonara.BoundTimeSerie(block_size=ts.max_block_size)
+        ts = carbonara.AggregatedTimeSerie(sampling=1, max_size=60)
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 1, 2300), 1),
@@ -837,9 +648,8 @@ class TestTimeSerieArchive(base.BaseTestCase):
         Test the back window on an archive is not longer than the window we
         aggregate on.
         """
-        ts = carbonara.TimeSerieArchive.from_definitions(
-            [(1, 60)])
-        tsb = carbonara.BoundTimeSerie(block_size=1)
+        ts = carbonara.AggregatedTimeSerie(sampling=1, max_size=60)
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 1, 2300), 1),
@@ -883,14 +693,20 @@ class TestTimeSerieArchive(base.BaseTestCase):
             ts.fetch())
 
     def test_aggregated_nominal(self):
-        tsc1 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10),
-             (300, 6)])
-        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
-        tsc2 = carbonara.TimeSerieArchive.from_definitions(
-            [(60, 10),
-             (300, 6)])
-        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsc12 = carbonara.AggregatedTimeSerie(sampling=300, max_size=6)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc12.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=60, max_size=10)
+        tsc22 = carbonara.AggregatedTimeSerie(sampling=300, max_size=6)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc22.sampling)
+
+        def ts1_update(ts):
+            tsc1.update(ts)
+            tsc12.update(ts)
+
+        def ts2_update(ts):
+            tsc2.update(ts)
+            tsc22.update(ts)
 
         tsb1.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 4), 4),
@@ -909,7 +725,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 5, 1), 15),
             (datetime.datetime(2014, 1, 1, 12, 5, 12), 1),
             (datetime.datetime(2014, 1, 1, 12, 6, 0), 3),
-        ], before_truncate_callback=tsc1.update)
+        ], before_truncate_callback=ts1_update)
 
         tsb2.set_values([
             (datetime.datetime(2014, 1, 1, 11, 46, 4), 6),
@@ -928,10 +744,10 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 5, 1), 10),
             (datetime.datetime(2014, 1, 1, 12, 5, 12), 1),
             (datetime.datetime(2014, 1, 1, 12, 6, 0), 1),
-        ], before_truncate_callback=tsc2.update)
+        ], before_truncate_callback=ts2_update)
 
-        output = carbonara.AggregatedTimeSerie.aggregated(
-            [ts for tsa in [tsc1, tsc2] for ts in tsa.agg_timeseries])
+        output = carbonara.AggregatedTimeSerie.aggregated([tsc1, tsc12,
+                                                           tsc2, tsc22])
         self.assertEqual([
             (datetime.datetime(2014, 1, 1, 11, 45), 300.0, 5.75),
             (datetime.datetime(2014, 1, 1, 11, 50), 300.0, 27.5),
@@ -950,6 +766,82 @@ class TestTimeSerieArchive(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 2.0),
         ], output)
 
+    def test_aggregated_partial_overlap(self):
+        tsc1 = carbonara.AggregatedTimeSerie(sampling=1, max_size=86400)
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.sampling)
+        tsc2 = carbonara.AggregatedTimeSerie(sampling=1, max_size=86400)
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.sampling)
+
+        tsb1.set_values([
+            (datetime.datetime(2015, 12, 3, 13, 19, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 20, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 21, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 22, 15), 1),
+        ], before_truncate_callback=tsc1.update)
+
+        tsb2.set_values([
+            (datetime.datetime(2015, 12, 3, 13, 21, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 22, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 23, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 24, 15), 10),
+        ], before_truncate_callback=tsc2.update)
+
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            [tsc1, tsc2], aggregation="sum")
+
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+        ], output)
+
+        dtfrom = datetime.datetime(2015, 12, 3, 13, 17, 0)
+        dtto = datetime.datetime(2015, 12, 3, 13, 25, 0)
+
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            [tsc1, tsc2], from_timestamp=dtfrom, to_timestamp=dtto,
+            aggregation="sum", needed_percent_of_overlap=0)
+
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
+            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
+        ], output)
+
+        # By default we require 100% of point that overlap
+        # so that fail if from or to is set
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          [tsc1, tsc2], to_timestamp=dtto)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          [tsc1, tsc2], from_timestamp=dtfrom)
+
+        # Retry with 50% and it works
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            [tsc1, tsc2], from_timestamp=dtfrom,
+            aggregation="sum",
+            needed_percent_of_overlap=50.0)
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+        ], output)
+
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            [tsc1, tsc2], to_timestamp=dtto,
+            aggregation="sum",
+            needed_percent_of_overlap=50.0)
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
+            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
+        ], output)
+
 
 class CarbonaraCmd(base.BaseTestCase):
 
@@ -957,25 +849,22 @@ class CarbonaraCmd(base.BaseTestCase):
         super(CarbonaraCmd, self).setUp()
         self.useFixture(fixtures.NestedTempfile())
 
-    def test_create(self):
-        filename = tempfile.mktemp()
-        subp = subprocess.Popen(['carbonara-create',
-                                 '1,2',
-                                 filename],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        out, err = subp.communicate()
-        subp.wait()
-        os.stat(filename)
-        self.assertEqual(0, subp.returncode)
-        self.assertEqual(b"", out)
-
     def test_dump(self):
+        ts = carbonara.AggregatedTimeSerie(sampling=60, max_size=60,
+                                           aggregation_method='max')
+        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
+        tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+                        (datetime.datetime(2014, 1, 1, 12, 1, 4), 4),
+                        (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
+                        (datetime.datetime(2014, 1, 1, 12, 2, 1), 15),
+                        (datetime.datetime(2014, 1, 1, 12, 2, 12), 1)],
+                       before_truncate_callback=ts.update)
+
         filename = tempfile.mktemp()
-        subp = subprocess.Popen(['carbonara-create',
-                                 '1,2',
-                                 filename])
-        subp.wait()
+
+        with open(filename, "wb") as f:
+            f.write(ts.serialize())
+
         subp = subprocess.Popen(['carbonara-dump',
                                  filename],
                                 stdout=subprocess.PIPE,
@@ -983,44 +872,3 @@ class CarbonaraCmd(base.BaseTestCase):
         out, err = subp.communicate()
         subp.wait()
         self.assertIn(b"Aggregation method", out)
-
-    def test_update(self):
-        filename = tempfile.mktemp()
-        subp = subprocess.Popen(['carbonara-create',
-                                 '2,2',
-                                 filename])
-        subp.wait()
-        self.assertEqual(0, subp.returncode)
-
-        subp = subprocess.Popen(['carbonara-update',
-                                 '2014-12-23 23:23:23,1',
-                                 '2014-12-23 23:23:24,10',
-                                 filename])
-        subp.wait()
-        self.assertEqual(0, subp.returncode)
-
-        subp = subprocess.Popen(['carbonara-update',
-                                 '2014-12-23 23:23:25,7',
-                                 filename])
-        subp.wait()
-        self.assertEqual(0, subp.returncode)
-
-        subp = subprocess.Popen(['carbonara-dump',
-                                 filename],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        out, err = subp.communicate()
-        subp.wait()
-        self.assertEqual(0, subp.returncode)
-        self.assertEqual(u"""Aggregation method: mean
-Number of aggregated timeseries: 1
-
-Aggregated timeserie #1: 2s × 2 = 0:00:04
-Number of measures: 2
-+---------------------+-------+
-|      Timestamp      | Value |
-+---------------------+-------+
-| 2014-12-23 23:23:22 |  1.0  |
-| 2014-12-23 23:23:24 |  7.0  |
-+---------------------+-------+
-""", out.decode('utf-8'))

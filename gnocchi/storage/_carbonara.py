@@ -68,7 +68,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return self.coord.get_lock(lock_name)
 
     @staticmethod
-    def _get_measures(metric, aggregation):
+    def _get_measures(metric, aggregation, granularity):
         raise NotImplementedError
 
     @staticmethod
@@ -80,18 +80,24 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _store_metric_measures(metric, aggregation, data):
+    def _store_metric_measures(metric, aggregation, granularity, data):
         raise NotImplementedError
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean', granularity=None):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
-        archive = self._get_measures_archive(metric, aggregation)
+        if granularity is None:
+            agg_timeseries = self._map_in_thread(
+                self._get_measures_timeserie,
+                ((metric, aggregation, ap.granularity)
+                 for ap in reversed(metric.archive_policy.definition)))
+        else:
+            agg_timeseries = [self._get_measures_timeserie(
+                metric, aggregation, granularity)]
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
-                for timestamp, r, v
-                in archive.fetch(from_timestamp, to_timestamp)
-                if granularity is None or r == granularity]
+                for ts in agg_timeseries
+                for timestamp, r, v in ts.fetch(from_timestamp, to_timestamp)]
 
     @staticmethod
     def _log_data_corruption(metric, aggregation):
@@ -99,30 +105,52 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                   "%(aggregation)s, recreating an empty timeserie." %
                   dict(metric=metric.id, aggregation=aggregation))
 
-    def _get_measures_archive(self, metric, aggregation):
+    def _get_measures_timeserie(self, metric, aggregation, granularity):
         try:
-            contents = self._get_measures(metric, aggregation)
-        except (storage.MetricDoesNotExist, storage.AggregationDoesNotExist):
+            contents = self._get_measures(metric, aggregation, granularity)
+        except storage.MetricDoesNotExist:
             ts = None
+        except storage.AggregationDoesNotExist:
+            # This does not necessarily mean that the metric has not been
+            # created yet. It can be an old metric with a TimeSerieArchive.
+            # Let's try that.
+            try:
+                data = self._get_metric_archive(metric, aggregation)
+            except (storage.MetricDoesNotExist,
+                    storage.AggregationDoesNotExist):
+                # It really does not exist
+                ts = None
+            else:
+                archive = carbonara.TimeSerieArchive.unserialize(data)
+                # It's an old metric with an TimeSerieArchive!
+                for ts in archive.agg_timeseries:
+                    if ts.sampling == granularity:
+                        return ts
+                raise storage.GranularityDoesNotExist(metric, granularity)
         else:
             try:
-                ts = carbonara.TimeSerieArchive.unserialize(contents)
+                ts = carbonara.AggregatedTimeSerie.unserialize(contents)
             except ValueError:
                 self._log_data_corruption(metric, aggregation)
                 ts = None
 
         if ts is None:
-            ts = carbonara.TimeSerieArchive.from_definitions(
-                [(v.granularity, v.points)
-                 for v in metric.archive_policy.definition],
-                aggregation_method=aggregation)
+            for d in metric.archive_policy.definition:
+                if d.granularity == granularity:
+                    ts = carbonara.AggregatedTimeSerie(
+                        aggregation_method=aggregation,
+                        sampling=granularity,
+                        max_size=d.points)
+                    break
+            else:
+                raise storage.GranularityDoesNotExist(metric, granularity)
         return ts
 
-    def _add_measures(self, aggregation, metric, timeserie):
-        archive = self._get_measures_archive(metric, aggregation)
-        archive.update(timeserie)
-        self._store_metric_measures(metric, aggregation,
-                                    archive.serialize())
+    def _add_measures(self, aggregation, granularity, metric, timeserie):
+        ts = self._get_measures_timeserie(metric, aggregation, granularity)
+        ts.update(timeserie)
+        self._store_metric_measures(metric, aggregation, granularity,
+                                    ts.serialize())
 
     def add_measures(self, metric, measures):
         self._store_measures(metric, msgpackutils.dumps(
@@ -146,6 +174,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def delete_metric(self, metric):
         with self._lock(metric):
+            # If the metric has never been upgraded, we need to delete this
+            # here too
+            self._delete_metric_archives(metric)
             self._delete_metric(metric)
 
     @staticmethod
@@ -157,6 +188,41 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return dict(
             (metric_id, self._pending_measures_to_process_count(metric_id))
             for metric_id in metrics_to_process)
+
+    def _check_for_metric_upgrade(self, metric):
+        lock = self._lock(metric)
+        with lock:
+            for agg_method in metric.archive_policy.aggregation_methods:
+                LOG.debug(
+                    "Checking if the metric %s needs migration for %s"
+                    % (metric, agg_method))
+                try:
+                    data = self._get_metric_archive(metric, agg_method)
+                except storage.MetricDoesNotExist:
+                    # Just try the next metric, this one has no measures
+                    break
+                except storage.AggregationDoesNotExist:
+                    # This should not happen, but you never know.
+                    LOG.warn(
+                        "Metric %s does not have an archive "
+                        "for aggregation %s, "
+                        "no migration can be done" % (metric, agg_method))
+                else:
+                    LOG.info("Migrating metric %s to new format" % metric)
+                    archive = carbonara.TimeSerieArchive.unserialize(data)
+                    for ts in archive.agg_timeseries:
+                        # Store each AggregatedTimeSerie independently
+                        self._store_metric_measures(
+                            metric, ts.aggregation_method,
+                            ts.sampling,
+                            ts.serialize())
+            self._delete_metric_archives(metric)
+            LOG.info("Migrated metric %s to new format" % metric)
+
+    def upgrade(self, index):
+        self._map_in_thread(
+            self._check_for_metric_upgrade,
+            ((metric,) for metric in index.list_metrics()))
 
     def process_measures(self, indexer, sync=False):
         metrics_to_process = self._list_metric_with_measures_to_process()
@@ -204,8 +270,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
                         if ts is None:
                             # This is the first time we treat measures for this
-                            # metric, or data are corrupted,
-                            # create a new one
+                            # metric, or data are corrupted, create a new one
                             mbs = metric.archive_policy.max_block_size
                             ts = carbonara.BoundTimeSerie(
                                 block_size=mbs,
@@ -214,8 +279,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         def _map_add_measures(bound_timeserie):
                             self._map_in_thread(
                                 self._add_measures,
-                                list((aggregation, metric, bound_timeserie)
-                                     for aggregation in agg_methods))
+                                ((aggregation, d.granularity,
+                                 metric, bound_timeserie)
+                                 for aggregation in agg_methods
+                                 for d in metric.archive_policy.definition))
 
                         with timeutils.StopWatch() as sw:
                             ts.set_values(
@@ -236,6 +303,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 finally:
                     lock.release()
 
+    # TODO(jd) Add granularity parameter here and in the REST API
+    # rather than fetching all granularities
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
                                   needed_overlap=100.0):
@@ -255,41 +324,52 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         if not granularities_in_common:
             raise storage.MetricUnaggregatable(metrics, 'No granularity match')
 
-        tss = self._map_in_thread(self._get_measures_archive,
-                                  [(metric, aggregation)
-                                   for metric in metrics])
-        timeseries = [agg_ts
-                      for ts in tss
-                      for agg_ts in ts.agg_timeseries]
+        tss = self._map_in_thread(self._get_measures_timeserie,
+                                  [(metric, aggregation, granularity)
+                                   for metric in metrics
+                                   for granularity in granularities_in_common])
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                     for timestamp, r, v
                     in carbonara.AggregatedTimeSerie.aggregated(
-                        timeseries, from_timestamp, to_timestamp,
+                        tss, from_timestamp, to_timestamp,
                         aggregation, needed_overlap)]
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
 
-    def _find_measure(self, metric, aggregation, predicate,
+    def _find_measure(self, metric, aggregation, granularity, predicate,
                       from_timestamp, to_timestamp):
-        timeserie = self._get_measures_archive(metric, aggregation)
+        timeserie = self._get_measures_timeserie(
+            metric, aggregation, granularity)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return {metric:
                 [(timestamp.replace(tzinfo=iso8601.iso8601.UTC),
-                  granularity, value)
-                 for timestamp, granularity, value in values
+                  g, value)
+                 for timestamp, g, value in values
                  if predicate(value)]}
 
+    # TODO(jd) Add granularity parameter here and in the REST API
+    # rather than fetching all granularities
     def search_value(self, metrics, query, from_timestamp=None,
                      to_timestamp=None, aggregation='mean'):
-        result = {}
         predicate = storage.MeasureQuery(query)
-        results = self._map_in_thread(self._find_measure,
-                                      [(metric, aggregation, predicate,
-                                        from_timestamp, to_timestamp)
-                                       for metric in metrics])
+        results = self._map_in_thread(
+            self._find_measure,
+            [(metric, aggregation,
+              ap.granularity, predicate,
+              from_timestamp, to_timestamp)
+             for metric in metrics
+             for ap in metric.archive_policy.definition])
+        result = collections.defaultdict(list)
         for r in results:
-            result.update(r)
+            for metric, metric_result in six.iteritems(r):
+                result[metric].extend(metric_result)
+
+        # Sort the result
+        for metric, r in six.iteritems(result):
+            # Sort by timestamp asc, granularity desc
+            r.sort(key=lambda t: (t[0], - t[1]))
+
         return result
 
     def _map_in_thread(self, method, list_of_args):

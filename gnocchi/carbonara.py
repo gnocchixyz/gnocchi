@@ -28,9 +28,6 @@ import six
 
 LOG = logging.getLogger(__name__)
 
-AGGREGATION_METHODS = set(('mean', 'sum', 'last', 'max', 'min',
-                           'std', 'median', 'first', 'count'))
-
 
 class NoDeloreanAvailable(Exception):
     """Error raised when trying to insert a value that is too old."""
@@ -487,10 +484,6 @@ class TimeSerieArchive(SerializableMixin):
         self.agg_timeseries = sorted(agg_timeseries,
                                      key=operator.attrgetter("sampling"))
 
-    @property
-    def max_block_size(self):
-        return max(agg.sampling for agg in self.agg_timeseries)
-
     @classmethod
     def from_definitions(cls, definitions, aggregation_method='mean'):
         """Create a new collection of archived time series.
@@ -502,7 +495,7 @@ class TimeSerieArchive(SerializableMixin):
         return cls(
             [AggregatedTimeSerie(
                 max_size=size,
-                sampling=pandas.tseries.offsets.Nano(sampling * 10e8),
+                sampling=sampling,
                 aggregation_method=aggregation_method)
              for sampling, size in definitions]
         )
@@ -529,10 +522,6 @@ class TimeSerieArchive(SerializableMixin):
                            in six.iteritems(points)])
         return result
 
-    def __eq__(self, other):
-        return (isinstance(other, TimeSerieArchive)
-                and self.agg_timeseries == other.agg_timeseries)
-
     def update(self, timeserie):
         for agg in self.agg_timeseries:
             agg.update(timeserie)
@@ -542,6 +531,10 @@ class TimeSerieArchive(SerializableMixin):
             "archives": [ts.to_dict() for ts in self.agg_timeseries],
         }
 
+    def __eq__(self, other):
+        return (isinstance(other, TimeSerieArchive)
+                and self.agg_timeseries == other.agg_timeseries)
+
     @classmethod
     def from_dict(cls, d):
         return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
@@ -550,47 +543,12 @@ class TimeSerieArchive(SerializableMixin):
 import argparse
 import datetime
 
-from oslo_utils import timeutils
 import prettytable
-
-
-def _definition(value):
-    result = value.split(",")
-    if len(result) != 2:
-        raise ValueError("Format is: seconds,points")
-    return int(result[0]), int(result[1])
-
-
-def create_archive_file():
-    parser = argparse.ArgumentParser(
-        description="Create a Carbonara file",
-    )
-    parser.add_argument("--aggregation-method",
-                        type=six.text_type,
-                        default="mean",
-                        choices=AGGREGATION_METHODS,
-                        help="aggregation method to use")
-    parser.add_argument("--back-window",
-                        type=int,
-                        default=0,
-                        help="back window to keep")
-    parser.add_argument("definition",
-                        type=_definition,
-                        nargs='+',
-                        help="archive definition as granularity,points")
-    parser.add_argument("filename",
-                        nargs=1,
-                        type=argparse.FileType(mode="wb"),
-                        help="File name to create")
-    args = parser.parse_args()
-    ts = TimeSerieArchive.from_definitions(args.definition,
-                                           args.aggregation_method)
-    args.filename[0].write(ts.serialize())
 
 
 def dump_archive_file():
     parser = argparse.ArgumentParser(
-        description="Dump a Carbonara file",
+        description="Dump a Carbonara aggregated file",
     )
     parser.add_argument("filename",
                         nargs=1,
@@ -598,61 +556,13 @@ def dump_archive_file():
                         help="File name to read")
     args = parser.parse_args()
 
-    ts = TimeSerieArchive.unserialize_from_file(args.filename[0])
+    ts = AggregatedTimeSerie.unserialize_from_file(args.filename[0])
 
-    print("Aggregation method: %s"
-          % (ts.agg_timeseries[0].aggregation_method))
-
-    print("Number of aggregated timeseries: %d" % len(ts.agg_timeseries))
-
-    for idx, agg_ts in enumerate(ts.agg_timeseries):
-        timespan = datetime.timedelta(
-            seconds=agg_ts.sampling * agg_ts.max_size)
-        print("\nAggregated timeserie #%d: %ds × %d = %s"
-              % (idx + 1, agg_ts.sampling, agg_ts.max_size, timespan))
-        print("Number of measures: %d" % len(agg_ts))
-        table = prettytable.PrettyTable(("Timestamp", "Value"))
-        for k, v in agg_ts.ts.iteritems():
-            table.add_row((k, v))
-        print(table.get_string())
-
-
-def _timestamp_value(value):
-    result = value.split(",")
-    if len(result) != 2:
-        raise ValueError("Format is: timestamp,value")
-    try:
-        timestamp = float(result[0])
-    except (ValueError, TypeError):
-        timestamp = timeutils.normalize_time(
-            timeutils.parse_isotime(result[0]))
-    else:
-        timestamp = datetime.datetime.utcfromtimestamp(timestamp)
-
-    return timestamp, float(result[1])
-
-
-def update_archive_file():
-    parser = argparse.ArgumentParser(
-        description="Insert values in a Carbonara file",
-    )
-    parser.add_argument("timestamp,value",
-                        nargs='+',
-                        type=_timestamp_value,
-                        help="Timestamp and value to set")
-    parser.add_argument("filename",
-                        nargs=1,
-                        type=argparse.FileType(mode="rb+"),
-                        help="File name to update")
-    args = parser.parse_args()
-
-    ts = TimeSerieArchive.unserialize_from_file(args.filename[0])
-
-    try:
-        ts.update(TimeSerie.from_tuples(getattr(args, 'timestamp,value')))
-    except Exception as e:
-        print("E: %s: %s" % (e.__class__.__name__, e))
-        return 1
-
-    args.filename[0].seek(0)
-    ts.serialize_to_file(args.filename[0])
+    print("Aggregation method: %s" % (ts.aggregation_method))
+    timespan = datetime.timedelta(seconds=ts.sampling * ts.max_size)
+    print("Timespan: %ds × %d = %s" % (ts.sampling, ts.max_size, timespan))
+    print("Number of measures: %d" % len(ts))
+    table = prettytable.PrettyTable(("Timestamp", "Value"))
+    for k, v in ts.ts.iteritems():
+        table.add_row((k, v))
+    print(table.get_string())
