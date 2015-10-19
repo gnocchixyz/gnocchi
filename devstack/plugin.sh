@@ -361,7 +361,6 @@ function install_gnocchi {
 
 # start_gnocchi() - Start running processes, including screen
 function start_gnocchi {
-    run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         enable_apache_site gnocchi
@@ -382,8 +381,9 @@ function start_gnocchi {
     fi
     # only die on API if it was actually intended to be turned on
     if is_service_enabled gnocchi-api; then
+
         echo "Waiting for gnocchi-api to start..."
-        if ! timeout $SERVICE_TIMEOUT sh -c "while ! curl --noproxy '*' -s $(gnocchi_service_url)/v1/resource/generic >/dev/null; do sleep 1; done"; then
+        if ! timeout $SERVICE_TIMEOUT sh -c "while ! curl -v --max-time 5 --noproxy '*' -s $(gnocchi_service_url)/v1/resource/generic ; do sleep 1; done"; then
             die $LINENO "gnocchi-api did not start"
         fi
     fi
@@ -402,6 +402,9 @@ function start_gnocchi {
     gnocchi archive-policy create -d granularity:1s,points:86400 -d granularity:1m,points:43200 -d granularity:1h,points:8760 high
 
     gnocchi archive-policy-rule create -a low -m "*" default
+
+    # run metricd last so we are properly waiting for swift and friends
+    run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
 }
 
 # stop_gnocchi() - Stop running processes
