@@ -32,6 +32,8 @@ case $STORAGE_DRIVER in
     swift)
         ENABLED_SERVICES+="s-proxy,s-account,s-container,s-object,"
         DEVSTACK_LOCAL_CONFIG+=$'\nexport GNOCCHI_STORAGE_BACKEND=swift'
+        # FIXME(sileht): use mod_wsgi as workaround for LP#1508424
+        DEVSTACK_GATE_TEMPEST+=$'\nexport SWIFT_USE_MOD_WSGI=True'
         ;;
     ceph)
         ENABLED_SERVICES+="ceph"
