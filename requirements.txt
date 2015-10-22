@@ -1,5 +1,5 @@
 numpy
-oslo.config>=2.5.0
+oslo.config>=2.6.0
 oslo.db>=1.8.0
 oslo.log>=1.0.0
 oslo.policy>=0.3.0
