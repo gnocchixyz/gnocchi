@@ -498,8 +498,8 @@ class TimeSerieArchive(SerializableMixin):
             agg_timeserie = agg_timeserie[
                 agg_timeserie['timestamp'] <= right_boundary_ts]
 
-        points = (agg_timeserie.sort(['granularity', 'timestamp'],
-                                     ascending=[0, 1]).itertuples())
+        points = (agg_timeserie.sort_values(by=['granularity', 'timestamp'],
+                                            ascending=[0, 1]).itertuples())
         return [(timestamp, granularity, value)
                 for __, timestamp, granularity, value in points]
 
