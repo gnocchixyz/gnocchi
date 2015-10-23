@@ -324,7 +324,7 @@ function init_gnocchi {
     rm -f $GNOCCHI_AUTH_CACHE_DIR/*
 
     if is_service_enabled mysql postgresql; then
-        recreate_database gnocchi utf8
+        recreate_database gnocchi
         $GNOCCHI_BIN_DIR/gnocchi-dbsync
     fi
 }
