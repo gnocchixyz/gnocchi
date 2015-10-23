@@ -19,6 +19,7 @@ import operator
 import os.path
 import uuid
 
+import oslo_db.api
 from oslo_db import exception
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import session
@@ -276,6 +277,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         session.expunge_all()
         return r
 
+    @oslo_db.api.retry_on_deadlock
     def update_resource(self, resource_type,
                         resource_id, ended_at=_marker, metrics=_marker,
                         append_metrics=False,
