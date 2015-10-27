@@ -176,6 +176,3 @@ def start():
 
     transport.close()
     loop.close()
-
-if __name__ == "__main__":
-    start()
