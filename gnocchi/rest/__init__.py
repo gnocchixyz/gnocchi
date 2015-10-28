@@ -405,13 +405,9 @@ class AggregatedMetricController(rest.RestController):
             if len(metrics) == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
-                # NOTE(jd): the archive policy is None as it's not really used
-                # and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation)
             else:
-                # NOTE(jd): the archive policy is None as it's not really used
-                # and it has a cost to request it from the indexer
                 measures = pecan.request.storage.get_cross_metric_measures(
                     metrics, start, stop, aggregation, needed_overlap)
             # Replace timestamp keys by their string versions
@@ -508,9 +504,6 @@ class MetricController(rest.RestController):
                     start, stop, **param)
             else:
                 measures = pecan.request.storage.get_measures(
-                    # NOTE(jd) We don't set the archive policy in the object
-                    # here because it's not used; but we could do it if needed
-                    # by requesting the metric details from the indexer
                     self.metric, start, stop, aggregation,
                     int(granularity) if granularity is not None else None)
             # Replace timestamp keys by their string versions
