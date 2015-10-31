@@ -222,6 +222,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
 class TestTimeSerieArchive(base.BaseTestCase):
 
+    def test_empty_update(self):
+        tsc = carbonara.TimeSerieArchive.from_definitions(
+            [(60, 10),
+             (300, 6)])
+        tsb = carbonara.BoundTimeSerie(block_size=tsc.max_block_size)
+        tsb.set_values([], before_truncate_callback=tsc.update)
+
+        self.assertEqual([], tsc.fetch())
+
     def test_fetch(self):
         tsc = carbonara.TimeSerieArchive.from_definitions(
             [(60, 10),
