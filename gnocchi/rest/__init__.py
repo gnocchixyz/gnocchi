@@ -473,7 +473,8 @@ class MetricController(rest.RestController):
         pecan.response.status = 202
 
     @pecan.expose('json')
-    def get_measures(self, start=None, stop=None, aggregation='mean', **param):
+    def get_measures(self, start=None, stop=None, aggregation='mean',
+                     granularity=None, **param):
         self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
@@ -507,7 +508,8 @@ class MetricController(rest.RestController):
                     # NOTE(jd) We don't set the archive policy in the object
                     # here because it's not used; but we could do it if needed
                     # by requesting the metric details from the indexer
-                    self.metric, start, stop, aggregation)
+                    self.metric, start, stop, aggregation,
+                    int(granularity) if granularity is not None else None)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
