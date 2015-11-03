@@ -319,6 +319,8 @@ class AggregatedTimeSerie(TimeSerie):
             self.ts = aggregated.combine_first(self.ts[:after][:-1])
 
     def update(self, ts):
+        if ts.ts.empty:
+            return
         index = ts.ts.index
         first_timestamp = index[0]
         last_timestamp = index[-1]
