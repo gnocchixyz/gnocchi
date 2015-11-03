@@ -157,6 +157,12 @@ class ArchivePolicyItem(dict):
                 raise ValueError(
                     u"timespan ≠ granularity × points")
 
+        if granularity is not None and granularity <= 0:
+            raise ValueError("Granularity should be > 0")
+
+        if points is not None and points <= 0:
+            raise ValueError("Number of points should be > 0")
+
         if granularity is None:
             if points is None or timespan is None:
                 raise ValueError(

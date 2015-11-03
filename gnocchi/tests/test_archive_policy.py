@@ -79,3 +79,19 @@ class TestArchivePolicy(base.BaseTestCase):
                                           [(20, 60), (10, 300), (10, 5)],
                                           ["-mean", "-last"])
         self.assertEqual(ap.max_block_size, 300)
+
+
+class TestArchivePolicyItem(base.BaseTestCase):
+    def test_zero_size(self):
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicyItem,
+                          0, 1)
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicyItem,
+                          1, 0)
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicyItem,
+                          -1, 1)
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicyItem,
+                          1, -1)
