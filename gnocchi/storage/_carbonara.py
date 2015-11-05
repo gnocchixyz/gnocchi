@@ -69,10 +69,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                          multiprocessing.cpu_count()))
 
     @staticmethod
-    def _create_metric_container(metric, archive_policy):
-        pass
-
-    @staticmethod
     def _lock(metric):
         raise NotImplementedError
 
