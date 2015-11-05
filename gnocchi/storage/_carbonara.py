@@ -185,7 +185,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         except storage.MetricDoesNotExist:
                             try:
                                 self._create_metric(metric)
-                            except storage.MetricDoesNotExist:
+                            except storage.MetricAlreadyExists:
                                 # Created in the mean time, do not worry
                                 pass
                             ts = None
