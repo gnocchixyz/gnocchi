@@ -324,15 +324,13 @@ class TestCase(base.BaseTestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
-        self.conf = service.prepare_service([])
+        default_opts = [('url',
+                         os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
+                         'indexer')]
+        self.conf = service.prepare_service([], default_opts)
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'),
                                group="oslo_policy")
-
-        self.conf.set_override(
-            'url',
-            os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
-            'indexer')
 
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
