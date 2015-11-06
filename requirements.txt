@@ -9,7 +9,7 @@ oslo.middleware
 oslosphinx>=2.2.0  # Apache-2.0
 pandas>=0.17.0
 pecan>=0.9
-python-swiftclient
+python-swiftclient>=2.5.0
 pytimeparse>=1.1.5
 futures
 requests

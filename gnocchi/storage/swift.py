@@ -52,6 +52,10 @@ OPTS = [
     cfg.StrOpt('swift_container_prefix',
                default='gnocchi',
                help='Prefix to namespace metric containers.'),
+    cfg.IntOpt('swift_timeout',
+               min=0,
+               default=300,
+               help='Connection timeout in seconds.'),
 ]
 
 
@@ -68,7 +72,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             preauthtoken=conf.swift_preauthtoken,
             user=conf.swift_user,
             key=conf.swift_key,
-            tenant_name=conf.swift_tenant_name)
+            tenant_name=conf.swift_tenant_name,
+            timeout=conf.swift_timeout)
         self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
         self._container_prefix = conf.swift_container_prefix
         self.swift.put_container(self.MEASURE_PREFIX)
