@@ -327,6 +327,15 @@ function init_gnocchi {
     fi
 }
 
+function preinstall_gnocchi {
+    # Needed to build psycopg2
+    if is_ubuntu; then
+        install_package libpq-dev
+    else
+        install_package postgresql-devel
+    fi
+}
+
 # install_gnocchi() - Collect source and prepare
 function install_gnocchi {
     if [ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]; then
@@ -426,7 +435,10 @@ function stop_gnocchi {
 }
 
 if is_service_enabled gnocchi-api; then
-    if [[ "$1" == "stack" && "$2" == "install" ]]; then
+    if [[ "$1" == "stack" && "$2" == "pre-install" ]]; then
+        echo_summary "Configuring system services for Gnocchi"
+        preinstall_gnocchi
+    elif [[ "$1" == "stack" && "$2" == "install" ]]; then
         echo_summary "Installing Gnocchi"
         stack_install_service gnocchi
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
