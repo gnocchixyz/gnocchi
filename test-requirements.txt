@@ -1,4 +1,3 @@
-http://tarballs.openstack.org/ceilometer/ceilometer-master.tar.gz#egg=ceilometer
 gabbi>=0.101.2
 coverage>=3.6
 fixtures
