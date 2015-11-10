@@ -292,7 +292,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def list_metrics(user_id=None, project_id=None):
+    def list_metrics(user_id=None, project_id=None, details=False, **kwargs):
         raise exceptions.NotImplementedError
 
     @staticmethod
