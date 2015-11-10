@@ -25,7 +25,6 @@ PyYAML
 msgpack-python
 trollius
 retrying
-pytz
 WebOb>=1.4.1
 alembic>=0.7.6,!=0.8.1
 psycopg2

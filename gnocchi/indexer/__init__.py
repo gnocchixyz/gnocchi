@@ -15,9 +15,9 @@
 # under the License.
 import hashlib
 
+import iso8601
 from oslo_config import cfg
 from oslo_utils import netutils
-import pytz
 import six
 from stevedore import driver
 
@@ -65,7 +65,7 @@ class Resource(object):
     def lastmodified(self):
         # less precise revision start for Last-Modified http header
         return self.revision_start.replace(microsecond=0,
-                                           tzinfo=pytz.UTC)
+                                           tzinfo=iso8601.iso8601.UTC)
 
 
 def get_driver(conf):
