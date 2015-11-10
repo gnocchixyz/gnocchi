@@ -130,8 +130,11 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
+        s = storage.get_driver(conf)
+        s.upgrade(index)
+
         # start up a thread to async process measures
-        self.metricd_thread = MetricdThread(index, storage.get_driver(conf))
+        self.metricd_thread = MetricdThread(index, s)
         self.metricd_thread.start()
 
     def stop_fixture(self):

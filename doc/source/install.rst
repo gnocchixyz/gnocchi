@@ -111,7 +111,7 @@ Initialization and upgrade
 ==========================
 
 Once you have configured Gnocchi properly, you need to initialize (or upgrade)
-the indexer:
+the indexer and storage:
 
 ::
 

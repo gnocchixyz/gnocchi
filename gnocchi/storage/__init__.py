@@ -149,6 +149,10 @@ class StorageDriver(object):
     def stop():
         pass
 
+    @staticmethod
+    def upgrade(index):
+        pass
+
     def process_background_tasks(self, index):
         LOG.debug("Processing new and to delete measures")
         try:

@@ -35,8 +35,11 @@ def upgrade():
     conf = service.prepare_service()
     index = indexer.get_driver(conf)
     index.connect()
-    LOG.info("Upgrading indexer")
+    LOG.info("Upgrading indexer %s" % index)
     index.upgrade()
+    s = storage.get_driver(conf)
+    LOG.info("Upgrading storage %s" % s)
+    s.upgrade(index)
 
 
 def api():

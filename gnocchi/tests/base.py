@@ -402,6 +402,7 @@ class TestCase(base.BaseTestCase):
                                        'storage')
 
         self.storage = storage.get_driver(self.conf)
+        self.storage.upgrade(self.index)
 
         self.mgr = extension.ExtensionManager('gnocchi.aggregates',
                                               invoke_on_load=True)
