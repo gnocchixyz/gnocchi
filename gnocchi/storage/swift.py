@@ -169,3 +169,19 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             raise
         return contents
+
+    @retrying.retry(stop_max_attempt_number=4,
+                    wait_fixed=500,
+                    retry_on_result=retry_if_result_empty)
+    def _get_unaggregated_timeserie(self, metric):
+        try:
+            headers, contents = self.swift.get_object(
+                self._container_name(metric), "none")
+        except swclient.ClientException as e:
+            if e.http_status == 404:
+                raise storage.MetricDoesNotExist(metric)
+            raise
+        return contents
+
+    def _store_unaggregated_timeserie(self, metric, data):
+        self.swift.put_object(self._container_name(metric), "none", data)

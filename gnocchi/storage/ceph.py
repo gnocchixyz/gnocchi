@@ -189,6 +189,24 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 else:
                     raise storage.MetricDoesNotExist(metric)
 
+    def _get_unaggregated_timeserie(self, metric):
+        try:
+            with self._get_ioctx() as ioctx:
+                name = self._get_object_name(metric, "none")
+                content = self._get_object_content(ioctx, name)
+                if len(content) == 0:
+                    # NOTE(sileht: the object have been created by
+                    # the lock code
+                    raise rados.ObjectNotFound
+                return content
+        except rados.ObjectNotFound:
+            raise storage.MetricDoesNotExist(metric)
+
+    def _store_unaggregated_timeserie(self, metric, data):
+        name = self._get_object_name(metric, "none")
+        with self._get_ioctx() as ioctx:
+            ioctx.write_full(name, data)
+
     @staticmethod
     def _get_object_content(ioctx, name):
         offset = 0

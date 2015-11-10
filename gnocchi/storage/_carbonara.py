@@ -76,6 +76,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
+    def _get_unaggregated_timeserie(metric):
+        raise NotImplementedError
+
+    @staticmethod
+    def _store_unaggregated_timeserie(metric, data):
+        raise NotImplementedError
+
+    @staticmethod
     def _store_metric_measures(metric, aggregation, data):
         raise NotImplementedError
 
@@ -175,8 +183,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     with self._process_measure_for_metric(metric) as measures:
                         try:
                             with timeutils.StopWatch() as sw:
-                                raw_measures = self._get_measures(metric,
-                                                                  'none')
+                                raw_measures = (
+                                    self._get_unaggregated_timeserie(
+                                        metric)
+                                )
                                 LOG.debug(
                                     "Retrieve unaggregated measures "
                                     "for %s in %.2fs"
@@ -187,8 +197,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             except storage.MetricAlreadyExists:
                                 # Created in the mean time, do not worry
                                 pass
-                            ts = None
-                        except storage.AggregationDoesNotExist:
                             ts = None
                         else:
                             try:
@@ -223,8 +231,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 "in %.2f seconds"
                                 % (metric.id, len(measures), sw.elapsed()))
 
-                        self._store_metric_measures(metric, 'none',
-                                                    ts.serialize())
+                        self._store_unaggregated_timeserie(metric,
+                                                           ts.serialize())
                 except Exception:
                     LOG.error("Error processing new measures", exc_info=True)
                 finally:

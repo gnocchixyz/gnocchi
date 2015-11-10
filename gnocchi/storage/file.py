@@ -70,6 +70,15 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def stop(self):
         self._lock.stop()
 
+    def _atomic_file_store(self, dest, data):
+        tmpfile = self._get_tempfile()
+        tmpfile.write(data)
+        tmpfile.close()
+        os.rename(tmpfile.name, dest)
+
+    def _build_unaggregated_timeserie_path(self, metric):
+        return os.path.join(self.basepath, str(metric.id), "none")
+
     def _build_metric_path(self, metric, aggregation=None):
         path = os.path.join(self.basepath, str(metric.id))
         if aggregation:
@@ -165,11 +174,25 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
 
         self._delete_measures_files_for_metric_id(metric.id, files)
 
+    def _store_unaggregated_timeserie(self, metric, data):
+        self._atomic_file_store(
+            self._build_unaggregated_timeserie_path(metric),
+            data)
+
+    def _get_unaggregated_timeserie(self, metric):
+        path = self._build_unaggregated_timeserie_path(metric)
+        try:
+            with open(path, 'rb') as f:
+                return f.read()
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                raise storage.MetricDoesNotExist(metric)
+            raise
+
     def _store_metric_measures(self, metric, aggregation, data):
-        tmpfile = self._get_tempfile()
-        tmpfile.write(data)
-        tmpfile.close()
-        os.rename(tmpfile.name, self._build_metric_path(metric, aggregation))
+        self._atomic_file_store(
+            self._build_metric_path(metric, aggregation),
+            data)
 
     def _delete_metric(self, metric):
         path = self._build_metric_path(metric)
