@@ -31,7 +31,6 @@ from gnocchi import storage
 
 OPTS = [
     cfg.IntOpt('aggregation_workers_number',
-               default=None,
                help='Number of workers to run during adding new measures for '
                     'pre-aggregation needs.'),
     cfg.StrOpt('coordination_url',
