@@ -168,6 +168,8 @@ class ArchivePolicyItem(dict):
                     "At least two of granularity/points/timespan "
                     "must be provided")
             granularity = round(timespan / float(points))
+        else:
+            granularity = float(granularity)
 
         if points is None:
             if timespan is None:
@@ -176,6 +178,7 @@ class ArchivePolicyItem(dict):
                 points = int(timespan / granularity)
                 self['timespan'] = granularity * points
         else:
+            points = int(points)
             self['timespan'] = granularity * points
 
         self['points'] = points
