@@ -104,6 +104,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])
+        carbonara.AggregatedTimeSerie(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 4),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            [3, 5, 6], sampling=3)
+        carbonara.AggregatedTimeSerie(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 4),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            [3, 5, 6], sampling="4s")
 
     def test_bad_percentile(self):
         for bad_percentile in ('0pct', '100pct', '-1pct', '123pct'):

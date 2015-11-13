@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -19,6 +17,7 @@
 
 import functools
 import logging
+import numbers
 import operator
 import re
 
@@ -143,6 +142,12 @@ class TimeSerie(SerializableMixin):
         return pandas.Timestamp(
             (ts.value // freq.delta.value) * freq.delta.value)
 
+    @staticmethod
+    def _to_offset(value):
+        if isinstance(value, numbers.Real):
+            return pandas.tseries.offsets.Nano(value * 10e8)
+        return pandas.tseries.frequencies.to_offset(value)
+
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, timestamps=None, values=None,
@@ -163,10 +168,7 @@ class BoundTimeSerie(TimeSerie):
 
         """
         super(BoundTimeSerie, self).__init__(timestamps, values)
-        if isinstance(block_size, (float, six.integer_types)):
-            self.block_size = pandas.tseries.offsets.Nano(block_size * 10e8)
-        else:
-            self.block_size = pandas.tseries.frequencies.to_offset(block_size)
+        self.block_size = self._to_offset(block_size)
         self.back_window = back_window
         self._truncate()
 
@@ -261,7 +263,10 @@ class AggregatedTimeSerie(TimeSerie):
                 raise UnknownAggregationMethod(aggregation_method)
             self.aggregation_method_func_name = aggregation_method
 
-        self.sampling = pandas.tseries.frequencies.to_offset(sampling)
+        if sampling is None:
+            self.sampling = None
+        else:
+            self.sampling = self._to_offset(sampling)
         self.max_size = max_size
         self.aggregation_method = aggregation_method
 
