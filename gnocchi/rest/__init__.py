@@ -16,7 +16,6 @@
 import fnmatch
 import uuid
 
-from oslo_log import log
 from oslo_utils import strutils
 import pecan
 from pecan import rest
@@ -33,8 +32,6 @@ from gnocchi import indexer
 from gnocchi import json
 from gnocchi import storage
 from gnocchi import utils
-
-LOG = log.getLogger(__name__)
 
 
 def arg_to_list(value):
