@@ -30,9 +30,9 @@ from gnocchi import opts
 LOG = log.getLogger(__name__)
 
 
-def prepare_service(args=None, default_opts=None):
-
-    conf = cfg.ConfigOpts()
+def prepare_service(args=None, default_opts=None, conf=None):
+    if conf is None:
+        conf = cfg.ConfigOpts()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
     log.register_options(conf)
     db_options.set_defaults(conf)
