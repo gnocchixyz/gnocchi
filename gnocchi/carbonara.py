@@ -264,11 +264,15 @@ class AggregatedTimeSerie(TimeSerie):
             self.aggregation_method_func_name = aggregation_method
 
         if sampling is None:
-            self.sampling = None
+            self._sampling = None
         else:
-            self.sampling = self._to_offset(sampling)
+            self._sampling = self._to_offset(sampling)
         self.max_size = max_size
         self.aggregation_method = aggregation_method
+
+    @property
+    def sampling(self):
+        return self._sampling.nanos / 10e8
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
@@ -297,7 +301,7 @@ class AggregatedTimeSerie(TimeSerie):
         d.update({
             'aggregation_method': self.aggregation_method,
             'max_size': self.max_size,
-            'sampling': self._serialize_time_period(self.sampling),
+            'sampling': self._serialize_time_period(self._sampling),
         })
         return d
 
@@ -308,12 +312,12 @@ class AggregatedTimeSerie(TimeSerie):
             self.ts = self.ts.dropna()[-self.max_size:]
 
     def _resample(self, after):
-        if self.sampling:
+        if self._sampling:
             # Group by the sampling, and then apply the aggregation method on
             # the points after `after'
             groupedby = self.ts[after:].groupby(
                 functools.partial(self._round_timestamp,
-                                  freq=self.sampling))
+                                  freq=self._sampling))
             agg_func = getattr(groupedby, self.aggregation_method_func_name)
             if self.aggregation_method_func_name == 'quantile':
                 aggregated = agg_func(self.q)
@@ -391,14 +395,13 @@ class TimeSerieArchive(SerializableMixin):
         for ts in reversed(self.agg_timeseries):
             if timeserie_filter and not timeserie_filter(ts):
                 continue
-            granularity = ts.sampling.nanos / 1000000000.0
             points = ts[from_timestamp:to_timestamp]
             try:
                 # Do not include stop timestamp
                 del points[end_timestamp]
             except KeyError:
                 pass
-            result.extend([(timestamp, granularity, value)
+            result.extend([(timestamp, ts.sampling, value)
                            for timestamp, value
                            in six.iteritems(points)])
         return result
@@ -570,10 +573,10 @@ def dump_archive_file():
     print("Number of aggregated timeseries: %d" % len(ts.agg_timeseries))
 
     for idx, agg_ts in enumerate(ts.agg_timeseries):
-        sampling = agg_ts.sampling.nanos / 1000000000
-        timespan = datetime.timedelta(seconds=sampling * agg_ts.max_size)
+        timespan = datetime.timedelta(
+            seconds=agg_ts.sampling * agg_ts.max_size)
         print("\nAggregated timeserie #%d: %ds × %d = %s"
-              % (idx + 1, sampling, agg_ts.max_size, timespan))
+              % (idx + 1, agg_ts.sampling, agg_ts.max_size, timespan))
         print("Number of measures: %d" % len(agg_ts))
         table = prettytable.PrettyTable(("Timestamp", "Value"))
         for k, v in agg_ts.ts.iteritems():
