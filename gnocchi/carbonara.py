@@ -281,6 +281,15 @@ class AggregatedTimeSerie(TimeSerie):
                 and self.sampling == other.sampling
                 and self.aggregation_method == other.aggregation_method)
 
+    def __repr__(self):
+        return "<%s 0x%x sampling=%fs max_size=%s agg_method=%s>" % (
+            self.__class__.__name__,
+            id(self),
+            self.sampling,
+            self.max_size,
+            self.aggregation_method,
+        )
+
     @classmethod
     def from_dict(cls, d):
         """Build a time series from a dict.
