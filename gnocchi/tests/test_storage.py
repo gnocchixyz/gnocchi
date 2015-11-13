@@ -19,6 +19,7 @@ import uuid
 import mock
 
 from gnocchi import storage
+from gnocchi.storage import _carbonara
 from gnocchi.storage import null
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
@@ -38,6 +39,9 @@ class TestStorageDriver(tests_base.TestCase):
 
     @mock.patch('gnocchi.storage._carbonara.LOG')
     def test_corrupted_data(self, logger):
+        if not isinstance(self.storage, _carbonara.CarbonaraBasedStorage):
+            self.skipTest("This driver is not based on Carbonara")
+
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
