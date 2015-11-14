@@ -17,6 +17,7 @@ import datetime
 import uuid
 
 import mock
+from oslotest import base
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -379,3 +380,63 @@ class TestStorageDriver(tests_base.TestCase):
                 {u"∧": [
                     {u"eq": 100},
                     {u"≠": 50}]}))
+
+
+class TestMeasureQuery(base.BaseTestCase):
+    def test_equal(self):
+        q = storage.MeasureQuery({"=": 4})
+        self.assertTrue(q(4))
+        self.assertFalse(q(40))
+
+    def test_gt(self):
+        q = storage.MeasureQuery({">": 4})
+        self.assertTrue(q(40))
+        self.assertFalse(q(4))
+
+    def test_and(self):
+        q = storage.MeasureQuery({"and": [{">": 4}, {"<": 10}]})
+        self.assertTrue(q(5))
+        self.assertFalse(q(40))
+        self.assertFalse(q(1))
+
+    def test_or(self):
+        q = storage.MeasureQuery({"or": [{"=": 4}, {"=": 10}]})
+        self.assertTrue(q(4))
+        self.assertTrue(q(10))
+        self.assertFalse(q(-1))
+
+    def test_modulo(self):
+        q = storage.MeasureQuery({"=": [{"%": 5}, 0]})
+        self.assertTrue(q(5))
+        self.assertTrue(q(10))
+        self.assertFalse(q(-1))
+        self.assertFalse(q(6))
+
+    def test_math(self):
+        q = storage.MeasureQuery(
+            {
+                u"and": [
+                    # v+5 is bigger 0
+                    {u"≥": [{u"+": 5}, 0]},
+                    # v-6 is not 5
+                    {u"≠": [5, {u"-": 6}]},
+                ],
+            }
+        )
+        self.assertTrue(q(5))
+        self.assertTrue(q(10))
+        self.assertFalse(q(11))
+
+    def test_empty(self):
+        q = storage.MeasureQuery({})
+        self.assertFalse(q(5))
+        self.assertFalse(q(10))
+
+    def test_bad_format(self):
+        self.assertRaises(storage.InvalidQuery,
+                          storage.MeasureQuery,
+                          {"foo": [{"=": 4}, {"=": 10}]})
+
+        self.assertRaises(storage.InvalidQuery,
+                          storage.MeasureQuery,
+                          {"=": [1, 2, 3]})
