@@ -138,6 +138,11 @@ class TimeSerie(SerializableMixin):
         if value:
             return six.text_type(value.n) + value.rule_code
 
+    @staticmethod
+    def _round_timestamp(ts, freq):
+        return pandas.Timestamp(
+            (ts.value // freq.delta.value) * freq.delta.value)
+
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, timestamps=None, values=None,
@@ -218,8 +223,8 @@ class BoundTimeSerie(TimeSerie):
         return basic
 
     def _first_block_timestamp(self):
-        ts = self.ts[-1:].resample(self.block_size)
-        return (ts.index[-1] - (self.block_size * self.back_window))
+        rounded = self._round_timestamp(self.ts.index[-1], self.block_size)
+        return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
         """Truncate the timeserie."""
@@ -296,11 +301,6 @@ class AggregatedTimeSerie(TimeSerie):
         if self.max_size is not None:
             # Remove empty points if any that could be added by aggregation
             self.ts = self.ts.dropna()[-self.max_size:]
-
-    @staticmethod
-    def _round_timestamp(ts, freq):
-        return pandas.Timestamp(
-            (ts.value // freq.delta.value) * freq.delta.value)
 
     def _resample(self, after):
         if self.sampling:
