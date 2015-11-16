@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright 2014 Openstack Foundation
+# Copyright 2014 OpenStack Foundation
 #
 # Authors: Ana Malagon  <atmalagon@gmail.com>
 #
