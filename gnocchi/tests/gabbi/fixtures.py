@@ -76,17 +76,14 @@ class ConfigFixture(fixture.GabbiFixture):
 
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
 
-        conf = service.prepare_service([])
+        default_opts = [('url',
+                         os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
+                         'indexer')]
+
+        conf = service.prepare_service([], default_opts)
 
         CONF = self.conf = conf
         self.tmp_dir = data_tmp_dir
-
-        # Use the indexer set in the conf, unless we have set an
-        # override via the environment.
-        if 'GNOCCHI_TEST_INDEXER_URL' in os.environ:
-            conf.set_override('url',
-                              os.environ.get("GNOCCHI_TEST_INDEXER_URL"),
-                              'indexer')
 
         # TODO(jd) It would be cool if Gabbi was able to use the null://
         # indexer, but this makes the API returns a lot of 501 error, which
