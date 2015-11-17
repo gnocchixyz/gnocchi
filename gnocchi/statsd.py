@@ -164,8 +164,8 @@ def start():
     loop = asyncio.get_event_loop()
     # TODO(jd) Add TCP support
     listen = loop.create_datagram_endpoint(
-        # TODO(jd) Add config options for host/port
-        lambda: StatsdServer(stats), local_addr=('0.0.0.0', 8125))
+        lambda: StatsdServer(stats),
+        local_addr=(conf.statsd.host, conf.statsd.port))
     loop.call_later(conf.statsd.flush_delay, stats.flush)
     transport, protocol = loop.run_until_complete(listen)
 
