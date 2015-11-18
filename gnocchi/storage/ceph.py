@@ -198,5 +198,5 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             if not data:
                 break
             content += data
-            offset += len(content)
+            offset += len(data)
         return content

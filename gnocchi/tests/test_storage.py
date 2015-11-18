@@ -18,6 +18,7 @@ import uuid
 
 import mock
 from oslotest import base
+import six.moves
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -129,6 +130,17 @@ class TestStorageDriver(tests_base.TestCase):
 
         report = self.storage.measures_report()
         self.assertEqual({}, report)
+
+    def test_add_measures_big(self):
+        m = storage.Metric(uuid.uuid4(), self.archive_policies['high'])
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, i, j), 100)
+            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [m]
+            self.storage.process_background_tasks(self.index)
+
+        self.assertEqual(3661, len(self.storage.get_measures(m)))
 
     def test_add_and_get_measures(self):
         self.storage.add_measures(self.metric, [
