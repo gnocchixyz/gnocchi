@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -15,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import logging
 import multiprocessing
 import uuid
@@ -24,6 +23,7 @@ import iso8601
 from oslo_config import cfg
 from oslo_serialization import msgpackutils
 from oslo_utils import timeutils
+import six
 from tooz import coordination
 
 from gnocchi import carbonara
@@ -244,14 +244,30 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp, aggregation, needed_overlap)
 
+        granularities = (definition.granularity
+                         for metric in metrics
+                         for definition in metric.archive_policy.definition)
+        granularities_in_common = [
+            granularity
+            for granularity, occurence in six.iteritems(
+                collections.Counter(granularities))
+            if occurence == len(metrics)
+        ]
+
+        if not granularities_in_common:
+            raise storage.MetricUnaggregatable(metrics, 'No granularity match')
+
         tss = self._map_in_thread(self._get_measures_archive,
                                   [(metric, aggregation)
                                    for metric in metrics])
+        timeseries = [agg_ts
+                      for ts in tss
+                      for agg_ts in ts.agg_timeseries]
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                     for timestamp, r, v
-                    in carbonara.TimeSerieArchive.aggregated(
-                        tss, from_timestamp, to_timestamp,
+                    in carbonara.AggregatedTimeSerie.aggregated(
+                        timeseries, from_timestamp, to_timestamp,
                         aggregation, needed_overlap)]
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
