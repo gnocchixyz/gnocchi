@@ -107,14 +107,15 @@ Gnocchi provides these indexer drivers:
 .. _`MySQL`: http://mysql.com
 .. _`InfluxDB`: http://influxdb.com
 
-Indexer Initialization
-======================
+Initialization and upgrade
+==========================
 
-Once you have configured Gnocchi properly, you need to initialize the indexer:
+Once you have configured Gnocchi properly, you need to initialize (or upgrade)
+the indexer:
 
 ::
 
-    gnocchi-dbsync
+    gnocchi-upgrade
 
 
 Running Gnocchi

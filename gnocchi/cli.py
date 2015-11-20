@@ -22,7 +22,6 @@ from oslo_utils import timeutils
 import retrying
 
 from gnocchi import indexer
-from gnocchi.indexer import sqlalchemy as sql_db
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
@@ -32,10 +31,11 @@ from gnocchi import storage
 LOG = logging.getLogger(__name__)
 
 
-def storage_dbsync():
+def upgrade():
     conf = service.prepare_service()
-    index = sql_db.SQLAlchemyIndexer(conf)
+    index = indexer.get_driver(conf)
     index.connect()
+    LOG.info("Upgrading indexer")
     index.upgrade()
 
 

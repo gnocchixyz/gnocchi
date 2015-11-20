@@ -323,8 +323,8 @@ function init_gnocchi {
 
     if is_service_enabled mysql postgresql; then
         recreate_database gnocchi
-        $GNOCCHI_BIN_DIR/gnocchi-dbsync
     fi
+    $GNOCCHI_BIN_DIR/gnocchi-upgrade
 }
 
 function preinstall_gnocchi {
