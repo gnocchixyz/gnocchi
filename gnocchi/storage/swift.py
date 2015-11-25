@@ -139,6 +139,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self.swift.put_object(self._container_name(metric), aggregation, data)
 
     def _delete_metric(self, metric):
+        self._delete_unaggregated_timeserie(metric)
         for aggregation in metric.archive_policy.aggregation_methods:
             try:
                 self.swift.delete_object(self._container_name(metric),
@@ -171,3 +172,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             raise
         return contents
+
+    def _delete_unaggregated_timeserie(self, metric):
+        try:
+            self.swift.delete_object(self._container_name(metric), "none")
+        except swclient.ClientException as e:
+            if e.http_status != 404:
+                raise
