@@ -175,6 +175,7 @@ class StorageDriver(object):
             except Exception:
                 LOG.error("Unable to expunge metric %s from storage" % m,
                           exc_info=True)
+                continue
             try:
                 self.index.expunge_metric(m.id)
             except indexer.NoSuchMetric:
