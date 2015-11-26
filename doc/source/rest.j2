@@ -69,8 +69,7 @@ method. It is possible to request for any other method by specifying the
 {{ scenarios['get-measures-max']['doc'] }}
 
 The list of aggregation method available is: *mean*, *sum*, *last*, *max*,
-*min*, *std*, *median*, *first*, *count*, *first* and *Npct* (with 0 < N <
-100).
+*min*, *std*, *median*, *first*, *count* and *Npct* (with 0 < N < 100).
 
 Archive Policy
 ==============
@@ -101,7 +100,7 @@ process measures back to 14:00 with a `back_window` of 0. If the `back_window`
 is set to 2, it will be possible to send measures with timestamp back to 12:00
 (14:00 minus 2 times 1 hour).
 
-The REST API allows to create archive policies this way:
+The REST API allows to create archive policies in this way:
 
 {{ scenarios['create-archive-policy']['doc'] }}
 
@@ -142,7 +141,7 @@ Archive Policy Rule
 
 Gnocchi provides the ability to define a mapping called `archive_policy_rule`.
 An archive policy rule defines a mapping between a metric and an archive policy.
-This gives users ability to pre-define rules so an archive policy is assigned to
+This gives users the ability to pre-define rules so an archive policy is assigned to
 metrics based on a matched pattern.
 
 An archive policy rule has a few properties: a name to identify it, an archive
@@ -373,7 +372,7 @@ aggregation methods from the API server:
 
 Status
 ======
-The overall status of the Gnocchi installation can be retrived via an API call
+The overall status of the Gnocchi installation can be retrieved via an API call
 reporting values such as the number of new measures to process for each metric:
 
 {{ scenarios['get-status']['doc'] }}
