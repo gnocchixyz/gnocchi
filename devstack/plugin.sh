@@ -355,7 +355,7 @@ function install_gnocchi {
     install_gnocchiclient
 
     # We don't use setup_package because we don't follow openstack/requirements
-    sudo -H pip install -e "$GNOCCHI_DIR"
+    sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,$DATABASE_TYPE]
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         install_apache_wsgi

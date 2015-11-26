@@ -20,7 +20,10 @@ import uuid
 from oslo_config import cfg
 import retrying
 import six
-from swiftclient import client as swclient
+try:
+    from swiftclient import client as swclient
+except ImportError:
+    swclient = None
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -64,6 +67,8 @@ def retry_if_result_empty(result):
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
+        if swclient is None:
+            raise RuntimeError("python-swiftclient unavailable")
         self.swift = swclient.Connection(
             auth_version=conf.swift_auth_version,
             authurl=conf.swift_authurl,
