@@ -82,11 +82,15 @@ class Metric(object):
     __hash__ = object.__hash__
 
 
-class InvalidQuery(Exception):
+class StorageError(Exception):
     pass
 
 
-class MetricDoesNotExist(Exception):
+class InvalidQuery(StorageError):
+    pass
+
+
+class MetricDoesNotExist(StorageError):
     """Error raised when this metric does not exist."""
 
     def __init__(self, metric):
@@ -95,7 +99,7 @@ class MetricDoesNotExist(Exception):
             "Metric %s does not exist" % metric)
 
 
-class AggregationDoesNotExist(Exception):
+class AggregationDoesNotExist(StorageError):
     """Error raised when the aggregation method doesn't exists for a metric."""
 
     def __init__(self, metric, method):
@@ -106,7 +110,7 @@ class AggregationDoesNotExist(Exception):
             (method, metric))
 
 
-class MetricAlreadyExists(Exception):
+class MetricAlreadyExists(StorageError):
     """Error raised when this metric already exists."""
 
     def __init__(self, metric):
@@ -115,7 +119,7 @@ class MetricAlreadyExists(Exception):
             "Metric %s already exists" % metric)
 
 
-class MetricUnaggregatable(Exception):
+class MetricUnaggregatable(StorageError):
     """Error raised when metrics can't be aggregated."""
 
     def __init__(self, metrics, reason):
