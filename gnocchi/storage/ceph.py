@@ -45,7 +45,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.pool = conf.ceph_pool
-        self._lock = _carbonara.CarbonaraBasedStorageToozLock(conf)
         options = {}
         if conf.ceph_keyring:
             options['keyring'] = conf.ceph_keyring
@@ -58,9 +57,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  rados_id=conf.ceph_username,
                                  conf=options)
         self.rados.connect()
-
-    def stop(self):
-        self._lock.stop()
 
     def _store_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
