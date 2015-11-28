@@ -66,9 +66,9 @@ function create_gnocchi_accounts {
                 "metric" "OpenStack Metric Service")
             get_or_create_endpoint $gnocchi_service \
                 "$REGION_NAME" \
-                "$(gnocchi_service_url)/" \
-                "$(gnocchi_service_url)/" \
-                "$(gnocchi_service_url)/"
+                "$(gnocchi_service_url)" \
+                "$(gnocchi_service_url)" \
+                "$(gnocchi_service_url)"
         fi
         if is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
             get_or_create_project "gnocchi_swift" default
