@@ -27,7 +27,7 @@ class Image(object):
 
 class Instance(object):
     flavor_id = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
-    image_ref = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    image_ref = sqlalchemy.Column(sqlalchemy.String(255))
     host = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     server_group = sqlalchemy.Column(sqlalchemy.String(255))
