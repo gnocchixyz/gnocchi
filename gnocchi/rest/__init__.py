@@ -875,7 +875,7 @@ class InstanceResourceController(GenericResourceController):
 
     Resource = ResourceSchema({
         "flavor_id": six.text_type,
-        "image_ref": six.text_type,
+        voluptuous.Optional("image_ref"): six.text_type,
         "host": six.text_type,
         "display_name": six.text_type,
         voluptuous.Optional("server_group"): six.text_type,
