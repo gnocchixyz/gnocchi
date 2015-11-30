@@ -132,7 +132,7 @@ class TimeSerie(SerializableMixin):
     @staticmethod
     def _serialize_time_period(value):
         if value:
-            return six.text_type(value.n) + value.rule_code
+            return value.nanos / 10e8
 
     @staticmethod
     def _round_timestamp(ts, freq):
