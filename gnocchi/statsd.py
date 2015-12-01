@@ -166,7 +166,12 @@ def start():
     listen = loop.create_datagram_endpoint(
         # TODO(jd) Add config options for host/port
         lambda: StatsdServer(stats), local_addr=('0.0.0.0', 8125))
-    loop.call_later(conf.statsd.flush_delay, stats.flush)
+
+    def _flush():
+        loop.call_later(conf.statsd.flush_delay, _flush)
+        stats.flush()
+
+    loop.call_later(conf.statsd.flush_delay, _flush)
     transport, protocol = loop.run_until_complete(listen)
 
     try:
