@@ -95,15 +95,6 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.storage.delete_metric(self.metric)
 
-    def test_delete_nonempty_metric_with_process(self):
-        self.storage.add_measures(self.metric, [
-            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
-        ])
-        with mock.patch.object(self.index, 'get_metrics') as f:
-            f.return_value = [self.metric]
-            self.storage.process_background_tasks(self.index)
-        self.storage.delete_metric(self.metric)
-
     def test_measures_reporting(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
