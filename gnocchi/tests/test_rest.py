@@ -463,6 +463,7 @@ class MetricTest(RestTest):
         result = json.loads(ret.text)
         now = utils.utcnow()
         self.assertEqual([
+            ['2014-01-01T10:00:00+00:00', 3600.0, 1234.2],
             [(now
               - datetime.timedelta(
                   seconds=now.second,

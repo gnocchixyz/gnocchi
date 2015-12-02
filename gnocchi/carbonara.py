@@ -137,7 +137,8 @@ class TimeSerie(SerializableMixin):
     @staticmethod
     def _round_timestamp(ts, freq):
         return pandas.Timestamp(
-            (ts.value // freq.delta.value) * freq.delta.value)
+            (pandas.Timestamp(ts).value // freq.delta.value)
+            * freq.delta.value)
 
     @staticmethod
     def _to_offset(value):
@@ -338,7 +339,14 @@ class AggregatedTimeSerie(TimeSerie):
 
         Returns a sorted list of tuples (timestamp, granularity, value).
         """
-        points = self[from_timestamp:to_timestamp]
+        # Round timestamp to our granularity so we're sure that if e.g. 17:02
+        # is requested and we have points for 17:00 and 17:05 in a 5min
+        # granularity, we do return the 17:00 point and not nothing
+        if from_timestamp is None:
+            from_ = None
+        else:
+            from_ = self._round_timestamp(from_timestamp, self._sampling)
+        points = self[from_:to_timestamp]
         try:
             # Do not include stop timestamp
             del points[to_timestamp]
