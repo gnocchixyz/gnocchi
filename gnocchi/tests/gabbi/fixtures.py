@@ -122,9 +122,6 @@ class ConfigFixture(fixture.GabbiFixture):
 
         conf.set_override('pecan_debug', False, 'api')
 
-        # Turn off any middleware.
-        conf.set_override('middlewares', [], 'api')
-
         # Set pagination to a testable value
         conf.set_override('max_limit', 7, 'api')
 

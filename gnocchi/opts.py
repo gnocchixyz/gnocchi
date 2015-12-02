@@ -47,11 +47,6 @@ def list_opts():
             cfg.BoolOpt('pecan_debug',
                         default=False,
                         help='Toggle Pecan Debug Middleware.'),
-            cfg.MultiStrOpt(
-                'middlewares',
-                deprecated_for_removal=True,
-                default=[],
-                help='Middlewares to use. Use Paste config instead.',),
             cfg.IntOpt('workers', min=1,
                        help='Number of workers for Gnocchi API server. '
                        'By default the available number of CPU is used.'),

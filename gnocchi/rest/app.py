@@ -15,11 +15,9 @@
 # under the License.
 import os
 
-import keystonemiddleware.auth_token
 from oslo_config import cfg
 from oslo_log import log
 from oslo_policy import policy
-from oslo_utils import importutils
 from paste import deploy
 import pecan
 import webob.exc
@@ -124,23 +122,6 @@ def setup_app(config=None, cfg=None):
 
     if config.get('not_implemented_middleware', True):
         app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
-
-    for middleware in reversed(cfg.api.middlewares):
-        if not middleware:
-            continue
-        klass = importutils.import_class(middleware)
-        # FIXME(jd) Find a way to remove that special handling…
-        # next version of keystonemiddleware > 2.1.0 will support
-        # 'oslo_config_project' option, so we could remove this
-        # workaround.
-        if klass == keystonemiddleware.auth_token.AuthProtocol:
-            middleware_config = dict(cfg.keystone_authtoken)
-        else:
-            middleware_config = dict(cfg)
-            # NOTE(sileht): Allow oslo.config compatible middleware to load
-            # our configuration file.
-            middleware_config['oslo_config_project'] = 'gnocchi'
-        app = klass(app, middleware_config)
 
     return app
 

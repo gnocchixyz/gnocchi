@@ -24,6 +24,7 @@ import json
 import uuid
 
 import keystonemiddleware.auth_token
+from keystonemiddleware import opts as ks_opts
 import mock
 from oslo_utils import timeutils
 import six
@@ -182,6 +183,10 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         pecan_config['indexer'] = self.index
         pecan_config['storage'] = self.storage
         pecan_config['not_implemented_middleware'] = False
+
+        # NOTE(sileht): We register keystonemiddleware options
+        for group, options in ks_opts.list_auth_token_opts():
+            self.conf.register_opts(list(options), group=group)
 
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
