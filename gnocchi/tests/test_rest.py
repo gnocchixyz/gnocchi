@@ -24,7 +24,9 @@ import json
 import uuid
 
 import keystonemiddleware.auth_token
+from keystonemiddleware import opts as ks_opts
 import mock
+import oslo_config
 from oslo_utils import timeutils
 import six
 from stevedore import extension
@@ -183,14 +185,22 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         pecan_config['storage'] = self.storage
         pecan_config['not_implemented_middleware'] = False
 
+        # NOTE(sileht): We register keystonemiddleware options
+        for group, options in ks_opts.list_auth_token_opts():
+            self.conf.register_opts(list(options), group=group)
+
         self.conf.set_override("cache", TestingApp.CACHE_NAME,
                                group='keystone_authtoken')
         # TODO(jd) Override these options with values. They are not used, but
         # if they are None (their defaults), the keystone authtoken middleware
         # prints a warning… :( When the bug is fixed we can remove that!
         # See https://bugs.launchpad.net/keystonemiddleware/+bug/1429179
-        self.conf.set_override("identity_uri", "foobar",
-                               group="keystone_authtoken")
+        try:
+            self.conf.set_override("identity_uri", "foobar",
+                                   group="keystone_authtoken")
+        except oslo_config.cfg.NoSuchOptError:
+            # This option does not exist in keystonemiddleware>=4
+            pass
         self.conf.set_override("auth_uri", "foobar",
                                group="keystone_authtoken")
         self.conf.set_override("delay_auth_decision",
