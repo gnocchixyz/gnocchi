@@ -360,6 +360,16 @@ the one described in `Searching for resources`_.
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
 
+Also aggregation across metrics have different behavior depending
+on if boundary are set ('start' and 'stop') and if 'needed_overlap' is set.
+
+If boundaries are not set, Gnocchi makes the aggregation only with points
+at timestamp present in all timeseries.
+
+But when boundaries are set, Gnocchi expects that we have certain
+percent of timestamps common between timeseries, this percent is controlled
+by needed_overlap (defaulted with 100%). If this percent is not reached an
+error is returned.
 
 Capabilities
 ============
