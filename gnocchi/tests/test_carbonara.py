@@ -405,6 +405,62 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
         ], output)
 
+    def test_aggregated_partial_overlap(self):
+        tsc1 = carbonara.TimeSerieArchive.from_definitions([(1, 86400)])
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1.max_block_size)
+        tsc2 = carbonara.TimeSerieArchive.from_definitions([(1, 86400)])
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2.max_block_size)
+
+        tsb1.set_values([
+            (datetime.datetime(2015, 12, 3, 13, 19, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 20, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 21, 15), 1),
+            (datetime.datetime(2015, 12, 3, 13, 22, 15), 1),
+        ], before_truncate_callback=tsc1.update)
+
+        tsb2.set_values([
+            (datetime.datetime(2015, 12, 3, 13, 21, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 22, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 23, 15), 10),
+            (datetime.datetime(2015, 12, 3, 13, 24, 15), 10),
+        ], before_truncate_callback=tsc2.update)
+
+        timeseries = [ts for tsa in [tsc1, tsc2]
+                      for ts in tsa.agg_timeseries]
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            timeseries, aggregation="sum")
+
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+        ], output)
+
+        dtfrom = datetime.datetime(2015, 12, 3, 13, 17, 0)
+        dtto = datetime.datetime(2015, 12, 3, 13, 25, 0)
+
+        output = carbonara.AggregatedTimeSerie.aggregated(
+            timeseries, from_timestamp=dtfrom, to_timestamp=dtto,
+            aggregation="sum", needed_percent_of_overlap=0)
+
+        self.assertEqual([
+            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
+            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
+            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
+        ], output)
+
+        # FIXME(sileht): this doesn't raise an error when it should
+        # By default we require 100% of point that overlap
+        # so that fail if from or to is set
+        # self.assertRaises(carbonara.UnAggregableTimeseries,
+        #                   carbonara.AggregatedTimeSerie.aggregated,
+        #                   timeseries, to_timestamp=dtto)
+        # self.assertRaises(carbonara.UnAggregableTimeseries,
+        #                   carbonara.AggregatedTimeSerie.aggregated,
+        #                   timeseries, from_timestamp=dtfrom)
+
 
 class TestTimeSerieArchive(base.BaseTestCase):
 
