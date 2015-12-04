@@ -336,6 +336,21 @@ class AggregatedTimeSerie(TimeSerie):
             # that is before `after'
             self.ts = aggregated.combine_first(self.ts[:after][:-1])
 
+    def fetch(self, from_timestamp=None, to_timestamp=None):
+        """Fetch aggregated time value.
+
+        Returns a sorted list of tuples (timestamp, granularity, value).
+        """
+        points = self[from_timestamp:to_timestamp]
+        try:
+            # Do not include stop timestamp
+            del points[to_timestamp]
+        except KeyError:
+            pass
+        return [(timestamp, self.sampling, value)
+                for timestamp, value
+                in six.iteritems(points)]
+
     def update(self, ts):
         if ts.ts.empty:
             return
@@ -358,6 +373,92 @@ class AggregatedTimeSerie(TimeSerie):
         # from first timestamp AND TO LAST TIMESTAMP!
         self._resample(first_timestamp)
         self._truncate()
+
+    @staticmethod
+    def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
+                   aggregation='mean', needed_percent_of_overlap=100.0):
+
+        index = ['timestamp', 'granularity']
+        columns = ['timestamp', 'granularity', 'value']
+        dataframes = []
+
+        if not timeseries:
+            return []
+
+        for timeserie in timeseries:
+            timeserie_raw = timeserie.fetch(from_timestamp, to_timestamp)
+
+            if timeserie_raw:
+                dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
+                dataframe = dataframe.set_index(index)
+                dataframes.append(dataframe)
+
+        if not dataframes:
+            return []
+
+        number_of_distinct_datasource = len(timeseries) / len(
+            set(ts.sampling for ts in timeseries)
+        )
+
+        grouped = pandas.concat(dataframes).groupby(level=index)
+        left_boundary_ts = None
+        right_boundary_ts = None
+        maybe_next_timestamp_is_left_boundary = False
+        holes = 0
+        for (timestamp, __), group in grouped:
+            if group.count()['value'] != number_of_distinct_datasource:
+                maybe_next_timestamp_is_left_boundary = True
+                holes += 1
+            elif maybe_next_timestamp_is_left_boundary:
+                left_boundary_ts = timestamp
+                maybe_next_timestamp_is_left_boundary = False
+            else:
+                right_boundary_ts = timestamp
+
+        if to_timestamp is not None and from_timestamp is not None:
+            maximum = len(grouped)
+            percent_of_overlap = (float(maximum - holes) * 100.0 /
+                                  float(maximum))
+            if percent_of_overlap < needed_percent_of_overlap:
+                raise UnAggregableTimeseries(
+                    'Less than %f%% of datapoints overlap in this '
+                    'timespan (%.2f%%)' % (needed_percent_of_overlap,
+                                           percent_of_overlap))
+        elif (needed_percent_of_overlap > 0 and
+                (right_boundary_ts == left_boundary_ts or
+                 (right_boundary_ts is None
+                  and maybe_next_timestamp_is_left_boundary))):
+            LOG.debug("We didn't find points that overlap in those "
+                      "timeseries. "
+                      "right_boundary_ts=%(right_boundary_ts)s, "
+                      "left_boundary_ts=%(left_boundary_ts)s, "
+                      "groups=%(groups)s" % {
+                          'right_boundary_ts': right_boundary_ts,
+                          'left_boundary_ts': left_boundary_ts,
+                          'groups': list(grouped)
+                      })
+            raise UnAggregableTimeseries('No overlap')
+
+        # NOTE(sileht): this call the aggregation method on already
+        # aggregated values, for some kind of aggregation this can
+        # result can looks wierd, but this is the best we can do
+        # because we don't have anymore the raw datapoints in those case.
+        # FIXME(sileht): so should we bailout is case of stddev, percentile
+        # and median?
+        agg_timeserie = getattr(grouped, aggregation)()
+        agg_timeserie = agg_timeserie.dropna().reset_index()
+
+        if from_timestamp is None and left_boundary_ts:
+            agg_timeserie = agg_timeserie[
+                agg_timeserie['timestamp'] >= left_boundary_ts]
+        if to_timestamp is None and right_boundary_ts:
+            agg_timeserie = agg_timeserie[
+                agg_timeserie['timestamp'] <= right_boundary_ts]
+
+        points = (agg_timeserie.sort_values(by=['granularity', 'timestamp'],
+                                            ascending=[0, 1]).itertuples())
+        return [(timestamp, granularity, value)
+                for __, timestamp, granularity, value in points]
 
 
 class TimeSerieArchive(SerializableMixin):
@@ -431,96 +532,6 @@ class TimeSerieArchive(SerializableMixin):
     @classmethod
     def from_dict(cls, d):
         return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
-
-    @staticmethod
-    def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
-                   aggregation='mean', needed_percent_of_overlap=100.0):
-
-        index = ['timestamp', 'granularity']
-        columns = ['timestamp', 'granularity', 'value']
-        dataframes = []
-
-        if not timeseries:
-            return []
-
-        granularities = [set(ts.sampling for ts in timeserie.agg_timeseries)
-                         for timeserie in timeseries]
-        granularities = granularities[0].intersection(*granularities[1:])
-        if len(granularities) == 0:
-            raise UnAggregableTimeseries('No granularity match')
-
-        for timeserie in timeseries:
-            timeserie_raw = timeserie.fetch(
-                from_timestamp, to_timestamp,
-                lambda ts: ts.sampling in granularities)
-
-            if timeserie_raw:
-                dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
-                dataframe = dataframe.set_index(index)
-                dataframes.append(dataframe)
-
-        if not dataframes:
-            return []
-
-        grouped = pandas.concat(dataframes).groupby(level=index)
-        left_boundary_ts = None
-        right_boundary_ts = None
-        maybe_next_timestamp_is_left_boundary = False
-        holes = 0
-        for (timestamp, __), group in grouped:
-            if group.count()['value'] != len(timeseries):
-                maybe_next_timestamp_is_left_boundary = True
-                holes += 1
-            elif maybe_next_timestamp_is_left_boundary:
-                left_boundary_ts = timestamp
-                maybe_next_timestamp_is_left_boundary = False
-            else:
-                right_boundary_ts = timestamp
-
-        if to_timestamp is not None and from_timestamp is not None:
-            maximum = len(grouped)
-            percent_of_overlap = (float(maximum - holes) * 100.0 /
-                                  float(maximum))
-            if percent_of_overlap < needed_percent_of_overlap:
-                raise UnAggregableTimeseries(
-                    'Less than %f%% of datapoints overlap in this '
-                    'timespan (%.2f%%)' % (needed_percent_of_overlap,
-                                           percent_of_overlap))
-        elif (needed_percent_of_overlap > 0 and
-                (right_boundary_ts == left_boundary_ts or
-                 (right_boundary_ts is None
-                  and maybe_next_timestamp_is_left_boundary))):
-            LOG.debug("We didn't find points that overlap in those "
-                      "timeseries. "
-                      "right_boundary_ts=%(right_boundary_ts)s, "
-                      "left_boundary_ts=%(left_boundary_ts)s, "
-                      "groups=%(groups)s" % {
-                          'right_boundary_ts': right_boundary_ts,
-                          'left_boundary_ts': left_boundary_ts,
-                          'groups': list(grouped)
-                      })
-            raise UnAggregableTimeseries('No overlap')
-
-        # NOTE(sileht): this call the aggregation method on already
-        # aggregated values, for some kind of aggregation this can
-        # result can looks wierd, but this is the best we can do
-        # because we don't have anymore the raw datapoints in those case.
-        # FIXME(sileht): so should we bailout is case of stddev, percentile
-        # and median?
-        agg_timeserie = getattr(grouped, aggregation)()
-        agg_timeserie = agg_timeserie.dropna().reset_index()
-
-        if from_timestamp is None and left_boundary_ts:
-            agg_timeserie = agg_timeserie[
-                agg_timeserie['timestamp'] >= left_boundary_ts]
-        if to_timestamp is None and right_boundary_ts:
-            agg_timeserie = agg_timeserie[
-                agg_timeserie['timestamp'] <= right_boundary_ts]
-
-        points = (agg_timeserie.sort_values(by=['granularity', 'timestamp'],
-                                            ascending=[0, 1]).itertuples())
-        return [(timestamp, granularity, value)
-                for __, timestamp, granularity, value in points]
 
 
 import argparse

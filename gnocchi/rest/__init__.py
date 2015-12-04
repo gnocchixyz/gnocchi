@@ -397,8 +397,11 @@ class AggregatedMetricController(rest.RestController):
         for metric in metrics:
             enforce("get metric", metric)
 
+        number_of_metrics = len(metrics)
         try:
-            if len(metrics) == 1:
+            if number_of_metrics == 0:
+                return []
+            if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
                 measures = pecan.request.storage.get_measures(
