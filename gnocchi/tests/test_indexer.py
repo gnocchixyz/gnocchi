@@ -911,3 +911,5 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.delete_metric(e1)
         metrics = self.index.list_metrics()
         self.assertNotIn(e1, [m.id for m in metrics])
+        metrics = self.index.list_metrics(status='delete')
+        self.assertIn(e1, [m.id for m in metrics])
