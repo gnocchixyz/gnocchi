@@ -157,12 +157,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def _delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
-            name = self._get_object_name(metric, 'container')
-            try:
-                ioctx.remove_object(name)
-            except rados.ObjectNotFound:
-                # Maybe it never got measures
-                pass
+            for name in ('container', 'none'):
+                name = self._get_object_name(metric, name)
+                try:
+                    ioctx.remove_object(name)
+                except rados.ObjectNotFound:
+                    # Maybe it never got measures
+                    pass
             for aggregation in metric.archive_policy.aggregation_methods:
                 name = self._get_object_name(metric, aggregation)
                 try:
