@@ -162,13 +162,12 @@ class InfluxDBStorage(storage.StorageDriver):
 
         metric_id = self._get_metric_id(metric)
 
-        result = self._query(metric, "select * from \"%(metric_id)s\"" %
-                             dict(metric_id=metric_id))
-        result = list(result[metric_id])
-
         if from_timestamp:
             first_measure_timestamp = from_timestamp
         else:
+            result = self._query(metric, "select * from \"%(metric_id)s\"" %
+                                 dict(metric_id=metric_id))
+            result = list(result[metric_id])
             if result:
                 first_measure_timestamp = self._timestamp_to_utc(
                     timeutils.parse_isotime(result[0]['time']))
