@@ -172,7 +172,7 @@ class StorageDriver(object):
                 LOG.error("Unable to expunge metric %s from storage" % m,
                           exc_info=True)
             try:
-                self.index.expunge_metric(m.id)
+                index.expunge_metric(m.id)
             except indexer.NoSuchMetric:
                 # It's possible another process deleted the metric in the mean
                 # time, not a big deal
