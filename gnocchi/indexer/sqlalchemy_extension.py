@@ -47,4 +47,4 @@ class InstanceNetworkInterface(object):
 
 
 class Volume(object):
-    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=True)

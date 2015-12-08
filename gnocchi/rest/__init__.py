@@ -890,7 +890,8 @@ class VolumeResourceController(GenericResourceController):
     _resource_type = 'volume'
 
     Resource = ResourceSchema({
-        "display_name": six.text_type,
+        voluptuous.Optional("display_name"): voluptuous.Any(None,
+                                                            six.text_type),
     })
 
 
