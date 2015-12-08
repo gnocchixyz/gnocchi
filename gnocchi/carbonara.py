@@ -78,13 +78,18 @@ class TimeSerie(SerializableMixin):
     last in the group when the TimeSerie is created or extended.
     """
 
-    def __init__(self, timestamps=None, values=None):
-        self.ts = pandas.Series(values, timestamps).groupby(
-            level=0).last().sort_index()
+    def __init__(self, ts=None):
+        if ts is None:
+            ts = pandas.Series()
+        self.ts = ts.groupby(level=0).last().sort_index()
+
+    @classmethod
+    def from_data(cls, timestamps=None, values=None):
+        return cls(pandas.Series(values, timestamps))
 
     @classmethod
     def from_tuples(cls, timestamps_values):
-        return cls(*zip(*timestamps_values))
+        return cls.from_data(*zip(*timestamps_values))
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerie)
@@ -120,7 +125,8 @@ class TimeSerie(SerializableMixin):
         :param d: The dict.
         :returns: A TimeSerie object
         """
-        return cls(*cls._timestamps_and_values_from_dict(d['values']))
+        return cls.from_data(
+            *cls._timestamps_and_values_from_dict(d['values']))
 
     def to_dict(self):
         return {
@@ -148,8 +154,7 @@ class TimeSerie(SerializableMixin):
 
 
 class BoundTimeSerie(TimeSerie):
-    def __init__(self, timestamps=None, values=None,
-                 block_size=None, back_window=0):
+    def __init__(self, ts=None, block_size=None, back_window=0):
         """A time serie that is limited in size.
 
         Used to represent the full-resolution buffer of incoming raw
@@ -165,10 +170,16 @@ class BoundTimeSerie(TimeSerie):
         used.
 
         """
-        super(BoundTimeSerie, self).__init__(timestamps, values)
+        super(BoundTimeSerie, self).__init__(ts)
         self.block_size = self._to_offset(block_size)
         self.back_window = back_window
         self._truncate()
+
+    @classmethod
+    def from_data(cls, timestamps=None, values=None,
+                  block_size=None, back_window=0):
+        return cls(pandas.Series(values, timestamps),
+                   block_size=block_size, back_window=back_window)
 
     def __eq__(self, other):
         return (isinstance(other, BoundTimeSerie)
@@ -210,9 +221,9 @@ class BoundTimeSerie(TimeSerie):
         :returns: A TimeSerie object
         """
         timestamps, values = cls._timestamps_and_values_from_dict(d['values'])
-        return cls(timestamps, values,
-                   block_size=d.get('block_size'),
-                   back_window=d.get('back_window'))
+        return cls.from_data(timestamps, values,
+                             block_size=d.get('block_size'),
+                             back_window=d.get('back_window'))
 
     def to_dict(self):
         basic = super(BoundTimeSerie, self).to_dict()
@@ -239,8 +250,7 @@ class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
-    def __init__(self, timestamps=None, values=None,
-                 max_size=None,
+    def __init__(self, ts=None, max_size=None,
                  sampling=None, aggregation_method='mean'):
         """A time serie that is downsampled.
 
@@ -248,7 +258,7 @@ class AggregatedTimeSerie(TimeSerie):
         granularity/aggregation-function pair stored for a metric.
 
         """
-        super(AggregatedTimeSerie, self).__init__(timestamps, values)
+        super(AggregatedTimeSerie, self).__init__(ts)
 
         m = self._AGG_METHOD_PCT_RE.match(aggregation_method)
 
@@ -267,6 +277,13 @@ class AggregatedTimeSerie(TimeSerie):
             self._sampling = self._to_offset(sampling)
         self.max_size = max_size
         self.aggregation_method = aggregation_method
+
+    @classmethod
+    def from_data(cls, timestamps=None, values=None,
+                  max_size=None, sampling=None, aggregation_method='mean'):
+        return cls(pandas.Series(values, timestamps),
+                   max_size=max_size, sampling=sampling,
+                   aggregation_method=aggregation_method)
 
     @property
     def sampling(self):
@@ -298,10 +315,11 @@ class AggregatedTimeSerie(TimeSerie):
         :returns: A TimeSerie object
         """
         timestamps, values = cls._timestamps_and_values_from_dict(d['values'])
-        return cls(timestamps, values,
-                   max_size=d.get('max_size'),
-                   sampling=d.get('sampling'),
-                   aggregation_method=d.get('aggregation_method', 'mean'))
+        return cls.from_data(
+            timestamps, values,
+            max_size=d.get('max_size'),
+            sampling=d.get('sampling'),
+            aggregation_method=d.get('aggregation_method', 'mean'))
 
     def to_dict(self):
         d = super(AggregatedTimeSerie, self).to_dict()

@@ -46,7 +46,7 @@ class TestCarbonaraMigration(tests_base.TestCase):
         )
 
         for a in (archive, archive_max):
-            a.update(carbonara.TimeSerie(
+            a.update(carbonara.TimeSerie.from_data(
                 [datetime.datetime(2014, 1, 1, 12, 0, 0),
                  datetime.datetime(2014, 1, 1, 12, 0, 4),
                  datetime.datetime(2014, 1, 1, 12, 0, 9)],
