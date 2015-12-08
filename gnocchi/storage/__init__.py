@@ -181,7 +181,7 @@ class StorageDriver(object):
                           exc_info=True)
                 continue
             try:
-                self.index.expunge_metric(m.id)
+                index.expunge_metric(m.id)
             except indexer.NoSuchMetric:
                 # It's possible another process deleted the metric in the mean
                 # time, not a big deal
