@@ -238,6 +238,12 @@ function configure_gnocchi {
     # Configure auth token middleware
     configure_auth_token_middleware $GNOCCHI_CONF gnocchi $GNOCCHI_AUTH_CACHE_DIR
 
+    if is_service_enabled gnocchi-statsd ; then
+        iniset $GNOCCHI_CONF statsd resource_id $GNOCCHI_STATSD_RESOURCE_ID
+        iniset $GNOCCHI_CONF statsd project_id $GNOCCHI_STATSD_PROJECT_ID
+        iniset $GNOCCHI_CONF statsd user_id $GNOCCHI_STATSD_USER_ID
+    fi
+
     # Configure the storage driver
     if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
         iniset $GNOCCHI_CONF storage driver ceph
@@ -412,6 +418,7 @@ function start_gnocchi {
 
     # run metricd last so we are properly waiting for swift and friends
     run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
+    run_process gnocchi-statsd "$GNOCCHI_BIN_DIR/gnocchi-statsd -d -v --config-file $GNOCCHI_CONF"
 }
 
 # stop_gnocchi() - Stop running processes
