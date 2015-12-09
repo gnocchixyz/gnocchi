@@ -530,9 +530,9 @@ def UUID(value):
 
 
 class MetricsController(rest.RestController):
-    @staticmethod
+
     @pecan.expose()
-    def _lookup(id, *remainder):
+    def _lookup(self, id, *remainder):
         try:
             metric_id = uuid.UUID(id)
         except ValueError:
