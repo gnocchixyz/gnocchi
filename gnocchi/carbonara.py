@@ -415,7 +415,7 @@ class AggregatedTimeSerie(TimeSerie):
             else:
                 right_boundary_ts = timestamp
 
-        if to_timestamp is not None and from_timestamp is not None:
+        if to_timestamp is not None or from_timestamp is not None:
             maximum = len(grouped)
             percent_of_overlap = (float(maximum - holes) * 100.0 /
                                   float(maximum))

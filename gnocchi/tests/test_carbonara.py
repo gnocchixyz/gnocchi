@@ -451,15 +451,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
         ], output)
 
-        # FIXME(sileht): this doesn't raise an error when it should
         # By default we require 100% of point that overlap
         # so that fail if from or to is set
-        # self.assertRaises(carbonara.UnAggregableTimeseries,
-        #                   carbonara.AggregatedTimeSerie.aggregated,
-        #                   timeseries, to_timestamp=dtto)
-        # self.assertRaises(carbonara.UnAggregableTimeseries,
-        #                   carbonara.AggregatedTimeSerie.aggregated,
-        #                   timeseries, from_timestamp=dtfrom)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          timeseries, to_timestamp=dtto)
+        self.assertRaises(carbonara.UnAggregableTimeseries,
+                          carbonara.AggregatedTimeSerie.aggregated,
+                          timeseries, from_timestamp=dtfrom)
 
 
 class TestTimeSerieArchive(base.BaseTestCase):
