@@ -47,10 +47,23 @@ def upgrade():
     # just altering the column won't works.
     # https://bitbucket.org/zzzeek/alembic/issues/270/altering-enum-type
     # Does it break offline migration because we use get_bind() ?
+
+    # NOTE(luogangyi): since we cannot use 'ALTER TYPE' in transaction,
+    # we split the 'ALTER TYPE' operation into several steps.
     bind = op.get_bind()
     if bind and bind.engine.name == "postgresql":
-        for value in ["instance_network_interface", "instance_disk"]:
-            op.execute("ALTER TYPE resource_type_enum ADD VALUE '%s'" % value)
+        op.execute("ALTER TYPE resource_type_enum RENAME TO \
+                    old_resource_type_enum")
+        op.execute("CREATE TYPE resource_type_enum AS ENUM \
+                       ('generic', 'instance', 'swift_account', \
+                        'volume', 'ceph_account', 'network', \
+                        'identity', 'ipmi', 'stack', 'image', \
+                        'instance_network_interface', 'instance_disk')")
+        for table in ["resource", "resource_history"]:
+            op.execute("ALTER TABLE %s ALTER COLUMN type TYPE \
+                        resource_type_enum USING \
+                        type::text::resource_type_enum" % table)
+        op.execute("DROP TYPE old_resource_type_enum")
 
     for table in ['instance_disk', 'instance_net_int']:
         op.create_table(
