@@ -43,21 +43,6 @@ OPTS = [
 LOG = logging.getLogger(__name__)
 
 
-class CarbonaraBasedStorageToozLock(object):
-    def __init__(self, conf):
-        self.coord = coordination.get_coordinator(
-            conf.coordination_url,
-            str(uuid.uuid4()).encode('ascii'))
-        self.coord.start()
-
-    def stop(self):
-        self.coord.stop()
-
-    def __call__(self, metric):
-        lock_name = b"gnocchi-" + str(metric.id).encode('ascii')
-        return self.coord.get_lock(lock_name)
-
-
 class CarbonaraBasedStorage(storage.StorageDriver):
     MEASURE_PREFIX = "measure"
 
@@ -66,10 +51,17 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         self.executor = futures.ThreadPoolExecutor(
             max_workers=(conf.aggregation_workers_number or
                          multiprocessing.cpu_count()))
+        self.coord = coordination.get_coordinator(
+            conf.coordination_url,
+            str(uuid.uuid4()).encode('ascii'))
+        self.coord.start()
 
-    @staticmethod
-    def _lock(metric):
-        raise NotImplementedError
+    def stop(self):
+        self.coord.stop()
+
+    def _lock(self, metric):
+        lock_name = b"gnocchi-" + str(metric.id).encode('ascii')
+        return self.coord.get_lock(lock_name)
 
     @staticmethod
     def _get_measures(metric, aggregation):
