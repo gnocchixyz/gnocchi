@@ -48,13 +48,17 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
-        self.executor = futures.ThreadPoolExecutor(
-            max_workers=(conf.aggregation_workers_number or
-                         multiprocessing.cpu_count()))
         self.coord = coordination.get_coordinator(
             conf.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
         self.coord.start()
+        if conf.aggregation_workers_number is None:
+            try:
+                self.aggregation_workers_number = multiprocessing.cpu_count()
+            except NotImplementedError:
+                self.aggregation_workers_number = 2
+        else:
+            self.aggregation_workers_number = conf.aggregation_workers_number
 
     def stop(self):
         self.coord.stop()
@@ -289,7 +293,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return result
 
     def _map_in_thread(self, method, list_of_args):
-        # We use 'list' to iterate all threads here to raise the first
-        # exception now , not much choice
-        return list(self.executor.map(lambda args: method(*args),
-                                      list_of_args))
+        with futures.ThreadPoolExecutor(
+                max_workers=self.aggregation_workers_number) as executor:
+            # We use 'list' to iterate all threads here to raise the first
+            # exception now, not much choice
+            return list(executor.map(lambda args: method(*args), list_of_args))
