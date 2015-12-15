@@ -159,7 +159,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             (metric_id, self._pending_measures_to_process_count(metric_id))
             for metric_id in metrics_to_process)
 
-    def process_measures(self, indexer):
+    def process_measures(self, indexer, sync=False):
         metrics_to_process = self._list_metric_with_measures_to_process()
         metrics = indexer.get_metrics(metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
@@ -174,7 +174,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # Do not block if we cannot acquire the lock, that means some other
             # worker is doing the job. We'll just ignore this metric and may
             # get back later to it if needed.
-            if lock.acquire(blocking=False):
+            if lock.acquire(blocking=sync):
                 try:
                     LOG.debug("Processing measures for %s" % metric)
                     with self._process_measure_for_metric(metric) as measures:
@@ -231,6 +231,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         self._store_metric_measures(metric, 'none',
                                                     ts.serialize())
                 except Exception:
+                    if sync:
+                        raise
                     LOG.error("Error processing new measures", exc_info=True)
                 finally:
                     lock.release()

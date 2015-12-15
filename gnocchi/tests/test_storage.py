@@ -44,7 +44,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 13, 0, 1), 1),
@@ -55,7 +55,7 @@ class TestStorageDriver(tests_base.TestCase):
                             side_effect=ValueError("boom!")):
                 with mock.patch('gnocchi.carbonara.msgpack.loads',
                                 side_effect=ValueError("boom!")):
-                    self.storage.process_background_tasks(self.index)
+                    self.storage.process_background_tasks(self.index, True)
 
         expected_calls = [
             mock.call.debug('Processing measures for %s' % self.metric.id),
@@ -81,7 +81,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
         self.storage.delete_metric(self.metric)
 
     def test_delete_nonempty_metric_unprocessed(self):
@@ -133,7 +133,7 @@ class TestStorageDriver(tests_base.TestCase):
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [m]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         self.assertEqual(3661, len(self.storage.get_measures(m)))
 
@@ -146,7 +146,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
@@ -281,7 +281,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -341,7 +341,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
@@ -371,7 +371,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [self.metric, metric2]
-            self.storage.process_background_tasks(self.index)
+            self.storage.process_background_tasks(self.index, True)
 
         self.assertEqual(
             {metric2: [],
