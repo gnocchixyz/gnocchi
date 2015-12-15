@@ -190,7 +190,7 @@ class FakeSwiftClient(object):
         self.kvs[container] = {}
 
     def get_container(self, container, delimiter=None,
-                      path=None):
+                      path=None, full_listing=False):
         try:
             container = self.kvs[container]
         except KeyError:
@@ -215,7 +215,14 @@ class FakeSwiftClient(object):
                               'name': k,
                               'content_type': None})
 
-        return {}, files + list(directories)
+        if full_listing:
+            end = None
+        else:
+            # In truth, it's 10000, but 1 is enough to make sure our test fails
+            # otherwise.
+            end = 1
+
+        return {}, (files + list(directories))[:end]
 
     def put_object(self, container, key, obj):
         if hasattr(obj, "seek"):
