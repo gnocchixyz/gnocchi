@@ -68,7 +68,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return self.coord.get_lock(lock_name)
 
     @staticmethod
-    def _get_measures(metric, aggregation, granularity):
+    def _get_measures(metric, timestamp_key, aggregation, granularity):
         raise NotImplementedError
 
     @staticmethod
@@ -83,6 +83,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _store_metric_measures(metric, aggregation, granularity, data):
         raise NotImplementedError
 
+    @staticmethod
+    def _list_split_keys_for_metric(metric, aggregation, granularity):
+        raise NotImplementedError
+
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean', granularity=None):
         super(CarbonaraBasedStorage, self).get_measures(
@@ -90,36 +94,63 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         if granularity is None:
             agg_timeseries = self._map_in_thread(
                 self._get_measures_timeserie,
-                ((metric, aggregation, ap.granularity)
+                ((metric, aggregation, ap.granularity,
+                  from_timestamp, to_timestamp)
                  for ap in reversed(metric.archive_policy.definition)))
         else:
             agg_timeseries = [self._get_measures_timeserie(
-                metric, aggregation, granularity)]
+                metric, aggregation, granularity,
+                from_timestamp, to_timestamp)]
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                 for ts in agg_timeseries
                 for timestamp, r, v in ts.fetch(from_timestamp, to_timestamp)]
 
-    @staticmethod
-    def _log_data_corruption(metric, aggregation):
-        LOG.error("Data are corrupted for metric %(metric)s and aggregation "
-                  "%(aggregation)s, recreating an empty timeserie." %
-                  dict(metric=metric.id, aggregation=aggregation))
-
-    def _get_measures_timeserie(self, metric, aggregation, granularity):
+    def _get_measures_and_unserialize(self, metric, key,
+                                      aggregation, granularity):
+        data = self._get_measures(metric, key, aggregation, granularity)
         try:
-            contents = self._get_measures(metric, aggregation, granularity)
+            return carbonara.TimeSerie.unserialize(data)
+        except ValueError:
+                LOG.error("Data corruption detected for %s "
+                          "aggregated `%s' timeserie, granularity `%s' "
+                          "around time `%s', ignoring."
+                          % (metric.id, aggregation, granularity, key))
+
+    def _get_measures_timeserie(self, metric,
+                                aggregation, granularity,
+                                from_timestamp=None, to_timestamp=None):
+
+        # Find the number of point
+        for d in metric.archive_policy.definition:
+            if d.granularity == granularity:
+                points = d.points
+                break
+        else:
+            raise storage.GranularityDoesNotExist(metric, granularity)
+
+        all_keys = None
+        try:
+            all_keys = self._list_split_keys_for_metric(
+                metric, aggregation, granularity)
         except storage.MetricDoesNotExist:
-            ts = None
-        except storage.AggregationDoesNotExist:
-            # This does not necessarily mean that the metric has not been
-            # created yet. It can be an old metric with a TimeSerieArchive.
-            # Let's try that.
+            # This can happen if it's an old metric with a TimeSerieArchive
+            all_keys = None
+
+        if not all_keys:
+            # It does not mean we have no data: it can be an old metric with a
+            # TimeSerieArchive.
             try:
                 data = self._get_metric_archive(metric, aggregation)
             except (storage.MetricDoesNotExist,
                     storage.AggregationDoesNotExist):
                 # It really does not exist
-                ts = None
+                for d in metric.archive_policy.definition:
+                    if d.granularity == granularity:
+                        return carbonara.AggregatedTimeSerie(
+                            aggregation_method=aggregation,
+                            sampling=granularity,
+                            max_size=d.points)
+                raise storage.GranularityDoesNotExist(metric, granularity)
             else:
                 archive = carbonara.TimeSerieArchive.unserialize(data)
                 # It's an old metric with an TimeSerieArchive!
@@ -127,30 +158,37 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     if ts.sampling == granularity:
                         return ts
                 raise storage.GranularityDoesNotExist(metric, granularity)
-        else:
-            try:
-                ts = carbonara.AggregatedTimeSerie.unserialize(contents)
-            except ValueError:
-                self._log_data_corruption(metric, aggregation)
-                ts = None
 
-        if ts is None:
-            for d in metric.archive_policy.definition:
-                if d.granularity == granularity:
-                    ts = carbonara.AggregatedTimeSerie(
-                        aggregation_method=aggregation,
-                        sampling=granularity,
-                        max_size=d.points)
-                    break
-            else:
-                raise storage.GranularityDoesNotExist(metric, granularity)
-        return ts
+        if from_timestamp:
+            from_timestamp = carbonara.AggregatedTimeSerie.get_split_key(
+                from_timestamp, granularity)
+
+        if to_timestamp:
+            to_timestamp = carbonara.AggregatedTimeSerie.get_split_key(
+                to_timestamp, granularity)
+
+        timeseries = filter(
+            lambda x: x is not None,
+            self._map_in_thread(
+                self._get_measures_and_unserialize,
+                ((metric, key, aggregation, granularity)
+                 for key in all_keys
+                 if ((not from_timestamp or key >= from_timestamp)
+                     and (not to_timestamp or key <= to_timestamp))))
+        )
+
+        return carbonara.AggregatedTimeSerie.from_timeseries(
+            timeseries,
+            sampling=granularity,
+            max_size=points)
 
     def _add_measures(self, aggregation, granularity, metric, timeserie):
+        # TODO(jd) only retrieve the part we update
         ts = self._get_measures_timeserie(metric, aggregation, granularity)
         ts.update(timeserie)
-        self._store_metric_measures(metric, aggregation, granularity,
-                                    ts.serialize())
+        for key, split in ts.split():
+            self._store_metric_measures(metric, key, aggregation, granularity,
+                                        split.serialize())
 
     def add_measures(self, metric, measures):
         self._store_measures(metric, msgpackutils.dumps(
@@ -212,10 +250,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     archive = carbonara.TimeSerieArchive.unserialize(data)
                     for ts in archive.agg_timeseries:
                         # Store each AggregatedTimeSerie independently
-                        self._store_metric_measures(
-                            metric, ts.aggregation_method,
-                            ts.sampling,
-                            ts.serialize())
+                        for key, split in ts.split():
+                            self._store_metric_measures(metric, key,
+                                                        ts.aggregation_method,
+                                                        ts.sampling,
+                                                        split.serialize())
             self._delete_metric_archives(metric)
             LOG.info("Migrated metric %s to new format" % metric)
 
@@ -266,7 +305,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                     raw_measures)
                             except ValueError:
                                 ts = None
-                                self._log_data_corruption(metric, "none")
+                                LOG.error(
+                                    "Data corruption detected for %s "
+                                    "unaggregated timeserie, "
+                                    "recreating an empty one."
+                                    % metric.id)
 
                         if ts is None:
                             # This is the first time we treat measures for this
@@ -331,7 +374,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             granularities_in_common = [granularity]
 
         tss = self._map_in_thread(self._get_measures_timeserie,
-                                  [(metric, aggregation, g)
+                                  [(metric, aggregation, g,
+                                    from_timestamp, to_timestamp)
                                    for metric in metrics
                                    for g in granularities_in_common])
         try:
@@ -346,7 +390,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _find_measure(self, metric, aggregation, granularity, predicate,
                       from_timestamp, to_timestamp):
         timeserie = self._get_measures_timeserie(
-            metric, aggregation, granularity)
+            metric, aggregation, granularity,
+            from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return {metric:
                 [(timestamp.replace(tzinfo=iso8601.iso8601.UTC),

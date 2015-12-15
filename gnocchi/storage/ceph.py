@@ -124,11 +124,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         return self.rados.open_ioctx(self.pool)
 
     @staticmethod
-    def _get_object_name(metric, lock_name, granularity=None):
-        v = "gnocchi_%s_%s" % (metric.id, lock_name)
-        if granularity is None:
-            return str(v)
-        return str(v + "_%s" % granularity)
+    def _get_object_name(metric, timestamp_key, aggregation, granularity):
+        return str("gnocchi_%s_%s_%s_%s" % (
+            metric.id, timestamp_key, aggregation, granularity))
 
     @staticmethod
     def _object_exists(ioctx, name):
@@ -141,40 +139,42 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return False
 
     def _create_metric(self, metric):
-        name = self._get_object_name(metric, 'container')
+        name = "gnocchi_%s_container" % metric.id
         with self._get_ioctx() as ioctx:
             if self._object_exists(ioctx, name):
                 raise storage.MetricAlreadyExists(metric)
             else:
                 ioctx.write_full(name, "metric created")
 
-    def _store_metric_measures(self, metric, aggregation, granularity, data):
-        name = self._get_object_name(metric, aggregation, granularity)
+    def _store_metric_measures(self, metric, timestamp_key,
+                               aggregation, granularity, data):
+        name = self._get_object_name(metric, timestamp_key,
+                                     aggregation, granularity)
         with self._get_ioctx() as ioctx:
             ioctx.write_full(name, data)
+            ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, "")
 
     def _delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
+            try:
+                xattrs = ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
+            except rados.ObjectNotFound:
+                pass
+            else:
+                for xattr, _ in xattrs:
+                    ioctx.remove_object(xattr)
             for name in ('container', 'none'):
-                name = self._get_object_name(metric, name)
                 try:
-                    ioctx.remove_object(name)
+                    ioctx.remove_object("gnocchi_%s_%s" % (metric.id, name))
                 except rados.ObjectNotFound:
                     # Maybe it never got measures
                     pass
-            for aggregation in metric.archive_policy.aggregation_methods:
-                for d in metric.archive_policy.definition:
-                    name = self._get_object_name(
-                        metric, aggregation, d.granularity)
-                    try:
-                        ioctx.remove_object(name)
-                    except rados.ObjectNotFound:
-                        pass
 
-    def _get_measures(self, metric, aggregation, granularity):
+    def _get_measures(self, metric, timestamp_key, aggregation, granularity):
         try:
             with self._get_ioctx() as ioctx:
-                name = self._get_object_name(metric, aggregation, granularity)
+                name = self._get_object_name(metric, timestamp_key,
+                                             aggregation, granularity)
                 content = self._get_object_content(ioctx, name)
                 if len(content) == 0:
                     # NOTE(sileht: the object have been created by
@@ -183,18 +183,32 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 else:
                     return content
         except rados.ObjectNotFound:
-            name = self._get_object_name(metric, 'container')
             with self._get_ioctx() as ioctx:
-                if self._object_exists(ioctx, name):
+                if self._object_exists(
+                        ioctx, "gnocchi_%s_container" % metric.id):
                     raise storage.AggregationDoesNotExist(metric, aggregation)
                 else:
                     raise storage.MetricDoesNotExist(metric)
 
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+        with self._get_ioctx() as ioctx:
+            try:
+                xattrs = ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
+            except rados.ObjectNotFound:
+                raise storage.MetricDoesNotExist(metric)
+            keys = []
+            for xattr, value in xattrs:
+                _, metric_id, key, agg, g = xattr.split('_', 4)
+                if aggregation == agg and granularity == float(g):
+                    keys.append(key)
+
+        return keys
+
     def _get_unaggregated_timeserie(self, metric):
         try:
             with self._get_ioctx() as ioctx:
-                name = self._get_object_name(metric, "none")
-                content = self._get_object_content(ioctx, name)
+                content = self._get_object_content(
+                    ioctx, "gnocchi_%s_none" % metric.id)
                 if len(content) == 0:
                     # NOTE(sileht: the object have been created by
                     # the lock code
@@ -204,9 +218,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricDoesNotExist(metric)
 
     def _store_unaggregated_timeserie(self, metric, data):
-        name = self._get_object_name(metric, "none")
         with self._get_ioctx() as ioctx:
-            ioctx.write_full(name, data)
+            ioctx.write_full("gnocchi_%s_none" % metric.id, data)
 
     @staticmethod
     def _get_object_content(ioctx, name):
@@ -225,8 +238,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         """Retrieve data in the place we used to store TimeSerieArchive."""
         try:
             with self._get_ioctx() as ioctx:
-                name = self._get_object_name(metric, aggregation)
-                content = self._get_object_content(ioctx, name)
+                content = self._get_object_content(
+                    ioctx, str("gnocchi_%s_%s" % (metric.id, aggregation)))
                 if len(content) == 0:
                     # NOTE(sileht: the object have been created by
                     # the lock code
@@ -237,15 +250,15 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def _store_metric_archive(self, metric, aggregation, data):
         """Stores data in the place we used to store TimeSerieArchive."""
-        name = self._get_object_name(metric, aggregation)
         with self._get_ioctx() as ioctx:
-            ioctx.write_full(name, data)
+            ioctx.write_full(
+                str("gnocchi_%s_%s" % (metric.id, aggregation)), data)
 
     def _delete_metric_archives(self, metric):
         with self._get_ioctx() as ioctx:
             for aggregation in metric.archive_policy.aggregation_methods:
-                name = self._get_object_name(metric, aggregation)
                 try:
-                    ioctx.remove_object(name)
+                    ioctx.remove_object(
+                        str("gnocchi_%s_%s" % (metric.id, aggregation)))
                 except rados.ObjectNotFound:
                     pass
