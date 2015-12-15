@@ -40,15 +40,27 @@ Then, you can start devstack:
 
     ./stack.sh
 
+Installation
+============
 
-Installation Using Sources
-==========================
+To install Gnocchi using `pip`, just type::
 
-To install Gnocchi, run the standard Python installation procedure:
+  pip install gnocchi
 
-::
+Depending on the drivers you want to use, you need to install extra flavors
+using, for example::
 
-    pip install -e .
+  pip install gnocchi[postgresql,ceph]
+
+To install Gnocchi from source, run the standard Python installation
+procedure::
+
+  pip install -e .
+
+Again, sepending on the drivers you want to use, you need to install extra
+flavors using, for example::
+
+  pip install -e .[postgresql,ceph]
 
 
 Configuration

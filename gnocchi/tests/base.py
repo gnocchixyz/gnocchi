@@ -22,7 +22,10 @@ from oslotest import base
 from oslotest import mockpatch
 import six
 from stevedore import extension
-from swiftclient import exceptions as swexc
+try:
+    from swiftclient import exceptions as swexc
+except ImportError:
+    swexc = None
 from testtools import testcase
 from tooz import coordination
 
@@ -373,9 +376,10 @@ class TestCase(base.BaseTestCase):
                 except indexer.ArchivePolicyAlreadyExists:
                     pass
 
-        self.useFixture(mockpatch.Patch(
-            'swiftclient.client.Connection',
-            FakeSwiftClient))
+        if swexc:
+            self.useFixture(mockpatch.Patch(
+                'swiftclient.client.Connection',
+                FakeSwiftClient))
 
         self.useFixture(mockpatch.Patch('gnocchi.storage.ceph.rados',
                                         FakeRadosModule()))
