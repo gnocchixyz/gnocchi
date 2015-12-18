@@ -55,6 +55,34 @@ Gnocchi provides these indexer drivers:
 .. _`MySQL`: http://mysql.com
 .. _`InfluxDB`: http://influxdb.com
 
+Configuring the WSGI pipeline
+-----------------------------
+
+The API server leverages `Paste Deployment`_ to manage its configuration. You
+can edit the `/etc/gnocchi/api-paste.ini` to tweak the WSGI pipeline of the
+Gnocchi REST HTTP server. By default, no authentication middleware is enabled,
+meaning your request will have to provides the authentication headers.
+
+Gnocchi is easily connectable with `OpenStack Keystone`_. If you successfully
+installed the `keystone` flavor using `pip` (see :ref:`installation`), you can
+edit the `api-paste.ini` file to add the Keystone authentication middleware::
+
+  [pipeline:main]
+  pipeline = keystone_authtoken gnocchi
+
+Also, if you're planning on using `CORS`_ (e.g. to use `Grafana`_), you an also
+add the CORS middleware in the server pipeline::
+
+  [pipeline:main]
+  pipeline = keystone_authtoken cors gnocchi
+
+With or without Keystone support.
+
+.. _`Paste Deployment`: http://pythonpaste.org/deploy/
+.. _`OpenStack Keystone`: http://launchpad.net/keystone
+.. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
+.. _`Grafana`: http://grafana.org/
+
 
 Driver notes
 ============

@@ -274,6 +274,8 @@ function configure_gnocchi {
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH
             iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
+        else
+            iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline "keystone_authtoken gnocchi"
         fi
     else
         iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi
@@ -360,8 +362,10 @@ function install_gnocchi {
 
     install_gnocchiclient
 
+    is_service_enabled key && EXTRA_FLAVOR=,keystonmiddleware
+
     # We don't use setup_package because we don't follow openstack/requirements
-    sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,$DATABASE_TYPE]
+    sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,${DATABASE_TYPE}${EXTRA_FLAVOR}]
 
     if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
         install_apache_wsgi
