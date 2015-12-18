@@ -1,0 +1,88 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: simple
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: create metric
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          archive_policy_name: simple
+      status: 201
+
+    - name: push measurements to metric
+      url: /v1/batch/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+        $RESPONSE['$.id']:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 202
+
+    - name: push measurements to unknown metrics
+      url: /v1/batch/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+        37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5C:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+        37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5D:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 400
+      response_strings:
+        - "Unknown metrics: 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5c, 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5d"
+
+    - name: create second metric
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          archive_policy_name: simple
+      status: 201
+
+    - name: list metrics
+      url: /v1/metric
+
+    - name: push measurements to two metrics
+      url: /v1/batch/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+        $RESPONSE['$[0].id']:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+        $RESPONSE['$[1].id']:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 202
