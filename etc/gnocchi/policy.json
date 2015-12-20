@@ -9,10 +9,8 @@
     "get resource": "rule:admin_or_creator or rule:resource_owner",
     "update resource": "rule:admin_or_creator",
     "delete resource": "rule:admin_or_creator",
-    "list resource": "",
-    "list all resource": "role:admin",
-    "search resource": "",
-    "search all resource": "role:admin",
+    "list resource": "rule:admin_or_creator or rule:resource_owner",
+    "search resource": "rule:admin_or_creator or rule:resource_owner",
 
     "get archive policy": "",
     "list archive policy": "",

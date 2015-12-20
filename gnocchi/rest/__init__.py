@@ -108,6 +108,44 @@ def enforce(rule, target):
         abort(403)
 
 
+def _get_list_resource_policy_filter(rule, resource_type, user, project):
+    try:
+        # Check if the policy allows the user to list any resource
+        enforce(rule, {
+            "resource_type": resource_type,
+        })
+    except webob.exc.HTTPForbidden:
+        policy_filter = []
+        try:
+            # Check if the policy allows the user to list resources linked
+            # to their project
+            enforce(rule, {
+                "resource_type": resource_type,
+                "project_id": project,
+            })
+        except webob.exc.HTTPForbidden:
+            pass
+        else:
+            policy_filter.append({"=": {"project_id": project}})
+        try:
+            # Check if the policy allows the user to list resources linked
+            # to their created_by_project
+            enforce(rule, {
+                "resource_type": resource_type,
+                "created_by_project_id": project,
+            })
+        except webob.exc.HTTPForbidden:
+            pass
+        else:
+            policy_filter.append({"=": {"created_by_project_id": project}})
+
+        if not policy_filter:
+            # We need to have at least one policy filter in place
+            abort(403, "Insufficient privileges")
+
+        return {"or": policy_filter}
+
+
 def set_resp_location_hdr(location):
     location = '%s%s' % (pecan.request.script_name, location)
     # NOTE(sileht): according the pep-3333 the headers must be
@@ -964,27 +1002,16 @@ class GenericResourcesController(rest.RestController):
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
-
-        try:
-            enforce("list all resource", {
-                "resource_type": self._resource_type,
-            })
-        except webob.exc.HTTPForbidden:
-            enforce("list resource", {
-                "resource_type": self._resource_type,
-            })
-            user, project = get_user_and_project()
-            attr_filter = {"and": [{"=": {"created_by_user_id": user}},
-                                   {"=": {"created_by_project_id": project}}]}
-        else:
-            attr_filter = None
+        user, project = get_user_and_project()
+        policy_filter = _get_list_resource_policy_filter(
+            "list resource", self._resource_type, user, project)
 
         try:
             # FIXME(sileht): next API version should returns
             # {'resources': [...], 'links': [ ... pagination rel ...]}
             return pecan.request.indexer.list_resources(
                 self._resource_type,
-                attribute_filter=attr_filter,
+                attribute_filter=policy_filter,
                 details=details,
                 history=history,
                 **pagination_opts
@@ -1124,25 +1151,17 @@ class SearchResourceTypeController(rest.RestController):
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
-        try:
-            enforce("search all resource", {
-                "resource_type": self._resource_type,
-            })
-        except webob.exc.HTTPForbidden:
-            enforce("search resource", {
-                "resource_type": self._resource_type,
-            })
-            user, project = get_user_and_project()
+        user, project = get_user_and_project()
+        policy_filter = _get_list_resource_policy_filter(
+            "search resource", self._resource_type, user, project)
+        if policy_filter:
             if attr_filter:
                 attr_filter = {"and": [
-                    {"=": {"created_by_user_id": user}},
-                    {"=": {"created_by_project_id": project}},
-                    attr_filter]}
-            else:
-                attr_filter = {"and": [
-                    {"=": {"created_by_user_id": user}},
-                    {"=": {"created_by_project_id": project}},
+                    policy_filter,
+                    attr_filter
                 ]}
+            else:
+                attr_filter = policy_filter
 
         try:
             return pecan.request.indexer.list_resources(
