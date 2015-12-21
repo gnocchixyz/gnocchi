@@ -1,16 +1,14 @@
-================================
- Gnocchi -- Metric as a Service
-================================
+==================================
+Gnocchi – Metric as a Service
+==================================
 
 .. image:: gnocchi-logo.jpg
+  :align: right
+  :width: 20%
+  :alt: Gnocchi logo
 
-Gnocchi is a multi-tenant timeseries, metrics and resources database. It
-provides an `HTTP REST`_ interface to create and manipulate those data. It is
-designed to store metrics at a very large scale while providing access to
-metrics and resources information to operators and users.
-
-Gnocchi is part of the `OpenStack` project. While Gnocchi has support for
-OpenStack, it is fully able to work stand-alone.
+.. include:: ../../README.rst
+   :start-line: 6
 
 A Brief History of Gnocchi
 --------------------------
@@ -49,5 +47,4 @@ Documentation
    statsd
    resource_types
 
-.. _`HTTP REST`: https://en.wikipedia.org/wiki/Representational_state_transfer
 .. _`OpenStack`: http://openstack.org
