@@ -44,6 +44,7 @@ Documentation
 
    architecture
    install
+   configuration
    rest
    statsd
    resource_types
