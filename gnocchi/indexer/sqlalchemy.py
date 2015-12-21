@@ -398,8 +398,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Metric.resource_id == resource_id).update(
                     {"status": "delete"})
             if session.query(Resource).filter(
-                    Resource.id == resource_id).options(
-                        sqlalchemy.orm.joinedload('metrics')).delete() == 0:
+                    Resource.id == resource_id).delete() == 0:
                 raise indexer.NoSuchResource(resource_id)
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):
