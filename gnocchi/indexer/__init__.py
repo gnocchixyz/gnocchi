@@ -309,6 +309,7 @@ class IndexerDriver(object):
     def update_resource(resource_type, resource_id, ended_at=_marker,
                         metrics=_marker,
                         append_metrics=False,
+                        create_revision=True,
                         **kwargs):
         raise exceptions.NotImplementedError
 

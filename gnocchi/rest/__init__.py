@@ -675,7 +675,8 @@ class NamedMetricController(rest.RestController):
         try:
             pecan.request.indexer.update_resource(
                 self.resource_type, self.resource_id, metrics=metrics,
-                append_metrics=True)
+                append_metrics=True,
+                create_revision=False)
         except (indexer.NoSuchMetric,
                 indexer.NoSuchArchivePolicy,
                 ValueError) as e:
@@ -807,20 +808,29 @@ class GenericResourceController(rest.RestController):
 
         body = deserialize_and_validate(self.Resource, required=False)
 
-        if not self._resource_need_update(resource, body):
-            # No need to go further, we assume the db resource
-            # doesn't change between the get and update
-            return resource
         if len(body) == 0:
             etag_set_headers(resource)
             return resource
+
+        create_revision = False
+        if 'metrics' not in body:
+            for k, v in six.iteritems(body):
+                if getattr(resource, k) != v:
+                    create_revision = True
+                    break
+            else:
+                # No need to go further, we assume the db resource
+                # doesn't change between the get and update
+                return resource
 
         try:
             if 'metrics' in body:
                 user, project = get_user_and_project()
             resource = pecan.request.indexer.update_resource(
                 self._resource_type,
-                self.id, **body)
+                self.id,
+                create_revision=create_revision,
+                **body)
         except (indexer.NoSuchMetric,
                 indexer.NoSuchArchivePolicy,
                 ValueError) as e:
@@ -829,15 +839,6 @@ class GenericResourceController(rest.RestController):
             abort(404, e)
         etag_set_headers(resource)
         return resource
-
-    @staticmethod
-    def _resource_need_update(resource, new_attributes):
-        if 'metrics' in new_attributes:
-            return True
-        for k, v in new_attributes.items():
-            if getattr(resource, k) != v:
-                return True
-        return False
 
     @pecan.expose()
     def delete(self):

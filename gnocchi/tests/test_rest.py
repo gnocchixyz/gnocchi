@@ -1216,8 +1216,7 @@ class ResourceTest(RestTest):
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
         self.assertIsNone(result['revision_end'])
         self.assertIsNone(r['revision_end'])
-        self.assertEqual(result['revision_start'],
-                         "2014-01-02T06:49:00+00:00")
+        self.assertEqual(result['revision_start'], "2014-01-01T10:23:00+00:00")
         self.assertEqual(r['revision_start'], "2014-01-01T10:23:00+00:00")
 
         del result['metrics']

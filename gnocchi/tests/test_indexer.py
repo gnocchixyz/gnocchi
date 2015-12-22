@@ -407,6 +407,24 @@ class TestIndexerDriver(tests_base.TestCase):
         r = self.index.get_resource('instance', r1, with_metrics=True)
         self.assertEqual(rc, r)
 
+    def test_update_resource_no_change(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        rc = self.index.create_resource('instance', r1, user, project,
+                                        flavor_id="1",
+                                        image_ref="http://foo/bar",
+                                        host="foo",
+                                        display_name="lol")
+        updated = self.index.update_resource('instance', r1, host="foo",
+                                             create_revision=False)
+        r = self.index.list_resources('instance',
+                                      {"=": {"id": r1}},
+                                      history=True)
+        self.assertEqual(1, len(r))
+        self.assertEqual(dict(rc), dict(r[0]))
+        self.assertEqual(dict(updated), dict(r[0]))
+
     def test_update_resource_ended_at_fail(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
