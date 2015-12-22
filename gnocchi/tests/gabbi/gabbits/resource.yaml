@@ -257,12 +257,11 @@ tests:
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
           content-type: application/json
       response_json_paths:
-        $.`len`: 3
+        $.`len`: 2
         $[0].host: compute1
         $[1].host: compute2
-        $[2].revision_end: null
-        $[2].host: compute2
-        $[2].metrics.'disk.iops': $RESPONSE["metrics.'disk.iops'"]
+        $[1].revision_end: null
+        $[1].metrics.'disk.iops': $RESPONSE["metrics.'disk.iops'"]
 
     - name: patch instance bad metric association
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
