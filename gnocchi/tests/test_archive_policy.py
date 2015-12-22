@@ -33,7 +33,8 @@ class TestArchivePolicy(base.BaseTestCase):
         default_opts = [('url',
                         os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
                         'indexer')]
-        conf = service.prepare_service([], default_opts)
+        conf = service.prepare_service([], default_opts,
+                                       default_config_files=[])
 
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,

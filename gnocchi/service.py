@@ -28,7 +28,8 @@ from gnocchi import opts
 LOG = log.getLogger(__name__)
 
 
-def prepare_service(args=None, default_opts=None, conf=None):
+def prepare_service(args=None, default_opts=None, conf=None,
+                    default_config_files=None):
     if conf is None:
         conf = cfg.ConfigOpts()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
@@ -57,7 +58,8 @@ def prepare_service(args=None, default_opts=None, conf=None):
     for opt, value, group in default_opts or []:
         conf.set_default(opt, value, group)
 
-    conf(args, project='gnocchi', validate_default_values=True)
+    conf(args, project='gnocchi', validate_default_values=True,
+         default_config_files=default_config_files)
     log.setup(conf, 'gnocchi')
     conf.log_opt_values(LOG, logging.DEBUG)
 
