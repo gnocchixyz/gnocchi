@@ -817,8 +817,6 @@ class GenericResourceController(rest.RestController):
             return resource
 
         try:
-            if 'metrics' in body:
-                user, project = get_user_and_project()
             resource = pecan.request.indexer.update_resource(
                 self._resource_type,
                 self.id, **body)
