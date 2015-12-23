@@ -765,7 +765,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
     def test_back_window(self):
         """Back window testing.
 
-        Test the the back window on an archive is not longer than the window we
+        Test the back window on an archive is not longer than the window we
         aggregate on.
         """
         ts = carbonara.TimeSerieArchive.from_definitions(
@@ -806,7 +806,7 @@ class TestTimeSerieArchive(base.BaseTestCase):
     def test_back_window_ignore(self):
         """Back window testing.
 
-        Test the the back window on an archive is not longer than the window we
+        Test the back window on an archive is not longer than the window we
         aggregate on.
         """
         ts = carbonara.TimeSerieArchive.from_definitions(

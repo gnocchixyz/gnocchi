@@ -222,7 +222,7 @@ class StorageDriver(object):
     def measures_report():
         """Return a report of pending to process measures.
 
-        Only usefull for drivers that process measurements in background
+        Only useful for drivers that process measurements in background
 
         :return: {metric_id: pending_measures_count}
         """
