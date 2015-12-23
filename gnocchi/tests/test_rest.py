@@ -170,6 +170,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
             return keystonemiddleware.auth_token.AuthProtocol(app, {
                 "oslo_config_project": "gnocchi",
                 "oslo_config_config": cls.conf,
+                "oslo_config_file": "/dev/null",
             })
         return auth_filter
 
