@@ -64,6 +64,7 @@ Documentation
    client
    rest
    statsd
+   grafana
    resource_types
 
 .. _`OpenStack`: http://openstack.org
