@@ -316,12 +316,6 @@ function configure_ceilometer_gnocchi {
     fi
 }
 
-function configure_aodh_gnocchi {
-    gnocchi_url=$(gnocchi_service_url)
-    iniset $AODH_CONF DEFAULT gnocchi_url $gnocchi_url
-}
-
-
 # init_gnocchi() - Initialize etc.
 function init_gnocchi {
     # Create cache dir
@@ -459,10 +453,6 @@ if is_service_enabled gnocchi-api; then
         if is_service_enabled ceilometer; then
             echo_summary "Configuring Ceilometer for gnocchi"
             configure_ceilometer_gnocchi
-        fi
-        if is_service_enabled aodh; then
-            echo_summary "Configuring Aodh for gnocchi"
-            configure_aodh_gnocchi
         fi
         if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
