@@ -138,7 +138,7 @@ def metricd():
         _metricd_cleanup(workers)
         sys.exit(0)
     except Exception:
-        LOG.warn("exiting", exc_info=True)
+        LOG.warning("exiting", exc_info=True)
         _metricd_cleanup(workers)
         sys.exit(1)
 
