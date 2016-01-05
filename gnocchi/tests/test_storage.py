@@ -88,12 +88,14 @@ class TestStorageDriver(tests_base.TestCase):
             f.return_value = [self.metric]
             self.storage.process_background_tasks(self.index, True)
         self.storage.delete_metric(self.metric)
+        self.storage.process_background_tasks(self.index, True)
 
     def test_delete_nonempty_metric_unprocessed(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.storage.delete_metric(self.metric)
+        self.storage.process_background_tasks(self.index, True)
 
     def test_measures_reporting(self):
         self.storage.add_measures(self.metric, [
