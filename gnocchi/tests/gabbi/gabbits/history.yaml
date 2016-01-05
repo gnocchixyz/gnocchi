@@ -6,6 +6,19 @@ fixtures:
     - ConfigFixture
 
 tests:
+    - name: create archive policy
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: low
+          definition:
+              - granularity: 1 hour
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/low
+      status: 201
 
 # Try creating a new generic resource
 
@@ -77,6 +90,68 @@ tests:
           x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
       response_json_paths:
+          $.`len`: 3
+          $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[0].user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          $[0].project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          $[1].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[1].user_id: f53c58a4-fdea-4c09-aac4-02135900be67
+          $[1].project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          $[2].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[2].user_id: f53c58a4-fdea-4c09-aac4-02135900be67
+          $[2].project_id: fe20a931-1012-4cc6-addc-39556ec60907
+
+    - name: patch resource metrics
+      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          metrics:
+            foo:
+              archive_policy_name: low
+      status: 200
+
+    - name: list all resources with history no change after metrics update
+      url: /v1/resource/generic
+      request_headers:
+          accept: application/json; details=True; history=True
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      response_json_paths:
+          $.`len`: 3
+          $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[0].user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          $[0].project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          $[1].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[1].user_id: f53c58a4-fdea-4c09-aac4-02135900be67
+          $[1].project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          $[2].id: f93450f2-d8a5-4d67-9985-02511241e7d1
+          $[2].user_id: f53c58a4-fdea-4c09-aac4-02135900be67
+          $[2].project_id: fe20a931-1012-4cc6-addc-39556ec60907
+
+    - name: create new metrics
+      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1/metric
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+        foobar:
+          archive_policy_name: low
+      status: 204
+
+    - name: list all resources with history no change after metrics creation
+      url: /v1/resource/generic
+      request_headers:
+          accept: application/json; details=True; history=True
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+      response_json_paths:
+          $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
           $[0].user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
           $[0].project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
