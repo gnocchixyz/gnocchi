@@ -67,6 +67,9 @@ tests:
           content-type: application/json
       data:
           project_id: fe20a931-1012-4cc6-addc-39556ec60907
+          metrics:
+            mymetric:
+              archive_policy_name: low
       status: 200
       response_json_paths:
           user_id: f53c58a4-fdea-4c09-aac4-02135900be67
