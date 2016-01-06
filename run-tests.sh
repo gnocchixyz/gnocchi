@@ -11,6 +11,7 @@ do
         then
             unset storage_setup_script
         fi
-        GNOCCHI_TEST_STORAGE_DRIVER=$storage ./setup-${indexer}-tests.sh "${storage_setup_script}" ./tools/pretty_tox.sh $*
+        export GNOCCHI_TEST_INDEXER_DRIVER=$indexer
+        GNOCCHI_TEST_STORAGE_DRIVER=$storage ./setup-test-env.sh ${storage_setup_script} ./tools/pretty_tox.sh $*
     done
 done
