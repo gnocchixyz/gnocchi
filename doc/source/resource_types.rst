@@ -3,7 +3,7 @@
 ================
 
 Gnocchi offers different resource types to manage your resources. Each resource
-type has its specific typed attributes. All resource types are subtype of the
+type has strongly typed attributes. All resource types are subtypes of the
 `generic` type.
 
 Immutable attributes are attributes that cannot be modified after the resource
