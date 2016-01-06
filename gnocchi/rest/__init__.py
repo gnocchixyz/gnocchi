@@ -812,16 +812,16 @@ class GenericResourceController(rest.RestController):
             etag_set_headers(resource)
             return resource
 
-        create_revision = False
-        if 'metrics' not in body:
-            for k, v in six.iteritems(body):
-                if getattr(resource, k) != v:
-                    create_revision = True
-                    break
-            else:
+        for k, v in six.iteritems(body):
+            if k != 'metrics' and getattr(resource, k) != v:
+                create_revision = True
+                break
+        else:
+            if 'metrics' not in body:
                 # No need to go further, we assume the db resource
                 # doesn't change between the get and update
                 return resource
+            create_revision = False
 
         try:
             if 'metrics' in body:
