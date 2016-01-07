@@ -42,6 +42,7 @@ Documentation
 .. toctree::
    :maxdepth: 1
 
+   architecture
    install
    rest
    statsd
