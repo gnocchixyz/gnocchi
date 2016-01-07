@@ -2,8 +2,6 @@
 #
 # Copyright © 2014-2015 eNovance
 #
-# Authors: Julien Danjou <julien@danjou.info>
-#
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
 # a copy of the License at
@@ -21,6 +19,7 @@ import subprocess
 import tempfile
 
 import fixtures
+from oslo_utils import timeutils
 from oslotest import base
 # TODO(jd) We shouldn't use pandas here
 import pandas
@@ -114,6 +113,35 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6], sampling="4s")
+
+    def test_fetch(self):
+        ts = carbonara.AggregatedTimeSerie(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 4),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            [3, 5, 6],
+            sampling="1s")
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12), 1, 3),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
+            ts.fetch())
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
+            ts.fetch(from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 4)))
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
+            ts.fetch(
+                from_timestamp=timeutils.parse_isotime(
+                    "2014-01-01 12:00:04")))
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
+            ts.fetch(
+                from_timestamp=timeutils.parse_isotime(
+                    "2014-01-01 13:00:04+01:00")))
 
     def test_bad_percentile(self):
         for bad_percentile in ('0pct', '100pct', '-1pct', '123pct'):
