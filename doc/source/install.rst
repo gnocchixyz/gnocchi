@@ -29,7 +29,7 @@ To install Gnocchi using `pip`, just type::
 
   pip install gnocchi
 
-Depending on the drivers you want to use, you need to install extra flavors
+Depending on the drivers you want to use, you need to install extra variants
 using, for example::
 
   pip install gnocchi[postgresql,ceph]
@@ -39,7 +39,7 @@ procedure::
 
   pip install -e .
 
-Again, sepending on the drivers you want to use, you need to install extra
-flavors using, for example::
+Again, depending on the drivers you want to use, you need to install extra
+variants using, for example::
 
   pip install -e .[postgresql,ceph]
