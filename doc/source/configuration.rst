@@ -84,10 +84,10 @@ It's possible – and strongly advised – to run Gnocchi through a WSGI
 service such as `mod_wsgi`_ or any other WSGI application. The file
 `gnocchi/rest/app.wsgi` provided with Gnocchi allows you to enable Gnocchi as
 a WSGI application.
-For other WSGI setup you can refer to the `pecan deployement`_ documentation.
+For other WSGI setup you can refer to the `pecan deployment`_ documentation.
 
 .. _`mod_wsgi`: https://modwsgi.readthedocs.org/en/master/
-.. _`pecan deployement`: http://pecan.readthedocs.org/en/latest/deployment.html#deployment
+.. _`pecan deployment`: http://pecan.readthedocs.org/en/latest/deployment.html#deployment
 
 
 Drivers notes
@@ -96,14 +96,14 @@ Drivers notes
 Carbonara based drivers (file, swift, ceph)
 -------------------------------------------
 
-To ensure consistency accross all gnocchi-api and gnocchi-metricd workers,
+To ensure consistency across all gnocchi-api and gnocchi-metricd workers,
 these drivers need a distributed locking mechanism. This is provided by the
 'coordinator' of the `tooz`_ library.
 
 By default, the configured backend for `tooz`_ is 'file', this allows locking
 across workers on the same node.
 
-In a multi-nodes deployement, the coordinator needs to be changed via
+In a multi-nodes deployment, the coordinator needs to be changed via
 the storage/coordination_url configuration options to one of the other
 `tooz backends`_.
 

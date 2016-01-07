@@ -454,7 +454,7 @@ class AggregatedTimeSerie(TimeSerie):
 
         # NOTE(sileht): this call the aggregation method on already
         # aggregated values, for some kind of aggregation this can
-        # result can looks wierd, but this is the best we can do
+        # result can looks weird, but this is the best we can do
         # because we don't have anymore the raw datapoints in those case.
         # FIXME(sileht): so should we bailout is case of stddev, percentile
         # and median?

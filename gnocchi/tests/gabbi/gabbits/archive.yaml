@@ -18,9 +18,9 @@ tests:
 # http://haacked.com/archive/2009/06/25/json-hijacking.aspx/
 # The caveats point out that this is only an issue if your data is
 # sensitive, which in this case...?
-# However, the api-wg has made it recommedation that collections
-# be returned as an object with a named key with a value of a list
-# as follows: {"archive_policies": [...]}
+# However, the api-wg has made it recommendation that collections
+# should be returned as an object with a named key with a value of
+# a list as follows: {"archive_policies": [...]}
 # This allows for extensibility such as future support for pagination.
 # Do we care?
 
