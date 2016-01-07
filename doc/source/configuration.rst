@@ -13,7 +13,7 @@ created by running:
 
 This command will create an `etc/gnocchi/gnocchi.conf` file which can be used
 as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`. If
-you're using _devstack_, this file is already generated and put in place.
+you're using *devstack*, this file is already generated and put in place.
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
