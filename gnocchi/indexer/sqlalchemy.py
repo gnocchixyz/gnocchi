@@ -543,7 +543,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def expunge_metric(self, id):
         session = self.engine_facade.get_session()
-        if session.query(Metric).filter(Metric.id == id).delete == 0:
+        if session.query(Metric).filter(Metric.id == id).delete() == 0:
             raise indexer.NoSuchMetric(id)
 
     def delete_metric(self, id):

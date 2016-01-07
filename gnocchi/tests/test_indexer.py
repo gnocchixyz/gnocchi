@@ -95,6 +95,26 @@ class TestIndexerDriver(tests_base.TestCase):
         m2 = self.index.get_metrics([r1])
         self.assertEqual([m], m2)
 
+    def test_expunge_metric(self):
+        r1 = uuid.uuid4()
+        user = uuid.uuid4()
+        project = uuid.uuid4()
+        m = self.index.create_metric(r1, user, project, "low")
+        self.index.delete_metric(m.id)
+        try:
+            self.index.expunge_metric(m.id)
+        except indexer.NoSuchMetric:
+            # It's possible another test process expunged the metric just
+            # before us; in that case, we're good, we'll just check that the
+            # next call actually really raises NoSuchMetric anyway
+            pass
+        self.assertRaises(indexer.NoSuchMetric,
+                          self.index.delete_metric,
+                          m.id)
+        self.assertRaises(indexer.NoSuchMetric,
+                          self.index.expunge_metric,
+                          m.id)
+
     def test_create_resource(self):
         r1 = uuid.uuid4()
         user = uuid.uuid4()
@@ -925,5 +945,3 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.delete_metric(e1)
         metrics = self.index.list_metrics()
         self.assertNotIn(e1, [m.id for m in metrics])
-        metrics = self.index.list_metrics(status='delete')
-        self.assertIn(e1, [m.id for m in metrics])
