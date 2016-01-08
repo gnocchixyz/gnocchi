@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import hashlib
+import os
 
 import iso8601
 from oslo_config import cfg
@@ -27,6 +28,7 @@ OPTS = [
     cfg.StrOpt('url',
                secret=True,
                required=True,
+               default=os.getenv("GNOCCHI_INDEXER_URL"),
                help='Indexer driver to use'),
 ]
 

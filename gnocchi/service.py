@@ -28,7 +28,7 @@ from gnocchi import opts
 LOG = log.getLogger(__name__)
 
 
-def prepare_service(args=None, default_opts=None, conf=None,
+def prepare_service(args=None, conf=None,
                     default_config_files=None):
     if conf is None:
         conf = cfg.ConfigOpts()
@@ -54,9 +54,6 @@ def prepare_service(args=None, default_opts=None, conf=None,
 
     conf.set_default("workers", default_workers, group="api")
     conf.set_default("workers", default_workers, group="metricd")
-
-    for opt, value, group in default_opts or []:
-        conf.set_default(opt, value, group)
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files)

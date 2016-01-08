@@ -11,8 +11,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os
-
 from oslotest import base
 
 from gnocchi import archive_policy
@@ -30,10 +28,7 @@ class TestArchivePolicy(base.BaseTestCase):
                           ["*"])
 
     def test_aggregation_methods(self):
-        default_opts = [('url',
-                        os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
-                        'indexer')]
-        conf = service.prepare_service([], default_opts,
+        conf = service.prepare_service([],
                                        default_config_files=[])
 
         ap = archive_policy.ArchivePolicy("foobar",
