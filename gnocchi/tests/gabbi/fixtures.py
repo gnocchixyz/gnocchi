@@ -76,12 +76,15 @@ class ConfigFixture(fixture.GabbiFixture):
 
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
 
+        if os.getenv("GABBI_LIVE"):
+            dcf = None
+        else:
+            dcf = []
         default_opts = [('url',
                          os.environ.get("GNOCCHI_TEST_INDEXER_URL", "null://"),
                          'indexer')]
-
         conf = service.prepare_service([], default_opts,
-                                       default_config_files=[])
+                                       default_config_files=dcf)
 
         CONF = self.conf = conf
         self.tmp_dir = data_tmp_dir
