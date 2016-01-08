@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import fnmatch
 import uuid
 
 from oslo_utils import strutils
@@ -559,14 +558,9 @@ class MetricsController(rest.RestController):
 
         name = definition.get('name')
         if archive_policy_name is None:
-            rules = pecan.request.indexer.list_archive_policy_rules()
-            for rule in rules:
-                if fnmatch.fnmatch(name or "", rule.metric_pattern):
-                    ap = pecan.request.indexer.get_archive_policy(
-                        rule.archive_policy_name)
-                    definition['archive_policy_name'] = ap.name
-                    break
-            else:
+            try:
+                ap = pecan.request.indexer.get_archive_policy_for_metric(name)
+            except indexer.NoArchivePolicyRuleMatch:
                 # NOTE(jd) Since this is a schema-like function, we
                 # should/could raise ValueError, but if we do so, voluptuous
                 # just returns a "invalid value" with no useful message – so we
@@ -575,6 +569,8 @@ class MetricsController(rest.RestController):
                 abort(400, "No archive policy name specified "
                       "and no archive policy rule found matching "
                       "the metric name %s" % name)
+            else:
+                definition['archive_policy_name'] = ap.name
 
         user_id, project_id = get_user_and_project()
 
