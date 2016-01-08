@@ -19,6 +19,7 @@ import uuid
 import mock
 from oslo_utils import timeutils
 
+from gnocchi import indexer
 from gnocchi import statsd
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
@@ -116,6 +117,7 @@ class TestStatsd(tests_base.TestCase):
                                             self.conf.statsd.resource_id,
                                             with_metrics=True)
         metric = r.get_metric(metric_key)
+        self.assertIsNotNone(metric)
 
         self.stats.storage.process_background_tasks(self.stats.indexer, True)
 
@@ -142,3 +144,16 @@ class TestStatsd(tests_base.TestCase):
             (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 28),
             (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0),
             (utils.datetime_utc(2015, 1, 7, 13, 59), 60.0, 55.0)], measures)
+
+
+class TestStatsdArchivePolicyRule(TestStatsd):
+    STATSD_ARCHIVE_POLICY_NAME = ""
+
+    def setUp(self):
+        super(TestStatsdArchivePolicyRule, self).setUp()
+        try:
+            self.stats.indexer.create_archive_policy_rule(
+                "statsd", "*", "medium")
+        except indexer.ArchivePolicyRuleAlreadyExists:
+            # Created by another test run
+            pass

@@ -103,7 +103,7 @@ class Stats(object):
                 # API at the same time.
                 metric = resource.get_metric(metric_name)
                 if not metric:
-                    ap_name = self.conf.statsd.archive_policy_name
+                    ap_name = self._get_archive_policy_name(metric_name)
                     metric = self.indexer.create_metric(
                         uuid.uuid4(),
                         self.conf.statsd.user_id,
@@ -117,6 +117,13 @@ class Stats(object):
                           % (metric_name, e))
 
         self.reset()
+
+    def _get_archive_policy_name(self, metric_name):
+        if self.conf.statsd.archive_policy_name:
+            return self.conf.statsd.archive_policy_name
+        # NOTE(sileht): We didn't catch NoArchivePolicyRuleMatch to log it
+        ap = self.indexer.get_archive_policy_for_metric(metric_name)
+        return ap.name
 
 
 class StatsdServer(object):
