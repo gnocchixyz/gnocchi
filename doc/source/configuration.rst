@@ -72,11 +72,11 @@ Driver notes
 Carbonara based drivers (file, swift, ceph)
 -------------------------------------------
 
-To ensure consistency across all gnocchi-api and gnocchi-metricd workers,
+To ensure consistency across all *gnocchi-api* and *gnocchi-metricd* workers,
 these drivers need a distributed locking mechanism. This is provided by the
 'coordinator' of the `tooz`_ library.
 
-By default, the configured backend for `tooz`_ is 'file', this allows locking
+By default, the configured backend for `tooz`_ is `file`, this allows locking
 across workers on the same node.
 
 In a multi-nodes deployment, the coordinator needs to be changed via
