@@ -61,6 +61,7 @@ Documentation
    install
    configuration
    running
+   client
    rest
    statsd
    resource_types
