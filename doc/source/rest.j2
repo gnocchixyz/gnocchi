@@ -71,6 +71,12 @@ method. It is possible to request for any other method by specifying the
 The list of aggregation method available is: *mean*, *sum*, *last*, *max*,
 *min*, *std*, *median*, *first*, *count* and *Npct* (with 0 < N < 100).
 
+It's possible to provide the `granularity` argument to specify the granularity
+to retrieve, rather than all the granularities available:
+
+{{ scenarios['get-measures-granularity']['doc'] }}
+
+
 Archive Policy
 ==============
 
