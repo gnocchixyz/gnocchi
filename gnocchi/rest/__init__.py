@@ -797,7 +797,7 @@ class GenericResourceController(rest.RestController):
     @pecan.expose('json')
     def patch(self):
         resource = pecan.request.indexer.get_resource(
-            self._resource_type, self.id)
+            self._resource_type, self.id, with_metrics=True)
         if not resource:
             abort(404, indexer.NoSuchResource(self.id))
         enforce("update resource", resource)
