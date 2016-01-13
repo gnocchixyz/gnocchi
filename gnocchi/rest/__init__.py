@@ -201,9 +201,7 @@ def get_pagination_options(params, default):
         sorts = [sorts]
 
     try:
-        limit = int(limit)
-        if limit <= 0:
-            raise ValueError
+        limit = PositiveNotNullInt(limit)
     except ValueError:
         abort(400, "Invalid 'limit' value: %s" % params.get('limit'))
 
