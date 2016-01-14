@@ -51,9 +51,9 @@ def abort(status_code, detail='', headers=None, comment=None, **kw):
 
 def get_user_and_project():
     headers = pecan.request.headers
-    # NOTE(jd) If user_id or project_id are UUID, try to convert them in the
-    # proper dashed format. It's indeed possible that a middleware passes
-    # theses UUID without the dash representation. It's valid, we can parse,
+    # NOTE(jd) If user_id or project_id is UUID, try to convert them into
+    # the proper dashed format. It's indeed possible that a middleware passes
+    # these UUIDs without the dash representation. It's valid, we can parse,
     # but the policy module won't see the equality in the string
     # representations.
     user_id = headers.get("X-User-Id")
