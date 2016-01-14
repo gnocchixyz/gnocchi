@@ -303,31 +303,37 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 finally:
                     lock.release()
 
-    # TODO(jd) Add granularity parameter here and in the REST API
-    # rather than fetching all granularities
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
+                                  granularity=None,
                                   needed_overlap=100.0):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
-            metrics, from_timestamp, to_timestamp, aggregation, needed_overlap)
+            metrics, from_timestamp, to_timestamp,
+            aggregation, granularity, needed_overlap)
 
-        granularities = (definition.granularity
-                         for metric in metrics
-                         for definition in metric.archive_policy.definition)
-        granularities_in_common = [
-            granularity
-            for granularity, occurence in six.iteritems(
-                collections.Counter(granularities))
-            if occurence == len(metrics)
-        ]
+        if granularity is None:
+            granularities = (
+                definition.granularity
+                for metric in metrics
+                for definition in metric.archive_policy.definition
+            )
+            granularities_in_common = [
+                g
+                for g, occurence in six.iteritems(
+                    collections.Counter(granularities))
+                if occurence == len(metrics)
+            ]
 
-        if not granularities_in_common:
-            raise storage.MetricUnaggregatable(metrics, 'No granularity match')
+            if not granularities_in_common:
+                raise storage.MetricUnaggregatable(
+                    metrics, 'No granularity match')
+        else:
+            granularities_in_common = [granularity]
 
         tss = self._map_in_thread(self._get_measures_timeserie,
-                                  [(metric, aggregation, granularity)
+                                  [(metric, aggregation, g)
                                    for metric in metrics
-                                   for granularity in granularities_in_common])
+                                   for g in granularities_in_common])
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                     for timestamp, r, v

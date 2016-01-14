@@ -260,17 +260,23 @@ class StorageDriver(object):
     @staticmethod
     def get_cross_metric_measures(metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
+                                  granularity=None,
                                   needed_overlap=None):
         """Get aggregated measures of multiple entities.
 
         :param entities: The entities measured to aggregate.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
+        :param granularity: The granularity to retrieve.
         :param aggregation: The type of aggregation to retrieve.
         """
         for metric in metrics:
             if aggregation not in metric.archive_policy.aggregation_methods:
                 raise AggregationDoesNotExist(metric, aggregation)
+            if (granularity is not None and granularity
+               not in set(d.granularity
+                          for d in metric.archive_policy.definition)):
+                raise GranularityDoesNotExist(metric, granularity)
 
     @staticmethod
     def search_value(metrics, query, from_timestamp=None,

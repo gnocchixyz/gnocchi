@@ -357,13 +357,15 @@ class AggregatedMetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
-                     needed_overlap=100.0):
+                     granularity=None, needed_overlap=100.0):
         return self.get_cross_metric_measures_from_ids(
-            self.metric_ids, start, stop, aggregation, needed_overlap)
+            self.metric_ids, start, stop,
+            aggregation, granularity, needed_overlap)
 
     @classmethod
     def get_cross_metric_measures_from_ids(cls, metric_ids, start=None,
                                            stop=None, aggregation='mean',
+                                           granularity=None,
                                            needed_overlap=100.0):
         # Check RBAC policy
         metrics = pecan.request.indexer.get_metrics(metric_ids)
@@ -374,11 +376,12 @@ class AggregatedMetricController(rest.RestController):
             abort(404, storage.MetricDoesNotExist(
                 missing_metric_ids.pop()))
         return cls.get_cross_metric_measures_from_objs(
-            metrics, start, stop, aggregation, needed_overlap)
+            metrics, start, stop, aggregation, granularity, needed_overlap)
 
     @staticmethod
     def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
                                             aggregation='mean',
+                                            granularity=None,
                                             needed_overlap=100.0):
         try:
             needed_overlap = float(needed_overlap)
@@ -400,14 +403,22 @@ class AggregatedMetricController(rest.RestController):
         try:
             if number_of_metrics == 0:
                 return []
+            if granularity is not None:
+                try:
+                    granularity = float(granularity)
+                except ValueError as e:
+                    abort(400, "granularity must be a float: %s" % e)
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
                 measures = pecan.request.storage.get_measures(
-                    metrics[0], start, stop, aggregation)
+                    metrics[0], start, stop, aggregation,
+                    granularity)
             else:
                 measures = pecan.request.storage.get_cross_metric_measures(
-                    metrics, start, stop, aggregation, needed_overlap)
+                    metrics, start, stop, aggregation,
+                    granularity,
+                    needed_overlap)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -1188,7 +1199,7 @@ class AggregationResource(rest.RestController):
 
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
-             needed_overlap=100.0):
+             granularity=None, needed_overlap=100.0):
         resources = SearchResourceTypeController(self.resource_type).post()
         metrics = []
         for r in resources:
@@ -1196,7 +1207,7 @@ class AggregationResource(rest.RestController):
             if m:
                 metrics.append(m)
         return AggregatedMetricController.get_cross_metric_measures_from_objs(
-            metrics, start, stop, aggregation, needed_overlap)
+            metrics, start, stop, aggregation, granularity, needed_overlap)
 
 
 class Aggregation(rest.RestController):
@@ -1214,9 +1225,10 @@ class Aggregation(rest.RestController):
     @pecan.expose('json')
     def get_metric(self, metric=None, start=None,
                    stop=None, aggregation='mean',
-                   needed_overlap=100.0):
+                   granularity=None, needed_overlap=100.0):
         return AggregatedMetricController.get_cross_metric_measures_from_ids(
-            arg_to_list(metric), start, stop, aggregation, needed_overlap)
+            arg_to_list(metric), start, stop, aggregation,
+            granularity, needed_overlap)
 
 
 class CapabilityController(rest.RestController):
