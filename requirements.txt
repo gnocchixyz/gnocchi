@@ -17,6 +17,6 @@ werkzeug
 trollius
 retrying
 WebOb>=1.4.1
-keystonemiddleware>=2.3.0
+keystonemiddleware>=4.0.0
 PasteDeploy
 prettytable
