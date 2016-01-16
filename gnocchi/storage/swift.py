@@ -95,7 +95,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricAlreadyExists(metric)
 
     def _store_measures(self, metric, data):
-        now = datetime.datetime.utcnow().strftime("_%Y%M%d_%H:%M:%S")
+        now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
             self.MEASURE_PREFIX,
             six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
