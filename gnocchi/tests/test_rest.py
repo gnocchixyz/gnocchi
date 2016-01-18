@@ -128,9 +128,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
             project_id=TestingApp.PROJECT_ID_2,
             role_list=["member"])
 
-        # TODO(chdent) Linting is turned off until a
-        # keystonemiddleware bug is resolved.
-        # See: https://bugs.launchpad.net/keystonemiddleware/+bug/1466499
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            appname="gnocchi+auth"
                                            if self.auth else "gnocchi+noauth",
@@ -139,8 +136,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
                                            not_implemented_middleware=False),
                               storage=self.storage,
                               indexer=self.index,
-                              auth=self.auth,
-                              lint=False)
+                              auth=self.auth)
 
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
