@@ -133,7 +133,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         # See: https://bugs.launchpad.net/keystonemiddleware/+bug/1466499
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            appname="gnocchi+auth"
-                                           if self.auth else "gnocchi",
+                                           if self.auth else "gnocchi+noauth",
                                            indexer=self.index,
                                            storage=self.storage,
                                            not_implemented_middleware=False),

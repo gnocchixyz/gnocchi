@@ -277,7 +277,7 @@ function configure_gnocchi {
             iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
         fi
     else
-        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi
+        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+noauth
     fi
 
     # Configure the indexer database

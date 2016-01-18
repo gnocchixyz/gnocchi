@@ -304,7 +304,7 @@ class ArchivePoliciesController(rest.RestController):
         except indexer.ArchivePolicyAlreadyExists as e:
             abort(409, e)
 
-        location = "/v1/archive_policy/" + ap.name
+        location = "/archive_policy/" + ap.name
         set_resp_location_hdr(location)
         pecan.response.status = 201
         return ap
@@ -335,7 +335,7 @@ class ArchivePolicyRulesController(rest.RestController):
         except indexer.ArchivePolicyRuleAlreadyExists as e:
             abort(409, e)
 
-        location = "/v1/archive_policy_rule/" + ap.name
+        location = "/archive_policy_rule/" + ap.name
         set_resp_location_hdr(location)
         pecan.response.status = 201
         return ap
@@ -639,7 +639,7 @@ class MetricsController(rest.RestController):
                 archive_policy_name=body['archive_policy_name'])
         except indexer.NoSuchArchivePolicy as e:
             abort(400, e)
-        set_resp_location_hdr("/v1/metric/" + str(m.id))
+        set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
         return m
 
@@ -961,7 +961,7 @@ class ResourcesController(rest.RestController):
             abort(400, e)
         except indexer.ResourceAlreadyExists as e:
             abort(409, e)
-        set_resp_location_hdr("/v1/resource/"
+        set_resp_location_hdr("/resource/"
                               + self._resource_type + "/"
                               + six.text_type(resource.id))
         etag_set_headers(resource)
@@ -997,7 +997,7 @@ class ResourcesByTypeController(rest.RestController):
     def get_all(self):
         return dict(
             (ext.name,
-             pecan.request.application_url + '/v1/resource/' + ext.name)
+             pecan.request.application_url + '/resource/' + ext.name)
             for ext in RESOURCE_SCHEMA_MANAGER)
 
     @pecan.expose()
@@ -1293,18 +1293,16 @@ class V1Controller(object):
             "version": "1.0",
             "links": [
                 {"rel": "self",
-                 "href": pecan.request.application_url + "/v1"}
+                 "href": pecan.request.application_url}
             ] + [
                 {"rel": name,
-                 "href": pecan.request.application_url + "/v1/" + name}
+                 "href": pecan.request.application_url + "/" + name}
                 for name in sorted(self.sub_controllers)
             ]
         }
 
 
-class RootController(object):
-    v1 = V1Controller()
-
+class VersionsController(object):
     @staticmethod
     @pecan.expose('json')
     def index():
