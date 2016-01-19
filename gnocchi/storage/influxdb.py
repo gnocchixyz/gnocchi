@@ -73,18 +73,6 @@ class InfluxDBStorage(storage.StorageDriver):
                                               conf.influxdb_password,
                                               conf.influxdb_database)
         self.database = conf.influxdb_database
-        try:
-            dbs = [db['name'] for db in self.influx.get_list_database()]
-            if conf.influxdb_database not in dbs:
-                self.influx.create_database(conf.influxdb_database)
-        except influxdb.client.InfluxDBClientError as e:
-            if "database already exists" in e.content:
-                LOG.warning("InfluxDB database \"%s\" already exists",
-                            self.database)
-            else:
-                LOG.warning('InfluxDB database creation failed: %s %s'
-                            % (e.message, e.code), exc_info=True)
-                raise
 
     @staticmethod
     def _get_metric_id(metric):

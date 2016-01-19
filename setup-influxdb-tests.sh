@@ -36,6 +36,8 @@ EOF
 PATH=$PATH:/opt/influxdb influxd -config $INFLUXDB_DATA/config > ${INFLUXDB_DATA}/out 2>&1 &
 # Wait for InfluxDB to start listening to connections
 wait_for_line "Listening on HTTP" ${INFLUXDB_DATA}/out
+influx -port $GNOCCHI_TEST_INFLUXDB_PORT -execute "CREATE DATABASE test;"
+
 
 $*
 
