@@ -199,14 +199,22 @@ class Metric(Base, GnocchiBase, storage.Metric):
     __hash__ = storage.Metric.__hash__
 
 
-class ResourceType(Base, GnocchiBase):
+class ResourceType(Base, GnocchiBase, indexer.ResourceType):
     __tablename__ = 'resource_type'
     __table_args__ = (
+        sqlalchemy.UniqueConstraint("tablename",
+                                    name="uniq_resource_type0tablename"),
         COMMON_TABLES_ARGS,
     )
 
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True,
                              nullable=False)
+    tablename = sqlalchemy.Column(sqlalchemy.String(18), nullable=False)
+
+    def jsonify(self):
+        d = dict(self)
+        del d['tablename']
+        return d
 
 
 class ResourceJsonifier(indexer.Resource):
@@ -232,7 +240,7 @@ class ResourceMixin(ResourceJsonifier):
             sqlalchemy.String(255),
             sqlalchemy.ForeignKey('resource_type.name',
                                   ondelete="RESTRICT",
-                                  name="fk_%s_type_resource_type_name" %
+                                  name="fk_%s_resource_type_name" %
                                   cls.__tablename__),
             nullable=False)
 
@@ -315,8 +323,12 @@ class ResourceExtMixin(object):
             sqlalchemy.ForeignKey(
                 'resource.id',
                 ondelete="CASCADE",
-                name="fk_%s_id_resource_id" % cls.__tablename__),
-            primary_key=True)
+                name="fk_%s_id_resource_id" % cls.__tablename__,
+                # NOTE(sileht): We use to ensure that postgresql
+                # does not use AccessExclusiveLock on destination table
+                use_alter=True),
+            primary_key=True
+        )
 
 
 class ResourceHistoryExtMixin(object):
@@ -332,8 +344,12 @@ class ResourceHistoryExtMixin(object):
                 'resource_history.revision',
                 ondelete="CASCADE",
                 name="fk_%s_revision_resource_history_revision"
-                % cls.__tablename__),
-            primary_key=True)
+                % cls.__tablename__,
+                # NOTE(sileht): We use to ensure that postgresql
+                # does not use AccessExclusiveLock on destination table
+                use_alter=True),
+            primary_key=True
+        )
 
 
 class ArchivePolicyRule(Base, GnocchiBase):

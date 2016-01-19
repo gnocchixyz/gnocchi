@@ -25,6 +25,7 @@ from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import utils as oslo_db_utils
+from oslo_log import log
 import six
 import sqlalchemy
 import sqlalchemy_utils
@@ -45,24 +46,7 @@ ResourceType = base.ResourceType
 
 _marker = indexer._marker
 
-
-def get_resource_mappers(ext):
-    if ext.name == "generic":
-        resource_ext = ext.plugin
-        resource_history_ext = ResourceHistory
-    else:
-        tablename = getattr(ext.plugin, '__tablename__', ext.name)
-        resource_ext = type(str(ext.name),
-                            (ext.plugin, base.ResourceExtMixin, Resource),
-                            {"__tablename__": tablename})
-        resource_history_ext = type(str("%s_history" % ext.name),
-                                    (ext.plugin, base.ResourceHistoryExtMixin,
-                                     ResourceHistory),
-                                    {"__tablename__": (
-                                        "%s_history" % tablename)})
-
-    return {'resource': resource_ext,
-            'history': resource_history_ext}
+LOG = log.getLogger(__name__)
 
 
 class PerInstanceFacade(object):
@@ -103,11 +87,123 @@ class PerInstanceFacade(object):
             self.trans._factory._writer_engine.dispose()
 
 
-class SQLAlchemyIndexer(indexer.IndexerDriver):
-    resources = extension.ExtensionManager('gnocchi.indexer.resources')
+class ResourceClassMapper(object):
+    def __init__(self):
+        self._resources = extension.ExtensionManager(
+            'gnocchi.indexer.resources')
+        self._cache = self.load_legacy_mappers()
+        self._lock = threading.RLock()
 
-    _RESOURCE_CLASS_MAPPER = {ext.name: get_resource_mappers(ext)
-                              for ext in resources.extensions}
+    @staticmethod
+    def _build_class_mappers(resource_type, baseclass=None):
+        tablename = resource_type.tablename
+        # TODO(sileht): Add columns
+        if not baseclass:
+            baseclass = type(str("%s_base" % tablename), (object, ), {})
+        resource_ext = type(
+            str("%s_resource" % tablename),
+            (baseclass, base.ResourceExtMixin, base.Resource),
+            {"__tablename__": tablename})
+        resource_history_ext = type(
+            str("%s_history" % tablename),
+            (baseclass, base.ResourceHistoryExtMixin, base.ResourceHistory),
+            {"__tablename__": ("%s_history" % tablename)})
+        return {'resource': resource_ext,
+                'history': resource_history_ext}
+
+    def is_legacy(self, resource_type_name):
+        return resource_type_name in self._resources
+
+    def load_legacy_mappers(self):
+        mappers = {}
+        for ext in self._resources.extensions:
+            tablename = getattr(ext.plugin, '__tablename__', ext.name)
+            if ext.name == "generic":
+                mappers[tablename] = {'resource': base.Resource,
+                                      'history': base.ResourceHistory}
+            else:
+                resource_type = base.ResourceType(name=ext.name,
+                                                  tablename=tablename)
+                mappers[tablename] = self._build_class_mappers(resource_type,
+                                                               ext.plugin)
+        return mappers
+
+    def get_legacy_resource_types(self):
+        resource_types = []
+        for ext in self._resources.extensions:
+            tablename = getattr(ext.plugin, '__tablename__', ext.name)
+            resource_types.append(base.ResourceType(name=ext.name,
+                                                    tablename=tablename))
+        return resource_types
+
+    def get_classes(self, resource_type):
+        # NOTE(sileht): Most of the times we can bypass the lock so do it
+        try:
+            return self._cache[resource_type.tablename]
+        except KeyError:
+            pass
+        # TODO(sileht): if the table doesn't exis
+        with self._lock:
+            try:
+                return self._cache[resource_type.tablename]
+            except KeyError:
+                mapper = self._build_class_mappers(resource_type)
+                self._cache[resource_type.tablename] = mapper
+                return mapper
+
+    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    def map_and_create_tables(self, resource_type, connection):
+        with self._lock:
+            # NOTE(sileht): map this resource_type to have
+            # Base.metadata filled with sa.Table objects
+            mappers = self.get_classes(resource_type)
+            tables = [Base.metadata.tables[klass.__tablename__]
+                      for klass in mappers.values()]
+            Base.metadata.create_all(connection, tables=tables)
+
+    def unmap_and_delete_tables(self, resource_type, connection):
+        with self._lock:
+            # NOTE(sileht): map this resource_type to have
+            # Base.metadata filled with sa.Table objects
+            mappers = self.get_classes(resource_type)
+            tables = [Base.metadata.tables[klass.__tablename__]
+                      for klass in mappers.values()]
+
+            if connection is not None:
+                # NOTE(sileht): Base.metadata.drop_all doesn't
+                # issue CASCADE stuffs correctly at least on postgresql
+                # We drop foreign keys manually to not lock the destination
+                # table for too long during drop table.
+                # It's safe to not use a transaction since
+                # the resource_type table is already cleaned and commited
+                # so this code cannot be triggerred anymore for this
+                # resource_type
+                for table in tables:
+                    for fk in table.foreign_key_constraints:
+                        self._safe_execute(
+                            connection,
+                            sqlalchemy.schema.DropConstraint(fk))
+                for table in tables:
+                    self._safe_execute(connection,
+                                       sqlalchemy.schema.DropTable(table))
+
+            # TODO(sileht): Remove this resource on other workers
+            # by using expiration on cache ?
+            for table in tables:
+                Base.metadata.remove(table)
+            del self._cache[resource_type.tablename]
+
+    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    def _safe_execute(self, connection, works):
+        # NOTE(sileht): we create a transaction to ensure mysql
+        # create locks on other transaction...
+        trans = connection.begin()
+        connection.execute(works)
+        trans.commit()
+
+
+class SQLAlchemyIndexer(indexer.IndexerDriver):
+    _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
     def __init__(self, conf):
         conf.set_override("connection", conf.indexer.url, "database")
@@ -147,17 +243,73 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 else:
                     command.upgrade(cfg, "head")
 
-        for resource_type in self._RESOURCE_CLASS_MAPPER:
+        for rt in self._RESOURCE_TYPE_MANAGER.get_legacy_resource_types():
             try:
                 with self.facade.writer() as session:
-                    session.add(ResourceType(name=resource_type))
+                    session.add(rt)
             except exception.DBDuplicateEntry:
                 pass
 
-    def _resource_type_to_class(self, resource_type, purpose="resource"):
-        if resource_type not in self._RESOURCE_CLASS_MAPPER:
-            raise indexer.NoSuchResourceType(resource_type)
-        return self._RESOURCE_CLASS_MAPPER[resource_type][purpose]
+    def create_resource_type(self, name):
+        # NOTE(sileht): mysql have a stupid and small length limitation on the
+        # foreign key and index name, so we can't use the resource type name as
+        # tablename, the limit is 64. The longest name we have is
+        # fk_<tablename>_history_revision_resource_history_revision,
+        # so 64 - 46 = 18
+        tablename = "rt_%s" % uuid.uuid4().hex[:15]
+        resource_type = ResourceType(name=name,
+                                     tablename=tablename)
+
+        try:
+            with self.facade.writer() as session:
+                session.add(resource_type)
+        except exception.DBDuplicateEntry:
+            raise indexer.ResourceTypeAlreadyExists(name)
+
+        with self.facade.writer_connection() as connection:
+            self._RESOURCE_TYPE_MANAGER.map_and_create_tables(resource_type,
+                                                              connection)
+        return resource_type
+
+    def get_resource_type(self, name):
+        with self.facade.independent_reader() as session:
+            return self._get_resource_type(session, name)
+
+    def _get_resource_type(self, session, name):
+        resource_type = session.query(ResourceType).get(name)
+        if not resource_type:
+            raise indexer.NoSuchResourceType(name)
+        return resource_type
+
+    def list_resource_types(self):
+        with self.facade.independent_reader() as session:
+            return list(session.query(ResourceType).order_by(
+                ResourceType.name.asc()).all())
+
+    def delete_resource_type(self, name):
+        # FIXME(sileht) this type have special handling
+        # until we remove this special thing we reject its deletion
+        if self._RESOURCE_TYPE_MANAGER.is_legacy(name):
+            raise indexer.ResourceTypeInUse(name)
+
+        try:
+            with self.facade.writer() as session:
+                resource_type = self._get_resource_type(session, name)
+                session.delete(resource_type)
+        except exception.DBReferenceError as e:
+            if (e.constraint in [
+                    'fk_resource_resource_type_name',
+                    'fk_resource_history_resource_type_name']):
+                raise indexer.ResourceTypeInUse(name)
+            raise
+
+        with self.facade.writer_connection() as connection:
+            self._RESOURCE_TYPE_MANAGER.unmap_and_delete_tables(resource_type,
+                                                                connection)
+
+    def _resource_type_to_classes(self, session, name):
+        resource_type = self._get_resource_type(session, name)
+        return self._RESOURCE_TYPE_MANAGER.get_classes(resource_type)
 
     def list_archive_policies(self):
         with self.facade.independent_reader() as session:
@@ -264,13 +416,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         user_id=None, project_id=None,
                         started_at=None, ended_at=None, metrics=None,
                         **kwargs):
-        resource_cls = self._resource_type_to_class(resource_type)
         if (started_at is not None
            and ended_at is not None
            and started_at > ended_at):
             raise ValueError(
                 "Start timestamp cannot be after end timestamp")
         with self.facade.writer() as session:
+            resource_cls = self._resource_type_to_classes(
+                session, resource_type)['resource']
             r = resource_cls(
                 id=id,
                 type=resource_type,
@@ -298,16 +451,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
             return r
 
-    @oslo_db.api.retry_on_deadlock
+    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
     def update_resource(self, resource_type,
                         resource_id, ended_at=_marker, metrics=_marker,
                         append_metrics=False,
                         create_revision=True,
                         **kwargs):
-        resource_cls = self._resource_type_to_class(resource_type)
-        resource_history_cls = self._resource_type_to_class(resource_type,
-                                                            "history")
         with self.facade.writer() as session:
+            classes = self._resource_type_to_classes(session, resource_type)
+            resource_cls = classes["resource"]
+            resource_history_cls = classes["history"]
+
             try:
                 # NOTE(sileht): We use FOR UPDATE that is not galera friendly,
                 # but they are no other way to cleanly patch a resource and
@@ -420,8 +574,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.NoSuchResource(resource_id)
 
     def get_resource(self, resource_type, resource_id, with_metrics=False):
-        resource_cls = self._resource_type_to_class(resource_type)
         with self.facade.independent_reader() as session:
+            resource_cls = self._resource_type_to_classes(
+                session, resource_type)['resource']
             q = session.query(
                 resource_cls).filter(
                     resource_cls.id == resource_id)
@@ -429,9 +584,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 q = q.options(sqlalchemy.orm.joinedload('metrics'))
             return q.first()
 
-    def _get_history_result_mapper(self, resource_type):
-        resource_cls = self._resource_type_to_class(resource_type)
-        history_cls = self._resource_type_to_class(resource_type, 'history')
+    def _get_history_result_mapper(self, session, resource_type):
+        classes = self._resource_type_to_classes(session, resource_type)
+        resource_cls = classes['resource']
+        history_cls = classes['history']
 
         resource_cols = {}
         history_cols = {}
@@ -468,6 +624,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         return Result
 
+    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
     def list_resources(self, resource_type='generic',
                        attribute_filter=None,
                        details=False,
@@ -477,12 +634,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                        sorts=None):
         sorts = sorts or []
 
-        if history:
-            target_cls = self._get_history_result_mapper(resource_type)
-        else:
-            target_cls = self._resource_type_to_class(resource_type)
-
         with self.facade.independent_reader() as session:
+            if history:
+                target_cls = self._get_history_result_mapper(
+                    session, resource_type)
+            else:
+                target_cls = self._resource_type_to_classes(
+                    session, resource_type)["resource"]
+
             q = session.query(target_cls)
 
             if attribute_filter:
@@ -546,12 +705,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         all_resources.extend(resources)
                     else:
                         if is_history:
-                            target_cls = self._resource_type_to_class(
-                                type, "history")
+                            target_cls = self._resource_type_to_classes(
+                                session, type)['history']
                             f = target_cls.revision.in_(
                                 [r.revision for r in resources])
                         else:
-                            target_cls = self._resource_type_to_class(type)
+                            target_cls = self._resource_type_to_classes(
+                                session, type)["resource"]
                             f = target_cls.id.in_([r.id for r in resources])
 
                         q = session.query(target_cls).filter(f)

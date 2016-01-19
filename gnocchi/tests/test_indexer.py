@@ -972,3 +972,44 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.delete_metric(e1)
         metrics = self.index.list_metrics()
         self.assertNotIn(e1, [m.id for m in metrics])
+
+    def test_resource_type_crud(self):
+        # Create
+        self.index.create_resource_type("indexer_test")
+        self.assertRaises(indexer.ResourceTypeAlreadyExists,
+                          self.index.create_resource_type,
+                          "indexer_test")
+
+        # Get and List
+        rtype = self.index.get_resource_type("indexer_test")
+        self.assertEqual("indexer_test", rtype.name)
+        rtypes = self.index.list_resource_types()
+        for rtype in rtypes:
+            if rtype.name == "indexer_test":
+                break
+        else:
+            self.fail("indexer_test not found")
+
+        # Test resource itself
+        rid = uuid.uuid4()
+        self.index.create_resource("indexer_test", rid,
+                                   str(uuid.uuid4()),
+                                   str(uuid.uuid4()))
+        r = self.index.get_resource("indexer_test", rid)
+        self.assertEqual("indexer_test", r.type)
+
+        # Deletion
+        self.assertRaises(indexer.ResourceTypeInUse,
+                          self.index.delete_resource_type,
+                          "indexer_test")
+        self.index.delete_resource(rid)
+        self.index.delete_resource_type("indexer_test")
+
+        # Ensure it's deleted
+        self.assertRaises(indexer.NoSuchResourceType,
+                          self.index.get_resource_type,
+                          "indexer_test")
+
+        self.assertRaises(indexer.NoSuchResourceType,
+                          self.index.delete_resource_type,
+                          "indexer_test")

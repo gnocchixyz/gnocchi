@@ -54,7 +54,7 @@ tests:
       redirects: true
       response_json_paths:
           $.version: "1.0"
-          $.links.`len`: 10
+          $.links.`len`: 11
           $.links[0].href: $SCHEME://$NETLOC/v1
           $.links[7].href: $SCHEME://$NETLOC/v1/resource
 

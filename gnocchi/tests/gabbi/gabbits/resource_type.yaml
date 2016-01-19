@@ -1,0 +1,115 @@
+#
+# Test the resource type API to achieve coverage of just the
+# ResourceTypesController and ResourceTypeController class code.
+#
+
+fixtures:
+    - ConfigFixture
+
+tests:
+
+    - name: list resource type
+      desc: only legacy resource types are present
+      url: /v1/resource_type
+      response_json_paths:
+          $.`len`: 15
+
+    - name: post resource type as non-admin
+      url: /v1/resource_type
+      method: post
+      data:
+          name: my_custom_resource
+      request_headers:
+          content-type: application/json
+      status: 403
+
+    - name: post resource type
+      url: /v1/resource_type
+      method: post
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+      status: 201
+      response_json_paths:
+          $.name: my_custom_resource
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
+
+    - name: relist resource types
+      desc: we have a resource type now
+      url: /v1/resource_type
+      response_json_paths:
+          $.`len`: 16
+          $.[11].name: my_custom_resource
+
+    - name: get the custom resource type
+      url: /v1/resource_type/my_custom_resource
+      response_json_paths:
+          $.name: my_custom_resource
+
+    - name: delete as non-admin
+      url: /v1/resource_type/my_custom_resource
+      method: DELETE
+      status: 403
+
+    - name: post custom resource
+      url: /v1/resource/my_custom_resource
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+      status: 201
+
+    - name: delete in use resource_type
+      url: /v1/resource_type/my_custom_resource
+      method: delete
+      request_headers:
+        x-roles: admin
+      status: 400
+      response_strings:
+          - Resource type my_custom_resource is still in use
+
+    - name: delete the resource
+      url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
+      request_headers:
+        x-roles: admin
+      method: DELETE
+      status: 204
+
+    - name: delete the custom resource type
+      method: delete
+      request_headers:
+        x-roles: admin
+      url: /v1/resource_type/my_custom_resource
+      status: 204
+
+    - name: delete non-existing custom resource type
+      method: delete
+      request_headers:
+        x-roles: admin
+      url: /v1/resource_type/my_custom_resource
+      status: 404
+
+# Can we readd and delete the same resource type again
+
+    - name: post resource type again
+      url: /v1/resource_type
+      method: post
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+      status: 201
+
+    - name: delete the custom resource type again
+      method: delete
+      request_headers:
+        x-roles: admin
+      url: /v1/resource_type/my_custom_resource
+      status: 204

@@ -17,6 +17,7 @@ import abc
 import mock
 from oslo_db.sqlalchemy import test_migrations
 import six
+import sqlalchemy
 
 from gnocchi.indexer import sqlalchemy_base
 from gnocchi.tests import base
@@ -47,3 +48,18 @@ class ModelsMigrationsSync(
         # NOTE(jd) Nothing to do here as setUp() in the base class is already
         # creating table using upgrade
         pass
+
+    @staticmethod
+    def filter_metadata_diff(diff):
+        new_diff = []
+        for line in diff:
+            item = line[1]
+            # NOTE(sileht): skip resource types created dynamically
+            if (isinstance(item, sqlalchemy.Table)
+                    and item.name.startswith("rt_")):
+                continue
+            elif (isinstance(item, sqlalchemy.Index)
+                    and item.name.startswith("ix_rt_")):
+                continue
+            new_diff.append(line)
+        return new_diff

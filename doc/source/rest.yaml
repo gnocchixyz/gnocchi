@@ -309,6 +309,30 @@
 - name: get-patched-instance
   request: GET /v1/resource/instance/{{ scenarios['create-resource-instance']['response'].json['id'] }} HTTP/1.1
 
+
+- name: create-resource-type
+  request: |
+    POST /v1/resource_type HTTP/1.1
+    Content-Type: application/json
+
+    {"name": "my_custom_type"}
+
+- name: create-resource-type-2
+  request: |
+    POST /v1/resource_type HTTP/1.1
+    Content-Type: application/json
+
+    {"name": "my_other_type"}
+
+- name: get-resource-type
+  request: GET /v1/resource_type/my_custom_type HTTP/1.1
+
+- name: list-resource-type
+  request: GET /v1/resource_type HTTP/1.1
+
+- name: delete-resource-type
+  request: DELETE /v1/resource_type/my_custom_type HTTP/1.1
+
 - name: search-resource-history
   request: |
     POST /v1/search/resource/instance?history=true HTTP/1.1
