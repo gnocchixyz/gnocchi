@@ -593,7 +593,8 @@ class MetricsController(rest.RestController):
             metric_id = uuid.UUID(id)
         except ValueError:
             abort(404, indexer.NoSuchMetric(id))
-        metrics = pecan.request.indexer.get_metrics([metric_id])
+        metrics = pecan.request.indexer.get_metrics(
+            [metric_id], with_resource=True)
         if not metrics:
             abort(404, indexer.NoSuchMetric(id))
         return MetricController(metrics[0]), remainder
