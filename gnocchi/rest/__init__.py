@@ -767,12 +767,10 @@ def ResourceSchema(schema):
     return base_schema
 
 
-class GenericResourceController(rest.RestController):
-    _resource_type = 'generic'
+class ResourceController(rest.RestController):
 
-    Resource = ResourceSchema({})
-
-    def __init__(self, id):
+    def __init__(self, resource_type, id):
+        self._resource_type = resource_type
         try:
             self.id = utils.ResourceUUID(id)
         except ValueError:
@@ -801,7 +799,9 @@ class GenericResourceController(rest.RestController):
         enforce("update resource", resource)
         etag_precondition_check(resource)
 
-        body = deserialize_and_validate(self.Resource, required=False)
+        body = deserialize_and_validate(
+            schema_for(self._resource_type),
+            required=False)
 
         if len(body) == 0:
             etag_set_headers(resource)
@@ -847,90 +847,58 @@ class GenericResourceController(rest.RestController):
             abort(404, e)
 
 
-class SwiftAccountResourceController(GenericResourceController):
-    _resource_type = 'swift_account'
+GenericSchema = ResourceSchema({})
+
+InstanceDiskSchema = ResourceSchema({
+    "name": six.text_type,
+    "instance_id": UUID,
+})
+
+InstanceNetworkInterfaceSchema = ResourceSchema({
+    "name": six.text_type,
+    "instance_id": UUID,
+})
+
+InstanceSchema = ResourceSchema({
+    "flavor_id": six.text_type,
+    voluptuous.Optional("image_ref"): six.text_type,
+    "host": six.text_type,
+    "display_name": six.text_type,
+    voluptuous.Optional("server_group"): six.text_type,
+})
+
+VolumeSchema = ResourceSchema({
+    voluptuous.Optional("display_name"): voluptuous.Any(None,
+                                                        six.text_type),
+})
+
+ImageSchema = ResourceSchema({
+    "name": six.text_type,
+    "container_format": six.text_type,
+    "disk_format": six.text_type,
+})
 
 
-class InstanceDiskResourceController(GenericResourceController):
-    _resource_type = 'instance_disk'
-    Resource = ResourceSchema({
-        "name": six.text_type,
-        "instance_id": UUID,
-    })
+# NOTE(sileht): Must be loaded after all ResourceSchema
+RESOURCE_SCHEMA_MANAGER = extension.ExtensionManager(
+    'gnocchi.controller.schemas')
 
 
-class InstanceNetworkInterfaceResourceController(GenericResourceController):
-    _resource_type = 'instance_network_interface'
-    Resource = ResourceSchema({
-        "name": six.text_type,
-        "instance_id": UUID,
-    })
+def schema_for(resource_type):
+    return RESOURCE_SCHEMA_MANAGER[resource_type].plugin
 
 
-class InstanceResourceController(GenericResourceController):
-    _resource_type = 'instance'
-
-    Resource = ResourceSchema({
-        "flavor_id": six.text_type,
-        voluptuous.Optional("image_ref"): six.text_type,
-        "host": six.text_type,
-        "display_name": six.text_type,
-        voluptuous.Optional("server_group"): six.text_type,
-    })
-
-
-class VolumeResourceController(GenericResourceController):
-    _resource_type = 'volume'
-
-    Resource = ResourceSchema({
-        voluptuous.Optional("display_name"): voluptuous.Any(None,
-                                                            six.text_type),
-    })
-
-
-class CephAccountResourceController(GenericResourceController):
-    _resource_type = 'ceph_account'
-
-
-class NetworkResourceController(GenericResourceController):
-    _resource_type = 'network'
-
-
-class IdentityResourceController(GenericResourceController):
-    _resource_type = 'identity'
-
-
-class IPMIResourceController(GenericResourceController):
-    _resource_type = 'ipmi'
-
-
-class StackResourceController(GenericResourceController):
-    _resource_type = 'stack'
-
-
-class ImageResourceController(GenericResourceController):
-    _resource_type = 'image'
-
-    Resource = ResourceSchema({
-        "name": six.text_type,
-        "container_format": six.text_type,
-        "disk_format": six.text_type,
-    })
-
-
-class GenericResourcesController(rest.RestController):
-    _resource_type = 'generic'
-    _resource_rest_class = GenericResourceController
-
-    Resource = GenericResourceController.Resource
+class ResourcesController(rest.RestController):
+    def __init__(self, resource_type):
+        self._resource_type = resource_type
 
     @pecan.expose()
     def _lookup(self, id, *remainder):
-        return self._resource_rest_class(id), remainder
+        return ResourceController(self._resource_type, id), remainder
 
     @pecan.expose('json')
     def post(self):
-        body = deserialize_and_validate(self.Resource)
+        body = deserialize_and_validate(schema_for(self._resource_type))
         target = {
             "resource_type": self._resource_type,
         }
@@ -991,89 +959,18 @@ class GenericResourcesController(rest.RestController):
             abort(400, e)
 
 
-class SwiftAccountsResourcesController(GenericResourcesController):
-    _resource_type = 'swift_account'
-    _resource_rest_class = SwiftAccountResourceController
-
-
-class InstanceDisksResourcesController(GenericResourcesController):
-    _resource_type = 'instance_disk'
-    _resource_rest_class = InstanceDiskResourceController
-
-    Resource = InstanceDiskResourceController.Resource
-
-
-class InstanceNetworkInterfacesResourcesController(GenericResourcesController):
-    _resource_type = 'instance_network_interface'
-    _resource_rest_class = InstanceNetworkInterfaceResourceController
-
-    Resource = InstanceNetworkInterfaceResourceController.Resource
-
-
-class InstancesResourcesController(GenericResourcesController):
-    _resource_type = 'instance'
-    _resource_rest_class = InstanceResourceController
-
-    Resource = InstanceResourceController.Resource
-
-
-class VolumesResourcesController(GenericResourcesController):
-    _resource_type = 'volume'
-    _resource_rest_class = VolumeResourceController
-
-    Resource = VolumeResourceController.Resource
-
-
-class CephAccountsResourcesController(GenericResourcesController):
-    _resource_type = 'ceph_account'
-    _resource_rest_class = CephAccountResourceController
-
-
-class NetworkResourcesController(GenericResourcesController):
-    _resource_type = 'network'
-    _resource_rest_class = NetworkResourceController
-
-
-class IdentityResourcesController(GenericResourcesController):
-    _resource_type = 'identity'
-    _resource_rest_class = IdentityResourceController
-
-
-class IPMIResourcesController(GenericResourcesController):
-    _resource_type = 'ipmi'
-    _resource_rest_class = IPMIResourceController
-
-
-class StackResourcesController(GenericResourcesController):
-    _resource_type = 'stack'
-    _resource_rest_class = StackResourceController
-
-
-class ImageResourcesController(GenericResourcesController):
-    _resource_type = 'image'
-    _resource_rest_class = ImageResourceController
-
-    Resource = ImageResourceController.Resource
-
-
-class ResourcesController(rest.RestController):
-    resources_ctrl_by_type = dict(
-        (ext.name, ext.plugin())
-        for ext in extension.ExtensionManager(
-            'gnocchi.controller.resources').extensions)
-
+class ResourcesByTypeController(rest.RestController):
     @pecan.expose('json')
     def get_all(self):
         return dict(
-            (type_name,
-             pecan.request.application_url + '/v1/resource/' + type_name)
-            for type_name in self.resources_ctrl_by_type.keys())
+            (ext.name,
+             pecan.request.application_url + '/v1/resource/' + ext.name)
+            for ext in RESOURCE_SCHEMA_MANAGER)
 
     @pecan.expose()
     def _lookup(self, resource_type, *remainder):
-        ctrl = self.resources_ctrl_by_type.get(resource_type)
-        if ctrl:
-            return ctrl, remainder
+        if resource_type in RESOURCE_SCHEMA_MANAGER:
+            return ResourcesController(resource_type), remainder
         else:
             abort(404, indexer.UnknownResourceType(resource_type))
 
@@ -1156,7 +1053,7 @@ class SearchResourceTypeController(rest.RestController):
 class SearchResourceController(rest.RestController):
     @pecan.expose()
     def _lookup(self, resource_type, *remainder):
-        if resource_type in ResourcesController.resources_ctrl_by_type:
+        if resource_type in RESOURCE_SCHEMA_MANAGER:
             return SearchResourceTypeController(resource_type), remainder
         else:
             abort(404, indexer.UnknownResourceType(resource_type))
@@ -1356,7 +1253,7 @@ class V1Controller(object):
             "archive_policy_rule": ArchivePolicyRulesController(),
             "metric": MetricsController(),
             "batch": BatchController(),
-            "resource": ResourcesController(),
+            "resource": ResourcesByTypeController(),
             "aggregation": Aggregation(),
             "capabilities": CapabilityController(),
             "status": StatusController(),
