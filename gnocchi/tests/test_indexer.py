@@ -974,15 +974,28 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertNotIn(e1, [m.id for m in metrics])
 
     def test_resource_type_crud(self):
+        mgr = self.index.get_resource_type_schema()
+        rtype = mgr.resource_type_from_dict("indexer_test", {
+            "col1": {"type": "string", "required": True,
+                     "min_length": 2, "max_length": 15}
+        })
+
         # Create
-        self.index.create_resource_type("indexer_test")
+        self.index.create_resource_type(rtype)
         self.assertRaises(indexer.ResourceTypeAlreadyExists,
                           self.index.create_resource_type,
-                          "indexer_test")
+                          rtype)
 
-        # Get and List
+        # Get
         rtype = self.index.get_resource_type("indexer_test")
         self.assertEqual("indexer_test", rtype.name)
+        self.assertEqual(1, len(rtype.attributes))
+        self.assertEqual("col1", rtype.attributes[0].name)
+        self.assertEqual("string", rtype.attributes[0].typename)
+        self.assertEqual(15, rtype.attributes[0].max_length)
+        self.assertEqual(2, rtype.attributes[0].min_length)
+
+        # List
         rtypes = self.index.list_resource_types()
         for rtype in rtypes:
             if rtype.name == "indexer_test":
@@ -994,9 +1007,11 @@ class TestIndexerDriver(tests_base.TestCase):
         rid = uuid.uuid4()
         self.index.create_resource("indexer_test", rid,
                                    str(uuid.uuid4()),
-                                   str(uuid.uuid4()))
+                                   str(uuid.uuid4()),
+                                   col1="col1_value")
         r = self.index.get_resource("indexer_test", rid)
         self.assertEqual("indexer_test", r.type)
+        self.assertEqual("col1_value", r.col1)
 
         # Deletion
         self.assertRaises(indexer.ResourceTypeInUse,

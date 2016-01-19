@@ -23,7 +23,6 @@ import uuid
 import oslo_db.api
 from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
-from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import utils as oslo_db_utils
 from oslo_log import log
 import six
@@ -34,6 +33,7 @@ from stevedore import extension
 from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy_base as base
+from gnocchi import resource_type
 from gnocchi import utils
 
 Base = base.Base
@@ -99,7 +99,7 @@ class ResourceClassMapper(object):
         tablename = resource_type.tablename
         # TODO(sileht): Add columns
         if not baseclass:
-            baseclass = type(str("%s_base" % tablename), (object, ), {})
+            baseclass = resource_type.to_baseclass()
         resource_ext = type(
             str("%s_resource" % tablename),
             (baseclass, base.ResourceExtMixin, base.Resource),
@@ -122,18 +122,20 @@ class ResourceClassMapper(object):
                 mappers[tablename] = {'resource': base.Resource,
                                       'history': base.ResourceHistory}
             else:
-                resource_type = base.ResourceType(name=ext.name,
-                                                  tablename=tablename)
-                mappers[tablename] = self._build_class_mappers(resource_type,
-                                                               ext.plugin)
+                rt = base.ResourceType(
+                    name=ext.name, tablename=tablename,
+                    attributes=resource_type.ResourceTypeAttributes())
+                mappers[tablename] = self._build_class_mappers(rt, ext.plugin)
         return mappers
 
     def get_legacy_resource_types(self):
         resource_types = []
         for ext in self._resources.extensions:
             tablename = getattr(ext.plugin, '__tablename__', ext.name)
-            resource_types.append(base.ResourceType(name=ext.name,
-                                                    tablename=tablename))
+            resource_types.append(base.ResourceType(
+                name=ext.name,
+                tablename=tablename,
+                attributes=resource_type.ResourceTypeAttributes()))
         return resource_types
 
     def get_classes(self, resource_type):
@@ -250,21 +252,26 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             except exception.DBDuplicateEntry:
                 pass
 
-    def create_resource_type(self, name):
+    def create_resource_type(self, resource_type):
         # NOTE(sileht): mysql have a stupid and small length limitation on the
         # foreign key and index name, so we can't use the resource type name as
         # tablename, the limit is 64. The longest name we have is
         # fk_<tablename>_history_revision_resource_history_revision,
         # so 64 - 46 = 18
         tablename = "rt_%s" % uuid.uuid4().hex[:15]
-        resource_type = ResourceType(name=name,
-                                     tablename=tablename)
+        resource_type = ResourceType(name=resource_type.name,
+                                     tablename=tablename,
+                                     attributes=resource_type.attributes)
+
+        # NOTE(sileht): ensure the driver is able to store the request
+        # resource_type
+        resource_type.to_baseclass()
 
         try:
             with self.facade.writer() as session:
                 session.add(resource_type)
         except exception.DBDuplicateEntry:
-            raise indexer.ResourceTypeAlreadyExists(name)
+            raise indexer.ResourceTypeAlreadyExists(resource_type.name)
 
         with self.facade.writer_connection() as connection:
             self._RESOURCE_TYPE_MANAGER.map_and_create_tables(resource_type,
@@ -280,6 +287,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         if not resource_type:
             raise indexer.NoSuchResourceType(name)
         return resource_type
+
+    @staticmethod
+    def get_resource_type_schema():
+        return base.RESOURCE_TYPE_SCHEMA_MANAGER
+
+    @staticmethod
+    def get_resource_attributes_schemas():
+        return [ext.plugin.schema() for ext in ResourceType.RESOURCE_SCHEMAS]
 
     def list_resource_types(self):
         with self.facade.independent_reader() as session:
@@ -609,7 +624,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         class Result(base.ResourceJsonifier, base.GnocchiBase):
             def __iter__(self):
-                return models.ModelIterator(self, iter(stmt.c.keys()))
+                return iter((key, getattr(self, key)) for key in stmt.c.keys())
 
         sqlalchemy.orm.mapper(
             Result, stmt, primary_key=[stmt.c.id, stmt.c.revision],

@@ -23,6 +23,28 @@ tests:
           content-type: application/json
       status: 403
 
+    - name: post resource type bad string
+      url: /v1/resource_type
+      method: post
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+          attributes:
+              foo:
+                  type: string
+                  max_length: 32
+                  min_length: 5
+                  noexist: foo
+      status: 400
+      response_strings:
+          # NOTE(sileht): We would prefer to have a better message but voluptuous seems a bit lost when
+          # an Any have many dict with the same key, here "type"
+          # - "Invalid input: extra keys not allowed @ data[u'attributes'][u'foo'][u'noexist']"
+          # - "Invalid input: not a valid value for dictionary value @ data[u'attributes'][u'foo'][u'type']"
+          - "Invalid input:"
+
     - name: post resource type
       url: /v1/resource_type
       method: post
@@ -31,9 +53,29 @@ tests:
           content-type: application/json
       data:
           name: my_custom_resource
+          attributes:
+              name:
+                  type: string
+                  required: true
+                  max_length: 5
+                  min_length: 2
+              foobar:
+                  type: string
+                  required: false
       status: 201
       response_json_paths:
           $.name: my_custom_resource
+          $.attributes:
+              name:
+                  type: string
+                  required: True
+                  max_length: 5
+                  min_length: 2
+              foobar:
+                  type: string
+                  required: False
+                  max_length: 255
+                  min_length: 0
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
 
@@ -54,6 +96,23 @@ tests:
       method: DELETE
       status: 403
 
+    - name: post invalid resource
+      url: /v1/resource/my_custom_resource
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          name: toolong!!!
+          foobar: what
+      status: 400
+      response_strings:
+          # split to not match the u' in py2
+          - "Invalid input: length of value must be at most 5 for dictionary value @ data["
+          - "'name']"
+
     - name: post custom resource
       url: /v1/resource/my_custom_resource
       method: post
@@ -63,7 +122,50 @@ tests:
           content-type: application/json
       data:
           id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          name: bar
+          foobar: what
       status: 201
+      response_json_paths:
+          $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $.name: bar
+          $.foobar: what
+
+    - name: patch custom resource
+      url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
+      method: patch
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          name: foo
+      status: 200
+      response_json_paths:
+          $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $.name: foo
+          $.foobar: what
+
+    - name: get resource
+      url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
+      request_headers:
+          content-type: application/json
+      response_json_paths:
+          $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $.name: foo
+          $.foobar: what
+
+    - name: list resource history
+      url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
+      request_headers:
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $[0].name: bar
+          $[0].foobar: what
+          $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $[1].name: foo
+          $[1].foobar: what
 
     - name: delete in use resource_type
       url: /v1/resource_type/my_custom_resource
