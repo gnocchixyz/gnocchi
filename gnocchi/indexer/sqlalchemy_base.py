@@ -199,6 +199,16 @@ class Metric(Base, GnocchiBase, storage.Metric):
     __hash__ = storage.Metric.__hash__
 
 
+class ResourceType(Base, GnocchiBase):
+    __tablename__ = 'resource_type'
+    __table_args__ = (
+        COMMON_TABLES_ARGS,
+    )
+
+    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True,
+                             nullable=False)
+
+
 class ResourceJsonifier(indexer.Resource):
     def jsonify(self):
         d = dict(self)
@@ -216,16 +226,16 @@ class ResourceMixin(ResourceJsonifier):
                                            name="ck_started_before_ended"),
                 COMMON_TABLES_ARGS)
 
-    type = sqlalchemy.Column(sqlalchemy.Enum('generic', 'instance',
-                                             'swift_account', 'volume',
-                                             'ceph_account', 'network',
-                                             'identity', 'ipmi', 'stack',
-                                             'image', 'instance_disk',
-                                             'instance_network_interface',
-                                             'host', 'host_disk',
-                                             'host_network_interface',
-                                             name="resource_type_enum"),
-                             nullable=False, default='generic')
+    @declarative.declared_attr
+    def type(cls):
+        return sqlalchemy.Column(
+            sqlalchemy.String(255),
+            sqlalchemy.ForeignKey('resource_type.name',
+                                  ondelete="RESTRICT",
+                                  name="fk_%s_type_resource_type_name" %
+                                  cls.__tablename__),
+            nullable=False)
+
     created_by_user_id = sqlalchemy.Column(
         sqlalchemy.String(255))
     created_by_project_id = sqlalchemy.Column(
