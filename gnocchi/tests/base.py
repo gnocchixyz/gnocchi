@@ -402,6 +402,7 @@ class TestCase(base.BaseTestCase):
         elif self.conf.storage.driver == 'influxdb':
             self.conf.set_override('influxdb_block_until_data_ingested', True,
                                    'storage')
+            self.conf.set_override('influxdb_database', 'test', 'storage')
             self.conf.set_override('influxdb_password', 'root', 'storage')
             self.conf.set_override('influxdb_port',
                                    os.getenv("GNOCCHI_TEST_INFLUXDB_PORT",
