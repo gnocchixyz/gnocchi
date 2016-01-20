@@ -18,7 +18,6 @@
 # - ``SERVICE_{TENANT_NAME|PASSWORD}`` must be defined
 # - ``SERVICE_HOST``
 # - ``OS_AUTH_URL``, ``KEYSTONE_SERVICE_URI`` for auth in api
-# - ``CEILOMETER_CONF`` for ceilometer dispatcher configuration
 
 # stack.sh
 # ---------
@@ -302,19 +301,6 @@ function configure_ceph_gnocchi {
     sudo chown ${STACK_USER}:$(id -g -n $whoami) ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
 }
 
-function configure_ceilometer_gnocchi {
-    gnocchi_url=$(gnocchi_service_url)
-    iniset $CEILOMETER_CONF DEFAULT meter_dispatchers gnocchi
-    iniset $CEILOMETER_CONF alarms gnocchi_url $gnocchi_url
-    iniset $CEILOMETER_CONF dispatcher_gnocchi url $gnocchi_url
-    iniset $CEILOMETER_CONF dispatcher_gnocchi archive_policy ${GNOCCHI_ARCHIVE_POLICY}
-    if is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
-        iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "True"
-        iniset $CEILOMETER_CONF dispatcher_gnocchi filter_project "gnocchi_swift"
-    else
-        iniset $CEILOMETER_CONF dispatcher_gnocchi filter_service_activity "False"
-    fi
-}
 
 # init_gnocchi() - Initialize etc.
 function init_gnocchi {
@@ -450,10 +436,6 @@ if is_service_enabled gnocchi-api; then
         echo_summary "Configuring Gnocchi"
         configure_gnocchi
         create_gnocchi_accounts
-        if is_service_enabled ceilometer; then
-            echo_summary "Configuring Ceilometer for gnocchi"
-            configure_ceilometer_gnocchi
-        fi
         if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
             configure_ceph_gnocchi
