@@ -14,6 +14,8 @@ tests:
       response_json_paths:
           $.`len`: 15
 
+# Some bad cases
+
     - name: post resource type as non-admin
       url: /v1/resource_type
       method: post
@@ -45,6 +47,8 @@ tests:
           # - "Invalid input: not a valid value for dictionary value @ data[u'attributes'][u'foo'][u'type']"
           - "Invalid input:"
 
+# Create a type
+
     - name: post resource type
       url: /v1/resource_type
       method: post
@@ -64,6 +68,15 @@ tests:
                   required: false
               uuid:
                   type: uuid
+              int:
+                  type: number
+                  required: false
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
       status: 201
       response_json_paths:
           $.name: my_custom_resource
@@ -81,9 +94,21 @@ tests:
               uuid:
                   type: uuid
                   required: True
+              int:
+                  type: number
+                  required: False
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
+                  max:
 
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
+
+# Control the created type
 
     - name: relist resource types
       desc: we have a resource type now
@@ -97,10 +122,14 @@ tests:
       response_json_paths:
           $.name: my_custom_resource
 
+# Some bad case case on the type
+
     - name: delete as non-admin
       url: /v1/resource_type/my_custom_resource
       method: DELETE
       status: 403
+
+# Bad resources for this type
 
     - name: post invalid resource
       url: /v1/resource/my_custom_resource
@@ -138,6 +167,8 @@ tests:
           - "Invalid input: not a valid value for dictionary value @ data["
           - "'uuid']"
 
+# Good resources for this type
+
     - name: post custom resource
       url: /v1/resource/my_custom_resource
       method: post
@@ -150,6 +181,7 @@ tests:
           name: bar
           foobar: what
           uuid: e495ebad-be64-46c0-81d6-b079beb48df9
+          int: 1
       status: 201
       response_json_paths:
           $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -171,6 +203,7 @@ tests:
           $.name: foo
           $.foobar: what
           $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
+          $.int: 1
 
     - name: get resource
       url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -181,6 +214,28 @@ tests:
           $.name: foo
           $.foobar: what
           $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
+          $.int: 1
+
+    - name: post resource with default
+      url: /v1/resource/my_custom_resource
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: c4110aec-6e5c-43fa-b8c5-ffdfbca3ce59
+          name: foo
+          uuid: e495ebad-be64-46c0-81d6-b079beb48df9
+      status: 201
+      response_json_paths:
+          $.id: c4110aec-6e5c-43fa-b8c5-ffdfbca3ce59
+          $.name: foo
+          $.foobar:
+          $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
+          $.int:
+
+# Ensure we can't delete the type
 
     - name: list resource history
       url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
@@ -204,12 +259,23 @@ tests:
       response_strings:
           - Resource type my_custom_resource is still in use
 
+# Delete associated resources
+
     - name: delete the resource
       url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
       request_headers:
         x-roles: admin
       method: DELETE
       status: 204
+
+    - name: delete the second resource
+      url: /v1/resource/my_custom_resource/c4110aec-6e5c-43fa-b8c5-ffdfbca3ce59
+      request_headers:
+        x-roles: admin
+      method: DELETE
+      status: 204
+
+# Now we can deleted the type
 
     - name: delete the custom resource type
       method: delete
