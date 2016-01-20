@@ -62,6 +62,8 @@ tests:
               foobar:
                   type: string
                   required: false
+              uuid:
+                  type: uuid
       status: 201
       response_json_paths:
           $.name: my_custom_resource
@@ -76,6 +78,10 @@ tests:
                   required: False
                   max_length: 255
                   min_length: 0
+              uuid:
+                  type: uuid
+                  required: True
+
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
 
@@ -107,11 +113,30 @@ tests:
           id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           name: toolong!!!
           foobar: what
+          uuid: 07eb339e-23c0-4be2-be43-cd8247afae3b
       status: 400
       response_strings:
           # split to not match the u' in py2
           - "Invalid input: length of value must be at most 5 for dictionary value @ data["
           - "'name']"
+
+    - name: post invalid resource uuid
+      url: /v1/resource/my_custom_resource
+      method: post
+      request_headers:
+          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          name: too
+          foobar: what
+          uuid: really!
+      status: 400
+      response_strings:
+          # split to not match the u' in py2
+          - "Invalid input: not a valid value for dictionary value @ data["
+          - "'uuid']"
 
     - name: post custom resource
       url: /v1/resource/my_custom_resource
@@ -124,6 +149,7 @@ tests:
           id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           name: bar
           foobar: what
+          uuid: e495ebad-be64-46c0-81d6-b079beb48df9
       status: 201
       response_json_paths:
           $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -144,6 +170,7 @@ tests:
           $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $.name: foo
           $.foobar: what
+          $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
 
     - name: get resource
       url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -153,6 +180,7 @@ tests:
           $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $.name: foo
           $.foobar: what
+          $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
 
     - name: list resource history
       url: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast

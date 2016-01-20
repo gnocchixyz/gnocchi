@@ -17,6 +17,8 @@ import six
 import stevedore
 import voluptuous
 
+from gnocchi import utils
+
 
 INVALID_NAMES = [
     "id", "type", "metrics",
@@ -97,6 +99,11 @@ class StringSchema(CommonAttributeSchema):
         d.update({"max_length": self.max_length,
                   "min_length": self.min_length})
         return d
+
+
+class UUIDSchema(CommonAttributeSchema):
+    typename = "uuid"
+    schema_ext = staticmethod(utils.UUID)
 
 
 class ResourceTypeAttributes(list):
