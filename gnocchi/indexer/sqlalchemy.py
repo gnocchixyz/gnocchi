@@ -108,7 +108,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def _resource_type_to_class(self, resource_type, purpose="resource"):
         if resource_type not in self._RESOURCE_CLASS_MAPPER:
-            raise indexer.UnknownResourceType(resource_type)
+            raise indexer.NoSuchResourceType(resource_type)
         return self._RESOURCE_CLASS_MAPPER[resource_type][purpose]
 
     def list_archive_policies(self):
