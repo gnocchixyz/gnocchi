@@ -941,8 +941,18 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.create_metric(e1,
                                  user, project,
                                  archive_policy_name="low")
+        e2 = uuid.uuid4()
+        self.index.create_metric(e2,
+                                 user, project,
+                                 archive_policy_name="low")
         metrics = self.index.list_metrics()
-        self.assertIn(e1, [m.id for m in metrics])
+        id_list = [m.id for m in metrics]
+        self.assertIn(e1, id_list)
+        # Test ordering
+        if e1 < e2:
+            self.assertLess(id_list.index(e1), id_list.index(e2))
+        else:
+            self.assertLess(id_list.index(e2), id_list.index(e1))
 
     def test_list_metrics_delete_status(self):
         e1 = uuid.uuid4()
