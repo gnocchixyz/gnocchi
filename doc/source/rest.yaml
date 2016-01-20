@@ -77,6 +77,15 @@
       "archive_policy_name": "low"
     }
 
+- name: create-metric-2
+  request: |
+    POST /v1/metric HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "archive_policy_name": "low"
+    }
+
 - name: create-archive-policy-rule
   request: |
     POST /v1/archive_policy_rule HTTP/1.1
@@ -134,6 +143,36 @@
         "value": 2
       }
     ]
+
+- name: post-measures-batch
+  request: |
+    POST /v1/batch/measures HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "{{ scenarios['create-metric']['response'].json['id'] }}":
+      [
+        {
+          "timestamp": "2014-10-06T14:34:12",
+          "value": 12
+        },
+        {
+          "timestamp": "2014-10-06T14:34:20",
+          "value": 2
+        }
+      ],
+      "{{ scenarios['create-metric-2']['response'].json['id'] }}":
+      [
+        {
+          "timestamp": "2014-10-06T16:12:12",
+          "value": 3
+        },
+        {
+          "timestamp": "2014-10-06T18:14:52",
+          "value": 4
+        }
+      ]
+    }
 
 - name: search-value-in-metric
   request: |

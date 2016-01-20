@@ -42,6 +42,7 @@ Key Features
 - HTTP REST interface
 - Horizontal scalability
 - Metric aggregation
+- Measures batching support
 - Archiving policy
 - Metric value search
 - Structured resources

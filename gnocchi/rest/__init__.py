@@ -420,6 +420,21 @@ class AggregatedMetricController(rest.RestController):
             abort(404, e)
 
 
+def MeasureSchema(m):
+    # NOTE(sileht): don't use voluptuous for performance reasons
+    try:
+        value = float(m['value'])
+    except Exception:
+        abort(400, "Invalid input for a value")
+
+    try:
+        timestamp = utils.to_timestamp(m['timestamp'])
+    except Exception:
+        abort(400, "Invalid input for a timestamp")
+
+    return storage.Measure(timestamp, value)
+
+
 class MetricController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
@@ -430,23 +445,6 @@ class MetricController(rest.RestController):
         mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
                                          invoke_on_load=True)
         self.custom_agg = dict((x.name, x.obj) for x in mgr)
-
-    @staticmethod
-    def to_measure(m):
-        # NOTE(sileht): we do the input validation
-        # during the iteration for not loop just for this
-        # and don't use voluptuous for performance reason
-        try:
-            value = float(m['value'])
-        except Exception:
-            abort(400, "Invalid input for a value")
-
-        try:
-            timestamp = utils.to_timestamp(m['timestamp'])
-        except Exception:
-            abort(400, "Invalid input for a timestamp")
-
-        return storage.Measure(timestamp, value)
 
     def enforce_metric(self, rule):
         enforce(rule, json.to_primitive(self.metric))
@@ -464,7 +462,7 @@ class MetricController(rest.RestController):
             abort(400, "Invalid input for measures")
         if params:
             pecan.request.storage.add_measures(
-                self.metric, six.moves.map(self.to_measure, params))
+                self.metric, six.moves.map(MeasureSchema, params))
         pecan.response.status = 202
 
     @pecan.expose('json')
@@ -1257,6 +1255,30 @@ class SearchMetricController(rest.RestController):
             abort(400, e)
 
 
+class MeasuresBatchController(rest.RestController):
+    MeasuresBatchSchema = voluptuous.Schema({
+        UUID: [MeasureSchema],
+    })
+
+    @pecan.expose()
+    def post(self):
+        body = deserialize_and_validate(self.MeasuresBatchSchema)
+        metrics = pecan.request.indexer.get_metrics(body.keys())
+
+        if len(metrics) != len(body):
+            missing_metrics = sorted(set(body) - set(m.id for m in metrics))
+            abort(400, "Unknown metrics: %s" % ", ".join(
+                six.moves.map(str, missing_metrics)))
+
+        for metric in metrics:
+            enforce("post measures", metric)
+
+        for metric in metrics:
+            pecan.request.storage.add_measures(metric, body[metric.id])
+
+        pecan.response.status = 202
+
+
 class SearchController(object):
     resource = SearchResourceController()
     metric = SearchMetricController()
@@ -1321,6 +1343,10 @@ class StatusController(rest.RestController):
         return {"storage": {"measures_to_process": report}}
 
 
+class BatchController(object):
+    measures = MeasuresBatchController()
+
+
 class V1Controller(object):
 
     def __init__(self):
@@ -1329,6 +1355,7 @@ class V1Controller(object):
             "archive_policy": ArchivePoliciesController(),
             "archive_policy_rule": ArchivePolicyRulesController(),
             "metric": MetricsController(),
+            "batch": BatchController(),
             "resource": ResourcesController(),
             "aggregation": Aggregation(),
             "capabilities": CapabilityController(),
