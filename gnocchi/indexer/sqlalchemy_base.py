@@ -32,6 +32,7 @@ import sqlalchemy_utils
 
 from gnocchi import archive_policy
 from gnocchi import indexer
+from gnocchi.indexer import sqlalchemy_legacy_resources as legacy
 from gnocchi import resource_type
 from gnocchi import storage
 from gnocchi import utils
@@ -202,6 +203,18 @@ class Metric(Base, GnocchiBase, storage.Metric):
 
 RESOURCE_TYPE_SCHEMA_MANAGER = resource_type.ResourceTypeSchemaManager(
     "gnocchi.indexer.sqlalchemy.resource_type_attribute")
+
+
+def get_legacy_resource_types():
+    resource_types = []
+    for name, attributes in legacy.ceilometer_resources.items():
+        tablename = legacy.ceilometer_tablenames.get(name, name)
+        attrs = RESOURCE_TYPE_SCHEMA_MANAGER.attributes_from_dict(
+            attributes)
+        resource_types.append(ResourceType(name=name,
+                                           tablename=tablename,
+                                           attributes=attrs))
+    return resource_types
 
 
 class ResourceTypeAttributes(sqlalchemy_utils.JSONType):
