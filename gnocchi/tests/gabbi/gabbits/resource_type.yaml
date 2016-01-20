@@ -127,6 +127,33 @@ tests:
       url: /v1/resource_type/my_custom_resource
       response_json_paths:
           $.name: my_custom_resource
+          $.attributes:
+              name:
+                  type: string
+                  required: True
+                  min_length: 2
+                  max_length: 5
+              foobar:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              uuid:
+                  type: uuid
+                  required: True
+              int:
+                  type: number
+                  required: False
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
+                  max:
+              bool:
+                  type: bool
+                  required: false
 
 # Some bad case case on the type
 
