@@ -111,63 +111,63 @@ tests:
       method: post
       request_headers:
           # Only provide one of these auth headers
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           content-type: application/json
       data:
           id: f93454f2-d8a5-4d67-9985-02511241e7f3
           started_at: "2014-01-03T02:02:02.000000"
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 201
 
     - name: post generic resource
       url: /v1/resource/generic
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: f93450f2-d8a5-4d67-9985-02511241e7d1
           started_at: "2014-01-03T02:02:02.000000"
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 201
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
           content-type: application/json; charset=UTF-8
       response_json_paths:
-          $.created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-          $.created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          $.user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          $.created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          $.created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
+          $.user_id: 0fbb231484614b1a80131fc22f6afc9c
 
     - name: post same resource refuse
       desc: We can only post one identified resource once
       url: /v1/resource/generic
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: f93450f2-d8a5-4d67-9985-02511241e7d1
           started_at: "2014-01-03T02:02:02.000000"
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 409
 
     - name: post generic resource bad content type
       url: /v1/resource/generic
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: text/plain
       data:
           id: f93450f2-d8a5-4d67-9985-02511241e7d1
           started_at: "2014-01-03T02:02:02.000000"
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 415
 
 # Create a new instance resource, demonstrate that including no data
@@ -177,8 +177,8 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
 
@@ -186,13 +186,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 75C44741-CC60-4033-804E-2D3098C7D2E9
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute1
@@ -208,8 +208,8 @@ tests:
       url: $LOCATION
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           host: compute2
@@ -222,8 +222,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           host: compute2
@@ -237,8 +237,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           metrics:
@@ -253,8 +253,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history?sort=revision_end:asc-nullslast
       request_headers:
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       response_json_paths:
         $.`len`: 2
@@ -267,8 +267,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           metrics:
@@ -281,8 +281,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           metrics:
@@ -296,8 +296,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           metrics:
@@ -310,8 +310,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           metrics:
@@ -322,8 +322,8 @@ tests:
       desc: confirm the patched resource is properly patched
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       data:
           host: compute2
 
@@ -332,8 +332,8 @@ tests:
       url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: PATCH
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data: "{}"
       status: 200
@@ -345,8 +345,8 @@ tests:
       url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: PATCH
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data: "{}"
       status: 200
@@ -360,8 +360,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
       method: POST
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 405
 
@@ -370,8 +370,8 @@ tests:
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
       method: DELETE
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 405
 
@@ -382,8 +382,8 @@ tests:
       url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: PATCH
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
       response_strings:
@@ -394,8 +394,8 @@ tests:
       url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       method: PATCH
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
       data:
@@ -408,8 +408,8 @@ tests:
       url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       method: patch
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 404
 
@@ -419,8 +419,8 @@ tests:
       desc: if a resource does not exist 404
       url:  /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 404
       response_strings:
           - The resource could not be found.
@@ -429,8 +429,8 @@ tests:
       desc: https://bugs.launchpad.net/gnocchi/+bug/1425588
       url:  /v1/resource/instance/noexist
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 404
       response_strings:
           - The resource could not be found.
@@ -438,8 +438,8 @@ tests:
     - name: get metrics for this not-existing resource
       url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 404
 
@@ -453,8 +453,8 @@ tests:
     - name: list instance resources
       url: /v1/resource/instance
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $[0].host: compute2
           $[-1].host: compute2
@@ -462,8 +462,8 @@ tests:
     - name: list all resources
       url: /v1/resource/generic
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_strings:
           - '"type": "generic"'
 
@@ -473,13 +473,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 85C44741-CC60-4033-804E-2D3098C7D2E9
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -492,13 +492,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 85C44741-CC60-4033-804E-2D3098C7D2E9
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -512,13 +512,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 85BABE39-F7F7-455A-877B-62C22E11AA40
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -533,13 +533,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 85BABE39-F7F7-455A-877B-62C22E11AA40
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -552,13 +552,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: d13982cb-4cce-4f84-a96e-7581be1e599c
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -568,8 +568,8 @@ tests:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
-          created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
     - name: post new instance with metrics and un-normalized user/project id from keystone middleware
       url: /v1/resource/instance
@@ -589,16 +589,16 @@ tests:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
-          created_by_user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
 
     - name: get metrics for this resource
       desc: with async measure handling this is a null test
       url: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       response_strings:
           - "[]"
@@ -608,14 +608,14 @@ tests:
     - name: list the instances
       url: /v1/resource/instance
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
     - name: request metrics from one of the instances
       url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $.`len`: 1
           $[0].name: cpu.util
@@ -625,26 +625,26 @@ tests:
       desc: 404 from GenericResourceController
       url: /v1/resource/instance/not.a.uuid/metric
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 404
 
     - name: request cpuutil metric from instance
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
-          $.created_by_project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          $.created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           $.archive_policy.name: medium
 
     - name: try post cpuutil metric to instance
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 405
 
@@ -652,8 +652,8 @@ tests:
       desc: with async measure handling this is a null test
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_strings:
           - "[]"
 
@@ -661,8 +661,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           - timestamp: "2015-03-06T14:33:57"
@@ -674,8 +674,8 @@ tests:
     - name: request cpuutil measures again
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       poll:
           count: 50
           delay: .1
@@ -688,8 +688,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 204
       data:
@@ -701,8 +701,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
       data:
@@ -714,8 +714,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 204
       data:
@@ -725,8 +725,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 409
       data:
@@ -739,8 +739,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
       data:
@@ -755,13 +755,13 @@ tests:
       url: /v1/resource/instance
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           id: 95C44741-CC60-4033-804E-2D3098C7D2E9
-          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           flavor_id: "2"
           image_ref: http://image
           host: compute3
@@ -782,8 +782,8 @@ tests:
       url: /v1/resource/instance/not.a.uuid/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           some.metric:
@@ -795,8 +795,8 @@ tests:
       url: /v1/resource/instance/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           some.metric:
@@ -810,8 +810,8 @@ tests:
       url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
       method: post
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
           - timestamp: "2015-03-06T14:33:57"
@@ -825,15 +825,15 @@ tests:
     - name: delete instance
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       method: DELETE
       status: 204
 
     - name: delete noexist instance
       url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
-          x-user-id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
-          x-project-id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       method: DELETE
       status: 404

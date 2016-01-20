@@ -51,24 +51,8 @@ def abort(status_code, detail='', headers=None, comment=None, **kw):
 
 def get_user_and_project():
     headers = pecan.request.headers
-    # NOTE(jd) If user_id or project_id is UUID, try to convert them into
-    # the proper dashed format. It's indeed possible that a middleware passes
-    # these UUIDs without the dash representation. It's valid, we can parse,
-    # but the policy module won't see the equality in the string
-    # representations.
     user_id = headers.get("X-User-Id")
-    if user_id:
-        try:
-            user_id = six.text_type(uuid.UUID(user_id))
-        except Exception:
-            abort(400, "Malformed X-User-Id")
-
     project_id = headers.get("X-Project-Id")
-    if project_id:
-        try:
-            project_id = six.text_type(uuid.UUID(project_id))
-        except Exception:
-            abort(400, "Malformed X-Project-Id")
     return (user_id, project_id)
 
 
@@ -540,8 +524,8 @@ class MetricsController(rest.RestController):
         return MetricController(metrics[0]), remainder
 
     _MetricSchema = voluptuous.Schema({
-        "user_id": UUID,
-        "project_id": UUID,
+        "user_id": six.text_type,
+        "project_id": six.text_type,
         "archive_policy_name": six.text_type,
         "name": six.text_type,
     })
@@ -759,8 +743,8 @@ def ResourceSchema(schema):
         "id": utils.ResourceUUID,
         voluptuous.Optional('started_at'): Timestamp,
         voluptuous.Optional('ended_at'): Timestamp,
-        voluptuous.Optional('user_id'): voluptuous.Any(None, UUID),
-        voluptuous.Optional('project_id'): voluptuous.Any(None, UUID),
+        voluptuous.Optional('user_id'): voluptuous.Any(None, six.text_type),
+        voluptuous.Optional('project_id'): voluptuous.Any(None, six.text_type),
         voluptuous.Optional('metrics'): MetricsSchema,
     }
     base_schema.update(schema)
