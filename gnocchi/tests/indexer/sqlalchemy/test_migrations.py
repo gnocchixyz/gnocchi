@@ -40,7 +40,7 @@ class ModelsMigrationsSync(
         return sqlalchemy_base.Base.metadata
 
     def get_engine(self):
-        return self.index.engine_facade.get_engine()
+        return self.index.get_engine()
 
     @staticmethod
     def db_sync(engine):
