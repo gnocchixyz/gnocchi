@@ -386,7 +386,6 @@ function start_gnocchi {
     fi
 
     # Create a default policy
-    archive_policy_url="$(gnocchi_service_url)/v1/archive_policy"
     if ! is_service_enabled key; then
         export OS_AUTH_TYPE=gnocchi-noauth
         export GNOCCHI_USER_ID=`uuidgen`
