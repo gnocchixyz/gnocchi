@@ -25,6 +25,8 @@ import msgpack
 import pandas
 import six
 
+from gnocchi import utils
+
 
 LOG = logging.getLogger(__name__)
 
@@ -143,8 +145,7 @@ class TimeSerie(SerializableMixin):
     @staticmethod
     def _round_timestamp(ts, freq):
         return pandas.Timestamp(
-            (pandas.Timestamp(ts).value // freq.delta.value)
-            * freq.delta.value)
+            (pandas.Timestamp(ts).value // freq) * freq)
 
     @staticmethod
     def _to_offset(value):
@@ -234,7 +235,8 @@ class BoundTimeSerie(TimeSerie):
         return basic
 
     def _first_block_timestamp(self):
-        rounded = self._round_timestamp(self.ts.index[-1], self.block_size)
+        rounded = self._round_timestamp(self.ts.index[-1],
+                                        self.block_size.delta.value)
         return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
@@ -249,6 +251,8 @@ class BoundTimeSerie(TimeSerie):
 class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
+
+    POINTS_PER_SPLIT = 14400
 
     def __init__(self, ts=None, max_size=None,
                  sampling=None, aggregation_method='mean'):
@@ -283,6 +287,44 @@ class AggregatedTimeSerie(TimeSerie):
                   max_size=None, sampling=None, aggregation_method='mean'):
         return cls(pandas.Series(values, timestamps),
                    max_size=max_size, sampling=sampling,
+                   aggregation_method=aggregation_method)
+
+    @classmethod
+    def get_split_key_datetime(cls, timestamp, sampling,
+                               chunk_size=POINTS_PER_SPLIT):
+        return cls._round_timestamp(timestamp,
+                                    freq=sampling * chunk_size * 10e8)
+
+    @staticmethod
+    def _split_key_to_string(timestamp):
+        return str(utils.datetime_to_unix(timestamp))
+
+    @classmethod
+    def get_split_key(cls, timestamp, sampling, chunk_size=POINTS_PER_SPLIT):
+        return cls._split_key_to_string(
+            cls.get_split_key_datetime(
+                timestamp, sampling, chunk_size))
+
+    def split(self, chunk_size=POINTS_PER_SPLIT):
+        groupby = self.ts.groupby(functools.partial(
+            self.get_split_key_datetime, sampling=self.sampling,
+            chunk_size=chunk_size))
+        keys = sorted(groupby.groups.keys())
+        for i, ts in enumerate(keys):
+            if i + 1 == len(keys):
+                yield self._split_key_to_string(ts), TimeSerie(self.ts[ts:])
+            elif i + 1 < len(keys):
+                t = self.ts[ts:keys[i + 1]]
+                del t[t.index[-1]]
+                yield self._split_key_to_string(ts), TimeSerie(t)
+
+    @classmethod
+    def from_timeseries(cls, timeseries, sampling=None, max_size=None,
+                        aggregation_method='mean'):
+        ts = pandas.Series()
+        for t in timeseries:
+            ts = ts.combine_first(t.ts)
+        return cls(ts, sampling=sampling, max_size=max_size,
                    aggregation_method=aggregation_method)
 
     @property
@@ -342,7 +384,7 @@ class AggregatedTimeSerie(TimeSerie):
             # the points after `after'
             groupedby = self.ts[after:].groupby(
                 functools.partial(self._round_timestamp,
-                                  freq=self._sampling))
+                                  freq=self.sampling * 10e8))
             agg_func = getattr(groupedby, self.aggregation_method_func_name)
             if self.aggregation_method_func_name == 'quantile':
                 aggregated = agg_func(self.q)
@@ -363,7 +405,7 @@ class AggregatedTimeSerie(TimeSerie):
         if from_timestamp is None:
             from_ = None
         else:
-            from_ = self._round_timestamp(from_timestamp, self._sampling)
+            from_ = self._round_timestamp(from_timestamp, self.sampling * 10e8)
         points = self[from_:to_timestamp]
         try:
             # Do not include stop timestamp
