@@ -35,8 +35,7 @@ OPTS = [
                     'pre-aggregation needs.'),
     cfg.StrOpt('coordination_url',
                secret=True,
-               help='Coordination driver URL',
-               default="file:///var/lib/gnocchi/locks"),
+               help='Coordination driver URL'),
 
 ]
 

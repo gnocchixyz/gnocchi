@@ -347,17 +347,13 @@ class TestCase(base.BaseTestCase):
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
-        self.conf.set_override('coordination_url',
-                               os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
-                               'storage')
-
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
         # checkfirst=True, so what we do here is we force the upgrade code
         # path to be sequential to avoid race conditions as the tests run
         # in parallel.
         self.coord = coordination.get_coordinator(
-            os.getenv("GNOCCHI_COORDINATION_URL", "ipc://"),
+            self.conf.storage.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
 
         self.coord.start()

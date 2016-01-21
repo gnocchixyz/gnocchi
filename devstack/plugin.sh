@@ -226,11 +226,9 @@ function configure_gnocchi {
     # Install the configuration files
     cp $GNOCCHI_DIR/etc/gnocchi/* $GNOCCHI_CONF_DIR
 
-    iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
-    if [ "${GNOCCHI_COORDINATOR_URL:0:7}" == "file://" ]; then
-        gnocchi_locks_dir=${GNOCCHI_COORDINATOR_URL:7}
-        [ ! -d $gnocchi_locks_dir ] && sudo mkdir -m 755 -p ${gnocchi_locks_dir}
-        sudo chown $STACK_USER $gnocchi_locks_dir
+
+    if [ -n "$GNOCCHI_COORDINATOR_URL" ]; then
+        iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
     fi
 
     # Configure auth token middleware

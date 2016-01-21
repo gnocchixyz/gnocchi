@@ -103,12 +103,13 @@ To ensure consistency across all *gnocchi-api* and *gnocchi-metricd* workers,
 these drivers need a distributed locking mechanism. This is provided by the
 'coordinator' of the `tooz`_ library.
 
-By default, the configured backend for `tooz`_ is `file`, this allows locking
-across workers on the same node.
+By default, the configured backend for `tooz`_ is the same as the indexer
+(*PostgreSQL* or *MySQL*). This allows locking across workers from different
+nodes.
 
-In a multi-nodes deployment, the coordinator needs to be changed via
-the storage/coordination_url configuration options to one of the other
-`tooz backends`_.
+For a more robust multi-nodes deployment, the coordinator may be changed via
+the `storage.coordination_url` configuration option to one of the other `tooz
+backends`_.
 
 For example to use Redis backend::
 
