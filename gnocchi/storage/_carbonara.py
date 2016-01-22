@@ -178,6 +178,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 try:
                     LOG.debug("Processing measures for %s" % metric)
                     with self._process_measure_for_metric(metric) as measures:
+                        # NOTE(mnaser): The metric could have been handled by
+                        #               another worker, ignore if no measures.
+                        if len(measures) == 0:
+                            LOG.debug("Skipping %s (already processed)"
+                                      % metric)
+                            continue
+
                         try:
                             with timeutils.StopWatch() as sw:
                                 raw_measures = self._get_measures(metric,
