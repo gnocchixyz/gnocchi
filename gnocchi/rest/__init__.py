@@ -970,7 +970,7 @@ class ResourcesByTypeController(rest.RestController):
         if resource_type in RESOURCE_SCHEMA_MANAGER:
             return ResourcesController(resource_type), remainder
         else:
-            abort(404, indexer.UnknownResourceType(resource_type))
+            abort(404, indexer.NoSuchResourceType(resource_type))
 
 
 def _ResourceSearchSchema(v):
@@ -1054,7 +1054,7 @@ class SearchResourceController(rest.RestController):
         if resource_type in RESOURCE_SCHEMA_MANAGER:
             return SearchResourceTypeController(resource_type), remainder
         else:
-            abort(404, indexer.UnknownResourceType(resource_type))
+            abort(404, indexer.NoSuchResourceType(resource_type))
 
 
 def _MetricSearchSchema(v):

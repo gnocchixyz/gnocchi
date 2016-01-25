@@ -83,11 +83,11 @@ class IndexerException(Exception):
     """Base class for all exceptions raised by an indexer."""
 
 
-class UnknownResourceType(IndexerException):
+class NoSuchResourceType(IndexerException):
     """Error raised when the resource type is unknown."""
     def __init__(self, type):
-        super(UnknownResourceType, self).__init__(
-            "Resource type %s is unknown" % type)
+        super(NoSuchResourceType, self).__init__(
+            "Resource type %s does not exist" % str(type))
         self.type = type
 
 
