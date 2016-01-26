@@ -2,21 +2,9 @@
  Configuration
 ===============
 
-Configure Gnocchi by editing `/etc/gnocchi/gnocchi.conf`.
-
-No config file is provided with the source code, but one can be easily
-created by running:
-
-::
-
-    tox -e genconfig
-
-This command will create an `etc/gnocchi/gnocchi.conf` file which can be used
-as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`. If
-you're using *devstack*, this file is already generated and put in place.
-
-The configuration file should be pretty explicit, but here are some of the base
-options you want to change and configure:
+Configure Gnocchi by editing `/etc/gnocchi/gnocchi.conf`. The configuration
+file should be pretty explicit, but here are some of the base options you want
+to change and configure:
 
 
 +---------------------+---------------------------------------------------+
