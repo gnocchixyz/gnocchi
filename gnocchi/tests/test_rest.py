@@ -1,8 +1,7 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2016 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
-#
-# Authors: Julien Danjou <julien@danjou.info>
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -265,6 +264,21 @@ class ArchivePolicyTest(RestTest):
 
 
 class MetricTest(RestTest):
+
+    def test_get_metric_with_another_user_linked_resource(self):
+        result = self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": str(uuid.uuid4()),
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": TestingApp.USER_ID_2,
+                "project_id": TestingApp.PROJECT_ID_2,
+                "metrics": {"foobar": {"archive_policy_name": "low"}},
+            })
+        resource = json.loads(result.text)
+        metric_id = resource["metrics"]["foobar"]
+        with self.app.use_another_user():
+            self.app.get("/v1/metric/%s" % metric_id)
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
