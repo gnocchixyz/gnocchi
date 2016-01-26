@@ -16,6 +16,7 @@
 
 import contextlib
 import datetime
+import logging
 import uuid
 
 from oslo_config import cfg
@@ -24,8 +25,15 @@ from oslo_utils import importutils
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 
+
+LOG = logging.getLogger(__name__)
+
 # NOTE(sileht): rados module is not available on pypi
 rados = importutils.try_import('rados')
+if rados is not None and hasattr(rados, 'run_in_thread'):
+    rados.run_in_thread = lambda target, args, timeout=None: target(*args)
+    LOG.info("rados.run_in_thread is monkeypatched.")
+
 
 OPTS = [
     cfg.StrOpt('ceph_pool',
