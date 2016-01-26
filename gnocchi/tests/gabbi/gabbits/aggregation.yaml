@@ -1,0 +1,85 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      url: /v1/archive_policy
+      method: POST
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: low
+          definition:
+              - granularity: 1 second
+              - granularity: 300 seconds
+      status: 201
+
+    - name: create metric 1
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+        archive_policy_name: low
+      status: 201
+
+    - name: create metric 2
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+        archive_policy_name: low
+      status: 201
+
+    - name: get metric list to push metric 1
+      url: /v1/metric
+
+    - name: push measurements to metric 1
+      url: /v1/metric/$RESPONSE['$[0].id']/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+      status: 202
+
+    - name: get metric list to push metric 2
+      url: /v1/metric
+
+    - name: push measurements to metric 2
+      url: /v1/metric/$RESPONSE['$[1].id']/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 3.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 2
+      status: 202
+
+    - name: get metric list to get aggregates
+      url: /v1/metric
+
+    - name: get measure aggregates by granularity not float
+      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=foobar
+      status: 400
+
+    - name: get metric list to get aggregates 2
+      url: /v1/metric
+
+    - name: get measure aggregates by granularity
+      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1
+      poll:
+          count: 10
+          delay: 1
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]

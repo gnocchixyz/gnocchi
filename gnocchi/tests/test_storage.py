@@ -259,6 +259,26 @@ class TestStorageDriver(tests_base.TestCase):
                           [self.metric, metric2],
                           aggregation='last')
 
+    def test_get_cross_metric_measures_unknown_granularity(self):
+        metric2 = storage.Metric(uuid.uuid4(),
+                                 self.archive_policies['low'])
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 4),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 12, 45), 44),
+        ])
+        self.storage.add_measures(metric2, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 4),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 12, 45), 44),
+        ])
+        self.assertRaises(storage.GranularityDoesNotExist,
+                          self.storage.get_cross_metric_measures,
+                          [self.metric, metric2],
+                          granularity=12345.456)
+
     def test_add_and_get_cross_metric_measures_different_archives(self):
         metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['no_granularity_match'])
@@ -342,6 +362,16 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
             (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
+        ], values)
+
+        values = self.storage.get_cross_metric_measures(
+            [self.metric, metric2],
+            from_timestamp='2014-01-01 12:00:00',
+            to_timestamp='2014-01-01 12:00:01',
+            granularity=300.0)
+
+        self.assertEqual([
             (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
         ], values)
 
