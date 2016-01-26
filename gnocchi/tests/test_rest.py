@@ -1458,6 +1458,49 @@ class ResourceTest(RestTest):
         self.assertGreaterEqual(len(resources), 1)
         self.assertEqual(created_resource, resources[0])
 
+    def test_search_resources_with_another_project_id(self):
+        u1 = str(uuid.uuid4())
+        result = self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": str(uuid.uuid4()),
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": u1,
+                "project_id": TestingApp.PROJECT_ID_2,
+            })
+        g = json.loads(result.text)
+
+        with self.app.use_another_user():
+            result = self.app.post_json(
+                "/v1/resource/generic",
+                params={
+                    "id": str(uuid.uuid4()),
+                    "started_at": "2014-01-01 03:03:03",
+                    "user_id": u1,
+                    "project_id": str(uuid.uuid4()),
+                })
+            j = json.loads(result.text)
+            g_found = False
+            j_found = False
+
+            result = self.app.post_json(
+                "/v1/search/resource/generic",
+                params={"=": {"user_id": u1}},
+                status=200)
+            resources = json.loads(result.text)
+            self.assertGreaterEqual(len(resources), 2)
+            for r in resources:
+                if r['id'] == str(g['id']):
+                    self.assertEqual(g, r)
+                    g_found = True
+                elif r['id'] == str(j['id']):
+                    self.assertEqual(j, r)
+                    j_found = True
+                if g_found and j_found:
+                    break
+            else:
+                self.fail("Some resources were not found")
+
     def test_search_resources_by_unknown_field(self):
         result = self.app.post_json(
             "/v1/search/resource/" + self.resource_type,
@@ -1581,6 +1624,47 @@ class ResourceTest(RestTest):
                 break
         else:
             self.fail("Some resources were not found")
+
+    def test_list_resources_with_another_project_id(self):
+        result = self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": str(uuid.uuid4()),
+                "started_at": "2014-01-01 02:02:02",
+                "user_id": TestingApp.USER_ID_2,
+                "project_id": TestingApp.PROJECT_ID_2,
+            })
+        g = json.loads(result.text)
+
+        with self.app.use_another_user():
+            result = self.app.post_json(
+                "/v1/resource/generic",
+                params={
+                    "id": str(uuid.uuid4()),
+                    "started_at": "2014-01-01 03:03:03",
+                    "user_id": str(uuid.uuid4()),
+                    "project_id": str(uuid.uuid4()),
+                })
+            j = json.loads(result.text)
+
+            g_found = False
+            j_found = False
+
+            result = self.app.get("/v1/resource/generic")
+            self.assertEqual(200, result.status_code)
+            resources = json.loads(result.text)
+            self.assertGreaterEqual(len(resources), 2)
+            for r in resources:
+                if r['id'] == str(g['id']):
+                    self.assertEqual(g, r)
+                    g_found = True
+                elif r['id'] == str(j['id']):
+                    self.assertEqual(j, r)
+                    j_found = True
+                if g_found and j_found:
+                    break
+            else:
+                self.fail("Some resources were not found")
 
     def test_list_resources_with_details(self):
         self._do_test_list_resources_with_detail(
