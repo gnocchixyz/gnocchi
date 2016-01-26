@@ -78,9 +78,14 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def _build_unaggregated_timeserie_path(self, metric):
         return os.path.join(self._build_metric_dir(metric), 'none')
 
-    def _build_metric_path(self, metric, aggregation, granularity):
+    def _build_metric_path(self, metric, aggregation):
         return os.path.join(self._build_metric_dir(metric),
-                            "agg_" + aggregation, str(granularity))
+                            "agg_" + aggregation)
+
+    def _build_metric_path_for_split(self, metric, aggregation,
+                                     timestamp_key, granularity):
+        return os.path.join(self._build_metric_path(metric, aggregation),
+                            timestamp_key + "_" + str(granularity))
 
     def _build_measure_path(self, metric_id, random_id=None):
         path = os.path.join(self.measure_path, six.text_type(metric_id))
@@ -101,7 +106,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             raise
         for agg in metric.archive_policy.aggregation_methods:
             try:
-                os.mkdir(self._build_metric_path(metric, agg, ""), 0o750)
+                os.mkdir(self._build_metric_path(metric, agg), 0o750)
             except OSError as e:
                 if e.errno != errno.EEXIST:
                     raise
@@ -192,9 +197,25 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _store_metric_measures(self, metric, aggregation, granularity, data):
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+        try:
+            files = os.listdir(self._build_metric_path(metric, aggregation))
+        except OSError as e:
+            if e.errno == errno.ENOENT:
+                raise storage.MetricDoesNotExist(metric)
+            raise
+        keys = []
+        for f in files:
+            key, sep, file_granularity = f.partition("_")
+            if file_granularity == str(granularity):
+                keys.append(key)
+        return keys
+
+    def _store_metric_measures(self, metric, timestamp_key, aggregation,
+                               granularity, data):
         self._atomic_file_store(
-            self._build_metric_path(metric, aggregation, granularity),
+            self._build_metric_path_for_split(metric, aggregation,
+                                              timestamp_key, granularity),
             data)
 
     def _delete_metric(self, metric):
@@ -207,8 +228,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 # measures)
                 raise
 
-    def _get_measures(self, metric, aggregation, granularity):
-        path = self._build_metric_path(metric, aggregation, granularity)
+    def _get_measures(self, metric, timestamp_key, aggregation, granularity):
+        path = self._build_metric_path_for_split(metric, aggregation,
+                                                 timestamp_key, granularity)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()

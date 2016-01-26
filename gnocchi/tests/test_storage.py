@@ -63,18 +63,6 @@ class TestStorageDriver(tests_base.TestCase):
                                 side_effect=ValueError("boom!")):
                     self.storage.process_background_tasks(self.index, True)
 
-        expected_calls = [
-            mock.call.debug('Processing measures for %s' % self.metric.id),
-            mock.call.debug('Processing measures for %s' % self.metric.id),
-        ]
-        aggs = ["none"] + self.conf.archive_policy.default_aggregation_methods
-        for agg in aggs:
-            expected_calls.append(mock.call.error(
-                'Data are corrupted for metric %s and aggregation %s, '
-                'recreating an empty timeserie.' % (self.metric.id, agg)))
-
-        logger.assert_has_calls(expected_calls, any_order=True)
-
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 1),
             (utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1),

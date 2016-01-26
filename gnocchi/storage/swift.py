@@ -84,8 +84,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 
     @staticmethod
-    def _object_name(aggregation, granularity):
-        return '%s.%s' % (aggregation, granularity)
+    def _object_name(split_key, aggregation, granularity):
+        return '%s_%s_%s' % (split_key, aggregation, granularity)
 
     def _create_metric(self, metric):
         # TODO(jd) A container per user in their account?
@@ -140,37 +140,41 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         for f in files:
             self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
 
-    def _store_metric_measures(self, metric, aggregation, granularity, data):
-        self.swift.put_object(self._container_name(metric),
-                              self._object_name(aggregation, granularity),
-                              data)
+    def _store_metric_measures(self, metric, timestamp_key,
+                               aggregation, granularity, data):
+        self.swift.put_object(
+            self._container_name(metric),
+            self._object_name(timestamp_key, aggregation, granularity),
+            data)
 
     def _delete_metric(self, metric):
         self._delete_unaggregated_timeserie(metric)
-        for aggregation in metric.archive_policy.aggregation_methods:
-            for d in metric.archive_policy.definition:
-                try:
-                    self.swift.delete_object(
-                        self._container_name(metric),
-                        self._object_name(aggregation, d.granularity))
-                except swclient.ClientException as e:
-                    if e.http_status != 404:
-                        raise
+        container = self._container_name(metric)
         try:
-            self.swift.delete_container(self._container_name(metric))
+            headers, files = self.swift.get_container(
+                container, full_listing=True)
         except swclient.ClientException as e:
             if e.http_status != 404:
                 # Maybe it never has been created (no measure)
                 raise
+        else:
+            for obj in files:
+                self.swift.delete_object(container, obj['name'])
+            try:
+                self.swift.delete_container(container)
+            except swclient.ClientException as e:
+                if e.http_status != 404:
+                    # Deleted in the meantime? Whatever.
+                    raise
 
     @retrying.retry(stop_max_attempt_number=4,
                     wait_fixed=500,
                     retry_on_result=retry_if_result_empty)
-    def _get_measures(self, metric, aggregation, granularity):
+    def _get_measures(self, metric, timestamp_key, aggregation, granularity):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
-                    aggregation, granularity))
+                    timestamp_key, aggregation, granularity))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
@@ -182,6 +186,26 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             raise
         return contents
+
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+        container = self._container_name(metric)
+        try:
+            headers, files = self.swift.get_container(
+                container, full_listing=True)
+        except swclient.ClientException as e:
+            if e.http_status == 404:
+                raise storage.MetricDoesNotExist(metric)
+            raise
+        keys = []
+        for f in files:
+            try:
+                key, agg, g = f['name'].split('_', 2)
+            except ValueError:
+                # Might be "none", or any other file. Be resilient.
+                continue
+            if aggregation == agg and granularity == float(g):
+                keys.append(key)
+        return keys
 
     @retrying.retry(stop_max_attempt_number=4,
                     wait_fixed=500,
