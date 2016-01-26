@@ -104,8 +104,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             object_names = self._list_object_names_to_process(ctx,
                                                               object_prefix)
             for n in object_names:
-                ctx.rm_xattr(self.MEASURE_PREFIX, n)
-                ctx.remove_object(n)
+                try:
+                    ctx.rm_xattr(self.MEASURE_PREFIX, n)
+                    ctx.remove_object(n)
+                except rados.ObjectNotFound:
+                    # Another worker may have removed it, don't worry.
+                    pass
 
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):

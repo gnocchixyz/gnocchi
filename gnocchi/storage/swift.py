@@ -119,7 +119,13 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric_id(metric_id)
         for f in files:
-            self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
+            try:
+                self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
+            except swclient.ClientException as e:
+                # If the object has already been deleted by another worker, do
+                # not worry.
+                if e.http_status != 404:
+                    raise
 
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):
