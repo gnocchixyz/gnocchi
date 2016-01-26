@@ -68,7 +68,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.MEASURE_PREFIX,
             str(metric.id),
             str(uuid.uuid4()),
-            datetime.datetime.utcnow().strftime("%Y%M%d_%H:%M:%S")))
+            datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
         with self._get_ioctx() as ioctx:
             ioctx.write_full(name, data)
             ioctx.set_xattr(self.MEASURE_PREFIX, name, "")

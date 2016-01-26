@@ -91,7 +91,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         path = os.path.join(self.measure_path, six.text_type(metric_id))
         if random_id:
             if random_id is True:
-                now = datetime.datetime.utcnow().strftime("_%Y%M%d_%H:%M:%S")
+                now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
                 random_id = six.text_type(uuid.uuid4()) + now
             return os.path.join(path, random_id)
         return path
