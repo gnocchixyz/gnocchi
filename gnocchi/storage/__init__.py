@@ -189,19 +189,21 @@ class StorageDriver(object):
                       exc_info=True)
         LOG.debug("Expunging deleted metrics")
         try:
-            self.expunge_metrics(index)
+            self.expunge_metrics(index, sync)
         except Exception:
             if sync:
                 raise
             LOG.error("Unexpected error during deleting metrics",
                       exc_info=True)
 
-    def expunge_metrics(self, index):
+    def expunge_metrics(self, index, sync=False):
         metrics_to_expunge = index.list_metrics(status='delete')
         for m in metrics_to_expunge:
             try:
-                self.delete_metric(m)
+                self.delete_metric(m, sync)
             except Exception:
+                if sync:
+                    raise
                 LOG.error("Unable to expunge metric %s from storage" % m,
                           exc_info=True)
                 continue
@@ -254,7 +256,7 @@ class StorageDriver(object):
             raise AggregationDoesNotExist(metric, aggregation)
 
     @staticmethod
-    def delete_metric(metric):
+    def delete_metric(metric, sync=False):
         raise exceptions.NotImplementedError
 
     @staticmethod
