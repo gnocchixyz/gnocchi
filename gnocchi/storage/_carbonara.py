@@ -63,8 +63,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def stop(self):
         self.coord.stop()
 
-    def _lock(self, metric):
-        lock_name = b"gnocchi-" + str(metric.id).encode('ascii')
+    def _lock(self, metric_id):
+        lock_name = b"gnocchi-" + str(metric_id).encode('ascii')
         return self.coord.get_lock(lock_name)
 
     @staticmethod
@@ -211,7 +211,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     def delete_metric(self, metric):
-        with self._lock(metric):
+        with self._lock(metric.id):
             # If the metric has never been upgraded, we need to delete this
             # here too
             self._delete_metric_archives(metric)
@@ -228,7 +228,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             for metric_id in metrics_to_process)
 
     def _check_for_metric_upgrade(self, metric):
-        lock = self._lock(metric)
+        lock = self._lock(metric.id)
         with lock:
             for agg_method in metric.archive_policy.aggregation_methods:
                 LOG.debug(
@@ -271,9 +271,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         deleted_metrics_id = (set(map(uuid.UUID, metrics_to_process))
                               - set(m.id for m in metrics))
         for metric_id in deleted_metrics_id:
-            self._delete_unprocessed_measures_for_metric_id(metric_id)
+            # NOTE(jd): We need to lock the metric otherwise we might delete
+            # measures that another worker might be processing. Deleting
+            # measurement files under its feet is not nice!
+            with self._lock(metric_id)(blocking=sync):
+                self._delete_unprocessed_measures_for_metric_id(metric_id)
         for metric in metrics:
-            lock = self._lock(metric)
+            lock = self._lock(metric.id)
             agg_methods = list(metric.archive_policy.aggregation_methods)
             # Do not block if we cannot acquire the lock, that means some other
             # worker is doing the job. We'll just ignore this metric and may
