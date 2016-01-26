@@ -424,6 +424,18 @@ class AggregatedMetricController(rest.RestController):
         except ValueError:
             abort(400, 'needed_overlap must be a number')
 
+        if start is not None:
+            try:
+                start = Timestamp(start)
+            except Exception:
+                abort(400, "Invalid value for start")
+
+        if stop is not None:
+            try:
+                stop = Timestamp(stop)
+            except Exception:
+                abort(400, "Invalid value for stop")
+
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             abort(

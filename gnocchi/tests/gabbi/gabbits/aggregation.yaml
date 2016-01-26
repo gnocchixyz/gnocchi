@@ -83,3 +83,16 @@ tests:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+
+    - name: get metric list to push metric 3
+      url: /v1/metric
+
+    - name: get measure aggregates by granularity with timestamps
+      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
+      poll:
+          count: 10
+          delay: 1
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
