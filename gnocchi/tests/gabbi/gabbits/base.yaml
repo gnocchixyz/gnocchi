@@ -121,6 +121,29 @@ tests:
     project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
     created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
 
+- name: post generic resource bad id
+  url: /v1/resource/generic
+  method: post
+  request_headers:
+    content-type: application/json
+    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+  data:
+    id: 1.2.3.4
+    started_at: "2014-01-03T02:02:02.000000"
+    user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+    project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+  status: 201
+  response_headers:
+    location: $SCHEME://$NETLOC/v1/resource/generic/8d835270-2834-5e55-a693-fd0cf91cba3d
+  response_json_paths:
+    type: generic
+    started_at: "2014-01-03T02:02:02+00:00"
+    project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+    created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
+    id: 8d835270-2834-5e55-a693-fd0cf91cba3d
+    original_resource_id: 1.2.3.4
+
 - name: get status denied
   url: /v1/status
   status: 403

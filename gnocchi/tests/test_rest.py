@@ -773,6 +773,8 @@ class ResourceTest(RestTest):
         # Set an id in the attribute
         self.attributes['id'] = str(uuid.uuid4())
         self.resource = self.attributes.copy()
+        # Set original_resource_id
+        self.resource['original_resource_id'] = self.resource['id']
         if self.auth:
             self.resource['created_by_user_id'] = TestingApp.USER_ID
             self.resource['created_by_project_id'] = TestingApp.PROJECT_ID
@@ -1442,6 +1444,20 @@ class ResourceTest(RestTest):
         resources = json.loads(resources.text)
         self.assertGreaterEqual(len(resources), 1)
         self.assertEqual(result, resources[0])
+
+    def test_search_resource_by_original_resource_id(self):
+        result = self.app.post_json(
+            "/v1/resource/" + self.resource_type,
+            params=self.attributes)
+        created_resource = json.loads(result.text)
+        original_id = created_resource['original_resource_id']
+        result = self.app.post_json(
+            "/v1/search/resource/" + self.resource_type,
+            params={"eq": {"original_resource_id": original_id}},
+            status=200)
+        resources = json.loads(result.text)
+        self.assertGreaterEqual(len(resources), 1)
+        self.assertEqual(created_resource, resources[0])
 
     def test_search_resources_by_user(self):
         u1 = str(uuid.uuid4())

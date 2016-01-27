@@ -131,6 +131,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": rc.started_at,
                           "ended_at": None,
+                          "original_resource_id": None,
                           "type": "generic",
                           "metrics": {}},
                          rc.jsonify())
@@ -197,6 +198,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "host": "foo",
                           "image_ref": image_ref,
                           "flavor_id": "1",
+                          "original_resource_id": None,
                           "metrics": {}},
                          rc.jsonify())
         rg = self.index.get_resource('generic', r1, with_metrics=True)
@@ -266,6 +268,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": ts,
                           "ended_at": None,
+                          "original_resource_id": None,
                           "type": "generic",
                           "metrics": {}}, rc.jsonify())
         r = self.index.get_resource('generic', r1, with_metrics=True)
@@ -296,6 +299,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": rc.started_at,
                           "ended_at": None,
+                          "original_resource_id": None,
                           "type": "generic",
                           "metrics": {'foo': str(e1), 'bar': str(e2)}},
                          rc.jsonify())
@@ -311,6 +315,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "user_id": None,
                           "project_id": None,
+                          "original_resource_id": None,
                           "metrics": {'foo': str(e1), 'bar': str(e2)}},
                          r.jsonify())
 
@@ -361,6 +366,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "type": "generic",
                           "started_at": r.started_at,
+                          "original_resource_id": None,
                           "metrics": {}}, r.jsonify())
 
     def test_update_resource_metrics(self):
@@ -539,6 +545,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "created_by_project_id": project,
                           "user_id": None,
                           "project_id": None,
+                          "original_resource_id": None,
                           "type": "generic",
                           "metrics": {'bar': str(e2)}}, r.jsonify())
 

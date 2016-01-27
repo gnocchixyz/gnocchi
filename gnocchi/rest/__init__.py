@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import functools
 import uuid
 
 from oslo_utils import strutils
@@ -808,7 +809,17 @@ def ResourceSchema(schema):
         voluptuous.Optional('metrics'): MetricsSchema,
     }
     base_schema.update(schema)
-    return base_schema
+
+    @functools.wraps(ResourceSchema)
+    def f(v):
+        # NOTE(sileht): if that not a dict, lets voluptuous raise errors
+        if isinstance(v, dict):
+            rid = v.get('id')
+        res = voluptuous.Schema(base_schema)(v)
+        if rid is not None:
+            res["original_resource_id"] = six.text_type(rid)
+        return res
+    return f
 
 
 class ResourceController(rest.RestController):
