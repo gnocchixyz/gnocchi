@@ -2,7 +2,7 @@
   request: |
     POST /v1/archive_policy HTTP/1.1
     Content-Type: application/json
-    
+
     {
       "name": "low",
       "back_window": 0,
@@ -146,7 +146,7 @@
 
 - name: post-measures-batch
   request: |
-    POST /v1/batch/measures HTTP/1.1
+    POST /v1/batch/metrics/measures HTTP/1.1
     Content-Type: application/json
 
     {
@@ -337,9 +337,6 @@
             {"=": {"revision_end": null}}]}
     ]}
 
-- name: delete-resource-generic
-  request: DELETE /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
-
 - name: create-resource-instance-with-metrics
   request: |
     POST /v1/resource/instance HTTP/1.1
@@ -373,6 +370,35 @@
       "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": {"archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
     }
+
+- name: post-measures-batch-named
+  request: |
+    POST /v1/batch/resources/metrics/measures HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "{{ scenarios['create-resource-with-new-metrics']['response'].json['id'] }}": {
+        "temperature": [
+            { "timestamp": "2014-10-06T14:34:12", "value": 17 },
+            { "timestamp": "2014-10-06T14:34:20", "value": 18 }
+        ]
+      },
+      "{{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['id'] }}": {
+        "cpu.util": [
+            { "timestamp": "2014-10-06T14:34:12", "value": 12 },
+            { "timestamp": "2014-10-06T14:34:20", "value": 2 }
+        ]
+      },
+      "{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}": {
+        "cpu.util": [
+            { "timestamp": "2014-10-06T14:34:12", "value": 6 },
+            { "timestamp": "2014-10-06T14:34:20", "value": 25 }
+        ]
+      }
+    }
+
+- name: delete-resource-generic
+  request: DELETE /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
 
 - name: get-resource-named-metrics-measures
   request: GET /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric/cpu.util/measures?start=2014-10-06T14:34 HTTP/1.1

@@ -1188,10 +1188,54 @@ class SearchMetricController(rest.RestController):
             abort(400, e)
 
 
-class MeasuresBatchController(rest.RestController):
-    MeasuresBatchSchema = voluptuous.Schema({
-        UUID: [MeasureSchema],
-    })
+class ResourcesMetricsMeasuresBatchController(rest.RestController):
+    MeasuresBatchSchema = voluptuous.Schema(
+        {utils.ResourceUUID: {six.text_type: [MeasureSchema]}}
+    )
+
+    @pecan.expose()
+    def post(self):
+        body = deserialize_and_validate(self.MeasuresBatchSchema)
+
+        known_metrics = []
+        unknown_metrics = []
+        for resource_id in body:
+            names = body[resource_id].keys()
+            metrics = pecan.request.indexer.list_metrics(
+                names=names, resource_id=resource_id)
+
+            if len(names) != len(metrics):
+                known_names = [m.name for m in metrics]
+                unknown_metrics.extend(
+                    ["%s/%s" % (six.text_type(resource_id), m)
+                     for m in names if m not in known_names])
+
+            known_metrics.extend(metrics)
+
+        if unknown_metrics:
+            abort(400, "Unknown metrics: %s" % ", ".join(
+                sorted(unknown_metrics)))
+
+        for metric in known_metrics:
+            enforce("post measures", metric)
+
+        for metric in known_metrics:
+            measures = body[metric.resource_id][metric.name]
+            pecan.request.storage.add_measures(metric, measures)
+
+        pecan.response.status = 202
+
+
+class MetricsMeasuresBatchController(rest.RestController):
+    # NOTE(sileht): we don't allow to mix both formats
+    # to not have to deal with id collision that can
+    # occurs between a metric_id and a resource_id.
+    # Because while json allow duplicate keys in dict payload
+    # only the last key will be retain by json python module to
+    # build the python dict.
+    MeasuresBatchSchema = voluptuous.Schema(
+        {UUID: [MeasureSchema]}
+    )
 
     @pecan.expose()
     def post(self):
@@ -1277,8 +1321,21 @@ class StatusController(rest.RestController):
         return {"storage": {"measures_to_process": report}}
 
 
+class MetricsBatchController(object):
+    measures = MetricsMeasuresBatchController()
+
+
+class ResourcesMetricsBatchController(object):
+    measures = ResourcesMetricsMeasuresBatchController()
+
+
+class ResourcesBatchController(object):
+    metrics = ResourcesMetricsBatchController()
+
+
 class BatchController(object):
-    measures = MeasuresBatchController()
+    metrics = MetricsBatchController()
+    resources = ResourcesBatchController()
 
 
 class V1Controller(object):
