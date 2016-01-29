@@ -16,6 +16,6 @@
 from oslo_config import generator
 
 
-def sdist_prehook(sdist):
+def prehook(cmd):
     generator.main(['--config-file',
                     'gnocchi-config-generator.conf'])
