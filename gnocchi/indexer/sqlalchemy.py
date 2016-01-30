@@ -171,18 +171,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     raise indexer.ArchivePolicyInUse(name)
                 raise
 
-    def get_metrics(self, uuids, active_only=True, with_resource=False):
-        if not uuids:
-            return []
-        with self.facade.independent_reader() as session:
-            query = session.query(Metric).filter(Metric.id.in_(uuids))
-            if active_only:
-                query = query.filter(Metric.status == 'active')
-            if with_resource:
-                query = query.options(sqlalchemy.orm.joinedload('resource'))
-
-            return list(query.all())
-
     def create_archive_policy(self, archive_policy):
         ap = ArchivePolicy(
             name=archive_policy.name,
@@ -245,17 +233,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise
         return m
 
-    def list_metrics(self, names=None, user_id=None, project_id=None,
-                     details=False, status='active', **kwargs):
+    def list_metrics(self, names=None, ids=None, details=False,
+                     status='active', **kwargs):
+        if ids == []:
+            return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status).order_by(Metric.id)
             if names is not None:
                 q = q.filter(Metric.name.in_(names))
-            if user_id is not None:
-                q = q.filter(Metric.created_by_user_id == user_id)
-            if project_id is not None:
-                q = q.filter(Metric.created_by_project_id == project_id)
+            if ids is not None:
+                q = q.filter(Metric.id.in_(ids))
             for attr in kwargs:
                 q = q.filter(getattr(Metric, attr) == kwargs[attr])
             if details:

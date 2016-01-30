@@ -92,7 +92,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual(m.created_by_project_id, project)
         self.assertIsNone(m.name)
         self.assertIsNone(m.resource_id)
-        m2 = self.index.get_metrics([r1])
+        m2 = self.index.list_metrics(id=r1)
         self.assertEqual([m], m2)
 
     def test_expunge_metric(self):
@@ -167,7 +167,7 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic', r1, user, project,
             metrics={"foobar": {"archive_policy_name": "low"}})
         self.assertEqual(1, len(rc.metrics))
-        m = self.index.get_metrics([rc.metrics[0].id])
+        m = self.index.list_metrics(id=rc.metrics[0].id)
         self.assertEqual(m[0], rc.metrics[0])
 
     def _do_test_create_instance(self, server_group=None, image_ref=None):
@@ -241,7 +241,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchResource,
                           self.index.delete_resource,
                           r1)
-        metrics = self.index.get_metrics([e1, e2])
+        metrics = self.index.list_metrics(ids=[e1, e2])
         self.assertEqual([], metrics)
 
     def test_delete_resource_non_existent(self):
@@ -908,7 +908,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                  user, project,
                                  archive_policy_name="low")
 
-        metric = self.index.get_metrics([e1])
+        metric = self.index.list_metrics(id=e1)
         self.assertEqual(1, len(metric))
         metric = metric[0]
         self.assertEqual(e1, metric.id)
@@ -925,7 +925,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                  user, project,
                                  archive_policy_name="low")
 
-        metric = self.index.get_metrics([e1])
+        metric = self.index.list_metrics(id=e1)
         self.assertEqual(1, len(metric))
         metric = metric[0]
         self.assertEqual(e1, metric.id)
@@ -937,13 +937,10 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()
-        self.assertEqual([], self.index.get_metrics([e1]))
+        self.assertEqual([], self.index.list_metrics(id=e1))
 
     def test_get_metric_empty_list_uuids(self):
-        self.assertEqual([], self.index.get_metrics([]))
-
-    def test_get_metric_no_args(self):
-        self.assertRaises(TypeError, self.index.get_metrics, *[])
+        self.assertEqual([], self.index.list_metrics(ids=[]))
 
     def test_list_metrics(self):
         e1 = uuid.uuid4()
