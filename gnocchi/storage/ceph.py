@@ -50,6 +50,9 @@ OPTS = [
 
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
+
+    METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE = 128
+
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.pool = conf.ceph_pool
@@ -81,24 +84,32 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             ioctx.write_full(name, data)
             ioctx.set_xattr(self.MEASURE_PREFIX, name, "")
 
-    def _list_object_names_to_process(self, ioctx, prefix=None):
+    def _list_object_names_to_process(self, ioctx, prefix):
         try:
             xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
         except rados.ObjectNotFound:
-            return []
-        return set(name for name, __ in xattrs
-                   if prefix is None or name.startswith(prefix))
+            return ()
+        return (name for name, __ in xattrs if name.startswith(prefix))
 
     def _pending_measures_to_process_count(self, metric_id):
         with self._get_ioctx() as ioctx:
             object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-            return len(self._list_object_names_to_process(ioctx,
-                                                          object_prefix))
+            return len(list(self._list_object_names_to_process(ioctx,
+                                                               object_prefix)))
 
     def _list_metric_with_measures_to_process(self):
         with self._get_ioctx() as ioctx:
-            return [name.split("_")[1] for name in
-                    self._list_object_names_to_process(ioctx)]
+            try:
+                xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
+            except rados.ObjectNotFound:
+                return []
+        metrics = set()
+        for name, __ in xattrs:
+            metrics.add(name.split("_")[1])
+            if (len(metrics) >=
+               self.METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE):
+                break
+        return metrics
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         with self._get_ioctx() as ctx:
@@ -117,8 +128,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _process_measure_for_metric(self, metric):
         with self._get_ioctx() as ctx:
             object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
-            object_names = self._list_object_names_to_process(ctx,
-                                                              object_prefix)
+            object_names = list(self._list_object_names_to_process(
+                ctx, object_prefix))
 
             measures = []
             for n in object_names:

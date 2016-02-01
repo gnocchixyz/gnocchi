@@ -106,8 +106,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     def _list_metric_with_measures_to_process(self):
         headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                  delimiter='/',
-                                                  full_listing=True)
+                                                  delimiter='/')
         return set(f['subdir'][:-1] for f in files if 'subdir' in f)
 
     def _list_measure_files_for_metric_id(self, metric_id):
