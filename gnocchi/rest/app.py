@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
+import uuid
 
 from oslo_config import cfg
 from oslo_log import log
@@ -24,10 +25,10 @@ import webob.exc
 from werkzeug import serving
 
 from gnocchi import exceptions
-from gnocchi import indexer
+from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi import service
-from gnocchi import storage
+from gnocchi import storage as gnocchi_storage
 
 
 LOG = log.getLogger(__name__)
@@ -58,14 +59,6 @@ class OsloJSONRenderer(object):
         return json.dumps(namespace)
 
 
-PECAN_CONFIG = {
-    'app': {
-        'root': 'gnocchi.rest.RootController',
-        'modules': ['gnocchi.rest'],
-    },
-}
-
-
 class NotImplementedMiddleware(object):
     def __init__(self, app):
         self.app = app
@@ -78,8 +71,28 @@ class NotImplementedMiddleware(object):
                 "Sorry, this Gnocchi server does "
                 "not implement this feature 😞")
 
+# NOTE(sileht): pastedeploy uses ConfigParser to handle
+# global_conf, since python 3 ConfigParser doesn't
+# allow to store object as config value, only strings are
+# permit, so to be able to pass an object created before paste load
+# the app, we store them into a global var. But the each loaded app
+# store it's configuration in unique key to be concurrency safe.
+global APPCONFIGS
+APPCONFIGS = {}
 
-def load_app(conf, appname=None):
+
+def load_app(conf, appname=None, indexer=None, storage=None,
+             not_implemented_middleware=True):
+    global APPCONFIGS
+
+    # NOTE(sileht): We load config, storage and indexer,
+    # so all
+    if not storage:
+        storage = gnocchi_storage.get_driver(conf)
+    if not indexer:
+        indexer = gnocchi_indexer.get_driver(conf)
+        indexer.connect()
+
     # Build the WSGI app
     cfg_path = conf.api.paste_config
     if not os.path.isabs(cfg_path):
@@ -88,39 +101,33 @@ def load_app(conf, appname=None):
     if cfg_path is None or not os.path.exists(cfg_path):
         raise cfg.ConfigFilesNotFoundError([conf.api.paste_config])
 
+    config = dict(conf=conf, indexer=indexer, storage=storage,
+                  not_implemented_middleware=not_implemented_middleware)
+    configkey = str(uuid.uuid4())
+    APPCONFIGS[configkey] = config
+
     LOG.info("WSGI config used: %s" % cfg_path)
-    return deploy.loadapp("config:" + cfg_path, name=appname)
+    return deploy.loadapp("config:" + cfg_path, name=appname,
+                          global_conf={'configkey': configkey})
 
 
-def setup_app(config=None, cfg=None):
-    if cfg is None:
-        # NOTE(jd) That sucks but pecan forces us to use kwargs :(
-        raise RuntimeError("Config is actually mandatory")
-    config = config or PECAN_CONFIG
-    s = config.get('storage')
-    if not s:
-        s = storage.get_driver(cfg)
-    i = config.get('indexer')
-    if not i:
-        i = indexer.get_driver(cfg)
-        i.connect()
-
+def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
     # NOTE(sileht): pecan debug won't work in multi-process environment
-    pecan_debug = cfg.api.pecan_debug
-    if cfg.api.workers != 1 and pecan_debug:
+    pecan_debug = conf.api.pecan_debug
+    if conf.api.workers != 1 and pecan_debug:
         pecan_debug = False
         LOG.warning('pecan_debug cannot be enabled, if workers is > 1, '
                     'the value is overrided with False')
 
     app = pecan.make_app(
-        config['app']['root'],
+        root,
         debug=pecan_debug,
-        hooks=(GnocchiHook(s, i, cfg),),
+        hooks=(GnocchiHook(storage, indexer, conf),),
         guess_content_type_from_ext=False,
         custom_renderers={'json': OsloJSONRenderer},
     )
 
-    if config.get('not_implemented_middleware', True):
+    if not_implemented_middleware:
         app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
 
     return app
@@ -138,7 +145,7 @@ class WerkzeugApp(object):
 
     def __call__(self, environ, start_response):
         if self.app is None:
-            self.app = load_app(self.conf)
+            self.app = load_app(conf=self.conf)
         return self.app(environ, start_response)
 
 
@@ -150,5 +157,6 @@ def build_server():
 
 
 def app_factory(global_config, **local_conf):
-    cfg = service.prepare_service()
-    return setup_app(None, cfg=cfg)
+    global APPCONFIGS
+    appconfig = APPCONFIGS.get(global_config.get('configkey'))
+    return _setup_app(root=local_conf.get('root'), **appconfig)

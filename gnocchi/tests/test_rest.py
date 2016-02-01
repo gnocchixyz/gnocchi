@@ -98,23 +98,11 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         ('keystone', dict(auth=True)),
     ]
 
-    @classmethod
-    def app_factory(cls, global_config, **local_conf):
-        return app.setup_app(cls.pecan_config, cls.conf)
-
     def setUp(self):
         super(RestTest, self).setUp()
         self.conf.set_override('paste_config',
-                               self.path_get('gnocchi/tests/api-paste.ini'),
+                               self.path_get('etc/gnocchi/api-paste.ini'),
                                group="api")
-        pecan_config = {}
-        pecan_config.update(app.PECAN_CONFIG)
-        pecan_config['indexer'] = self.index
-        pecan_config['storage'] = self.storage
-        pecan_config['not_implemented_middleware'] = False
-
-        RestTest.pecan_config = pecan_config
-        RestTest.conf = self.conf
 
         self.auth_token_fixture = self.useFixture(
             ksm_fixture.AuthTokenFixture())
@@ -143,9 +131,12 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         # TODO(chdent) Linting is turned off until a
         # keystonemiddleware bug is resolved.
         # See: https://bugs.launchpad.net/keystonemiddleware/+bug/1466499
-        self.app = TestingApp(app.load_app(self.conf,
-                                           appname="testing+auth"
-                                           if self.auth else "testing"),
+        self.app = TestingApp(app.load_app(conf=self.conf,
+                                           appname="gnocchi+auth"
+                                           if self.auth else "gnocchi",
+                                           indexer=self.index,
+                                           storage=self.storage,
+                                           not_implemented_middleware=False),
                               storage=self.storage,
                               indexer=self.index,
                               auth=self.auth,
