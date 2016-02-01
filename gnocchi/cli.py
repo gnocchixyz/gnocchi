@@ -85,12 +85,16 @@ class MetricProcessBase(multiprocessing.Process):
         while True:
             try:
                 with timeutils.StopWatch() as timer:
-                    self.store.process_background_tasks(self.index)
+                    self._run_job()
                     time.sleep(max(0, self.interval_delay - timer.elapsed()))
             except KeyboardInterrupt:
                 # Ignore KeyboardInterrupt so parent handler can kill
                 # all children.
                 pass
+
+    @staticmethod
+    def _run_job():
+        raise NotImplementedError
 
 
 class MetricReporting(MetricProcessBase):
@@ -107,12 +111,11 @@ class MetricReporting(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     def _run_job(self):
-            LOG.debug("Processing new measures")
-            try:
-                self.store.process_measures(self.index)
-            except Exception:
-                LOG.error("Unexpected error during measures processing",
-                          exc_info=True)
+        try:
+            self.store.process_background_tasks(self.index)
+        except Exception:
+            LOG.error("Unexpected error during measures processing",
+                      exc_info=True)
 
 
 def metricd():
