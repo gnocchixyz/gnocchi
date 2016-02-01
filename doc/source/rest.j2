@@ -384,8 +384,12 @@ It's also possible to do that aggregation on metrics linked to resources. In
 order to select these resources, the following endpoint accepts a query such as
 the one described in `Searching for resources`_.
 
-
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
+
+It is possible to group the resource search results by any attribute of the
+requested resource type, and the compute the aggregation:
+
+{{ scenarios['get-across-metrics-measures-by-attributes-lookup-groupby']['doc'] }}
 
 Also aggregation across metrics have different behavior depending
 on if boundary are set ('start' and 'stop') and if 'needed_overlap' is set.
