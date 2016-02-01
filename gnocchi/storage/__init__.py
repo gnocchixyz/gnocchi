@@ -123,7 +123,7 @@ class MetricUnaggregatable(Exception):
         self.reason = reason
         super(MetricUnaggregatable, self).__init__(
             "Metrics %s can't be aggregated: %s"
-            % (" ,".join((str(m.id) for m in metrics)), reason))
+            % (", ".join((str(m.id) for m in metrics)), reason))
 
 
 def get_driver_class(conf):
