@@ -210,8 +210,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _pending_measures_to_process_count(metric_id):
         raise NotImplementedError
 
-    def delete_metric(self, metric):
-        with self._lock(metric.id):
+    def delete_metric(self, metric, sync=False):
+        with self._lock(metric.id)(blocking=sync):
             # If the metric has never been upgraded, we need to delete this
             # here too
             self._delete_metric_archives(metric)
