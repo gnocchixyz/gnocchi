@@ -1949,10 +1949,8 @@ class GenericResourceTest(RestTest):
             params={
                 "id": resource_id,
                 "started_at": "2014-01-01 02:02:02",
-                # We replace "-" to simulate a middleware that would send UUID
-                # in a non normalized format.
-                "user_id": TestingApp.USER_ID_2.replace("-", ""),
-                "project_id": TestingApp.PROJECT_ID_2.replace("-", ""),
+                "user_id": TestingApp.USER_ID_2,
+                "project_id": TestingApp.PROJECT_ID_2,
                 "metrics": {"foobar": {"archive_policy_name": "low"}},
             })
 

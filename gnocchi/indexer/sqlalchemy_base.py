@@ -153,9 +153,9 @@ class Metric(Base, GnocchiBase, storage.Metric):
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType())
+        sqlalchemy.String(255))
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType())
+        sqlalchemy.String(255))
     resource_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey('resource.id',
@@ -229,9 +229,9 @@ class ResourceMixin(ResourceJsonifier):
                                              name="resource_type_enum"),
                              nullable=False, default='generic')
     created_by_user_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType())
+        sqlalchemy.String(255))
     created_by_project_id = sqlalchemy.Column(
-        sqlalchemy_utils.UUIDType())
+        sqlalchemy.String(255))
     started_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
@@ -243,8 +243,8 @@ class ResourceMixin(ResourceJsonifier):
     revision_start = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                        default=lambda: utils.utcnow())
     ended_at = sqlalchemy.Column(PreciseTimestamp)
-    user_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
-    project_id = sqlalchemy.Column(sqlalchemy_utils.UUIDType())
+    user_id = sqlalchemy.Column(sqlalchemy.String(255))
+    project_id = sqlalchemy.Column(sqlalchemy.String(255))
 
 
 class Resource(ResourceMixin, Base, GnocchiBase):

@@ -27,8 +27,8 @@ from gnocchi import utils
 
 class TestStatsd(tests_base.TestCase):
 
-    STATSD_USER_ID = uuid.uuid4()
-    STATSD_PROJECT_ID = uuid.uuid4()
+    STATSD_USER_ID = str(uuid.uuid4())
+    STATSD_PROJECT_ID = str(uuid.uuid4())
     STATSD_ARCHIVE_POLICY_NAME = "medium"
 
     def setUp(self):
