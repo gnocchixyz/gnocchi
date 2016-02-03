@@ -245,6 +245,7 @@ class ResourceMixin(ResourceJsonifier):
     ended_at = sqlalchemy.Column(PreciseTimestamp)
     user_id = sqlalchemy.Column(sqlalchemy.String(255))
     project_id = sqlalchemy.Column(sqlalchemy.String(255))
+    original_resource_id = sqlalchemy.Column(sqlalchemy.String(255))
 
 
 class Resource(ResourceMixin, Base, GnocchiBase):
