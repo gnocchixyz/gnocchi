@@ -390,7 +390,7 @@ function start_gnocchi {
         export OS_AUTH_TYPE=gnocchi-noauth
         export GNOCCHI_USER_ID=`uuidgen`
         export GNOCCHI_PROJECT_ID=`uuidgen`
-        export GNOCCHI_ENDPOINT="${gnocchi_service_url}"
+        export GNOCCHI_ENDPOINT="$(gnocchi_service_url)"
     fi
 
     gnocchi archive-policy create -d granularity:5m,points:12 -d granularity:1h,points:24 -d granularity:1d,points:30 low
