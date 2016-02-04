@@ -64,14 +64,11 @@ How to plan for Gnocchi’s storage
 
 Gnocchi uses a custom file format based on its library *Carbonara*. In Gnocchi,
 a time serie is a collection of points, where a point is a given measure, or
-sample, in the lifespan of a time serie. The storage format is pretty
-straightforward, therefore the computing of a time serie's size can be done
-with the following formula::
+sample, in the lifespan of a time serie. The storage format is compressed using
+various techniques, therefore the computing of a time serie's size can be
+estimated based on its worst case scenario with the following formula::
 
-    number of points × (64 bits timestamp + 64 bits floating value) × 1.12
-    = number of points × 16 bytes × 1.12
-    = number of points × 17.92
-    = size in bytes
+    number of points × 9 bytes = size in bytes
 
 The number of points you want to keep is usually determined by the following
 formula::
@@ -85,12 +82,12 @@ For example, if you want to keep a year of data with a one minute resolution::
 
 Then::
 
-    size in bytes = 525 600 × 17.92 = 9 418 752 bytes = 9 198 KiB
+    size in bytes = 525 600 × 9 = 4 730 400 bytes = 4 620 KiB
 
 This is just for a single aggregated time serie. If your archive policy uses
 the 8 default aggregation methods (mean, min, max, sum, std, median, count,
 95pct) with the same "one year, one minute aggregations" resolution, the space
-used will go up to 8 × 9 MiB = 72 MiB.
+used will go up to a maximum of 8 × 4.5 MiB = 36 MiB.
 
 How to set the archive policy and granularity
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

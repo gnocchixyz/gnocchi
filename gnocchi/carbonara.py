@@ -16,6 +16,7 @@
 # under the License.
 """Time series data manipulation, better with pancetta."""
 
+import datetime
 import functools
 import logging
 import numbers
@@ -23,6 +24,7 @@ import operator
 import re
 
 import iso8601
+import lz4
 import msgpack
 import pandas
 import six
@@ -355,22 +357,58 @@ class AggregatedTimeSerie(TimeSerie):
         :param d: The dict.
         :returns: A TimeSerie object
         """
-        timestamps, values = cls._timestamps_and_values_from_dict(d['values'])
+        sampling = d.get('sampling')
+        prev_timestamp = pandas.Timestamp(d.get('first_timestamp') * 10e8)
+        timestamps = []
+        for delta in d.get('timestamps'):
+            prev_timestamp = datetime.timedelta(
+                seconds=delta * sampling) + prev_timestamp
+            timestamps.append(prev_timestamp)
+
         return cls.from_data(
             timestamps=timestamps,
-            values=values,
+            values=d.get('values'),
             max_size=d.get('max_size'),
-            sampling=d.get('sampling'),
+            sampling=sampling,
             aggregation_method=d.get('aggregation_method', 'mean'))
 
     def to_dict(self):
-        d = super(AggregatedTimeSerie, self).to_dict()
-        d.update({
+        if self.ts.empty:
+            timestamps = []
+            values = []
+            first_timestamp = 0
+        else:
+            first_timestamp = float(
+                self.get_split_key(self.ts.index[0], self.sampling))
+            timestamps = []
+            prev_timestamp = pandas.Timestamp(
+                first_timestamp * 10e8).to_pydatetime()
+            # Use double delta encoding for timestamps
+            for i in self.ts.index:
+                # Convert to pydatetime because it's faster to compute than
+                # Pandas' objects
+                asdt = i.to_pydatetime()
+                timestamps.append(
+                    int((asdt - prev_timestamp).total_seconds()
+                        / self.sampling))
+                prev_timestamp = asdt
+            values = self.ts.values.tolist()
+
+        return {
+            'first_timestamp': first_timestamp,
             'aggregation_method': self.aggregation_method,
             'max_size': self.max_size,
             'sampling': self.sampling,
-        })
-        return d
+            'timestamps': timestamps,
+            'values': values,
+        }
+
+    @classmethod
+    def unserialize(cls, data):
+        return cls.from_dict(msgpack.loads(lz4.loads(data), encoding='utf-8'))
+
+    def serialize(self):
+        return lz4.dumps(msgpack.dumps(self.to_dict()))
 
     def _truncate(self):
         """Truncate the timeserie."""
