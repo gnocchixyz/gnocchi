@@ -39,13 +39,7 @@ cd $GNOCCHI_DIR
 openstack catalog list
 
 export GNOCCHI_SERVICE_TOKEN=$(openstack token issue -c id -f value)
-
-if [ $OS_IDENTITY_API_VERSION == '2.0' ]; then
-    urltag='publicURL'
-else
-    urltag='public'
-fi
-export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value | awk "/$urltag:"'/{print $2}')
+export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value | awk '/public/{print $2}')
 
 curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: application/json"
 
