@@ -104,9 +104,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
             data)
 
-    def _list_metric_with_measures_to_process(self):
+    def _list_metric_with_measures_to_process(self, full=False):
         headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                  delimiter='/')
+                                                  delimiter='/',
+                                                  full_listing=full)
         return set(f['subdir'][:-1] for f in files if 'subdir' in f)
 
     def _list_measure_files_for_metric_id(self, metric_id):

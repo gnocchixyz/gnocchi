@@ -132,7 +132,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                     if e.errno != errno.EEXIST:
                         raise
 
-    def _list_metric_with_measures_to_process(self):
+    def _list_metric_with_measures_to_process(self, full=False):
         return os.listdir(self.measure_path)
 
     def _list_measures_container_for_metric_id(self, metric_id):

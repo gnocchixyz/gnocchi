@@ -203,7 +203,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _list_metric_with_measures_to_process(metric_id):
+    def _list_metric_with_measures_to_process(full=False):
         raise NotImplementedError
 
     @staticmethod
@@ -222,7 +222,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return msgpackutils.loads(data)
 
     def measures_report(self):
-        metrics_to_process = self._list_metric_with_measures_to_process()
+        metrics_to_process = self._list_metric_with_measures_to_process(
+            full=True)
         return dict(
             (metric_id, self._pending_measures_to_process_count(metric_id))
             for metric_id in metrics_to_process)
@@ -264,7 +265,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             ((metric,) for metric in index.list_metrics()))
 
     def process_measures(self, indexer, sync=False):
-        metrics_to_process = self._list_metric_with_measures_to_process()
+        metrics_to_process = self._list_metric_with_measures_to_process(
+            full=sync)
         metrics = indexer.get_metrics(metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
         # measures to process for but that are not in the indexer anymore.

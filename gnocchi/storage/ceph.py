@@ -97,7 +97,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return len(list(self._list_object_names_to_process(ioctx,
                                                                object_prefix)))
 
-    def _list_metric_with_measures_to_process(self):
+    def _list_metric_with_measures_to_process(self, full=False):
         with self._get_ioctx() as ioctx:
             try:
                 xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
@@ -106,7 +106,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         metrics = set()
         for name, __ in xattrs:
             metrics.add(name.split("_")[1])
-            if (len(metrics) >=
+            if (full is False and
+               len(metrics) >=
                self.METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE):
                 break
         return metrics
