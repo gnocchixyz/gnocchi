@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import functools
 import uuid
 
 from oslo_utils import strutils
@@ -801,7 +800,6 @@ def etag_set_headers(obj):
 
 def ResourceSchema(schema):
     base_schema = {
-        "id": utils.ResourceUUID,
         voluptuous.Optional('started_at'): Timestamp,
         voluptuous.Optional('ended_at'): Timestamp,
         voluptuous.Optional('user_id'): voluptuous.Any(None, six.text_type),
@@ -809,17 +807,7 @@ def ResourceSchema(schema):
         voluptuous.Optional('metrics'): MetricsSchema,
     }
     base_schema.update(schema)
-
-    @functools.wraps(ResourceSchema)
-    def f(v):
-        # NOTE(sileht): if that not a dict, lets voluptuous raise errors
-        if isinstance(v, dict):
-            rid = v.get('id')
-        res = voluptuous.Schema(base_schema)(v)
-        if rid is not None:
-            res["original_resource_id"] = six.text_type(rid)
-        return res
-    return f
+    return base_schema
 
 
 class ResourceController(rest.RestController):
@@ -943,6 +931,10 @@ def schema_for(resource_type):
     return RESOURCE_SCHEMA_MANAGER[resource_type].plugin
 
 
+def ResourceID(value):
+    return (six.text_type(value), utils.ResourceUUID(value))
+
+
 class ResourcesController(rest.RestController):
     def __init__(self, resource_type):
         self._resource_type = resource_type
@@ -953,7 +945,14 @@ class ResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
-        body = deserialize_and_validate(schema_for(self._resource_type))
+        # NOTE(sileht): we need to copy the dict because when change it
+        # and we don't want that next patch call have the "id"
+        schema = dict(schema_for(self._resource_type))
+        schema["id"] = ResourceID
+
+        body = deserialize_and_validate(schema)
+        body["original_resource_id"], body["id"] = body["id"]
+
         target = {
             "resource_type": self._resource_type,
         }

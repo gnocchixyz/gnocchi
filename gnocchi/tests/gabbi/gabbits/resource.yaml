@@ -182,6 +182,24 @@ tests:
           content-type: application/json
       status: 400
 
+    - name: post instance resource with missing data
+      url: /v1/resource/instance
+      method: post
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: 75C44741-CC60-4033-804E-2D3098C7D2E9
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          flavor_id: "2"
+          image_ref: http://image
+          host: compute1
+      status: 400
+      response_strings:
+          - "Invalid input: required key not provided @ data['display_name']"
+
     - name: post instance resource
       url: /v1/resource/instance
       method: post
@@ -232,6 +250,19 @@ tests:
           host: compute2
           revision_start: $RESPONSE['$.revision_start']
 
+    - name: patch instance resource with id
+      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      method: patch
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: foobar
+      status: 400
+      response_strings:
+          - "Invalid input: extra keys not allowed @ data["
+          - "'id']"
 
     - name: patch instance with metrics
       url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
