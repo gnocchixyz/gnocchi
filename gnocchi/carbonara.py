@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2016 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -62,15 +63,8 @@ class SerializableMixin(object):
     def unserialize(cls, data):
         return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
 
-    @classmethod
-    def unserialize_from_file(cls, stream):
-        return cls.from_dict(msgpack.unpack(stream, encoding='utf-8'))
-
     def serialize(self):
         return msgpack.dumps(self.to_dict())
-
-    def serialize_to_file(self, stream):
-        return msgpack.pack(self.to_dict(), stream)
 
 
 class TimeSerie(SerializableMixin):
@@ -606,31 +600,3 @@ class TimeSerieArchive(SerializableMixin):
     @classmethod
     def from_dict(cls, d):
         return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
-
-
-import argparse
-import datetime
-
-import prettytable
-
-
-def dump_archive_file():
-    parser = argparse.ArgumentParser(
-        description="Dump a Carbonara aggregated file",
-    )
-    parser.add_argument("filename",
-                        nargs=1,
-                        type=argparse.FileType(mode="rb"),
-                        help="File name to read")
-    args = parser.parse_args()
-
-    ts = AggregatedTimeSerie.unserialize_from_file(args.filename[0])
-
-    print("Aggregation method: %s" % (ts.aggregation_method))
-    timespan = datetime.timedelta(seconds=ts.sampling * ts.max_size)
-    print("Timespan: %ds × %d = %s" % (ts.sampling, ts.max_size, timespan))
-    print("Number of measures: %d" % len(ts))
-    table = prettytable.PrettyTable(("Timestamp", "Value"))
-    for k, v in ts.ts.iteritems():
-        table.add_row((k, v))
-    print(table.get_string())
