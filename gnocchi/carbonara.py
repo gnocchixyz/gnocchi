@@ -153,6 +153,14 @@ class TimeSerie(SerializableMixin):
             return pandas.tseries.offsets.Nano(value * 10e8)
         return pandas.tseries.frequencies.to_offset(value)
 
+    @property
+    def first(self):
+        return self.ts.index[0]
+
+    @property
+    def last(self):
+        return self.ts.index[-1]
+
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, ts=None, block_size=None, back_window=0):

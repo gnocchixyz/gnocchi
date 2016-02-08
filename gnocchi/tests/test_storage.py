@@ -101,6 +101,30 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual(3661, len(self.storage.get_measures(m)))
 
+    def test_add_measures_big_update_subset(self):
+        m = storage.Metric(uuid.uuid4(), self.archive_policies['high'])
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, i, j, k), 100)
+            for i in six.moves.range(0, 6) for j in six.moves.range(0, 60)
+            for k in six.moves.range(0, 60)])
+        with mock.patch.object(self.index, 'get_metrics') as f:
+            f.return_value = [m]
+            self.storage.process_background_tasks(self.index, True)
+
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 7, 0, 0), 100)])
+
+        with mock.patch.object(self.storage, '_store_metric_measures') as c:
+            with mock.patch.object(self.index, 'get_metrics') as f:
+                f.return_value = [m]
+                self.storage.process_background_tasks(self.index, True)
+
+        count = 0
+        for call in c.mock_calls:
+            if mock.call(m, mock.ANY, 'mean', 1.0, mock.ANY) == call:
+                count += 1
+        self.assertEqual(1, count)
+
     def test_add_and_get_measures(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
