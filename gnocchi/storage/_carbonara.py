@@ -45,6 +45,7 @@ LOG = logging.getLogger(__name__)
 
 class CarbonaraBasedStorage(storage.StorageDriver):
     MEASURE_PREFIX = "measure"
+    METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE = 128
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)

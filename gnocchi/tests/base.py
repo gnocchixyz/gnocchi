@@ -189,7 +189,7 @@ class FakeSwiftClient(object):
         self.kvs[container] = {}
 
     def get_container(self, container, delimiter=None,
-                      path=None, full_listing=False):
+                      path=None, full_listing=False, limit=None):
         try:
             container = self.kvs[container]
         except KeyError:
@@ -216,6 +216,8 @@ class FakeSwiftClient(object):
 
         if full_listing:
             end = None
+        elif limit:
+            end = limit
         else:
             # In truth, it's 10000, but 1 is enough to make sure our test fails
             # otherwise.

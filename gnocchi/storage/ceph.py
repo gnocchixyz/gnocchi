@@ -51,8 +51,6 @@ OPTS = [
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
 
-    METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE = 128
-
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.pool = conf.ceph_pool
