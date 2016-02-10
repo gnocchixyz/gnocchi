@@ -22,6 +22,7 @@ import numbers
 import operator
 import re
 
+import iso8601
 import msgpack
 import pandas
 import six
@@ -292,7 +293,10 @@ class AggregatedTimeSerie(TimeSerie):
 
     @staticmethod
     def _split_key_to_string(timestamp):
-        return str(utils.datetime_to_unix(timestamp))
+        ts = timestamp.to_datetime()
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=iso8601.iso8601.UTC)
+        return str(utils.datetime_to_unix(ts))
 
     @classmethod
     def get_split_key(cls, timestamp, sampling, chunk_size=POINTS_PER_SPLIT):
