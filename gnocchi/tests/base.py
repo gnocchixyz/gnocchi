@@ -21,6 +21,7 @@ import fixtures
 from oslotest import base
 from oslotest import mockpatch
 import six
+from six.moves.urllib.parse import unquote
 from stevedore import extension
 try:
     from swiftclient import exceptions as swexc
@@ -269,6 +270,22 @@ class FakeSwiftClient(object):
         if container not in self.kvs:
             raise swexc.ClientException("No such container",
                                         http_status=404)
+
+    def post_account(self, query_string=None, data=None):
+        resp = {'Response Status': '200 OK',
+                'Response Body': '',
+                'Number Deleted': 0,
+                'Number Not Found': 0}
+        if query_string == 'bulk-delete' and data:
+            for path in data.splitlines():
+                try:
+                    __, container, obj = (unquote(path.decode('utf8'))
+                                          .split('/', 2))
+                    del self.kvs[container][obj]
+                    resp['Number Deleted'] += 1
+                except KeyError:
+                    resp['Number Not Found'] += 1
+        return {}, resp
 
 
 @six.add_metaclass(SkipNotImplementedMeta)

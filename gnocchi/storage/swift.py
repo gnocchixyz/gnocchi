@@ -16,11 +16,13 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import logging
 import uuid
 
 from oslo_config import cfg
 import retrying
 import six
+from six.moves.urllib.parse import quote
 try:
     from swiftclient import client as swclient
 except ImportError:
@@ -29,6 +31,7 @@ except ImportError:
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 
+LOG = logging.getLogger(__name__)
 
 OPTS = [
     cfg.StrOpt('swift_auth_version',
@@ -141,16 +144,18 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _pending_measures_to_process_count(self, metric_id):
         return len(self._list_measure_files_for_metric_id(metric_id))
 
+    def _bulk_delete(self, container, objects):
+        objects = [quote(('/%s/%s' % (container, obj['name'])).encode('utf-8'))
+                   for obj in objects]
+        __, body = self.swift.post_account(
+            query_string='bulk-delete',
+            data=b''.join(obj.encode('utf-8') + b'\n' for obj in objects))
+        LOG.debug('# of objects deleted: %d, # of objects skipped',
+                  body['Number Deleted'], body['Number Not Found'])
+
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric_id(metric_id)
-        for f in files:
-            try:
-                self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
-            except swclient.ClientException as e:
-                # If the object has already been deleted by another worker, do
-                # not worry.
-                if e.http_status != 404:
-                    raise
+        self._bulk_delete(self.MEASURE_PREFIX, files)
 
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):
@@ -165,8 +170,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         yield measures
 
         # Now clean objects
-        for f in files:
-            self.swift.delete_object(self.MEASURE_PREFIX, f['name'])
+        self._bulk_delete(self.MEASURE_PREFIX, files)
 
     def _store_metric_measures(self, metric, timestamp_key,
                                aggregation, granularity, data):
@@ -192,8 +196,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 # Maybe it never has been created (no measure)
                 raise
         else:
-            for obj in files:
-                self.swift.delete_object(container, obj['name'])
+            self._bulk_delete(container, files)
             try:
                 self.swift.delete_container(container)
             except swclient.ClientException as e:
