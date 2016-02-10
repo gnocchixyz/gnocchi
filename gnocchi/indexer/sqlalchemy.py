@@ -245,11 +245,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise
         return m
 
-    def list_metrics(self, user_id=None, project_id=None, details=False,
-                     status='active', **kwargs):
+    def list_metrics(self, names=None, user_id=None, project_id=None,
+                     details=False, status='active', **kwargs):
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status).order_by(Metric.id)
+            if names is not None:
+                q = q.filter(Metric.name.in_(names))
             if user_id is not None:
                 q = q.filter(Metric.created_by_user_id == user_id)
             if project_id is not None:

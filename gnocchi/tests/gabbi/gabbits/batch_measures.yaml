@@ -25,7 +25,7 @@ tests:
       status: 201
 
     - name: push measurements to metric
-      url: /v1/batch/measures
+      url: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
       method: post
@@ -38,7 +38,7 @@ tests:
       status: 202
 
     - name: push measurements to unknown metrics
-      url: /v1/batch/measures
+      url: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
       method: post
@@ -57,6 +57,28 @@ tests:
       response_strings:
         - "Unknown metrics: 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5c, 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5d"
 
+    - name: push measurements to unknown named metrics
+      url: /v1/batch/resources/metrics/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+        37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5D:
+          cpu_util:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+        46c9418d-d63b-4cdd-be89-8f57ffc5952e:
+          disk.iops:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+      status: 400
+      response_strings:
+          - "Unknown metrics: 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5d/cpu_util, 46c9418d-d63b-4cdd-be89-8f57ffc5952e/disk.iops"
+
     - name: create second metric
       url: /v1/metric
       request_headers:
@@ -66,11 +88,43 @@ tests:
           archive_policy_name: simple
       status: 201
 
+    - name: post a resource
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          content-type: application/json
+      data:
+          id: 46c9418d-d63b-4cdd-be89-8f57ffc5952e
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          metrics:
+              disk.iops:
+                  archive_policy_name: simple
+              cpu_util:
+                  archive_policy_name: simple
+      status: 201
+
+    - name: post a second resource
+      url: /v1/resource/generic
+      method: post
+      request_headers:
+          content-type: application/json
+      data:
+          id: f0f6038f-f82c-4f30-8d81-65db8be249fe
+          user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
+          project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
+          metrics:
+              net.speed:
+                  archive_policy_name: simple
+              mem_usage:
+                  archive_policy_name: simple
+      status: 201
+
     - name: list metrics
       url: /v1/metric
 
     - name: push measurements to two metrics
-      url: /v1/batch/measures
+      url: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
       method: post
@@ -85,4 +139,35 @@ tests:
             value: 43.1
           - timestamp: "2015-03-06T14:34:12"
             value: 12
+      status: 202
+
+    - name: push measurements to two named metrics
+      url: /v1/batch/resources/metrics/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+        46c9418d-d63b-4cdd-be89-8f57ffc5952e:
+          disk.iops:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+          cpu_util:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+        f0f6038f-f82c-4f30-8d81-65db8be249fe:
+          mem_usage:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+          net.speed:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+
       status: 202
