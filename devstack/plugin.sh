@@ -60,15 +60,14 @@ function create_gnocchi_accounts {
     then
         create_service_user "gnocchi"
 
-        if [[ "$KEYSTONE_CATALOG_BACKEND" = 'sql' ]]; then
-            local gnocchi_service=$(get_or_create_service "gnocchi" \
-                "metric" "OpenStack Metric Service")
-            get_or_create_endpoint $gnocchi_service \
-                "$REGION_NAME" \
-                "$(gnocchi_service_url)" \
-                "$(gnocchi_service_url)" \
-                "$(gnocchi_service_url)"
-        fi
+        local gnocchi_service=$(get_or_create_service "gnocchi" \
+            "metric" "OpenStack Metric Service")
+        get_or_create_endpoint $gnocchi_service \
+            "$REGION_NAME" \
+            "$(gnocchi_service_url)" \
+            "$(gnocchi_service_url)" \
+            "$(gnocchi_service_url)"
+
         if is_service_enabled swift && [[ "$GNOCCHI_STORAGE_BACKEND" = 'swift' ]] ; then
             get_or_create_project "gnocchi_swift" default
             local gnocchi_swift_user=$(get_or_create_user "gnocchi_swift" \
