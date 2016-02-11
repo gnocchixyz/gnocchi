@@ -195,6 +195,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             ioctx.write_full(name, data)
             ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, "")
 
+    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
+                                granularity):
+        name = self._get_object_name(metric, timestamp_key,
+                                     aggregation, granularity)
+        with self._get_ioctx() as ioctx:
+            ioctx.rm_xattr("gnocchi_%s_container" % metric.id, name)
+            ioctx.remove_object(name)
+
     def _delete_metric(self, metric):
         with self._get_ioctx() as ioctx:
             try:

@@ -94,13 +94,14 @@ How to set the archive policy and granularity
 
 In Gnocchi, the archive policy is expressed in number of points. If your
 archive policy defines a policy of 10 points with a granularity of 1 second,
-the time serie archive will keep up to 10 points, each representing an
+the time serie archive will keep up to 10 seconds, each representing an
 aggregation over 1 second. This means the time serie will at maximum retain 10
-seconds of data, **but** that does not mean it will be 10 consecutive seconds:
-there might be a gap if data is fed irregularly.
+seconds of data (sometimes a bit more) between the more recent point and the
+oldest point. That does not mean it will be 10 consecutive seconds: there might
+be a gap if data is fed irregularly.
 
-Consequently, there is no expiry of data relative to the current timestamp, and
-you cannot delete old data points (at least for now).
+There is no expiry of data relative to the current timestamp. Also, you cannot
+delete old data points (at least for now).
 
 Therefore, both the archive policy and the granularity entirely depends on your
 use case. Depending on the usage of your data, you can define several archiving

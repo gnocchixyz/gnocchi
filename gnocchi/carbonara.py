@@ -152,11 +152,17 @@ class TimeSerie(SerializableMixin):
 
     @property
     def first(self):
-        return self.ts.index[0]
+        try:
+            return self.ts.index[0]
+        except IndexError:
+            return
 
     @property
     def last(self):
-        return self.ts.index[-1]
+        try:
+            return self.ts.index[-1]
+        except IndexError:
+            return
 
 
 class BoundTimeSerie(TimeSerie):

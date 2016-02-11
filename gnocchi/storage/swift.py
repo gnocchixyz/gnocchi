@@ -175,6 +175,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             self._object_name(timestamp_key, aggregation, granularity),
             data)
 
+    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
+                                granularity):
+        self.swift.delete_object(
+            self._container_name(metric),
+            self._object_name(timestamp_key, aggregation, granularity))
+
     def _delete_metric(self, metric):
         self._delete_unaggregated_timeserie(metric)
         container = self._container_name(metric)

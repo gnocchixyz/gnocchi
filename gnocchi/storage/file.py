@@ -222,6 +222,11 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 keys.append(key)
         return keys
 
+    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
+                                granularity):
+        os.unlink(self._build_metric_path_for_split(
+            metric, aggregation, timestamp_key, granularity))
+
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data):
         self._atomic_file_store(
