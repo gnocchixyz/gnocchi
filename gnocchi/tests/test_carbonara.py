@@ -15,10 +15,7 @@
 # under the License.
 import datetime
 import math
-import subprocess
-import tempfile
 
-import fixtures
 from oslo_utils import timeutils
 from oslotest import base
 # TODO(jd) We shouldn't use pandas here
@@ -906,34 +903,3 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                              sampling=agg.sampling,
                              max_size=agg.max_size,
                              aggregation_method=agg.aggregation_method))
-
-
-class CarbonaraCmd(base.BaseTestCase):
-
-    def setUp(self):
-        super(CarbonaraCmd, self).setUp()
-        self.useFixture(fixtures.NestedTempfile())
-
-    def test_dump(self):
-        ts = carbonara.AggregatedTimeSerie(sampling=60, max_size=60,
-                                           aggregation_method='max')
-        tsb = carbonara.BoundTimeSerie(block_size=ts.sampling)
-        tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
-                        (datetime.datetime(2014, 1, 1, 12, 1, 4), 4),
-                        (datetime.datetime(2014, 1, 1, 12, 1, 9), 7),
-                        (datetime.datetime(2014, 1, 1, 12, 2, 1), 15),
-                        (datetime.datetime(2014, 1, 1, 12, 2, 12), 1)],
-                       before_truncate_callback=ts.update)
-
-        filename = tempfile.mktemp()
-
-        with open(filename, "wb") as f:
-            f.write(ts.serialize())
-
-        subp = subprocess.Popen(['carbonara-dump',
-                                 filename],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        out, err = subp.communicate()
-        subp.wait()
-        self.assertIn(b"Aggregation method", out)
