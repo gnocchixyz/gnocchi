@@ -184,8 +184,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             max_size=points)
 
     def _add_measures(self, aggregation, granularity, metric, timeserie):
-        # TODO(jd) only retrieve the part we update
-        ts = self._get_measures_timeserie(metric, aggregation, granularity)
+        ts = self._get_measures_timeserie(metric, aggregation, granularity,
+                                          timeserie.first, timeserie.last)
         ts.update(timeserie)
         for key, split in ts.split():
             self._store_metric_measures(metric, key, aggregation, granularity,
