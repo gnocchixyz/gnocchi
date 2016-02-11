@@ -270,9 +270,10 @@ class AggregatedTimeSerie(TimeSerie):
             self.aggregation_method_func_name = aggregation_method
 
         if sampling is None:
-            self._sampling = None
+            self._sampling = self.sampling = None
         else:
             self._sampling = self._to_offset(sampling)
+            self.sampling = self._sampling.nanos / 10e8
         self.max_size = max_size
         self.aggregation_method = aggregation_method
 
@@ -320,10 +321,6 @@ class AggregatedTimeSerie(TimeSerie):
             ts = ts.combine_first(t.ts)
         return cls(ts, sampling=sampling, max_size=max_size,
                    aggregation_method=aggregation_method)
-
-    @property
-    def sampling(self):
-        return self._sampling.nanos / 10e8
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
