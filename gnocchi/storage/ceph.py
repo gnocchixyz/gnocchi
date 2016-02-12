@@ -153,10 +153,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     @staticmethod
     def _object_exists(ioctx, name):
         try:
-            size, mtime = ioctx.stat(name)
-            # NOTE(sileht): the object have been created by
-            # the lock code
-            return size > 0
+            ioctx.stat(name)
+            return True
         except rados.ObjectNotFound:
             return False
 
@@ -197,13 +195,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             with self._get_ioctx() as ioctx:
                 name = self._get_object_name(metric, timestamp_key,
                                              aggregation, granularity)
-                content = self._get_object_content(ioctx, name)
-                if len(content) == 0:
-                    # NOTE(sileht: the object have been created by
-                    # the lock code
-                    raise rados.ObjectNotFound
-                else:
-                    return content
+                return self._get_object_content(ioctx, name)
         except rados.ObjectNotFound:
             with self._get_ioctx() as ioctx:
                 if self._object_exists(
@@ -229,13 +221,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _get_unaggregated_timeserie(self, metric):
         try:
             with self._get_ioctx() as ioctx:
-                content = self._get_object_content(
+                return self._get_object_content(
                     ioctx, "gnocchi_%s_none" % metric.id)
-                if len(content) == 0:
-                    # NOTE(sileht: the object have been created by
-                    # the lock code
-                    raise rados.ObjectNotFound
-                return content
         except rados.ObjectNotFound:
             raise storage.MetricDoesNotExist(metric)
 
@@ -260,13 +247,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         """Retrieve data in the place we used to store TimeSerieArchive."""
         try:
             with self._get_ioctx() as ioctx:
-                content = self._get_object_content(
+                return self._get_object_content(
                     ioctx, str("gnocchi_%s_%s" % (metric.id, aggregation)))
-                if len(content) == 0:
-                    # NOTE(sileht: the object have been created by
-                    # the lock code
-                    raise rados.ObjectNotFound
-                return content
         except rados.ObjectNotFound:
             raise storage.AggregationDoesNotExist(metric, aggregation)
 
