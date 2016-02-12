@@ -166,4 +166,21 @@ result from:
 So, in realistic scenarios, the direct relation between the archive policy and
 the size of the rados objects created by Gnocchi is not a problem.
 
+
+Also Gnocchi can use `cradox`_ Python libary if installed. This library is a
+Python binding to librados written with `Cython`_, aiming to replace the one
+written with `ctypes`_ provided by Ceph.
+This new library will be part of next Ceph release (10.0.4).
+
+The new Cython binding divides the gnocchi-metricd times to process measures
+by a large factor.
+
+So, if the Ceph installation doesn't use latest Ceph version, `cradox`_ can be
+installed to improve the Ceph backend performance.
+
+
 .. _`Ceph extended attributes documentation`: http://docs.ceph.com/docs/master/rados/configuration/filestore-config-ref/#extended-attributes
+.. _`cradox`: https://pypi.python.org/pypi/cradox
+.. _`Cython`: http://cython.org/
+.. _`ctypes`: https://docs.python.org/2/library/ctypes.html
+.. _`rados.py`: https://docs.python.org/2/library/ctypes.htm://github.com/ceph/ceph/blob/hammer/src/pybind/rados.py

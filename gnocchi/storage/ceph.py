@@ -28,8 +28,13 @@ from gnocchi.storage import _carbonara
 
 LOG = logging.getLogger(__name__)
 
-# NOTE(sileht): rados module is not available on pypi
-rados = importutils.try_import('rados')
+for RADOS_MODULE_NAME in ('cradox', 'rados'):
+    rados = importutils.try_import(RADOS_MODULE_NAME)
+    if rados is not None:
+        break
+else:
+    RADOS_MODULE_NAME = None
+
 if rados is not None and hasattr(rados, 'run_in_thread'):
     rados.run_in_thread = lambda target, args, timeout=None: target(*args)
     LOG.info("rados.run_in_thread is monkeypatched.")
@@ -57,6 +62,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         options = {}
         if conf.ceph_keyring:
             options['keyring'] = conf.ceph_keyring
+
+        if not rados:
+            raise ImportError("No module named 'rados' nor 'cradox'")
+
+        LOG.info("Ceph storage backend use '%s' python library" %
+                 RADOS_MODULE_NAME)
 
         # NOTE(sileht): librados handles reconnection itself,
         # by default if a call timeout (30sec), it raises

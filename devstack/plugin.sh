@@ -321,6 +321,10 @@ function preinstall_gnocchi {
     else
         install_package postgresql-devel
     fi
+    if [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
+            install_package cython
+            install_package librados-dev
+    fi
 }
 
 # install_gnocchi() - Collect source and prepare
@@ -332,6 +336,10 @@ function install_gnocchi {
     if [[ "${GNOCCHI_STORAGE_BACKEND}" == 'influxdb' ]] ; then
         _gnocchi_install_influxdb
         pip_install influxdb
+    fi
+
+    if [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
+        pip_install cradox
     fi
 
     if is_service_enabled gnocchi-grafana
