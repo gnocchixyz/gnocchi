@@ -48,7 +48,6 @@ LOG = logging.getLogger(__name__)
 
 class CarbonaraBasedStorage(storage.StorageDriver):
     MEASURE_PREFIX = "measure"
-    METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE = 128
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
@@ -63,6 +62,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 self.aggregation_workers_number = 2
         else:
             self.aggregation_workers_number = conf.aggregation_workers_number
+        self.partition = 0
         self.heartbeater = threading.Thread(target=self._heartbeat,
                                             name='heartbeat')
         self.heartbeater.setDaemon(True)
@@ -280,9 +280,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self._check_for_metric_upgrade,
             ((metric,) for metric in index.list_metrics()))
 
-    def process_measures(self, indexer, sync=False):
+    def process_measures(self, indexer, block_size, sync=False):
         metrics_to_process = self._list_metric_with_measures_to_process(
-            full=sync)
+            block_size, full=sync)
         metrics = indexer.get_metrics(metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
         # measures to process for but that are not in the indexer anymore.

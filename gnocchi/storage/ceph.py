@@ -16,6 +16,7 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import itertools
 import logging
 import uuid
 
@@ -112,18 +113,21 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return len(list(self._list_object_names_to_process(ioctx,
                                                                object_prefix)))
 
-    def _list_metric_with_measures_to_process(self, full=False):
+    def _list_metric_with_measures_to_process(self, block_size, full=False):
         with self._get_ioctx() as ioctx:
             try:
                 xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
             except rados.ObjectNotFound:
                 return []
         metrics = set()
-        for name, __ in xattrs:
+        if full:
+            objs_it = xattrs
+        else:
+            objs_it = itertools.islice(
+                xattrs, block_size * self.partition, None)
+        for name, __ in objs_it:
             metrics.add(name.split("_")[1])
-            if (full is False and
-               len(metrics) >=
-               self.METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE):
+            if full is False and len(metrics) >= block_size:
                 break
         return metrics
 

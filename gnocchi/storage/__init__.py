@@ -168,20 +168,21 @@ class StorageDriver(object):
     def upgrade(index):
         pass
 
-    def process_background_tasks(self, index, sync=False):
+    def process_background_tasks(self, index, block_size=128, sync=False):
         """Process background tasks for this storage.
 
         This calls :func:`process_measures` to process new measures and
         :func:`expunge_metrics` to expunge deleted metrics.
 
         :param index: An indexer to be used for querying metrics
+        :param block_size: number of metrics to process
         :param sync: If True, then process everything synchronously and raise
                      on error
         :type sync: bool
         """
         LOG.debug("Processing new and to delete measures")
         try:
-            self.process_measures(index, sync)
+            self.process_measures(index, block_size, sync)
         except Exception:
             if sync:
                 raise
@@ -224,7 +225,7 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def process_measures(indexer=None, sync=False):
+    def process_measures(indexer=None, block_size=None, sync=False):
         """Process added measures in background.
 
         Some drivers might need to have a background task running that process
