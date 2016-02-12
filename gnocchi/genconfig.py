@@ -13,9 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from oslo_config import generator
 
 
 def prehook(cmd):
-    generator.main(['--config-file',
-                    'gnocchi-config-generator.conf'])
+    try:
+        from oslo_config import generator
+        generator.main(['--config-file',
+                        'gnocchi-config-generator.conf'])
+    except Exception as e:
+        print("Unable to build sample configuration file: %s" % e)
