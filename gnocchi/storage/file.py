@@ -132,6 +132,14 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                     if e.errno != errno.EEXIST:
                         raise
 
+    def _build_report(self, details):
+        metric_details = {}
+        for metric in os.listdir(self.measure_path):
+            metric_details[metric] = (
+                self._pending_measures_to_process_count(metric))
+        return (len(metric_details.keys()), sum(metric_details.values()),
+                metric_details if details else None)
+
     def _list_metric_with_measures_to_process(self, full=False):
         return os.listdir(self.measure_path)
 

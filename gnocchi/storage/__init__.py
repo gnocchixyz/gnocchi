@@ -232,12 +232,13 @@ class StorageDriver(object):
         """
 
     @staticmethod
-    def measures_report():
+    def measures_report(details=True):
         """Return a report of pending to process measures.
 
         Only useful for drivers that process measurements in background
 
-        :return: {metric_id: pending_measures_count}
+        :return: {'summary': {'metrics': count, 'measures': count},
+                  'details': {metric_id: pending_measures_count}}
         """
         raise exceptions.NotImplementedError
 

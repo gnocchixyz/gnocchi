@@ -100,10 +100,11 @@ class MetricProcessBase(multiprocessing.Process):
 class MetricReporting(MetricProcessBase):
     def _run_job(self):
         try:
-            report = self.store.measures_report()
+            report = self.store.measures_report(details=False)
             LOG.info("Metricd reporting: %d measurements bundles across %d "
-                     "metrics wait to be processed." %
-                     (sum(report.values()), len(report)))
+                     "metrics wait to be processed.",
+                     report['summary']['measures'],
+                     report['summary']['metrics'])
         except Exception:
             LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)

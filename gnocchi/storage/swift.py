@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from collections import defaultdict
 import contextlib
 import datetime
 import uuid
@@ -103,6 +104,21 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             self.MEASURE_PREFIX,
             six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
             data)
+
+    def _build_report(self, details):
+        headers, files = self.swift.get_container(self.MEASURE_PREFIX,
+                                                  delimiter='/',
+                                                  full_listing=True)
+        metrics = len(files)
+        measures = headers.get('x-container-object-count')
+        metric_details = defaultdict(int)
+        if details:
+            headers, files = self.swift.get_container(self.MEASURE_PREFIX,
+                                                      full_listing=True)
+            for f in files:
+                metric = f['name'].split('/', 1)[0]
+                metric_details[metric] += 1
+        return metrics, measures, metric_details if details else None
 
     def _list_metric_with_measures_to_process(self, full=False):
         limit = self.METRIC_WITH_MEASURES_TO_PROCESS_BATCH_SIZE

@@ -87,8 +87,19 @@ class TestStorageDriver(tests_base.TestCase):
         self.storage.process_background_tasks(self.index, True)
 
     def test_measures_reporting(self):
-        report = self.storage.measures_report()
+        report = self.storage.measures_report(True)
         self.assertIsInstance(report, dict)
+        self.assertIn('summary', report)
+        self.assertIn('metrics', report['summary'])
+        self.assertIn('measures', report['summary'])
+        self.assertIn('details', report)
+        self.assertIsInstance(report['details'], dict)
+        report = self.storage.measures_report(False)
+        self.assertIsInstance(report, dict)
+        self.assertIn('summary', report)
+        self.assertIn('metrics', report['summary'])
+        self.assertIn('measures', report['summary'])
+        self.assertNotIn('details', report)
 
     def test_add_measures_big(self):
         m = storage.Metric(uuid.uuid4(), self.archive_policies['high'])

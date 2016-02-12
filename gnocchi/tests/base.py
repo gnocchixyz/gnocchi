@@ -223,7 +223,8 @@ class FakeSwiftClient(object):
             # otherwise.
             end = 1
 
-        return {}, (files + list(directories))[:end]
+        return ({'x-container-object-count': len(container.keys())},
+                (files + list(directories))[:end])
 
     def put_object(self, container, key, obj):
         if hasattr(obj, "seek"):

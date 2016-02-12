@@ -1319,10 +1319,13 @@ class CapabilityController(rest.RestController):
 class StatusController(rest.RestController):
     @staticmethod
     @pecan.expose('json')
-    def get():
+    def get(details=True):
         enforce("get status", {})
-        report = pecan.request.storage.measures_report()
-        return {"storage": {"measures_to_process": report}}
+        report = pecan.request.storage.measures_report(details)
+        report_dict = {"storage": {"summary": report['summary']}}
+        if 'details' in report:
+            report_dict["storage"]["measures_to_process"] = report['details']
+        return report_dict
 
 
 class MetricsBatchController(object):
