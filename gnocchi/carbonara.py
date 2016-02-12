@@ -257,8 +257,8 @@ class AggregatedTimeSerie(TimeSerie):
 
     POINTS_PER_SPLIT = 14400
 
-    def __init__(self, ts=None, max_size=None,
-                 sampling=None, aggregation_method='mean'):
+    def __init__(self, sampling, ts=None, max_size=None,
+                 aggregation_method='mean'):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -278,18 +278,14 @@ class AggregatedTimeSerie(TimeSerie):
                 raise UnknownAggregationMethod(aggregation_method)
             self.aggregation_method_func_name = aggregation_method
 
-        if sampling is None:
-            self._sampling = self.sampling = None
-        else:
-            self._sampling = self._to_offset(sampling)
-            self.sampling = self._sampling.nanos / 10e8
+        self.sampling = self._to_offset(sampling).nanos / 10e8
         self.max_size = max_size
         self.aggregation_method = aggregation_method
 
     @classmethod
-    def from_data(cls, timestamps=None, values=None,
-                  max_size=None, sampling=None, aggregation_method='mean'):
-        return cls(pandas.Series(values, timestamps),
+    def from_data(cls, sampling, timestamps=None, values=None,
+                  max_size=None, aggregation_method='mean'):
+        return cls(ts=pandas.Series(values, timestamps),
                    max_size=max_size, sampling=sampling,
                    aggregation_method=aggregation_method)
 
@@ -326,12 +322,12 @@ class AggregatedTimeSerie(TimeSerie):
                 yield self._split_key_to_string(ts), TimeSerie(t)
 
     @classmethod
-    def from_timeseries(cls, timeseries, sampling=None, max_size=None,
+    def from_timeseries(cls, timeseries, sampling, max_size=None,
                         aggregation_method='mean'):
         ts = pandas.Series()
         for t in timeseries:
             ts = ts.combine_first(t.ts)
-        return cls(ts, sampling=sampling, max_size=max_size,
+        return cls(ts=ts, sampling=sampling, max_size=max_size,
                    aggregation_method=aggregation_method)
 
     def __eq__(self, other):
@@ -361,7 +357,8 @@ class AggregatedTimeSerie(TimeSerie):
         """
         timestamps, values = cls._timestamps_and_values_from_dict(d['values'])
         return cls.from_data(
-            timestamps, values,
+            timestamps=timestamps,
+            values=values,
             max_size=d.get('max_size'),
             sampling=d.get('sampling'),
             aggregation_method=d.get('aggregation_method', 'mean'))
@@ -371,7 +368,7 @@ class AggregatedTimeSerie(TimeSerie):
         d.update({
             'aggregation_method': self.aggregation_method,
             'max_size': self.max_size,
-            'sampling': self._serialize_time_period(self._sampling),
+            'sampling': self.sampling,
         })
         return d
 
@@ -382,20 +379,19 @@ class AggregatedTimeSerie(TimeSerie):
             self.ts = self.ts.dropna()[-self.max_size:]
 
     def _resample(self, after):
-        if self._sampling:
-            # Group by the sampling, and then apply the aggregation method on
-            # the points after `after'
-            groupedby = self.ts[after:].groupby(
-                functools.partial(self._round_timestamp,
-                                  freq=self.sampling * 10e8))
-            agg_func = getattr(groupedby, self.aggregation_method_func_name)
-            if self.aggregation_method_func_name == 'quantile':
-                aggregated = agg_func(self.q)
-            else:
-                aggregated = agg_func()
-            # Now combine the result with the rest of the point – everything
-            # that is before `after'
-            self.ts = aggregated.combine_first(self.ts[:after][:-1])
+        # Group by the sampling, and then apply the aggregation method on
+        # the points after `after'
+        groupedby = self.ts[after:].groupby(
+            functools.partial(self._round_timestamp,
+                              freq=self.sampling * 10e8))
+        agg_func = getattr(groupedby, self.aggregation_method_func_name)
+        if self.aggregation_method_func_name == 'quantile':
+            aggregated = agg_func(self.q)
+        else:
+            aggregated = agg_func()
+        # Now combine the result with the rest of the point – everything
+        # that is before `after'
+        self.ts = aggregated.combine_first(self.ts[:after][:-1])
 
     def fetch(self, from_timestamp=None, to_timestamp=None):
         """Fetch aggregated time value.
