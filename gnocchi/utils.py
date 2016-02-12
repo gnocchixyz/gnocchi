@@ -14,7 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
-import time
 
 import iso8601
 from oslo_utils import timeutils
@@ -96,8 +95,8 @@ def datetime_utc(*args):
     return datetime.datetime(*args, tzinfo=iso8601.iso8601.UTC)
 
 
+unix_universal_start = datetime_utc(1970, 1, 1)
+
+
 def datetime_to_unix(timestamp):
-    return (time.mktime(timestamp.utctimetuple())
-            + timestamp.microsecond / 10e5
-            # mktime() returns for the current timezone
-            - time.timezone)
+    return (timestamp - unix_universal_start).total_seconds()
