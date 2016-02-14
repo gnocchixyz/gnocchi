@@ -19,6 +19,7 @@ try:
     import asyncio
 except ImportError:
     import trollius as asyncio
+from oslo_config import cfg
 from oslo_log import log
 import six
 
@@ -165,6 +166,10 @@ class StatsdServer(object):
 
 def start():
     conf = service.prepare_service()
+
+    for field in ["resource_id", "user_id", "project_id"]:
+        if conf.statsd[field] is None:
+            raise cfg.RequiredOptError(field, cfg.OptGroup("statsd"))
 
     stats = Stats(conf)
 
