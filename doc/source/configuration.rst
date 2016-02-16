@@ -2,9 +2,30 @@
  Configuration
 ===============
 
-Configure Gnocchi by editing `/etc/gnocchi/gnocchi.conf`. The configuration
-file should be pretty explicit, but here are some of the base options you want
-to change and configure:
+Configure Gnocchi by editing `/etc/gnocchi/gnocchi.conf`.
+
+No config file is provided with the source code; it will be created during the
+installation. In case where no configuration file was installed, one can be
+easily created by running:
+
+::
+
+    tox -e genconfig
+
+This command will create an `etc/gnocchi/gnocchi.conf` file which can be used
+as a base for the default configuration file at `/etc/gnocchi/gnocchi.conf`. If
+you're using _devstack_, this file is already generated and put in place.
+
+If you installed Gnocchi using pip, you can create a sample `gnocchi.conf` file
+using the following commands:
+
+::
+
+    curl -O "https://raw.githubusercontent.com/openstack/gnocchi/master/etc/gnocchi/gnocchi-config-generator.conf"
+    oslo-config-generator --config-file=gnocchi-config-generator.conf --output-file=gnocchi.conf
+
+The configuration file should be pretty explicit, but here are some of the base
+options you want to change and configure:
 
 
 +---------------------+---------------------------------------------------+
