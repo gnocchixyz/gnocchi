@@ -97,27 +97,24 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
     @staticmethod
     def test_base():
         carbonara.AggregatedTimeSerie.from_data(
+            3,
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])
         carbonara.AggregatedTimeSerie.from_data(
+            "4s",
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6], sampling=3)
-        carbonara.AggregatedTimeSerie.from_data(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 4),
-             datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6], sampling="4s")
+            [3, 5, 6])
 
     def test_fetch_basic(self):
         ts = carbonara.AggregatedTimeSerie.from_data(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 4),
-             datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6],
+            timestamps=[datetime.datetime(2014, 1, 1, 12, 0, 0),
+                        datetime.datetime(2014, 1, 1, 12, 0, 4),
+                        datetime.datetime(2014, 1, 1, 12, 0, 9)],
+            values=[3, 5, 6],
             sampling="1s")
         self.assertEqual(
             [(datetime.datetime(2014, 1, 1, 12), 1, 3),
@@ -185,14 +182,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
     def test_different_length_in_timestamps_and_data(self):
         self.assertRaises(ValueError,
                           carbonara.AggregatedTimeSerie.from_data,
+                          3,
                           [datetime.datetime(2014, 1, 1, 12, 0, 0),
                            datetime.datetime(2014, 1, 1, 12, 0, 4),
                            datetime.datetime(2014, 1, 1, 12, 0, 9)],
                           [3, 5])
 
     def test_max_size(self):
-        ts = carbonara.AggregatedTimeSerie(
-            max_size=2)
+        ts = carbonara.AggregatedTimeSerie(sampling=1, max_size=2)
         ts.update(carbonara.TimeSerie.from_data(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 0, 4),
