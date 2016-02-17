@@ -184,12 +184,19 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             max_size=points)
 
     def _add_measures(self, aggregation, granularity, metric, timeserie):
-        ts = self._get_measures_timeserie(metric, aggregation, granularity,
-                                          timeserie.first, timeserie.last)
+        with timeutils.StopWatch() as sw:
+            ts = self._get_measures_timeserie(metric, aggregation, granularity,
+                                              timeserie.first, timeserie.last)
+            LOG.debug("Retrieve measures"
+                      "for %s/%s/%s in %.2fs"
+                      % (metric.id, aggregation, granularity, sw.elapsed()))
         ts.update(timeserie)
-        for key, split in ts.split():
-            self._store_metric_measures(metric, key, aggregation, granularity,
-                                        split.serialize())
+        with timeutils.StopWatch() as sw:
+            for key, split in ts.split():
+                self._store_metric_measures(metric, key, aggregation,
+                                            granularity, split.serialize())
+            LOG.debug("Store measures for %s/%s/%s in %.2fs"
+                      % (metric.id, aggregation, granularity, sw.elapsed()))
 
     def add_measures(self, metric, measures):
         self._store_measures(metric, msgpackutils.dumps(
