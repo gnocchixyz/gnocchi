@@ -71,7 +71,7 @@ class Metric(object):
         return str(self.id)
 
     def __eq__(self, other):
-        return (isinstance(self, Metric)
+        return (isinstance(other, Metric)
                 and self.id == other.id
                 and self.archive_policy == other.archive_policy
                 and self.created_by_user_id == other.created_by_user_id
