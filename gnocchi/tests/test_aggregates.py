@@ -60,7 +60,7 @@ class TestAggregates(tests_base.TestCase):
 
         with mock.patch.object(self.index, 'get_metrics') as f:
             f.return_value = [metric]
-            self.storage.process_background_tasks(self.index, True)
+            self.storage.process_background_tasks(self.index, sync=True)
 
         return metric
 
