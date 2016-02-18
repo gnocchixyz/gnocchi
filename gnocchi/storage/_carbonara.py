@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2016 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,6 +17,8 @@
 import collections
 import logging
 import multiprocessing
+import threading
+import time
 import uuid
 
 from concurrent import futures
@@ -60,6 +63,18 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 self.aggregation_workers_number = 2
         else:
             self.aggregation_workers_number = conf.aggregation_workers_number
+        self.heartbeater = threading.Thread(target=self._heartbeat,
+                                            name='heartbeat')
+        self.heartbeater.setDaemon(True)
+        self.heartbeater.start()
+
+    def _heartbeat(self):
+        while True:
+            # FIXME(jd) Why 10? Why not. We should have a way to find out
+            # what's the best value here, but it depends on the timeout used by
+            # the driver; tooz should help us here!
+            time.sleep(10)
+            self.coord.heartbeat()
 
     def stop(self):
         self.coord.stop()
