@@ -13,7 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
+from collections import defaultdict
 import contextlib
 import datetime
 import logging
@@ -81,6 +81,23 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         with self._get_ioctx() as ioctx:
             ioctx.write_full(name, data)
             ioctx.set_xattr(self.MEASURE_PREFIX, name, "")
+
+    def _build_report(self, details):
+        with self._get_ioctx() as ioctx:
+            try:
+                xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
+            except rados.ObjectNotFound:
+                return 0, 0, {} if details else None
+        metrics = set()
+        count = 0
+        metric_details = defaultdict(int)
+        for name, __ in xattrs:
+            count += 1
+            metric = name.split("_")[1]
+            metrics.add(metric)
+            if details:
+                metric_details[metric] += 1
+        return len(metrics), count, metric_details if details else None
 
     def _list_object_names_to_process(self, ioctx, prefix):
         try:
