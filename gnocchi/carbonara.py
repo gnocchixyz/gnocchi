@@ -292,10 +292,9 @@ class AggregatedTimeSerie(TimeSerie):
                    aggregation_method=aggregation_method)
 
     @classmethod
-    def get_split_key_datetime(cls, timestamp, sampling,
-                               chunk_size=POINTS_PER_SPLIT):
-        return cls._round_timestamp(timestamp,
-                                    freq=sampling * chunk_size * 10e8)
+    def get_split_key_datetime(cls, timestamp, sampling):
+        return cls._round_timestamp(
+            timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8)
 
     @staticmethod
     def _split_key_to_string(timestamp):
@@ -305,15 +304,13 @@ class AggregatedTimeSerie(TimeSerie):
         return str(utils.datetime_to_unix(ts))
 
     @classmethod
-    def get_split_key(cls, timestamp, sampling, chunk_size=POINTS_PER_SPLIT):
+    def get_split_key(cls, timestamp, sampling):
         return cls._split_key_to_string(
-            cls.get_split_key_datetime(
-                timestamp, sampling, chunk_size))
+            cls.get_split_key_datetime(timestamp, sampling))
 
-    def split(self, chunk_size=POINTS_PER_SPLIT):
+    def split(self):
         groupby = self.ts.groupby(functools.partial(
-            self.get_split_key_datetime, sampling=self.sampling,
-            chunk_size=chunk_size))
+            self.get_split_key_datetime, sampling=self.sampling))
         keys = sorted(groupby.groups.keys())
         for i, ts in enumerate(keys):
             if i + 1 == len(keys):
