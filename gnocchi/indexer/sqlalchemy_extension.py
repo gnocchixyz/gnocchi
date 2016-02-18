@@ -48,3 +48,20 @@ class InstanceNetworkInterface(object):
 
 class Volume(object):
     display_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=True)
+
+
+class Host(object):
+    __tablename__ = 'host'
+    host_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+
+
+class HostNetworkInterface(object):
+    __tablename__ = 'host_net_int'
+    host_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    device_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=True)
+
+
+class HostDisk(object):
+    __tablename__ = 'host_disk'
+    host_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    device_name = sqlalchemy.Column(sqlalchemy.String(255), nullable=True)

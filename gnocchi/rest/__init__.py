@@ -927,6 +927,21 @@ ImageSchema = ResourceSchema({
     "disk_format": six.text_type,
 })
 
+HostSchema = ResourceSchema({
+    "host_name": six.text_type,
+})
+
+HostDiskSchema = ResourceSchema({
+    "host_name": six.text_type,
+    voluptuous.Optional("device_name"): voluptuous.Any(None,
+                                                       six.text_type),
+})
+
+HostNetworkInterfaceSchema = ResourceSchema({
+    "host_name": six.text_type,
+    voluptuous.Optional("device_name"): voluptuous.Any(None,
+                                                       six.text_type),
+})
 
 # NOTE(sileht): Must be loaded after all ResourceSchema
 RESOURCE_SCHEMA_MANAGER = extension.ExtensionManager(

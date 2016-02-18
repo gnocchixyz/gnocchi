@@ -754,6 +754,41 @@ class ResourceTest(RestTest):
                 "ended_at": "2014-01-03T02:02:02+00:00",
             },
             resource_type='image')),
+        ('host', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02+00:00",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "host_name": "test-host",
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02+00:00",
+            },
+            resource_type='host')),
+        ('host_disk', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02+00:00",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "host_name": "test-host",
+                "device_name": "test-device"
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02+00:00",
+            },
+            resource_type='host_disk')),
+        ('host_network_interface', dict(
+            attributes={
+                "started_at": "2014-01-03T02:02:02+00:00",
+                "user_id": str(uuid.uuid4()),
+                "project_id": str(uuid.uuid4()),
+                "host_name": "test-host",
+                "device_name": "test-device"
+            },
+            patchable_attributes={
+                "ended_at": "2014-01-03T02:02:02+00:00",
+            },
+            resource_type='host_network_interface')),
     ]
 
     @classmethod
