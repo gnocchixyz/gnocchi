@@ -16,7 +16,6 @@
 import datetime
 import uuid
 
-import mock
 import pandas
 
 from gnocchi import aggregates
@@ -56,11 +55,11 @@ class TestAggregates(tests_base.TestCase):
         incr = datetime.timedelta(seconds=spacing)
         measures = [storage.Measure(start_time + incr * n, val)
                     for n, val in enumerate(data)]
+        self.index.create_metric(metric.id,
+                                 str(uuid.uuid4()), str(uuid.uuid4()),
+                                 'medium')
         self.storage.add_measures(metric, measures)
-
-        with mock.patch.object(self.index, 'get_metrics') as f:
-            f.return_value = [metric]
-            self.storage.process_background_tasks(self.index, sync=True)
+        self.storage.process_background_tasks(self.index, sync=True)
 
         return metric
 

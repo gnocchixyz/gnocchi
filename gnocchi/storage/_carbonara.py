@@ -289,7 +289,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def process_measures(self, indexer, block_size, sync=False):
         metrics_to_process = self._list_metric_with_measures_to_process(
             block_size, full=sync)
-        metrics = indexer.get_metrics(metrics_to_process)
+        metrics = indexer.list_metrics(ids=metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
         # measures to process for but that are not in the indexer anymore.
         deleted_metrics_id = (set(map(uuid.UUID, metrics_to_process))

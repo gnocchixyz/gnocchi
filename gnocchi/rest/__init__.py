@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2016 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -388,7 +389,7 @@ class AggregatedMetricController(rest.RestController):
                                            granularity=None,
                                            needed_overlap=100.0):
         # Check RBAC policy
-        metrics = pecan.request.indexer.get_metrics(metric_ids)
+        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
         missing_metric_ids = (set(metric_ids)
                               - set(six.text_type(m.id) for m in metrics))
         if missing_metric_ids:
@@ -577,8 +578,8 @@ class MetricsController(rest.RestController):
             metric_id = uuid.UUID(id)
         except ValueError:
             abort(404, indexer.NoSuchMetric(id))
-        metrics = pecan.request.indexer.get_metrics(
-            [metric_id], with_resource=True)
+        metrics = pecan.request.indexer.list_metrics(
+            id=metric_id, details=True)
         if not metrics:
             abort(404, indexer.NoSuchMetric(id))
         return MetricController(metrics[0]), remainder
@@ -660,8 +661,12 @@ class MetricsController(rest.RestController):
         else:
             user_id = kwargs.get('user_id')
             project_id = kwargs.get('project_id')
-        return pecan.request.indexer.list_metrics(
-            user_id, project_id)
+        attr_filter = {}
+        if user_id is not None:
+            attr_filter['creater_by_user_id'] = user_id
+        if project_id is not None:
+            attr_filter['created_by_project_id'] = project_id
+        return pecan.request.indexer.list_metrics(**attr_filter)
 
 
 _MetricsSchema = voluptuous.Schema({
@@ -1153,7 +1158,8 @@ class SearchMetricController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean'):
-        metrics = pecan.request.indexer.get_metrics(arg_to_list(metric_id))
+        metrics = pecan.request.indexer.list_metrics(
+            ids=arg_to_list(metric_id))
 
         for metric in metrics:
             enforce("search metric", metric)
@@ -1239,7 +1245,7 @@ class MetricsMeasuresBatchController(rest.RestController):
     @pecan.expose()
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
-        metrics = pecan.request.indexer.get_metrics(body.keys())
+        metrics = pecan.request.indexer.list_metrics(ids=body.keys())
 
         if len(metrics) != len(body):
             missing_metrics = sorted(set(body) - set(m.id for m in metrics))
