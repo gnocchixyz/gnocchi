@@ -108,7 +108,8 @@ class MetricReporting(MetricProcessBase):
         try:
             report = self.store.measures_report(details=False)
             if self.queues:
-                block_size = max(16, min(256, len(report) // len(self.queues)))
+                block_size = max(16, min(
+                    256, report['summary']['metrics'] // len(self.queues)))
                 for queue in self.queues:
                     queue.put(block_size)
             LOG.info("Metricd reporting: %d measurements bundles across %d "
@@ -131,6 +132,8 @@ class MetricProcessor(MetricProcessBase):
             if self.queue:
                 while not self.queue.empty():
                     self.block_size = self.queue.get()
+                    LOG.debug("Re-configuring worker to handle up to %s "
+                              "metrics", self.block_size)
             self.store.process_background_tasks(self.index, self.block_size)
         except Exception:
             LOG.error("Unexpected error during measures processing",
@@ -169,7 +172,7 @@ def metricd():
         sys.exit(0)
     except Exception:
         LOG.warning("exiting", exc_info=True)
-        _metricd_cleanup(workers)
+        _metricd_cleanup(workers, queues)
         sys.exit(1)
 
 
