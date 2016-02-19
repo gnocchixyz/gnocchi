@@ -365,8 +365,8 @@
       "project_id": "BD3A1E52-1C62-44CB-BF04-660BD88CD74D",
       "flavor_id": "2",
       "image_ref": "http://image",
-      "host": "compute1",
-      "display_name": "myvm2",
+      "host": "compute2",
+      "display_name": "myvm3",
       "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": {"archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
     }
@@ -446,6 +446,13 @@
 - name: get-across-metrics-measures-by-attributes-lookup
   request: |
     POST /v1/aggregation/resource/instance/metric/cpu.util?start=2014-10-06T14:34&aggregation=mean HTTP/1.1
+    Content-Type: application/json
+
+    {"=": {"server_group": "my_autoscaling_group"}}
+
+- name: get-across-metrics-measures-by-attributes-lookup-groupby
+  request: |
+    POST /v1/aggregation/resource/instance/metric/cpu.util?groupby=host&groupby=flavor_id HTTP/1.1
     Content-Type: application/json
 
     {"=": {"server_group": "my_autoscaling_group"}}
