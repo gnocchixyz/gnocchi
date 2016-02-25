@@ -361,12 +361,17 @@ class AggregatedTimeSerie(TimeSerie):
         :returns: A TimeSerie object
         """
         sampling = d.get('sampling')
-        prev_timestamp = pandas.Timestamp(d.get('first_timestamp') * 10e8)
-        timestamps = []
-        for delta in d.get('timestamps'):
-            prev_timestamp = datetime.timedelta(
-                seconds=delta * sampling) + prev_timestamp
-            timestamps.append(prev_timestamp)
+        if 'first_timestamp' in d:
+            prev_timestamp = pandas.Timestamp(d.get('first_timestamp') * 10e8)
+            timestamps = []
+            for delta in d.get('timestamps'):
+                prev_timestamp = datetime.timedelta(
+                    seconds=delta * sampling) + prev_timestamp
+                timestamps.append(prev_timestamp)
+        else:
+            # migrate from v1.3, remove with TimeSerieArchive
+            timestamps, d['values'] = (
+                cls._timestamps_and_values_from_dict(d['values']))
 
         return cls.from_data(
             timestamps=timestamps,
