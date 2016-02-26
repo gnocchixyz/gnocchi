@@ -46,7 +46,7 @@ OPTS = [
                default='gnocchi',
                help='Ceph pool name to use.'),
     cfg.StrOpt('ceph_username',
-               help='Ceph username (ie: client.admin).'),
+               help='Ceph username (ie: admin without "client." prefix).'),
     cfg.StrOpt('ceph_keyring',
                help='Ceph keyring path.'),
     cfg.StrOpt('ceph_conffile',
