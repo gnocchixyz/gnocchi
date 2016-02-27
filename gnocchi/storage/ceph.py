@@ -297,5 +297,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _delete_metric_archives(self, metric):
         with self._get_ioctx() as ioctx:
             for aggregation in metric.archive_policy.aggregation_methods:
-                ioctx.aio_remove(
-                    str("gnocchi_%s_%s" % (metric.id, aggregation)))
+                try:
+                    ioctx.remove_object(
+                        str("gnocchi_%s_%s" % (metric.id, aggregation)))
+                except rados.ObjectNotFound:
+                    pass
