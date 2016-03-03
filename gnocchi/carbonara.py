@@ -80,9 +80,15 @@ class TimeSerie(SerializableMixin):
     def __init__(self, ts=None):
         if ts is None:
             ts = pandas.Series()
-        self.ts = ts[~ts.index.duplicated(keep='last')]
-        if not self.ts.index.is_monotonic:
-            self.ts = self.ts.sort_index()
+        self.ts = self.clean_ts(ts)
+
+    @staticmethod
+    def clean_ts(ts):
+        if ts.index.has_duplicates:
+            ts = ts[~ts.index.duplicated(keep='last')]
+        if not ts.index.is_monotonic:
+            ts = ts.sort_index()
+        return ts
 
     @classmethod
     def from_data(cls, timestamps=None, values=None):
@@ -101,10 +107,7 @@ class TimeSerie(SerializableMixin):
 
     def set_values(self, values):
         t = pandas.Series(*reversed(list(zip(*values))))
-        t = t[~t.index.duplicated(keep='last')]
-        if not t.index.is_monotonic:
-            t = t.sort_index()
-        self.ts = t.combine_first(self.ts)
+        self.ts = self.clean_ts(t).combine_first(self.ts)
 
     def __len__(self):
         return len(self.ts)
@@ -468,6 +471,7 @@ class AggregatedTimeSerie(TimeSerie):
     def update(self, ts):
         if ts.ts.empty:
             return
+        ts.ts = self.clean_ts(ts.ts)
         index = ts.ts.index
         first_timestamp = index[0]
         last_timestamp = index[-1]
