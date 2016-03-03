@@ -47,8 +47,8 @@ OPTS = [
                help='Ceph pool name to use.'),
     cfg.StrOpt('ceph_username',
                help='Ceph username (ie: admin without "client." prefix).'),
-    cfg.StrOpt('ceph_keyring',
-               help='Ceph keyring path.'),
+    cfg.StrOpt('ceph_secret', help='Ceph key', secret=True),
+    cfg.StrOpt('ceph_keyring', help='Ceph keyring path.'),
     cfg.StrOpt('ceph_conffile',
                default='/etc/ceph/ceph.conf',
                help='Ceph configuration file.'),
@@ -63,6 +63,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         options = {}
         if conf.ceph_keyring:
             options['keyring'] = conf.ceph_keyring
+        if conf.ceph_secret:
+            options['key'] = conf.ceph_secret
 
         if not rados:
             raise ImportError("No module named 'rados' nor 'cradox'")
