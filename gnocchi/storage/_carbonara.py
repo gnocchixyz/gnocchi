@@ -163,8 +163,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 for d in metric.archive_policy.definition:
                     if d.granularity == granularity:
                         return carbonara.AggregatedTimeSerie(
-                            aggregation_method=aggregation,
                             sampling=granularity,
+                            aggregation_method=aggregation,
                             max_size=d.points)
                 raise storage.GranularityDoesNotExist(metric, granularity)
             else:
@@ -194,9 +194,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         )
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
-            timeseries,
-            aggregation_method=aggregation,
             sampling=granularity,
+            aggregation_method=aggregation,
+            timeseries=timeseries,
             max_size=points)
 
     def _add_measures(self, aggregation, archive_policy_def,
@@ -454,8 +454,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                     for timestamp, r, v
                     in carbonara.AggregatedTimeSerie.aggregated(
-                        tss, from_timestamp, to_timestamp,
-                        aggregation, needed_overlap)]
+                        tss, aggregation, from_timestamp, to_timestamp,
+                        needed_overlap)]
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
 

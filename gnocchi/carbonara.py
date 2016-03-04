@@ -265,8 +265,8 @@ class AggregatedTimeSerie(TimeSerie):
 
     POINTS_PER_SPLIT = 14400
 
-    def __init__(self, sampling, ts=None, max_size=None,
-                 aggregation_method='mean'):
+    def __init__(self, sampling, aggregation_method,
+                 ts=None, max_size=None):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -291,11 +291,12 @@ class AggregatedTimeSerie(TimeSerie):
         self.aggregation_method = aggregation_method
 
     @classmethod
-    def from_data(cls, sampling, timestamps=None, values=None,
-                  max_size=None, aggregation_method='mean'):
-        return cls(ts=pandas.Series(values, timestamps),
-                   max_size=max_size, sampling=sampling,
-                   aggregation_method=aggregation_method)
+    def from_data(cls, sampling, aggregation_method, timestamps=None,
+                  values=None, max_size=None):
+        return cls(sampling=sampling,
+                   aggregation_method=aggregation_method,
+                   ts=pandas.Series(values, timestamps),
+                   max_size=max_size)
 
     @classmethod
     def get_split_key_datetime(cls, timestamp, sampling):
@@ -327,13 +328,14 @@ class AggregatedTimeSerie(TimeSerie):
                 yield self._split_key_to_string(ts), TimeSerie(t)
 
     @classmethod
-    def from_timeseries(cls, timeseries, sampling, max_size=None,
-                        aggregation_method='mean'):
+    def from_timeseries(cls, timeseries, sampling, aggregation_method,
+                        max_size=None):
         ts = pandas.Series()
         for t in timeseries:
             ts = ts.combine_first(t.ts)
-        return cls(ts=ts, sampling=sampling, max_size=max_size,
-                   aggregation_method=aggregation_method)
+        return cls(sampling=sampling,
+                   aggregation_method=aggregation_method,
+                   ts=ts, max_size=max_size)
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
@@ -374,11 +376,11 @@ class AggregatedTimeSerie(TimeSerie):
                 cls._timestamps_and_values_from_dict(d['values']))
 
         return cls.from_data(
+            sampling=sampling,
+            aggregation_method=d.get('aggregation_method', 'mean'),
             timestamps=timestamps,
             values=d.get('values'),
-            max_size=d.get('max_size'),
-            sampling=sampling,
-            aggregation_method=d.get('aggregation_method', 'mean'))
+            max_size=d.get('max_size'))
 
     def to_dict(self):
         if self.ts.empty:
@@ -485,8 +487,8 @@ class AggregatedTimeSerie(TimeSerie):
         self._truncate()
 
     @staticmethod
-    def aggregated(timeseries, from_timestamp=None, to_timestamp=None,
-                   aggregation='mean', needed_percent_of_overlap=100.0):
+    def aggregated(timeseries, aggregation, from_timestamp=None,
+                   to_timestamp=None, needed_percent_of_overlap=100.0):
 
         index = ['timestamp', 'granularity']
         columns = ['timestamp', 'granularity', 'value']
@@ -607,9 +609,9 @@ class TimeSerieArchive(SerializableMixin):
         # Limit the main timeserie to a timespan mapping
         return cls(
             [AggregatedTimeSerie(
-                max_size=size,
                 sampling=sampling,
-                aggregation_method=aggregation_method)
+                aggregation_method=aggregation_method,
+                max_size=size)
              for sampling, size in definitions]
         )
 
