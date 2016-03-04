@@ -163,6 +163,43 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2015, 1, 1, 12), 300.0, 69),
         ], self.storage.get_measures(self.metric))
 
+    def test_updated_measures(self):
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 7, 31), 42),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 4),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 12, 45), 44),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 23.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+        ], self.storage.get_measures(self.metric))
+
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1), 86400.0, 69),
+            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 42.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+        ], self.storage.get_measures(self.metric, aggregation='max'))
+
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1), 86400.0, 4),
+            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 4),
+            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 4.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+        ], self.storage.get_measures(self.metric, aggregation='min'))
+
     def test_add_and_get_measures(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
