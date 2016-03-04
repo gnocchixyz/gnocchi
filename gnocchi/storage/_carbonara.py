@@ -195,6 +195,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
             timeseries,
+            aggregation_method=aggregation,
             sampling=granularity,
             max_size=points)
 
