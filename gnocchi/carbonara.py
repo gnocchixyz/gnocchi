@@ -80,7 +80,9 @@ class TimeSerie(SerializableMixin):
     def __init__(self, ts=None):
         if ts is None:
             ts = pandas.Series()
-        self.ts = ts.groupby(level=0).last().sort_index()
+        self.ts = ts[~ts.index.duplicated(keep='last')]
+        if not self.ts.index.is_monotonic:
+            self.ts = self.ts.sort_index()
 
     @classmethod
     def from_data(cls, timestamps=None, values=None):
@@ -98,9 +100,11 @@ class TimeSerie(SerializableMixin):
         return self.ts[key]
 
     def set_values(self, values):
-        t = pandas.Series(*reversed(list(zip(*values)))).groupby(
-            level=0).last()
-        self.ts = t.combine_first(self.ts).sort_index()
+        t = pandas.Series(*reversed(list(zip(*values))))
+        t = t[~t.index.duplicated(keep='last')]
+        if not t.index.is_monotonic:
+            t = t.sort_index()
+        self.ts = t.combine_first(self.ts)
 
     def __len__(self):
         return len(self.ts)
@@ -469,8 +473,7 @@ class AggregatedTimeSerie(TimeSerie):
         last_timestamp = index[-1]
         # Build a new time serie excluding all data points in the range of the
         # timeserie passed as argument
-        new_ts = self.ts[:first_timestamp].combine_first(
-            self.ts[last_timestamp:])
+        new_ts = self.ts.drop(self.ts[first_timestamp:last_timestamp].index)
 
         # Build a new timeserie where we replaced the timestamp range covered
         # by the timeserie passed as argument
