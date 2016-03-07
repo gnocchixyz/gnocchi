@@ -168,7 +168,10 @@ def deserialize_and_validate(schema, required=True):
 def Timestamp(v):
     if v is None:
         return v
-    return utils.to_timestamp(v)
+    t = utils.to_timestamp(v)
+    if t < utils.unix_universal_start:
+        raise ValueError("Timestamp must be after Epoch")
+    return t
 
 
 def PositiveOrNullInt(value):
@@ -473,9 +476,10 @@ def MeasureSchema(m):
         abort(400, "Invalid input for a value")
 
     try:
-        timestamp = utils.to_timestamp(m['timestamp'])
-    except Exception:
-        abort(400, "Invalid input for a timestamp")
+        timestamp = Timestamp(m['timestamp'])
+    except Exception as e:
+        abort(400,
+              "Invalid input for timestamp `%s': %s" % (m['timestamp'], e))
 
     return storage.Measure(timestamp, value)
 
