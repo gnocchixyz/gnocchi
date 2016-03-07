@@ -168,18 +168,18 @@ def metricd():
         for worker in workers:
             worker.join()
     except KeyboardInterrupt:
-        _metricd_cleanup(workers, queues)
+        _metricd_cleanup(workers)
         sys.exit(0)
     except Exception:
         LOG.warning("exiting", exc_info=True)
-        _metricd_cleanup(workers, queues)
+        _metricd_cleanup(workers)
         sys.exit(1)
 
 
-def _metricd_cleanup(workers, queues):
-    for queue in queues:
-        queue.close()
+def _metricd_cleanup(workers):
     for worker in workers:
+        if hasattr(worker, 'queue'):
+            worker.queue.close()
         worker.terminate()
     for worker in workers:
         worker.join()
