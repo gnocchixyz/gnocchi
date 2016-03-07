@@ -166,8 +166,6 @@ def deserialize_and_validate(schema, required=True):
 
 
 def Timestamp(v):
-    if v is None:
-        return v
     t = utils.to_timestamp(v)
     if t < utils.unix_universal_start:
         raise ValueError("Timestamp must be after Epoch")
