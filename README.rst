@@ -1,5 +1,5 @@
 ===============================
- Gnocchi – Metric as a Service
+ Gnocchi - Metric as a Service
 ===============================
 
 .. image:: doc/source/gnocchi-logo.jpg
