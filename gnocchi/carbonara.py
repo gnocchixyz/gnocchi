@@ -45,6 +45,15 @@ class NoDeloreanAvailable(Exception):
             "%s is before %s" % (bad_timestamp, first_timestamp))
 
 
+class BeforeEpochError(Exception):
+    """Error raised when a timestamp before Epoch is used."""
+
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        super(BeforeEpochError, self).__init__(
+            "%s is before Epoch" % timestamp)
+
+
 class UnAggregableTimeseries(Exception):
     """Error raised when timeseries cannot be aggregated."""
     def __init__(self, reason):
@@ -473,6 +482,13 @@ class AggregatedTimeSerie(TimeSerie):
         index = ts.ts.index
         first_timestamp = index[0]
         last_timestamp = index[-1]
+
+        # NOTE(jd) Our whole serialization system is based on Epoch, and we
+        # store unsigned integer, so we can't store anything before Epoch.
+        # Sorry!
+        if first_timestamp.value < 0:
+            raise BeforeEpochError(first_timestamp)
+
         # Build a new time serie excluding all data points in the range of the
         # timeserie passed as argument
         new_ts = self.ts.drop(self.ts[first_timestamp:last_timestamp].index)
