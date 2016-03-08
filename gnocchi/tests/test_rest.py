@@ -166,8 +166,9 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         status = json.loads(r.text)
         # We are sure this is empty because we call process_measures() each
         # time we do a REST request in this TestingApp.
-        self.assertEqual({},
-                         status['storage']['measures_to_process'])
+        self.assertEqual({}, status['storage']['measures_to_process'])
+        self.assertIs(type(status['storage']['summary']['metrics']), int)
+        self.assertIs(type(status['storage']['summary']['measures']), int)
 
     @staticmethod
     def runTest():
