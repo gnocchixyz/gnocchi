@@ -25,6 +25,7 @@ import six
 from six.moves.urllib.parse import quote
 try:
     from swiftclient import client as swclient
+    from swiftclient import utils as swift_utils
 except ImportError:
     swclient = None
 
@@ -69,6 +70,9 @@ def retry_if_result_empty(result):
 
 
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):
+
+    POST_HEADERS = {'Accept': 'application/json', 'Content-Type': 'text/plain'}
+
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
         if swclient is None:
@@ -147,11 +151,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _bulk_delete(self, container, objects):
         objects = [quote(('/%s/%s' % (container, obj['name'])).encode('utf-8'))
                    for obj in objects]
-        __, body = self.swift.post_account(
-            query_string='bulk-delete',
+        headers, body = self.swift.post_account(
+            headers=self.POST_HEADERS, query_string='bulk-delete',
             data=b''.join(obj.encode('utf-8') + b'\n' for obj in objects))
-        LOG.debug('# of objects deleted: %d, # of objects skipped',
-                  body['Number Deleted'], body['Number Not Found'])
+        resp = swift_utils.parse_api_response(headers, body)
+        LOG.debug('# of objects deleted: %s, # of objects skipped: %s',
+                  resp['Number Deleted'], resp['Number Not Found'])
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric_id(metric_id)
