@@ -113,7 +113,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                                                   delimiter='/',
                                                   full_listing=True)
         metrics = len(files)
-        measures = headers.get('x-container-object-count')
+        measures = int(headers.get('x-container-object-count'))
         metric_details = defaultdict(int)
         if details:
             headers, files = self.swift.get_container(self.MEASURE_PREFIX,
