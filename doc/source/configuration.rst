@@ -185,3 +185,14 @@ installed to improve the Ceph backend performance.
 .. _`Cython`: http://cython.org/
 .. _`ctypes`: https://docs.python.org/2/library/ctypes.html
 .. _`rados.py`: https://docs.python.org/2/library/ctypes.htm://github.com/ceph/ceph/blob/hammer/src/pybind/rados.py
+
+
+Swift driver implementation details
+-----------------------------------
+
+The Swift driver leverages the bulk delete functionality provided by the bulk_
+middleware to minimise the amount of requests made to clean storage data. This
+middleware must be enabled to ensure Gnocchi functions correctly. By default,
+Swift has this middleware enabled in its pipeline.
+
+.. _bulk: http://docs.openstack.org/liberty/config-reference/content/object-storage-bulk-delete.html
