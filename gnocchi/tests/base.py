@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import functools
+import json
 import os
 import uuid
 
@@ -271,7 +272,7 @@ class FakeSwiftClient(object):
             raise swexc.ClientException("No such container",
                                         http_status=404)
 
-    def post_account(self, query_string=None, data=None):
+    def post_account(self, headers, query_string=None, data=None):
         resp = {'Response Status': '200 OK',
                 'Response Body': '',
                 'Number Deleted': 0,
@@ -285,7 +286,7 @@ class FakeSwiftClient(object):
                     resp['Number Deleted'] += 1
                 except KeyError:
                     resp['Number Not Found'] += 1
-        return {}, resp
+        return {}, json.dumps(resp).encode('utf-8')
 
 
 @six.add_metaclass(SkipNotImplementedMeta)
