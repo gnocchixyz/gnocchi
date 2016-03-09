@@ -32,7 +32,7 @@ OPTS = [
                help="How many seconds to wait between "
                "new metric measure processing"),
     cfg.IntOpt('metric_reporting_delay',
-               default=10,
+               default=60,
                help="How many seconds to wait between "
                "metric ingestion reporting"),
 ]
