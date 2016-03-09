@@ -65,14 +65,6 @@ edit the `api-paste.ini` file to add the Keystone authentication middleware::
   [pipeline:main]
   pipeline = gnocchi+auth
 
-Also, if you're planning on using `CORS`_ (e.g. to use `Grafana`_), you an also
-add the CORS middleware in the server pipeline::
-
-  [pipeline:gnocchiv1+auth]
-  pipeline = keystone_authtoken cors gnocchiv1
-
-With or without Keystone support.
-
 .. _`Paste Deployment`: http://pythonpaste.org/deploy/
 .. _`OpenStack Keystone`: http://launchpad.net/keystone
 .. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing

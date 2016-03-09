@@ -29,26 +29,16 @@ In order to use Gnocchi with Grafana in proxy mode, you just need to:
 In order to use Gnocchi with Grafana in direct mode, you need to do a few more
 steps:
 
-1. Enable the `CORS`_ middleware. This can be done easily by modifying the
-   Gnocchi `api-paste.ini` configuration file and adding `cors` into the main
-   pipeline::
-
-     [pieline:main]
-     pipeline = cors keystone_authtoken gnocchi
-
-   This will authorize your browser to make requests to Gnocchi on behalf of
-   Grafana.
-
-2. Configure the CORS middleware in `gnocchi.conf` to allow request from
+1. Configure the CORS middleware in `gnocchi.conf` to allow request from
    Grafana::
 
      [cors]
      allowed_origin = http://example.com/grafana
      allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token
 
-3. Configure the CORS middleware in Keystone in the same fashion.
+2. Configure the CORS middleware in Keystone in the same fashion.
 
-4. Configure a new datasource in Grafana with the Keystone URL, a user, a
+3. Configure a new datasource in Grafana with the Keystone URL, a user, a
    project and a password. Your browser will query Keystone for a token, and
    then query Gnocchi based on what Grafana needs.
 

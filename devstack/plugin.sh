@@ -272,14 +272,11 @@ function configure_gnocchi {
     fi
 
     if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
+        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
         if is_service_enabled gnocchi-grafana; then
-            iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline "cors gnocchi+auth"
             iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
-            iniset $GNOCCHI_CONF cors allow_methods GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH
             iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
-        else
-            iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
         fi
     else
         iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+noauth
