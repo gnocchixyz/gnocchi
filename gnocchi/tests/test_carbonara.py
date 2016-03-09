@@ -139,6 +139,17 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 from_timestamp=timeutils.parse_isotime(
                     "2014-01-01 13:00:04+01:00")))
 
+    def test_before_epoch(self):
+        ts = carbonara.AggregatedTimeSerie(sampling='1Min',
+                                           aggregation_method='74pct')
+
+        self.assertRaises(carbonara.BeforeEpochError,
+                          ts.update,
+                          carbonara.TimeSerie.from_tuples(
+                              [(datetime.datetime(1950, 1, 1, 12, 0, 0), 3),
+                               (datetime.datetime(2014, 1, 1, 12, 0, 4), 5),
+                               (datetime.datetime(2014, 1, 1, 12, 0, 9), 6)]))
+
     def test_bad_percentile(self):
         for bad_percentile in ('0pct', '100pct', '-1pct', '123pct'):
             self.assertRaises(carbonara.UnknownAggregationMethod,
