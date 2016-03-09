@@ -123,8 +123,24 @@ tests:
       response_json_paths:
         $.archive_policy.name: cookies
 
-    - name: push measurements to metric
+    - name: push measurements to metric before epoch
       url: /v1/metric/$RESPONSE['$.id']/measures
+      request_headers:
+           content-type: application/json
+      method: post
+      data:
+          - timestamp: "1915-03-06T14:33:57"
+            value: 43.1
+      status: 400
+      response_strings:
+        - Timestamp must be after Epoch
+
+    - name: get valid metric id again
+      url: /v1/metric
+      status: 200
+
+    - name: push measurements to metric
+      url: /v1/metric/$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
       method: post
