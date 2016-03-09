@@ -77,13 +77,13 @@ installed the `keystone` flavor using `pip` (see :ref:`installation`), you can
 edit the `api-paste.ini` file to add the Keystone authentication middleware::
 
   [pipeline:main]
-  pipeline = keystone_authtoken gnocchi
+  pipeline = gnocchi+auth
 
 Also, if you're planning on using `CORS`_ (e.g. to use `Grafana`_), you an also
 add the CORS middleware in the server pipeline::
 
-  [pipeline:main]
-  pipeline = keystone_authtoken cors gnocchi
+  [pipeline:gnocchiv1+auth]
+  pipeline = keystone_authtoken cors gnocchiv1
 
 With or without Keystone support.
 
