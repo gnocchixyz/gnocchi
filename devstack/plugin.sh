@@ -398,12 +398,6 @@ function start_gnocchi {
         export GNOCCHI_ENDPOINT="$(gnocchi_service_url)"
     fi
 
-    gnocchi archive-policy create -d granularity:5m,points:12 -d granularity:1h,points:24 -d granularity:1d,points:30 low
-    gnocchi archive-policy create -d granularity:60s,points:60 -d granularity:1h,points:168 -d granularity:1d,points:365 medium
-    gnocchi archive-policy create -d granularity:1s,points:86400 -d granularity:1m,points:43200 -d granularity:1h,points:8760 high
-
-    gnocchi archive-policy-rule create -a low -m "*" default
-
     # run metricd last so we are properly waiting for swift and friends
     run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
     run_process gnocchi-statsd "$GNOCCHI_BIN_DIR/gnocchi-statsd -d -v --config-file $GNOCCHI_CONF"
