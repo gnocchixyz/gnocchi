@@ -21,7 +21,7 @@ using the following commands:
 
 ::
 
-    curl -O "https://raw.githubusercontent.com/openstack/gnocchi/master/etc/gnocchi/gnocchi-config-generator.conf"
+    curl -O "https://raw.githubusercontent.com/openstack/gnocchi/master/gnocchi-config-generator.conf"
     oslo-config-generator --config-file=gnocchi-config-generator.conf --output-file=gnocchi.conf
 
 The configuration file should be pretty explicit, but here are some of the base
