@@ -161,6 +161,10 @@ It is also possible to list archive policies:
 
 It is possible to delete an archive policy if it is not used by any metric:
 
+.. note::
+   Archive policy cannot be deleted until all metrics associated with it
+   ain't removed by metricd daemon.
+
 {{ scenarios['delete-archive-policy']['doc'] }}
 
 Archive Policy Rule
