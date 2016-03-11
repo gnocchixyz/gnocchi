@@ -22,7 +22,9 @@ import time
 from oslo_config import cfg
 from oslo_utils import timeutils
 import retrying
+import six
 
+from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.rest import app
 from gnocchi import service
@@ -39,18 +41,27 @@ def upgrade():
         cfg.BoolOpt("skip-index", default=False,
                     help="Skip index upgrade."),
         cfg.BoolOpt("skip-storage", default=False,
-                    help="Skip storage upgrade.")
+                    help="Skip storage upgrade."),
+        cfg.BoolOpt("skip-archive-policies-creation", default=False,
+                    help="Skip default archive policies creation.")
     ])
     conf = service.prepare_service(conf=conf)
+    index = indexer.get_driver(conf)
+    index.connect()
     if not conf.skip_index:
-        index = indexer.get_driver(conf)
-        index.connect()
         LOG.info("Upgrading indexer %s" % index)
         index.upgrade()
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s" % s)
         s.upgrade(index)
+
+    if (not conf.skip_archive_policies_creation
+            and not index.list_archive_policies()
+            and not index.list_archive_policy_rules()):
+        for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
+            index.create_archive_policy(ap)
+        index.create_archive_policy_rule("default", "*", "low")
 
 
 def api():
