@@ -302,7 +302,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     break
                 except storage.AggregationDoesNotExist:
                     # This should not happen, but you never know.
-                    LOG.warn(
+                    LOG.warning(
                         "Metric %s does not have an archive "
                         "for aggregation %s, "
                         "no migration can be done" % (metric, agg_method))
