@@ -38,6 +38,23 @@ set -o xtrace
 GITDIR["python-gnocchiclient"]=$DEST/python-gnocchiclient
 GITREPO["python-gnocchiclient"]=${GNOCCHICLIENT_REPO:-${GIT_BASE}/openstack/python-gnocchiclient.git}
 
+if [ -z "$GNOCCHI_DEPLOY" ]; then
+    # Default
+    GNOCCHI_DEPLOY=werkzeug
+
+    # Fallback to common wsgi devstack configuration
+    if [ "$ENABLE_HTTPD_MOD_WSGI_SERVICES" == "True" ]; then
+        GNOCCHI_DEPLOY=mod_wsgi
+
+    # Deprecated config
+    elif [ -n "$GNOCCHI_USE_MOD_WSGI" ] ; then
+        echo_summary "GNOCCHI_USE_MOD_WSGI is deprecated, use GNOCCHI_DEPLOY instead"
+        if [ "$GNOCCHI_USE_MOD_WSGI" == True ]; then
+            GNOCCHI_DEPLOY=mod_wsgi
+        fi
+    fi
+fi
+
 # Functions
 # ---------
 
@@ -209,7 +226,7 @@ function _config_gnocchi_apache_wsgi {
 # cleanup_gnocchi() - Remove residual data files, anything left over from previous
 # runs that a clean run would need to clean up
 function cleanup_gnocchi {
-    if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
+    if [ "$GNOCCHI_DEPLOY" == "mod_wsgi" ]; then
         _cleanup_gnocchi_apache_wsgi
     fi
 }
@@ -226,6 +243,16 @@ function configure_gnocchi {
     # Install the configuration files
     cp $GNOCCHI_DIR/etc/gnocchi/* $GNOCCHI_CONF_DIR
 
+
+    # Set up logging
+    if [ "$SYSLOG" != "False" ]; then
+        iniset $GNOCCHI_CONF DEFAULT use_syslog "True"
+    fi
+
+    # Format logging
+    if [ "$LOG_COLOR" == "True" ] && [ "$SYSLOG" == "False" ] && [ "$GNOCCHI_DEPLOY" != "mod_wsgi" ]; then
+        setup_colorized_logging $GNOCCHI_CONF DEFAULT
+    fi
 
     if [ -n "$GNOCCHI_COORDINATOR_URL" ]; then
         iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
@@ -280,8 +307,33 @@ function configure_gnocchi {
     # Configure the indexer database
     iniset $GNOCCHI_CONF indexer url `database_connection_url gnocchi`
 
-    if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
+    if [ "$GNOCCHI_DEPLOY" == "mod_wsgi" ]; then
         _config_gnocchi_apache_wsgi
+    elif [ "$GNOCCHI_DEPLOY" == "uwsgi" ]; then
+        # iniset creates these files when it's called if they don't exist.
+        GNOCCHI_UWSGI_FILE=$GNOCCHI_CONF_DIR/gnocchi-uwsgi.ini
+
+        rm -f "$GNOCCHI_UWSGI_FILE"
+
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi http $GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi wsgi-file "$GNOCCHI_DIR/gnocchi/rest/app.wsgi"
+        # This is running standalone
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi master true
+        # Set die-on-term & exit-on-reload so that uwsgi shuts down
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi die-on-term true
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi exit-on-reload true
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi threads 32
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi processes $API_WORKERS
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi enable-threads true
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi plugins python
+        # uwsgi recommends this to prevent thundering herd on accept.
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi thunder-lock true
+        # Override the default size for headers from the 4k default.
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi buffer-size 65535
+        # Make sure the client doesn't try to re-use the connection.
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi add-header "Connection: close"
+        # Don't share rados resources and python-requests globals between processes
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi lazy-apps true
     fi
 }
 
@@ -352,8 +404,10 @@ function install_gnocchi {
     # We don't use setup_package because we don't follow openstack/requirements
     sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,${DATABASE_TYPE}${EXTRA_FLAVOR}]
 
-    if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
+    if [ "$GNOCCHI_DEPLOY" == "mod_wsgi" ]; then
         install_apache_wsgi
+    elif [ "$GNOCCHI_DEPLOY" == "uwsgi" ]; then
+        pip_install uwsgi
     fi
 
     # Create configuration directory
@@ -364,7 +418,7 @@ function install_gnocchi {
 # start_gnocchi() - Start running processes, including screen
 function start_gnocchi {
 
-    if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
+    if [ "$GNOCCHI_DEPLOY" == "mod_wsgi" ]; then
         enable_apache_site gnocchi
         restart_apache_server
         if [[ -n $GNOCCHI_SERVICE_PORT ]]; then
@@ -378,6 +432,8 @@ function start_gnocchi {
             tail_log gnocchi /var/log/$APACHE_NAME/error[_\.]log
             tail_log gnocchi-api /var/log/$APACHE_NAME/access[_\.]log
         fi
+    elif [ "$GNOCCHI_DEPLOY" == "uwsgi" ]; then
+        run_process gnocchi-api "$GNOCCHI_BIN_DIR/uwsgi $GNOCCHI_UWSGI_FILE"
     else
         run_process gnocchi-api "$GNOCCHI_BIN_DIR/gnocchi-api -d -v --config-file $GNOCCHI_CONF"
     fi
@@ -405,7 +461,7 @@ function start_gnocchi {
 
 # stop_gnocchi() - Stop running processes
 function stop_gnocchi {
-    if [ "$GNOCCHI_USE_MOD_WSGI" == "True" ]; then
+    if [ "$GNOCCHI_DEPLOY" == "mod_wsgi" ]; then
         disable_apache_site gnocchi
         restart_apache_server
     fi

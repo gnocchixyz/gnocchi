@@ -12,8 +12,12 @@ GNOCCHI_AUTH_CACHE_DIR=${GNOCCHI_AUTH_CACHE_DIR:-/var/cache/gnocchi}
 GNOCCHI_WSGI_DIR=${GNOCCHI_WSGI_DIR:-/var/www/gnocchi}
 GNOCCHI_DATA_DIR=${GNOCCHI_DATA_DIR:-${DATA_DIR}/gnocchi}
 
-# Toggle for deploying Gnocchi under HTTPD + mod_wsgi
-GNOCCHI_USE_MOD_WSGI=${GNOCCHI_USE_MOD_WSGI:-${ENABLE_HTTPD_MOD_WSGI_SERVICES}}
+# GNOCCHI_DEPLOY defines how Gnocchi is deployed, allowed values:
+# - mod_wsgi : Run Gnocchi under Apache HTTPd mod_wsgi
+# - werkzeug : Run gnocchi-api
+# - uwsgi : Run Gnocchi under uwsgi
+# - <empty>: Fallback to GNOCCHI_USE_MOD_WSGI or ENABLE_HTTPD_MOD_WSGI_SERVICES
+GNOCCHI_DEPLOY=${GNOCCHI_DEPLOY}
 
 # Support potential entry-points console scripts and venvs
 if [[ ${USE_VENV} = True ]]; then
