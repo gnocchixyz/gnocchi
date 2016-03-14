@@ -22,6 +22,7 @@ import logging
 import numbers
 import operator
 import re
+import time
 
 import iso8601
 import lz4
@@ -31,6 +32,11 @@ import six
 
 from gnocchi import utils
 
+# NOTE(sileht): pandas relies on time.strptime()
+# and often triggers http://bugs.python.org/issue7980
+# its dues to our heavy threads usage, this is the workaround
+# to ensure the module is correctly loaded before we use really it.
+time.strptime("2016-02-19", "%Y-%m-%d")
 
 LOG = logging.getLogger(__name__)
 
