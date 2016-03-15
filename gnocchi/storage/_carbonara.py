@@ -201,34 +201,21 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def _add_measures(self, aggregation, archive_policy_def,
                       metric, timeserie):
-        with timeutils.StopWatch() as sw:
-            ts = self._get_measures_timeserie(metric, aggregation,
-                                              archive_policy_def.granularity,
-                                              timeserie.first, timeserie.last)
-            LOG.debug("Retrieve measures"
-                      "for %s/%s/%s in %.2fs"
-                      % (metric.id, aggregation, archive_policy_def.
-                         granularity, sw.elapsed()))
+        ts = self._get_measures_timeserie(metric, aggregation,
+                                          archive_policy_def.granularity,
+                                          timeserie.first, timeserie.last)
         ts.update(timeserie)
-        with timeutils.StopWatch() as sw:
-            for key, split in ts.split():
-                self._store_metric_measures(metric, key, aggregation,
-                                            archive_policy_def.granularity,
-                                            split.serialize())
-            LOG.debug("Store measures for %s/%s/%s in %.2fs"
-                      % (metric.id, aggregation,
-                         archive_policy_def.granularity, sw.elapsed()))
+        for key, split in ts.split():
+            self._store_metric_measures(metric, key, aggregation,
+                                        archive_policy_def.granularity,
+                                        split.serialize())
 
         if ts.last and archive_policy_def.timespan:
-            with timeutils.StopWatch() as sw:
-                oldest_point_to_keep = ts.last - datetime.timedelta(
-                    seconds=archive_policy_def.timespan)
-                self._delete_metric_measures_before(
-                    metric, aggregation, archive_policy_def.granularity,
-                    oldest_point_to_keep)
-                LOG.debug("Expire measures for %s/%s/%s in %.2fs"
-                          % (metric.id, aggregation,
-                             archive_policy_def.granularity, sw.elapsed()))
+            oldest_point_to_keep = ts.last - datetime.timedelta(
+                seconds=archive_policy_def.timespan)
+            self._delete_metric_measures_before(
+                metric, aggregation, archive_policy_def.granularity,
+                oldest_point_to_keep)
 
     def add_measures(self, metric, measures):
         self._store_measures(metric, msgpackutils.dumps(
