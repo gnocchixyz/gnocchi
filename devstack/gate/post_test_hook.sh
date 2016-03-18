@@ -43,6 +43,9 @@ export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value
 
 curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: application/json"
 
+# Just ensure tools still works
+gnocchi metric create
+sudo -E -H -u stack $GNOCCHI_DIR/tools/measures_injector.py --metrics 1 --batch-of-measures 2 --measures-per-batch 2
 
 # Run tests
 echo "Running gnocchi functional test suite"
