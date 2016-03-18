@@ -15,6 +15,9 @@ GNOCCHI_DATA_DIR=${GNOCCHI_DATA_DIR:-${DATA_DIR}/gnocchi}
 # Toggle for deploying Gnocchi under HTTPD + mod_wsgi
 GNOCCHI_USE_MOD_WSGI=${GNOCCHI_USE_MOD_WSGI:-${ENABLE_HTTPD_MOD_WSGI_SERVICES}}
 
+# Toggle for deploying Gnocchi with/without Keystone
+GNOCCHI_USE_KEYSTONE=$(trueorfalse True GNOCCHI_USE_KEYSTONE)
+
 # Support potential entry-points console scripts and venvs
 if [[ ${USE_VENV} = True ]]; then
     PROJECT_VENV["gnocchi"]=${GNOCCHI_DIR}.venv
@@ -29,7 +32,7 @@ GNOCCHI_SERVICE_PROTOCOL=http
 # NOTE(chdent): If you are not using mod wsgi you need to set port!
 GNOCCHI_SERVICE_PORT=${GNOCCHI_SERVICE_PORT:-8041}
 GNOCCHI_SERVICE_PREFIX=${GNOCCHI_SERVICE_PREFIX:-'/metric'}
-GNOCCHI_SERVICE_HOST=$SERVICE_HOST
+GNOCCHI_SERVICE_HOST=${GNOCCHI_SERVICE_HOST:-${SERVICE_HOST}}
 
 # Gnocchi statsd info
 GNOCCHI_STATSD_RESOURCE_ID=${GNOCCHI_STATSD_RESOURCE_ID:-$(uuidgen)}

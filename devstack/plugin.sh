@@ -56,8 +56,12 @@ function is_gnocchi_enabled {
 # gnocchi_swift         gnocchi_swift  ResellerAdmin  (if Swift is enabled)
 function create_gnocchi_accounts {
     # Gnocchi
-    if is_service_enabled key && is_service_enabled gnocchi-api
-    then
+    if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] && is_service_enabled gnocchi-api ; then
+        # At this time, the /etc/openstack/clouds.yaml is available,
+        # we could leverage that by setting OS_CLOUD
+        OLD_OS_CLOUD=$OS_CLOUD
+        export OS_CLOUD='devstack-admin'
+
         create_service_user "gnocchi"
 
         local gnocchi_service=$(get_or_create_service "gnocchi" \
@@ -74,6 +78,8 @@ function create_gnocchi_accounts {
                 "$SERVICE_PASSWORD" default "gnocchi_swift@example.com")
             get_or_add_user_project_role "ResellerAdmin" $gnocchi_swift_user "gnocchi_swift"
         fi
+
+        export OS_CLOUD=$OLD_OS_CLOUD
     fi
 }
 
@@ -263,7 +269,7 @@ function configure_gnocchi {
         exit 1
     fi
 
-    if is_service_enabled key; then
+    if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
         if is_service_enabled gnocchi-grafana; then
             iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline "cors gnocchi+auth"
             iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
@@ -347,7 +353,7 @@ function install_gnocchi {
 
     install_gnocchiclient
 
-    is_service_enabled key && EXTRA_FLAVOR=,keystonmiddleware
+    [ "$GNOCCHI_USE_KEYSTONE" == "True" ] && EXTRA_FLAVOR=,keystonmiddleware
 
     # We don't use setup_package because we don't follow openstack/requirements
     sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,${DATABASE_TYPE}${EXTRA_FLAVOR}]
@@ -391,7 +397,7 @@ function start_gnocchi {
     fi
 
     # Create a default policy
-    if ! is_service_enabled key; then
+    if [ "$GNOCCHI_USE_KEYSTONE" == "False" ]; then
         export OS_AUTH_TYPE=gnocchi-noauth
         export GNOCCHI_USER_ID=`uuidgen`
         export GNOCCHI_PROJECT_ID=`uuidgen`
