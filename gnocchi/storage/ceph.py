@@ -16,6 +16,7 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import errno
 import itertools
 import logging
 import uuid
@@ -56,7 +57,6 @@ OPTS = [
 
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
-
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.pool = conf.ceph_pool
@@ -68,6 +68,11 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
         if not rados:
             raise ImportError("No module named 'rados' nor 'cradox'")
+
+        if not hasattr(rados, 'OmapIterator'):
+            raise ImportError("Your rados python module does not support "
+                              "omap feature. Upgrade 'python-rados' or "
+                              "install 'cradox'")
 
         LOG.info("Ceph storage backend use '%s' python library" %
                  RADOS_MODULE_NAME)
@@ -81,12 +86,52 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                  conf=options)
         self.rados.connect()
 
+        # NOTE(sileht): constants can't be class attributes because
+        # they rely on presence of rados module
+
+        # NOTE(sileht): We allow to read the measure object on
+        # outdated replicats, that safe for us, we will
+        # get the new stuffs on next metricd pass.
+        self.OMAP_READ_FLAGS = (rados.LIBRADOS_OPERATION_BALANCE_READS |
+                                rados.LIBRADOS_OPERATION_SKIPRWLOCKS)
+
+        # NOTE(sileht): That should be safe to manipulate the omap keys
+        # with any OSDs at the same times, each osd should replicate the
+        # new key to others and same thing for deletion.
+        # I wonder how ceph handle rm_omap and set_omap run at same time
+        # on the same key. I assume the operation are timestamped so that will
+        # be same. If not, they are still one acceptable race here, a rm_omap
+        # can finish before all replicats of set_omap are done, but we don't
+        # care, if that occurs next metricd run, will just remove it again, no
+        # object with the measure have already been delected by previous, so
+        # we are safe and good.
+        self.OMAP_WRITE_FLAGS = rados.LIBRADOS_OPERATION_SKIPRWLOCKS
+
+    def upgrade(self, index):
+        super(CephStorage, self).upgrade(index)
+
+        # Move names stored in xattrs to omap
+        with self._get_ioctx() as ioctx:
+            try:
+                xattrs = tuple(k for k, v in
+                               ioctx.get_xattrs(self.MEASURE_PREFIX))
+            except rados.ObjectNotFound:
+                return
+            with rados.WriteOpCtx() as op:
+                ioctx.set_omap(op, xattrs, xattrs)
+                ioctx.operate_write_op(op, self.MEASURE_PREFIX,
+                                       flags=self.OMAP_WRITE_FLAGS)
+
+            for xattr in xattrs:
+                ioctx.rm_xattr(self.MEASURE_PREFIX, xattr)
+
     def _store_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
         # many objects (2min for 20000 objects in 50osds cluster),
         # and enforce us to iterrate over all objects
         # So we create an object MEASURE_PREFIX, that have as
-        # xattr the list of objects to process
+        # omap the list of objects to process (not xattr because
+        # it doesn't allow to configure the locking behavior)
         name = "_".join((
             self.MEASURE_PREFIX,
             str(metric.id),
@@ -94,18 +139,19 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
         with self._get_ioctx() as ioctx:
             ioctx.write_full(name, data)
-            ioctx.set_xattr(self.MEASURE_PREFIX, name, "")
+
+            with rados.WriteOpCtx() as op:
+                ioctx.set_omap(op, (name,), ("",))
+                ioctx.operate_write_op(op, self.MEASURE_PREFIX,
+                                       flags=self.OMAP_WRITE_FLAGS)
 
     def _build_report(self, details):
         with self._get_ioctx() as ioctx:
-            try:
-                xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
-            except rados.ObjectNotFound:
-                return 0, 0, {} if details else None
+            names = self._list_object_names_to_process(ioctx)
         metrics = set()
         count = 0
         metric_details = defaultdict(int)
-        for name, __ in xattrs:
+        for name in names:
             count += 1
             metric = name.split("_")[1]
             metrics.add(metric)
@@ -113,12 +159,20 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 metric_details[metric] += 1
         return len(metrics), count, metric_details if details else None
 
-    def _list_object_names_to_process(self, ioctx, prefix):
-        try:
-            xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
-        except rados.ObjectNotFound:
-            return ()
-        return (name for name, __ in xattrs if name.startswith(prefix))
+    def _list_object_names_to_process(self, ioctx, prefix=""):
+        with rados.ReadOpCtx() as op:
+            omaps, ret = ioctx.get_omap_vals(op, "", prefix, -1)
+            ioctx.operate_read_op(
+                op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)
+            # NOTE(sileht): after reading the libradospy, I'm
+            # not sure that ret will have the correct value
+            # get_omap_vals transforms the C int to python int
+            # before operate_read_op is called, I dunno if the int
+            # content is copied during this transformation or if
+            # this is a pointer to the C int, I think it's copied...
+            if ret == errno.ENOENT:
+                return ()
+            return (k for k, v in omaps)
 
     def _pending_measures_to_process_count(self, metric_id):
         with self._get_ioctx() as ioctx:
@@ -128,17 +182,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def _list_metric_with_measures_to_process(self, block_size, full=False):
         with self._get_ioctx() as ioctx:
-            try:
-                xattrs = ioctx.get_xattrs(self.MEASURE_PREFIX)
-            except rados.ObjectNotFound:
-                return []
+            names = self._list_object_names_to_process(ioctx)
         metrics = set()
         if full:
-            objs_it = xattrs
+            objs_it = names
         else:
             objs_it = itertools.islice(
-                xattrs, block_size * self.partition, None)
-        for name, __ in objs_it:
+                names, block_size * self.partition, None)
+        for name in objs_it:
             metrics.add(name.split("_")[1])
             if full is False and len(metrics) >= block_size:
                 break
@@ -149,12 +200,15 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
             object_names = self._list_object_names_to_process(ctx,
                                                               object_prefix)
+            # Now clean objects and xattrs
+            with rados.WriteOpCtx() as op:
+                # NOTE(sileht): come on Ceph, no return code
+                # for this operation ?!!
+                ctx.remove_omap_keys(op, tuple(object_names))
+                ctx.operate_write_op(op, self.MEASURE_PREFIX,
+                                     flags=self.OMAP_WRITE_FLAGS)
+
             for n in object_names:
-                try:
-                    ctx.rm_xattr(self.MEASURE_PREFIX, n)
-                except rados.ObjectNotFound:
-                    # Another worker may have removed it, don't worry.
-                    pass
                 ctx.aio_remove(n)
 
     @contextlib.contextmanager
@@ -172,8 +226,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             yield measures
 
             # Now clean objects and xattrs
+            with rados.WriteOpCtx() as op:
+                # NOTE(sileht): come on Ceph, no return code
+                # for this operation ?!!
+                ctx.remove_omap_keys(op, tuple(object_names))
+                ctx.operate_write_op(op, self.MEASURE_PREFIX,
+                                     flags=self.OMAP_WRITE_FLAGS)
+
             for n in object_names:
-                ctx.rm_xattr(self.MEASURE_PREFIX, n)
                 ctx.aio_remove(n)
 
     def _get_ioctx(self):
