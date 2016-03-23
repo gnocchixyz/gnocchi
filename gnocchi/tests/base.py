@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import errno
 import functools
 import json
 import os
@@ -59,13 +60,53 @@ def _skip_decorator(func):
 
 
 class FakeRadosModule(object):
+    class OpCtx(object):
+        def __enter__(self):
+            self.ops = []
+            return self
+
+        def __exit__(self, *args, **kwargs):
+            pass
+
+    WriteOpCtx = ReadOpCtx = OpCtx
+
+    class OmapIterator(object):
+        class OpRetCode(object):
+            def __init__(self):
+                self.ret = 0
+
+            def __eq__(self, other):
+                return self.ret == other
+
+        def __init__(self, start_filter, prefix_filter, number):
+            self.start_filter = start_filter
+            self.prefix_filter = prefix_filter
+            self.number = number
+            self.data = {}
+            self.op_ret = self.OpRetCode()
+
+        def set_data(self, data):
+            if not data:
+                self.op_ret.ret = errno.ENOENT
+            else:
+                self.data = data
+
+        def __iter__(self):
+            # NOTE(sileht): we use only the prefix for now
+            return ((k, v) for k, v in self.data.items()
+                    if k.startswith(self.prefix_filter))
+
+    LIBRADOS_OPERATION_BALANCE_READS = 1
+    LIBRADOS_OPERATION_SKIPRWLOCKS = 16
+
     class ObjectNotFound(Exception):
         pass
 
     class ioctx(object):
-        def __init__(self, kvs, kvs_xattrs):
+        def __init__(self, kvs, kvs_xattrs, kvs_omaps):
             self.kvs = kvs
             self.kvs_xattrs = kvs_xattrs
+            self.kvs_omaps = kvs_omaps
             self.librados = self
             self.io = self
 
@@ -80,21 +121,7 @@ class FakeRadosModule(object):
             if key not in self.kvs:
                 self.kvs[key] = ""
                 self.kvs_xattrs[key] = {}
-
-        def rados_lock_exclusive(self, ctx, name, lock, locker, desc, timeval,
-                                 flags):
-            # Locking a not existing object create an empty one
-            # so, do the same in test
-            key = name.value.decode('ascii')
-            self._ensure_key_exists(key)
-            return 0
-
-        def rados_unlock(self, ctx, name, lock, locker):
-            # Locking a not existing object create an empty one
-            # so, do the same in test
-            key = name.value.decode('ascii')
-            self._ensure_key_exists(key)
-            return 0
+                self.kvs_omaps[key] = {}
 
         @staticmethod
         def close():
@@ -124,6 +151,33 @@ class FakeRadosModule(object):
             else:
                 return self.kvs[key][offset:offset+length]
 
+        def operate_read_op(self, op, key, flag=0):
+            for op in op.ops:
+                op(key)
+
+        def get_omap_vals(self, op, start_filter, prefix_filter, number):
+            oi = FakeRadosModule.OmapIterator(start_filter, prefix_filter,
+                                              number)
+            op.ops.append(lambda oid: oi.set_data(self.kvs_omaps.get(oid)))
+            return oi, oi.op_ret
+
+        def operate_write_op(self, op, key, flags=0):
+            for op in op.ops:
+                op(key)
+
+        def set_omap(self, op,  keys, values):
+            def add(oid):
+                self._ensure_key_exists(oid)
+                omaps = self.kvs_omaps.setdefault(oid, {})
+                omaps.update(dict(zip(keys, values)))
+            op.ops.append(add)
+
+        def remove_omap_keys(self, op,  keys):
+            def rm(oid):
+                for key in keys:
+                    del self.kvs_omaps[oid][key]
+            op.ops.append(rm)
+
         def get_xattrs(self, key):
             if key not in self.kvs:
                 raise FakeRadosModule.ObjectNotFound
@@ -145,16 +199,19 @@ class FakeRadosModule(object):
                 raise FakeRadosModule.ObjectNotFound
             del self.kvs[key]
             del self.kvs_xattrs[key]
+            del self.kvs_omaps[key]
 
         def aio_remove(self, key):
             self._validate_key(key)
             self.kvs.pop(key, None)
             self.kvs_xattrs.pop(key, None)
+            self.kvs_omaps.pop(key, None)
 
     class FakeRados(object):
-        def __init__(self, kvs, kvs_xattrs):
+        def __init__(self, kvs, kvs_xattrs, kvs_omaps):
             self.kvs = kvs
             self.kvs_xattrs = kvs_xattrs
+            self.kvs_omaps = kvs_omaps
 
         @staticmethod
         def connect():
@@ -165,14 +222,17 @@ class FakeRadosModule(object):
             pass
 
         def open_ioctx(self, pool):
-            return FakeRadosModule.ioctx(self.kvs, self.kvs_xattrs)
+            return FakeRadosModule.ioctx(self.kvs, self.kvs_xattrs,
+                                         self.kvs_omaps)
 
     def __init__(self):
         self.kvs = {}
         self.kvs_xattrs = {}
+        self.kvs_omaps = {}
 
     def Rados(self, *args, **kwargs):
-        return FakeRadosModule.FakeRados(self.kvs, self.kvs_xattrs)
+        return FakeRadosModule.FakeRados(self.kvs, self.kvs_xattrs,
+                                         self.kvs_omaps)
 
     @staticmethod
     def run_in_thread(method, args):
