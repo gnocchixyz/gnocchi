@@ -243,7 +243,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_metrics(self, names=None, ids=None, details=False,
                      status='active', **kwargs):
-        if ids and len(ids) == 0:
+        if ids is not None and not ids:
             return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
