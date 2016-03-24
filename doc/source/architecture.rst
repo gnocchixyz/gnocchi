@@ -37,14 +37,10 @@ Gnocchi currently offers 4 storage drivers:
 * File
 * Swift
 * Ceph (preferred)
-* InfluxDB (experimental)
 
-The first three drivers are based on an intermediate library, named
-*Carbonara*, which handles the time series manipulation, since none of these
-storage technologies handle time series natively. `InfluxDB`_ does not need
-this layer since it is itself a time series database. However, The InfluxDB
-driver is still experimental and suffers from bugs in InfluxDB itself that are
-yet to be fixed as of this writing.
+The drivers are based on an intermediate library, named *Carbonara*, which
+handles the time series manipulation, since none of these storage technologies
+handle time series natively.
 
 The three *Carbonara* based drivers are working well and are as scalable as
 their back-end technology permits. Ceph and Swift are inherently more scalable
@@ -56,8 +52,6 @@ with the file driver, you can export and share the data via NFS among all
 Gnocchi processes. In any case, it is obvious that Ceph and Swift drivers are
 largely more scalable. Ceph also offers better consistency, and hence is the
 recommended driver.
-
-.. _InfluxDB: http://influxdb.com
 
 How to plan for Gnocchi’s storage
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

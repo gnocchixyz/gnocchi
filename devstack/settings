@@ -45,11 +45,6 @@ GNOCCHI_CEPH_POOL_PGP=${GNOCCHI_CEPH_POOL_PGP:-8}
 # Gnocchi backend
 GNOCCHI_STORAGE_BACKEND=${GNOCCHI_STORAGE_BACKEND:-file}
 
-# InfluxDB Settings
-GNOCCHI_INFLUXDB_DBNAME=${GNOCCHI_INFLUXDB_DBNAME:-gnocchidevstack}
-GNOCCHI_INFLUXDB_RPM_PKG=${GNOCCHI_INFLUXDB_RPM_PKG:-https://s3.amazonaws.com/influxdb/influxdb-0.9.4.2-1.x86_64.rpm}
-GNOCCHI_INFLUXDB_DEB_PKG=${GNOCCHI_INFLUXDB_DEB_PKG:-https://s3.amazonaws.com/influxdb/influxdb_0.9.4.2_amd64.deb}
-
 # Grafana settings
 GRAFANA_RPM_PKG=${GRAFANA_RPM_PKG:-https://grafanarel.s3.amazonaws.com/builds/grafana-2.6.0-1.x86_64.rpm}
 GRAFANA_DEB_PKG=${GRAFANA_DEB_PKG:-https://grafanarel.s3.amazonaws.com/builds/grafana_2.6.0_amd64.deb}

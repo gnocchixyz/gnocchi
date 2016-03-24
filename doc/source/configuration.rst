@@ -51,7 +51,6 @@ Gnocchi provides these storage drivers:
 - File (default)
 - `Swift`_
 - `Ceph`_
-- `InfluxDB`_ (experimental)
 
 Gnocchi provides these indexer drivers:
 
@@ -62,7 +61,6 @@ Gnocchi provides these indexer drivers:
 .. _`Ceph`: http://ceph.com/
 .. _`PostgreSQL`: http://postgresql.org
 .. _`MySQL`: http://mysql.com
-.. _`InfluxDB`: http://influxdb.com
 
 Configuring the WSGI pipeline
 -----------------------------

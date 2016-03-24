@@ -45,7 +45,6 @@ The list of variants available is:
 * keystone – provides Keystone authentication support
 * mysql - provides MySQL indexer support
 * postgresql – provides PostgreSQL indexer support
-* influxdb – provides InfluxDB storage support
 * swift – provides OpenStack Swift storage support
 * ceph – provides Ceph storage support
 * file – provides file driver support

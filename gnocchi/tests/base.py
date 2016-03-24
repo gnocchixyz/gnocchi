@@ -376,20 +376,6 @@ class TestCase(base.BaseTestCase):
             self.conf.set_override('file_basepath',
                                    tempdir.path,
                                    'storage')
-        elif self.conf.storage.driver == 'influxdb':
-            self.conf.set_override('influxdb_block_until_data_ingested', True,
-                                   'storage')
-            self.conf.set_override('influxdb_database', 'test', 'storage')
-            self.conf.set_override('influxdb_password', 'root', 'storage')
-            self.conf.set_override('influxdb_port',
-                                   os.getenv("GNOCCHI_TEST_INFLUXDB_PORT",
-                                             51234), 'storage')
-            # NOTE(ityaptin) Creating unique database for every test may cause
-            # tests failing by timeout, but in may be useful in some cases
-            if os.getenv("GNOCCHI_TEST_INFLUXDB_UNIQUE_DATABASES"):
-                self.conf.set_override("influxdb_database",
-                                       "gnocchi_%s" % uuid.uuid4().hex,
-                                       'storage')
 
         self.storage = storage.get_driver(self.conf)
         # NOTE(jd) Do not upgrade the storage. We don't really need the storage
