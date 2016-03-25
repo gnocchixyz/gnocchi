@@ -37,6 +37,11 @@ OPTS = [
 _marker = object()
 
 
+class ResourceType(object):
+    def __eq__(self, other):
+        return self.name == other.name
+
+
 class Resource(object):
     def get_metric(self, metric_name):
         for m in self.metrics:
@@ -124,6 +129,14 @@ class ArchivePolicyInUse(IndexerException):
         self.archive_policy = archive_policy
 
 
+class ResourceTypeInUse(IndexerException):
+    """Error raised when an resource type is still being used."""
+    def __init__(self, resource_type):
+        super(ResourceTypeInUse, self).__init__(
+            "Resource type %s is still in use" % resource_type)
+        self.resource_type = resource_type
+
+
 class NoSuchArchivePolicyRule(IndexerException):
     """Error raised when an archive policy rule does not exist."""
     def __init__(self, archive_policy_rule):
@@ -156,6 +169,14 @@ class ResourceAlreadyExists(IndexerException):
         super(ResourceAlreadyExists, self).__init__(
             "Resource %s already exists" % resource)
         self.resource = resource
+
+
+class ResourceTypeAlreadyExists(IndexerException):
+    """Error raised when a resource type already exists."""
+    def __init__(self, resource_type):
+        super(ResourceTypeAlreadyExists, self).__init__(
+            "Resource type %s already exists" % resource_type)
+        self.resource_type = resource_type
 
 
 class ResourceAttributeError(IndexerException, AttributeError):
@@ -336,3 +357,22 @@ class IndexerDriver(object):
             if fnmatch.fnmatch(metric_name or "", rule.metric_pattern):
                 return self.get_archive_policy(rule.archive_policy_name)
         raise NoArchivePolicyRuleMatch(metric_name)
+
+    @staticmethod
+    def create_resource_type(resource_type):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_resource_type(name):
+        """Get a resource type from the indexer.
+
+        :param name: name of the resource type
+        """
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def list_resource_types(attribute_filter=None,
+                            limit=None,
+                            marker=None,
+                            sorts=None):
+        raise exceptions.NotImplementedError
