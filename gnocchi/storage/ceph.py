@@ -71,8 +71,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
         if not hasattr(rados, 'OmapIterator'):
             raise ImportError("Your rados python module does not support "
-                              "omap feature. Upgrade 'python-rados' or "
-                              "install 'cradox'")
+                              "omap feature. Install 'cradox' (recommended) "
+                              "or upgrade 'python-rados' >= 9.1.0 ")
 
         LOG.info("Ceph storage backend use '%s' python library" %
                  RADOS_MODULE_NAME)

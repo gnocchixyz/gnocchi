@@ -46,7 +46,9 @@ The list of variants available is:
 * mysql - provides MySQL indexer support
 * postgresql – provides PostgreSQL indexer support
 * swift – provides OpenStack Swift storage support
-* ceph – provides Ceph storage support
+* ceph – provides common part of Ceph storage support
+* ceph-pre-jewel – provides Ceph (<10.1.0) storage support
+* ceph-jewel-and-later – provides Ceph (>=10.1.0) storage support
 * file – provides file driver support
 * doc – documentation building support
 * test – unit and functional tests support
@@ -59,7 +61,18 @@ procedure::
 Again, depending on the drivers and features you want to use, you need to
 install extra variants using, for example::
 
-  pip install -e .[postgresql,ceph]
+  pip install -e .[postgresql,ceph,ceph-pre-jewel]
+
+
+Ceph requirements
+-----------------
+
+Gnocchi leverages omap API of librados, but this is available in python binding
+only since python-rados >= 9.1.0. To handle this, Gnocchi uses 'cradox' python
+library which has exactly the same API but works with Ceph >= 0.80.0.
+
+If Ceph and python-rados are >= 9.1.0, cradox python library becomes optional
+but is still recommended until 10.1.0.
 
 
 Initialization
