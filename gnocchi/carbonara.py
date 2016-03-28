@@ -270,6 +270,7 @@ class BoundTimeSerie(TimeSerie):
     def _first_block_timestamp(self):
         rounded = self._round_timestamp(self.ts.index[-1],
                                         self.block_size.delta.value)
+
         return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
@@ -644,8 +645,7 @@ class TimeSerieArchive(SerializableMixin):
              for sampling, size in definitions]
         )
 
-    def fetch(self, from_timestamp=None, to_timestamp=None,
-              timeserie_filter=None):
+    def fetch(self, from_timestamp=None, to_timestamp=None):
         """Fetch aggregated time value.
 
         Returns a sorted list of tuples (timestamp, granularity, value).
@@ -653,8 +653,6 @@ class TimeSerieArchive(SerializableMixin):
         result = []
         end_timestamp = to_timestamp
         for ts in reversed(self.agg_timeseries):
-            if timeserie_filter and not timeserie_filter(ts):
-                continue
             points = ts[from_timestamp:to_timestamp]
             try:
                 # Do not include stop timestamp
