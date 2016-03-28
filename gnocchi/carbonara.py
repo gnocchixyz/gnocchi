@@ -341,14 +341,8 @@ class AggregatedTimeSerie(TimeSerie):
     def split(self):
         groupby = self.ts.groupby(functools.partial(
             self.get_split_key_datetime, sampling=self.sampling))
-        keys = sorted(groupby.groups.keys())
-        for i, ts in enumerate(keys):
-            if i + 1 == len(keys):
-                yield self._split_key_to_string(ts), TimeSerie(self.ts[ts:])
-            elif i + 1 < len(keys):
-                t = self.ts[ts:keys[i + 1]]
-                del t[t.index[-1]]
-                yield self._split_key_to_string(ts), TimeSerie(t)
+        for group, ts in groupby:
+            yield self._split_key_to_string(group), TimeSerie(ts)
 
     @classmethod
     def from_timeseries(cls, timeseries, sampling, aggregation_method,
