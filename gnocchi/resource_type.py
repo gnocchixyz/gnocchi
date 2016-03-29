@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import numbers
 import re
 import six
 import stevedore
@@ -57,7 +58,10 @@ class CommonAttributeSchema(object):
             voluptuous.Required('type'): cls.typename,
             voluptuous.Required('required', default=True): bool
         }
-        d.update(cls.meta_schema_ext)
+        if callable(cls.meta_schema_ext):
+            d.update(cls.meta_schema_ext())
+        else:
+            d.update(cls.meta_schema_ext)
         return d
 
     def schema(self):
@@ -104,6 +108,34 @@ class StringSchema(CommonAttributeSchema):
 class UUIDSchema(CommonAttributeSchema):
     typename = "uuid"
     schema_ext = staticmethod(utils.UUID)
+
+
+class NumberSchema(CommonAttributeSchema):
+    typename = "number"
+
+    def __init__(self, min, max, *args, **kwargs):
+        super(NumberSchema, self).__init__(*args, **kwargs)
+        self.min = min
+        self.max = max
+
+    # TODO(sileht): ensure min_length <= max_length
+    meta_schema_ext = {
+        voluptuous.Required('min', default=None): voluptuous.Any(
+            None, numbers.Real),
+        voluptuous.Required('max', default=None): voluptuous.Any(
+            None, numbers.Real)
+    }
+
+    @property
+    def schema_ext(self):
+        return voluptuous.All(numbers.Real,
+                              voluptuous.Range(min=self.min,
+                                               max=self.max))
+
+    def jsonify(self):
+        d = super(NumberSchema, self).jsonify()
+        d.update({"min": self.min, "max": self.max})
+        return d
 
 
 class ResourceTypeAttributes(list):
