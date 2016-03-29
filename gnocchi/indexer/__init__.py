@@ -37,11 +37,6 @@ OPTS = [
 _marker = object()
 
 
-class ResourceType(object):
-    def __eq__(self, other):
-        return self.name == other.name
-
-
 class Resource(object):
     def get_metric(self, metric_name):
         for m in self.metrics:
@@ -375,4 +370,12 @@ class IndexerDriver(object):
                             limit=None,
                             marker=None,
                             sorts=None):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_resource_attributes_schemas():
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_resource_type_schema():
         raise exceptions.NotImplementedError

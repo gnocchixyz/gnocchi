@@ -31,6 +31,7 @@ from gnocchi import aggregates
 from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi import json
+from gnocchi import resource_type
 from gnocchi import storage
 from gnocchi import utils
 
@@ -813,16 +814,16 @@ class ResourceTypeController(rest.RestController):
     @pecan.expose('json')
     def get(self):
         try:
-            resource_type = pecan.request.indexer.get_resource_type(self._name)
+            rt = pecan.request.indexer.get_resource_type(self._name)
         except indexer.NoSuchResourceType as e:
             abort(404, e)
-        enforce("get resource type", resource_type)
-        return resource_type
+        enforce("get resource type", rt)
+        return rt
 
     @pecan.expose()
     def delete(self):
         try:
-            resource_type = pecan.request.indexer.get_resource_type(self._name)
+            pecan.request.indexer.get_resource_type(self._name)
         except indexer.NoSuchResourceType as e:
             abort(404, e)
         enforce("delete resource type", resource_type)
@@ -833,13 +834,6 @@ class ResourceTypeController(rest.RestController):
             abort(400, e)
 
 
-def ResourceTypeSchema(definition):
-    # FIXME(sileht): Add resource type attributes from the indexer
-    return voluptuous.Schema({
-        "name": six.text_type,
-    })(definition)
-
-
 class ResourceTypesController(rest.RestController):
 
     @pecan.expose()
@@ -848,15 +842,17 @@ class ResourceTypesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
-        body = deserialize_and_validate(ResourceTypeSchema)
+        schema = pecan.request.indexer.get_resource_type_schema()
+        body = deserialize_and_validate(schema)
+        rt = schema.resource_type_from_dict(**body)
         enforce("create resource type", body)
         try:
-            resource_type = pecan.request.indexer.create_resource_type(**body)
+            rt = pecan.request.indexer.create_resource_type(rt)
         except indexer.ResourceTypeAlreadyExists as e:
             abort(409, e)
-        set_resp_location_hdr("/resource_type/" + resource_type.name)
+        set_resp_location_hdr("/resource_type/" + rt.name)
         pecan.response.status = 201
-        return resource_type
+        return rt
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
@@ -1016,8 +1012,8 @@ def schema_for(resource_type):
         # TODO(sileht): Remove this legacy resource schema loading
         return RESOURCE_SCHEMA_MANAGER[resource_type].plugin
     else:
-        # TODO(sileht): Load schema from indexer
-        return GenericSchema
+        resource_type = pecan.request.indexer.get_resource_type(resource_type)
+        return ResourceSchema(resource_type.schema)
 
 
 def ResourceID(value):
