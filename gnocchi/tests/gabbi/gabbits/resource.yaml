@@ -198,7 +198,8 @@ tests:
           host: compute1
       status: 400
       response_strings:
-          - "Invalid input: required key not provided @ data['display_name']"
+          - "Invalid input: required key not provided @ data["
+          - "'display_name']"
 
     - name: post instance resource
       url: /v1/resource/instance
