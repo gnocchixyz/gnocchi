@@ -73,3 +73,7 @@ class StringSchema(resource_type.StringSchema):
     @property
     def satype(self):
         return sqlalchemy.String(self.max_length)
+
+
+class UUIDSchema(resource_type.UUIDSchema):
+    satype = sqlalchemy_utils.UUIDType()

@@ -567,13 +567,6 @@ class MetricController(rest.RestController):
             abort(404, e)
 
 
-def UUID(value):
-    try:
-        return uuid.UUID(value)
-    except Exception as e:
-        raise ValueError(e)
-
-
 class MetricsController(rest.RestController):
 
     @pecan.expose()
@@ -674,7 +667,7 @@ class MetricsController(rest.RestController):
 
 
 _MetricsSchema = voluptuous.Schema({
-    six.text_type: voluptuous.Any(UUID,
+    six.text_type: voluptuous.Any(utils.UUID,
                                   MetricsController.MetricSchema),
 })
 
@@ -959,12 +952,12 @@ GenericSchema = ResourceSchema({})
 
 InstanceDiskSchema = ResourceSchema({
     "name": six.text_type,
-    "instance_id": UUID,
+    "instance_id": utils.UUID,
 })
 
 InstanceNetworkInterfaceSchema = ResourceSchema({
     "name": six.text_type,
-    "instance_id": UUID,
+    "instance_id": utils.UUID,
 })
 
 InstanceSchema = ResourceSchema({
@@ -1324,7 +1317,7 @@ class MetricsMeasuresBatchController(rest.RestController):
     # only the last key will be retain by json python module to
     # build the python dict.
     MeasuresBatchSchema = voluptuous.Schema(
-        {UUID: [MeasureSchema]}
+        {utils.UUID: [MeasureSchema]}
     )
 
     @pecan.expose()
