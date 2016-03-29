@@ -77,6 +77,9 @@ tests:
                   type: number
                   required: false
                   min: -2.3
+              bool:
+                  type: bool
+                  required: false
       status: 201
       response_json_paths:
           $.name: my_custom_resource
@@ -104,6 +107,9 @@ tests:
                   required: false
                   min: -2.3
                   max:
+              bool:
+                  type: bool
+                  required: false
 
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
