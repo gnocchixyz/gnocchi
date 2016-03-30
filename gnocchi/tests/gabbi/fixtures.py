@@ -111,7 +111,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         index = indexer.get_driver(conf)
         index.connect()
-        index.upgrade()
+        index.upgrade(create_legacy_resource_types=True)
 
         conf.set_override('pecan_debug', False, 'api')
 

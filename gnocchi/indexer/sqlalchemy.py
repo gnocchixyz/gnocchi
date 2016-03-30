@@ -197,7 +197,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def get_engine(self):
         return self.facade.get_engine()
 
-    def upgrade(self, nocreate=False):
+    def upgrade(self, nocreate=False, create_legacy_resource_types=False):
         from alembic import command
         from alembic import migration
 
@@ -219,6 +219,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # we must create a rt_generic and rt_generic_history table
         # like other type
         for rt in base.get_legacy_resource_types():
+            if not (rt.name == "generic" or create_legacy_resource_types):
+                continue
             try:
                 with self.facade.writer() as session:
                     session.add(rt)
