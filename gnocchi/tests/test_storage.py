@@ -21,6 +21,7 @@ from oslo_utils import timeutils
 from oslotest import base
 import six.moves
 
+from gnocchi import carbonara
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 from gnocchi.storage import null
@@ -112,26 +113,46 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(3661, len(self.storage.get_measures(m)))
 
     @mock.patch('gnocchi.carbonara.AggregatedTimeSerie.POINTS_PER_SPLIT', 48)
-    def test_add_measures_big_update_subset(self):
+    def test_add_measures_update_subset_split(self):
         m, m_sql = self._create_metric('medium')
         measures = [
-            storage.Measure(datetime.datetime(2014, 1, i, j, 0, 0), 100)
-            for i in six.moves.range(1, 6) for j in six.moves.range(0, 24)]
-        measures.append(
-            storage.Measure(datetime.datetime(2014, 1, 6, 0, 0, 0), 100))
+            storage.Measure(datetime.datetime(2014, 1, 6, i, j, 0), 100)
+            for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
         self.storage.add_measures(m, measures)
         self.storage.process_background_tasks(self.index, sync=True)
 
+        # add measure to end, in same aggregate time as last point.
         self.storage.add_measures(m, [
-            storage.Measure(datetime.datetime(2014, 1, 6, 1, 0, 0), 100)])
+            storage.Measure(datetime.datetime(2014, 1, 6, 1, 58, 1), 100)])
 
         with mock.patch.object(self.storage, '_store_metric_measures') as c:
+            # should only resample last aggregate
             self.storage.process_background_tasks(self.index, sync=True)
         count = 0
         for call in c.mock_calls:
-            if mock.call(m_sql, mock.ANY, 'mean', 3600.0, mock.ANY) == call:
+            # policy is 60 points and split is 48. should only update 2nd half
+            if mock.call(m_sql, mock.ANY, 'mean', 60.0, mock.ANY) == call:
                 count += 1
         self.assertEqual(1, count)
+
+    def test_add_measures_update_subset(self):
+        m, m_sql = self._create_metric('medium')
+        measures = [
+            storage.Measure(datetime.datetime(2014, 1, 6, i, j, 0), 100)
+            for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
+        self.storage.add_measures(m, measures)
+        self.storage.process_background_tasks(self.index, sync=True)
+
+        # add measure to end, in same aggregate time as last point.
+        new_point = datetime.datetime(2014, 1, 6, 1, 58, 1)
+        self.storage.add_measures(m, [storage.Measure(new_point, 100)])
+
+        with mock.patch.object(self.storage, '_add_measures') as c:
+            self.storage.process_background_tasks(self.index, sync=True)
+        for __, args, __ in c.mock_calls:
+            self.assertEqual(
+                args[3].first, carbonara.TimeSerie.round_timestamp(
+                    new_point, args[1].granularity * 10e8))
 
     def test_delete_old_measures(self):
         self.storage.add_measures(self.metric, [

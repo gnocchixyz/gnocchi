@@ -156,7 +156,7 @@ class TimeSerie(SerializableMixin):
             return value.nanos / 10e8
 
     @staticmethod
-    def _round_timestamp(ts, freq):
+    def round_timestamp(ts, freq):
         return pandas.Timestamp(
             (pandas.Timestamp(ts).value // freq) * freq)
 
@@ -217,8 +217,8 @@ class BoundTimeSerie(TimeSerie):
 
     def set_values(self, values, before_truncate_callback=None,
                    ignore_too_old_timestamps=False):
+        # NOTE: values must be sorted when passed in.
         if self.block_size is not None and not self.ts.empty:
-            values = sorted(values, key=operator.itemgetter(0))
             first_block_timestamp = self._first_block_timestamp()
             if ignore_too_old_timestamps:
                 for index, (timestamp, value) in enumerate(values):
@@ -262,8 +262,8 @@ class BoundTimeSerie(TimeSerie):
         return basic
 
     def _first_block_timestamp(self):
-        rounded = self._round_timestamp(self.ts.index[-1],
-                                        self.block_size.delta.value)
+        rounded = self.round_timestamp(self.ts.index[-1],
+                                       self.block_size.delta.value)
         return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
@@ -315,7 +315,7 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
     def get_split_key_datetime(cls, timestamp, sampling):
-        return cls._round_timestamp(
+        return cls.round_timestamp(
             timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8)
 
     @staticmethod
@@ -444,7 +444,7 @@ class AggregatedTimeSerie(TimeSerie):
         # Group by the sampling, and then apply the aggregation method on
         # the points after `after'
         groupedby = self.ts[after:].groupby(
-            functools.partial(self._round_timestamp,
+            functools.partial(self.round_timestamp,
                               freq=self.sampling * 10e8))
         agg_func = getattr(groupedby, self.aggregation_method_func_name)
         if self.aggregation_method_func_name == 'quantile':
@@ -466,7 +466,7 @@ class AggregatedTimeSerie(TimeSerie):
         if from_timestamp is None:
             from_ = None
         else:
-            from_ = self._round_timestamp(from_timestamp, self.sampling * 10e8)
+            from_ = self.round_timestamp(from_timestamp, self.sampling * 10e8)
         points = self[from_:to_timestamp]
         try:
             # Do not include stop timestamp

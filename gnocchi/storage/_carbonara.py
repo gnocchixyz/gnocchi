@@ -18,6 +18,7 @@ import collections
 import datetime
 import logging
 import multiprocessing
+import operator
 import threading
 import time
 import uuid
@@ -355,6 +356,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                       % metric)
                             continue
 
+                        measures = sorted(measures, key=operator.itemgetter(0))
                         try:
                             with timeutils.StopWatch() as sw:
                                 raw_measures = (
@@ -393,9 +395,17 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 back_window=metric.archive_policy.back_window)
 
                         def _map_add_measures(bound_timeserie):
+                            # NOTE (gordc): bound_timeserie is entire set of
+                            # unaggregated measures matching largest
+                            # granularity. the following takes only the points
+                            # affected by new measures for specific granularity
+                            tstamp = max(bound_timeserie.first, measures[0][0])
                             self._map_in_thread(
                                 self._add_measures,
-                                ((aggregation, d, metric, bound_timeserie)
+                                ((aggregation, d, metric,
+                                  carbonara.TimeSerie(bound_timeserie.ts[
+                                      carbonara.TimeSerie.round_timestamp(
+                                          tstamp, d.granularity * 10e8):]))
                                  for aggregation in agg_methods
                                  for d in metric.archive_policy.definition))
 
