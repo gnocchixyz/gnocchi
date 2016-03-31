@@ -318,7 +318,7 @@ function configure_ceph_gnocchi {
         sudo ceph -c ${CEPH_CONF_FILE} osd pool set ${GNOCCHI_CEPH_POOL} crush_ruleset ${RULE_ID}
 
     fi
-    sudo ceph -c ${CEPH_CONF_FILE} auth get-or-create client.${GNOCCHI_CEPH_USER} mon "allow r" osd "allow class-read object_prefix rbd_children, allow rwx pool=${GNOCCHI_CEPH_POOL}" | sudo tee ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
+    sudo ceph -c ${CEPH_CONF_FILE} auth get-or-create client.${GNOCCHI_CEPH_USER} mon "allow r" osd "allow rwx pool=${GNOCCHI_CEPH_POOL}" | sudo tee ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
     sudo chown ${STACK_USER}:$(id -g -n $whoami) ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring
 }
 
