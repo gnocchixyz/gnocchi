@@ -65,6 +65,19 @@ function is_gnocchi_enabled {
     return 1
 }
 
+# Test if a Ceph services are enabled
+# _is_ceph_enabled
+function _is_ceph_enabled {
+    if is_service_enabled ceph; then
+        # Old ceph setup
+        return 0
+    elif type is_ceph_enabled_for_service >/dev/null 2>&1; then
+        # New devstack-plugin-ceph
+        return 0
+    fi
+    return 1
+}
+
 # create_gnocchi_accounts() - Set up common required gnocchi accounts
 
 # Project              User            Roles
@@ -243,7 +256,7 @@ function configure_gnocchi {
     fi
 
     # Configure the storage driver
-    if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
+    if _is_ceph_enabled && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
         iniset $GNOCCHI_CONF storage driver ceph
         iniset $GNOCCHI_CONF storage ceph_username ${GNOCCHI_CEPH_USER}
         iniset $GNOCCHI_CONF storage ceph_secret $(awk '/key/{print $3}' ${CEPH_CONF_DIR}/ceph.client.${GNOCCHI_CEPH_USER}.keyring)
@@ -457,7 +470,7 @@ if is_service_enabled gnocchi-api; then
         echo_summary "Configuring Gnocchi"
         configure_gnocchi
         create_gnocchi_accounts
-        if is_service_enabled ceph && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
+        if _is_ceph_enabled && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
             configure_ceph_gnocchi
         fi
