@@ -1,3 +1,4 @@
+pbr
 numpy
 oslo.config>=2.6.0
 oslo.log>=1.0.0
