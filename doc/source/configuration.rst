@@ -127,8 +127,8 @@ Ceph driver implementation details
 Each batch of measurements to process is stored into one rados object.
 These objects are named `measures_<metric_id>_<random_uuid>_<timestamp>`
 
-Also a special empty object called `measures` has the list of measures to
-process stored in its xattr attributes.
+Also a special empty object called `measure` has the list of measures to
+process stored in its omap attributes.
 
 Because of the asynchronous nature of how we store measurements in Gnocchi,
 `gnocchi-metricd` needs to know the list of objects that are waiting to be
@@ -139,11 +139,12 @@ processed:
 - Using a custom format into a rados object, would force us to use a lock
   each time we would change it.
 
-Instead, the xattrs of one empty rados object are used. No lock is needed to
-add/remove a xattr.
+Instead, the omaps of one empty rados object are used. No lock is needed to
+add/remove a omap attribute.
 
-But depending on the filesystem used by ceph OSDs, this xattrs can have a
-limitation in terms of numbers and size if Ceph is not correctly configured.
+Also xattrs attributes are used to store the list of aggregations used for a
+metric. So depending on the filesystem used by ceph OSDs, xattrs can have
+a limitation in terms of numbers and size if Ceph is not correctly configured.
 See `Ceph extended attributes documentation`_ for more details.
 
 Then, each Carbonara generated file is stored in *one* rados object.
