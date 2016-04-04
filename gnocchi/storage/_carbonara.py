@@ -324,8 +324,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # NOTE(jd): We need to lock the metric otherwise we might delete
             # measures that another worker might be processing. Deleting
             # measurement files under its feet is not nice!
-            with self._lock(metric_id)(blocking=sync):
-                self._delete_unprocessed_measures_for_metric_id(metric_id)
+            try:
+                with self._lock(metric_id)(blocking=sync):
+                    self._delete_unprocessed_measures_for_metric_id(metric_id)
+            except coordination.LockAcquireFailed:
+                LOG.debug("Cannot acquire lock for metric %s, postponing"
+                          "unprocessed measures deletion" % metric_id)
         for metric in metrics:
             lock = self._lock(metric.id)
             agg_methods = list(metric.archive_policy.aggregation_methods)
