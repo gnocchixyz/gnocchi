@@ -305,8 +305,6 @@ tests:
           $.uuid: e495ebad-be64-46c0-81d6-b079beb48df9
           $.int:
 
-# Ensure we can't delete the type
-
     - name: list resource history
       GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
       request_headers:
@@ -319,6 +317,131 @@ tests:
           $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $[1].name: foo
           $[1].foobar: what
+
+# CRUD resource type attributes
+
+    - name: post a new resource attribute
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/newstuff
+          value:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+      status: 200
+      response_json_paths:
+          $.name: my_custom_resource
+          $.attributes:
+              name:
+                  type: string
+                  required: True
+                  min_length: 2
+                  max_length: 5
+              foobar:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              uuid:
+                  type: uuid
+                  required: True
+              int:
+                  type: number
+                  required: False
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
+                  max:
+              bool:
+                  type: bool
+                  required: false
+              newstuff:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+
+    - name: get the new custom resource type
+      url: /v1/resource_type/my_custom_resource
+      response_json_paths:
+          $.name: my_custom_resource
+          $.attributes:
+              name:
+                  type: string
+                  required: True
+                  min_length: 2
+                  max_length: 5
+              foobar:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              uuid:
+                  type: uuid
+                  required: True
+              int:
+                  type: number
+                  required: False
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
+                  max:
+              bool:
+                  type: bool
+                  required: false
+              newstuff:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+
+# Invalid patch
+
+    - name: patch a resource attribute replace
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: replace
+          path: /attributes/newstuff
+          value:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+      status: 400
+
+    - name: patch a resource attribute type not exist
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/newstuff
+          value:
+            type: notexist
+            required: False
+            min_length: 0
+            max_length: 255
+      status: 400
+
+# Ensure we can't delete the type
 
     - name: delete in use resource_type
       DELETE: /v1/resource_type/my_custom_resource

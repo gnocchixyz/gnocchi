@@ -17,6 +17,7 @@
 import itertools
 import uuid
 
+import jsonpatch
 from oslo_utils import strutils
 import pecan
 from pecan import rest
@@ -146,10 +147,13 @@ def set_resp_location_hdr(location):
     pecan.response.headers['Location'] = location
 
 
-def deserialize():
+def deserialize(expected_content_types=None):
+    if expected_content_types is None:
+        expected_content_types = ("application/json", )
+
     mime_type, options = werkzeug.http.parse_options_header(
         pecan.request.headers.get('Content-Type'))
-    if mime_type != "application/json":
+    if mime_type not in expected_content_types:
         abort(415)
     try:
         params = json.load(pecan.request.body_file_raw,
@@ -159,10 +163,11 @@ def deserialize():
     return params
 
 
-def deserialize_and_validate(schema, required=True):
+def deserialize_and_validate(schema, required=True,
+                             expected_content_types=None):
     try:
         return voluptuous.Schema(schema, required=required)(
-            deserialize())
+            deserialize(expected_content_types=expected_content_types))
     except voluptuous.Error as e:
         abort(400, "Invalid input: %s" % e)
 
@@ -747,6 +752,20 @@ def etag_set_headers(obj):
     pecan.response.last_modified = obj.lastmodified
 
 
+def AttributesPath(value):
+    if value.startswith("/attributes"):
+        return value
+    raise ValueError("Only attributes can be modified")
+
+
+# TODO(sileht): Implements delete op
+ResourceTypeJsonPatchSchema = voluptuous.Schema([{
+    "op": "add",
+    "path": AttributesPath,
+    "value": dict,
+}])
+
+
 class ResourceTypeController(rest.RestController):
     def __init__(self, name):
         self._name = name
@@ -759,6 +778,61 @@ class ResourceTypeController(rest.RestController):
             abort(404, e)
         enforce("get resource type", rt)
         return rt
+
+    @pecan.expose('json')
+    def patch(self):
+        # NOTE(sileht): should we check for "application/json-patch+json"
+        # Content-Type ?
+
+        try:
+            rt = pecan.request.indexer.get_resource_type(self._name)
+        except indexer.NoSuchResourceType as e:
+            abort(404, e)
+        enforce("update resource type", rt)
+
+        # Ensure this is a valid jsonpatch dict
+        patch = deserialize_and_validate(
+            ResourceTypeJsonPatchSchema,
+            expected_content_types=["application/json-patch+json"])
+
+        # Add new attributes to the resource type
+        rt_json_current = rt.jsonify()
+        try:
+            rt_json_next = jsonpatch.apply_patch(rt_json_current, patch)
+        except jsonpatch.JsonPatchException as e:
+            abort(400, e)
+        del rt_json_next['state']
+
+        # Validate that the whole new resource_type is valid
+        schema = pecan.request.indexer.get_resource_type_schema()
+        try:
+            rt_json_next = voluptuous.Schema(schema, required=True)(
+                rt_json_next)
+        except voluptuous.Error as e:
+            abort(400, "Invalid input: %s" % e)
+
+        # Get only newly formatted attributes
+        attrs = {k: v for k, v in rt_json_next["attributes"].items()
+                 if k not in rt_json_current["attributes"]}
+
+        try:
+            attrs = schema.attributes_from_dict(attrs)
+        except resource_type.InvalidResourceAttributeName as e:
+            abort(400, e)
+
+        # TODO(sileht): Add a default field on an attribute
+        # to be able to fill non-nullable column on sql side.
+        # And obviousy remove this limitation
+        for attr in attrs:
+            if attr.required:
+                abort(400, ValueError("Adding required attributes is not yet "
+                                      "possible."))
+
+        try:
+            return pecan.request.indexer.update_resource_type(
+                self._name, add_attributes=attrs)
+        except indexer.NoSuchResourceType as e:
+                abort(400, e)
 
     @pecan.expose()
     def delete(self):

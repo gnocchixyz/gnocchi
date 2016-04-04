@@ -368,6 +368,10 @@ It can also be deleted if no more resources are associated to it:
 
 {{ scenarios['delete-resource-type']['doc'] }}
 
+Attributes can be added:
+
+{{ scenarios['patch-resource-type']['doc'] }}
+
 Creating resource type means creation of new tables on the indexer backend.
 This is heavy operation that will lock some tables for a short amount of times.
 When the resource type is created, its initial `state` is `creating`. When the

@@ -1,0 +1,7 @@
+---
+features:
+  - |-
+    a new REST API endpoint have been added to be able
+    to update a resource-type: "PATCH /v1/resource-type/foobar"
+    The expected payload is in RFC6902 format. Some examples
+    can be found in the documentation.

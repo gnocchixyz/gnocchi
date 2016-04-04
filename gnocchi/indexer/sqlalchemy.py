@@ -20,6 +20,8 @@ import os.path
 import threading
 import uuid
 
+from alembic import migration
+from alembic import operations
 import oslo_db.api
 from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
@@ -106,8 +108,10 @@ class PerInstanceFacade(object):
 
 class ResourceClassMapper(object):
     def __init__(self):
+        # FIXME(sileht): 3 attributes, perhaps we need a better structure.
         self._cache = {'generic': {'resource': base.Resource,
-                                   'history': base.ResourceHistory}}
+                                   'history': base.ResourceHistory,
+                                   'updated_at': utils.utcnow()}}
 
     @staticmethod
     def _build_class_mappers(resource_type, baseclass=None):
@@ -127,14 +131,24 @@ class ResourceClassMapper(object):
             {"__tablename__": ("%s_history" % tablename),
              "__table_args__": tables_args})
         return {'resource': resource_ext,
-                'history': resource_history_ext}
+                'history': resource_history_ext,
+                'updated_at': resource_type.updated_at}
 
     def get_classes(self, resource_type):
         # NOTE(sileht): We don't care about concurrency here because we allow
         # sqlalchemy to override its global object with extend_existing=True
         # this is safe because classname and tablename are uuid.
         try:
-            return self._cache[resource_type.tablename]
+            mappers = self._cache[resource_type.tablename]
+            # Cache is outdated
+            if (resource_type.name != "generic"
+                    and resource_type.updated_at > mappers['updated_at']):
+                for table_purpose in ['resource', 'history']:
+                    Base.metadata.remove(Base.metadata.tables[
+                        mappers[table_purpose].__tablename__])
+                del self._cache[resource_type.tablename]
+                raise KeyError
+            return mappers
         except KeyError:
             mapper = self._build_class_mappers(resource_type)
             self._cache[resource_type.tablename] = mapper
@@ -147,8 +161,8 @@ class ResourceClassMapper(object):
                                "creating")
 
         mappers = self.get_classes(resource_type)
-        tables = [Base.metadata.tables[klass.__tablename__]
-                  for klass in mappers.values()]
+        tables = [Base.metadata.tables[mappers["resource"].__tablename__],
+                  Base.metadata.tables[mappers["history"].__tablename__]]
 
         try:
             with facade.writer_connection() as connection:
@@ -187,8 +201,8 @@ class ResourceClassMapper(object):
         mappers = self.get_classes(resource_type)
         del self._cache[resource_type.tablename]
 
-        tables = [Base.metadata.tables[klass.__tablename__]
-                  for klass in mappers.values()]
+        tables = [Base.metadata.tables[mappers['resource'].__tablename__],
+                  Base.metadata.tables[mappers['history'].__tablename__]]
 
         # NOTE(sileht): Base.metadata.drop_all doesn't
         # issue CASCADE stuffs correctly at least on postgresql
@@ -376,6 +390,48 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         resource_type.state = "active"
         return resource_type
 
+    def update_resource_type(self, name, add_attributes=None):
+        if not add_attributes:
+            return
+        self._set_resource_type_state(name, "updating", "active")
+
+        try:
+            with self.facade.independent_writer() as session:
+                rt = self._get_resource_type(session, name)
+
+                with self.facade.writer_connection() as connection:
+                    ctx = migration.MigrationContext.configure(connection)
+                    op = operations.Operations(ctx)
+                    with op.batch_alter_table(rt.tablename) as batch_op:
+                        for attr in add_attributes:
+                            # TODO(sileht): When attr.required is True, we have
+                            # to pass a default. rest layer current protect us,
+                            # requied = True is not yet allowed
+                            batch_op.add_column(sqlalchemy.Column(
+                                attr.name, attr.satype,
+                                nullable=not attr.required))
+
+                rt.state = "active"
+                rt.updated_at = utils.utcnow()
+                rt.attributes.extend(add_attributes)
+                # FIXME(sileht): yeah that's wierd but attributes is a custom
+                # json column and 'extend' doesn't trigger sql update, this
+                # enforce the update. I wonder if sqlalchemy provides something
+                # on column description side.
+                sqlalchemy.orm.attributes.flag_modified(rt, 'attributes')
+
+        except Exception:
+            # NOTE(sileht): We fail the DDL, we have no way to automatically
+            # recover, just set a particular state
+            # TODO(sileht): Create a repair REST endpoint that delete
+            # columns not existing in the database but in the resource type
+            # description. This will allow to pass wrong update_error to active
+            # state, that currently not possible.
+            self._set_resource_type_state(name, "updating_error")
+            raise
+
+        return rt
+
     def get_resource_type(self, name):
         with self.facade.independent_reader() as session:
             return self._get_resource_type(session, name)
@@ -387,12 +443,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return resource_type
 
     @retry_on_deadlock
-    def _set_resource_type_state(self, name, state):
+    def _set_resource_type_state(self, name, state,
+                                 expected_previous_state=None):
         with self.facade.writer() as session:
             q = session.query(ResourceType)
             q = q.filter(ResourceType.name == name)
+            if expected_previous_state is not None:
+                q = q.filter(ResourceType.state == expected_previous_state)
             update = q.update({'state': state})
             if update == 0:
+                if expected_previous_state is not None:
+                    rt = session.query(ResourceType).get(name)
+                    if rt:
+                        raise indexer.UnexpectedResourceTypeState(
+                            name, expected_previous_state, rt.state)
                 raise indexer.IndexerException(
                     "Fail to set resource type state of %s to %s" %
                     (name, state))
@@ -474,7 +538,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         self._delete_resource_type(name)
 
-    def _resource_type_to_classes(self, session, name):
+    def _resource_type_to_mappers(self, session, name):
         resource_type = self._get_resource_type(session, name)
         if resource_type.state != "active":
             raise indexer.UnexpectedResourceTypeState(
@@ -642,7 +706,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise ValueError(
                 "Start timestamp cannot be after end timestamp")
         with self.facade.writer() as session:
-            resource_cls = self._resource_type_to_classes(
+            resource_cls = self._resource_type_to_mappers(
                 session, resource_type)['resource']
             r = resource_cls(
                 id=id,
@@ -678,9 +742,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         create_revision=True,
                         **kwargs):
         with self.facade.writer() as session:
-            classes = self._resource_type_to_classes(session, resource_type)
-            resource_cls = classes["resource"]
-            resource_history_cls = classes["history"]
+            mappers = self._resource_type_to_mappers(session, resource_type)
+            resource_cls = mappers["resource"]
+            resource_history_cls = mappers["history"]
 
             try:
                 # NOTE(sileht): We use FOR UPDATE that is not galera friendly,
@@ -799,7 +863,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         with self.facade.independent_reader() as session:
-            resource_cls = self._resource_type_to_classes(
+            resource_cls = self._resource_type_to_mappers(
                 session, resource_type)['resource']
             q = session.query(
                 resource_cls).filter(
@@ -809,9 +873,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return q.first()
 
     def _get_history_result_mapper(self, session, resource_type):
-        classes = self._resource_type_to_classes(session, resource_type)
-        resource_cls = classes['resource']
-        history_cls = classes['history']
+        mappers = self._resource_type_to_mappers(session, resource_type)
+        resource_cls = mappers['resource']
+        history_cls = mappers['history']
 
         resource_cols = {}
         history_cols = {}
@@ -863,7 +927,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 target_cls = self._get_history_result_mapper(
                     session, resource_type)
             else:
-                target_cls = self._resource_type_to_classes(
+                target_cls = self._resource_type_to_mappers(
                     session, resource_type)["resource"]
 
             q = session.query(target_cls)
@@ -916,7 +980,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         all_resources.extend(resources)
                     else:
                         try:
-                            target_cls = self._resource_type_to_classes(
+                            target_cls = self._resource_type_to_mappers(
                                 session, type)['history' if is_history else
                                                'resource']
                         except (indexer.UnexpectedResourceTypeState,

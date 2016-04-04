@@ -244,10 +244,19 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
     attributes = sqlalchemy.Column(ResourceTypeAttributes)
     state = sqlalchemy.Column(sqlalchemy.Enum("active", "creating",
                                               "creation_error", "deleting",
-                                              "deletion_error",
+                                              "deletion_error", "updating",
+                                              "updating_error",
                                               name="resource_type_state_enum"),
                               nullable=False,
                               server_default="creating")
+    updated_at = sqlalchemy.Column(PreciseTimestamp, nullable=False,
+                                   # NOTE(jd): We would like to use
+                                   # sqlalchemy.func.now, but we can't
+                                   # because the type of PreciseTimestamp in
+                                   # MySQL is not a Timestamp, so it would
+                                   # not store a timestamp but a date as an
+                                   # integer.
+                                   default=lambda: utils.utcnow())
 
     def to_baseclass(self):
         cols = {}
