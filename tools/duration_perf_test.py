@@ -133,7 +133,7 @@ class PerfTools(object):
             self.dump_logs()
 
     def dump_logs(self):
-        for name, data in self._timers.iteritems():
+        for name, data in self._timers.items():
             filepath = "%s_%s.csv" % (self.args.result_path, name)
             dirpath = os.path.dirname(filepath)
             if dirpath and not os.path.exists(dirpath):
