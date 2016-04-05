@@ -22,6 +22,7 @@ from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_log import log
 from oslo_policy import opts as policy_opts
+import pbr.version
 from six.moves.urllib import parse as urlparse
 
 from gnocchi import archive_policy
@@ -58,7 +59,8 @@ def prepare_service(args=None, conf=None,
     conf.set_default("workers", default_workers, group="metricd")
 
     conf(args, project='gnocchi', validate_default_values=True,
-         default_config_files=default_config_files)
+         default_config_files=default_config_files,
+         version=pbr.version.VersionInfo('gnocchi').version_string())
 
     # If no coordination URL is provided, default to using the indexer as
     # coordinator
