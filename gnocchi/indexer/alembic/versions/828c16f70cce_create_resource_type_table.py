@@ -16,7 +16,7 @@
 """create resource_type table
 
 Revision ID: 828c16f70cce
-Revises: a54c57ada3f5
+Revises: 9901e5ea4b6e
 Create Date: 2016-01-19 12:47:19.384127
 
 """

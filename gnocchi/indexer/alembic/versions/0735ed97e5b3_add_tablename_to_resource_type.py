@@ -39,14 +39,14 @@ def upgrade():
     resource_type = sa.Table(
         'resource_type', sa.MetaData(),
         sa.Column('name', sa.String(255), nullable=False),
-        sa.Column('tablename', sa.String(18), nullable=False)
+        sa.Column('tablename', sa.String(18), nullable=True)
     )
     op.execute(resource_type.update().where(
         resource_type.c.name == "instance_network_interface"
     ).values({'tablename': op.inline_literal("'instance_net_int'")}))
     op.execute(resource_type.update().where(
         resource_type.c.name != "instance_network_interface"
-    ).values({'tablename': op.inline_literal('name')}))
+    ).values({'tablename': resource_type.c.name}))
 
     op.alter_column("resource_type", "tablename", type_=sa.String(18),
                     nullable=False)
