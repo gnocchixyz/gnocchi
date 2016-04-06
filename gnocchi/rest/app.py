@@ -22,6 +22,7 @@ from oslo_policy import policy
 from paste import deploy
 import pecan
 import webob.exc
+from werkzeug import serving
 
 from gnocchi import exceptions
 from gnocchi import indexer as gnocchi_indexer
@@ -111,9 +112,16 @@ def load_app(conf, appname=None, indexer=None, storage=None,
 
 
 def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
+    # NOTE(sileht): pecan debug won't work in multi-process environment
+    pecan_debug = conf.api.pecan_debug
+    if conf.api.workers != 1 and pecan_debug:
+        pecan_debug = False
+        LOG.warning('pecan_debug cannot be enabled, if workers is > 1, '
+                    'the value is overrided with False')
+
     app = pecan.make_app(
         root,
-        debug=conf.api.pecan_debug,
+        debug=pecan_debug,
         hooks=(GnocchiHook(storage, indexer, conf),),
         guess_content_type_from_ext=False,
         custom_renderers={'json': OsloJSONRenderer},
@@ -125,9 +133,27 @@ def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
     return app
 
 
-def build_wsgi_app():
+class WerkzeugApp(object):
+    # NOTE(sileht): The purpose of this class is only to be used
+    # with werkzeug to create the app after the werkzeug
+    # fork gnocchi-api and avoid creation of connection of the
+    # storage/indexer by the main process.
+
+    def __init__(self, conf):
+        self.app = None
+        self.conf = conf
+
+    def __call__(self, environ, start_response):
+        if self.app is None:
+            self.app = load_app(conf=self.conf)
+        return self.app(environ, start_response)
+
+
+def build_server():
     conf = service.prepare_service()
-    return load_app(conf=conf)
+    serving.run_simple(conf.api.host, conf.api.port,
+                       WerkzeugApp(conf),
+                       processes=conf.api.workers)
 
 
 def app_factory(global_config, **local_conf):
