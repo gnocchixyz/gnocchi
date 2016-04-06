@@ -26,7 +26,6 @@ import six
 
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
@@ -65,10 +64,6 @@ def upgrade():
         for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
             index.create_archive_policy(ap)
         index.create_archive_policy_rule("default", "*", "low")
-
-
-def api():
-    app.build_server()
 
 
 def statsd():
