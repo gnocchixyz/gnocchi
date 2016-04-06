@@ -183,17 +183,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _list_metric_with_measures_to_process(self, block_size, full=False):
         with self._get_ioctx() as ioctx:
             names = self._list_object_names_to_process(ioctx)
-        metrics = set()
         if full:
             objs_it = names
         else:
             objs_it = itertools.islice(
-                names, block_size * self.partition, None)
-        for name in objs_it:
-            metrics.add(name.split("_")[1])
-            if full is False and len(metrics) >= block_size:
-                break
-        return metrics
+                names, block_size * self.partition,
+                block_size * (self.partition + 1))
+        return set([name.split("_")[1] for name in objs_it])
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         with self._get_ioctx() as ctx:
