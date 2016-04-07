@@ -385,12 +385,18 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 block_size=mbs,
                                 back_window=metric.archive_policy.back_window)
 
+                        # NOTE(jd) This is Python where you need such
+                        # hack to pass a variable around a closure,
+                        # sorry.
+                        computed_points = {"number": 0}
+
                         def _map_add_measures(bound_timeserie):
                             # NOTE (gordc): bound_timeserie is entire set of
                             # unaggregated measures matching largest
                             # granularity. the following takes only the points
                             # affected by new measures for specific granularity
                             tstamp = max(bound_timeserie.first, measures[0][0])
+                            computed_points['number'] = len(bound_timeserie)
                             self._map_in_thread(
                                 self._add_measures,
                                 ((aggregation, d, metric,
@@ -405,10 +411,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 measures,
                                 before_truncate_callback=_map_add_measures,
                                 ignore_too_old_timestamps=True)
+                            elapsed = sw.elapsed()
+                            speed = ((len(agg_methods)
+                                      * len(metric.archive_policy.definition)
+                                      * computed_points['number']) / elapsed)
                             LOG.debug(
                                 "Computed new metric %s with %d new measures "
-                                "in %.2f seconds"
-                                % (metric.id, len(measures), sw.elapsed()))
+                                "in %.2f seconds (%d points/s)"
+                                % (metric.id, len(measures), elapsed, speed))
 
                         self._store_unaggregated_timeserie(metric,
                                                            ts.serialize())
