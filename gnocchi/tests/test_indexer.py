@@ -713,6 +713,11 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             attribute_filter={"=": {"id": "f00bar" * 50}})
 
+    def test_list_resource_instance_flavor_id_numeric(self):
+        r = self.index.list_resources(
+            'instance', attribute_filter={"=": {"flavor_id": 1.0}})
+        self.assertEqual(0, len(r))
+
     def test_list_resource_weird_date(self):
         self.assertRaises(
             indexer.QueryValueError,
