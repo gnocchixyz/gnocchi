@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 set -x
-# Activate overtest for indexer
+# Activate pifpaf for indexer
 GNOCCHI_TEST_INDEXER_DRIVER=${GNOCCHI_TEST_INDEXER_DRIVER:-postgresql}
-source $(which overtest) $GNOCCHI_TEST_INDEXER_DRIVER
-export GNOCCHI_INDEXER_URL=${OVERTEST_URL/#mysql:/mysql+pymysql:}
+eval `pifpaf run $GNOCCHI_TEST_INDEXER_DRIVER`
+kill_pifpaf ()
+{
+    test -n "$PIFPAF_PID" && kill "$PIFPAF_PID"
+}
+trap kill_pifpaf EXIT
+export GNOCCHI_INDEXER_URL=${PIFPAF_URL/#mysql:/mysql+pymysql:}
 $*
