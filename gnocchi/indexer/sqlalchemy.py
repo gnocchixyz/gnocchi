@@ -311,6 +311,26 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with self.facade.independent_reader() as session:
             return session.query(ArchivePolicy).get(name)
 
+    def update_archive_policy(self, name, ap_items):
+        with self.facade.independent_writer() as session:
+            ap = session.query(ArchivePolicy).get(name)
+            if not ap:
+                raise indexer.NoSuchArchivePolicy(name)
+            current = sorted(ap.definition,
+                             key=operator.attrgetter('granularity'))
+            new = sorted(ap_items, key=operator.attrgetter('granularity'))
+            if len(current) != len(new):
+                raise indexer.UnsupportedArchivePolicyChange(
+                    name, 'Cannot add or drop granularities')
+            for c, n in zip(current, new):
+                if c.granularity != n.granularity:
+                    raise indexer.UnsupportedArchivePolicyChange(
+                        name, '%s granularity interval was changed'
+                        % c.granularity)
+            # NOTE(gordc): ORM doesn't update JSON column unless new
+            ap.definition = ap_items
+            return ap
+
     def delete_archive_policy(self, name):
         constraints = [
             "fk_metric_ap_name_ap_name",

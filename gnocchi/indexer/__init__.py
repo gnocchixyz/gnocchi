@@ -115,6 +115,16 @@ class NoSuchArchivePolicy(IndexerException):
         self.archive_policy = archive_policy
 
 
+class UnsupportedArchivePolicyChange(IndexerException):
+    """Error raised when modifying archive policy if not supported."""
+    def __init__(self, archive_policy, message):
+        super(UnsupportedArchivePolicyChange, self).__init__(
+            "Archive policy %s does not support change: %s" %
+            (archive_policy, message))
+        self.archive_policy = archive_policy
+        self.message = message
+
+
 class ArchivePolicyInUse(IndexerException):
     """Error raised when an archive policy is still being used."""
     def __init__(self, archive_policy):
@@ -282,6 +292,10 @@ class IndexerDriver(object):
 
     @staticmethod
     def get_archive_policy(name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def update_archive_policy(name, ap_items):
         raise exceptions.NotImplementedError
 
     @staticmethod

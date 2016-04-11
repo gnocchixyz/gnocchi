@@ -45,6 +45,24 @@
 - name: list-archive-policy
   request: GET /v1/archive_policy HTTP/1.1
 
+- name: update-archive-policy
+  request: |
+    PATCH /v1/archive_policy/{{ scenarios['create-archive-policy']['response'].json['name'] }} HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "definition": [
+        {
+          "granularity": "1s",
+          "timespan": "1 hour"
+        },
+        {
+          "points": 48,
+          "timespan": "1 day"
+        }
+      ]
+    }
+
 - name: create-archive-policy-to-delete
   request: |
     POST /v1/archive_policy HTTP/1.1
