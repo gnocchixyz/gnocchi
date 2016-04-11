@@ -27,6 +27,7 @@ from oslo_db.sqlalchemy import utils as oslo_db_utils
 from oslo_log import log
 import six
 import sqlalchemy
+from sqlalchemy import types
 import sqlalchemy_utils
 
 from gnocchi import exceptions
@@ -809,6 +810,12 @@ class QueryTransformer(object):
                 elif (isinstance(attr.type, sqlalchemy_utils.UUIDType)
                       and not isinstance(value, uuid.UUID)):
                     converter = utils.ResourceUUID
+                elif isinstance(attr.type, types.String):
+                    converter = six.text_type
+                elif isinstance(attr.type, types.Integer):
+                    converter = int
+                elif isinstance(attr.type, types.Numeric):
+                    converter = float
 
                 if converter:
                     try:
