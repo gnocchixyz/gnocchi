@@ -17,9 +17,9 @@ tests:
       response_headers:
           content-type: /application/json/
       response_strings:
-          - '{"definition": [{"points": 86400, "timespan": "1 day, 0:00:00", "granularity": "0:00:01"}, {"points": 43200, "timespan": "30 days, 0:00:00", "granularity": "0:01:00"}, {"points": 8760, "timespan": "365 days, 0:00:00", "granularity": "1:00:00"}], "back_window": 0, "name": "high", "aggregation_methods": ["std", "count", "95pct", "min", "max", "sum", "median", "mean"]}'
+          - '{"definition": [{"points": 3600, "timespan": "1:00:00", "granularity": "0:00:01"}, {"points": 10080, "timespan": "7 days, 0:00:00", "granularity": "0:01:00"}, {"points": 8760, "timespan": "365 days, 0:00:00", "granularity": "1:00:00"}], "back_window": 0, "name": "high", "aggregation_methods": ["std", "count", "95pct", "min", "max", "sum", "median", "mean"]}'
           - '{"definition": [{"points": 12, "timespan": "1:00:00", "granularity": "0:05:00"}, {"points": 24, "timespan": "1 day, 0:00:00", "granularity": "1:00:00"}, {"points": 30, "timespan": "30 days, 0:00:00", "granularity": "1 day, 0:00:00"}], "back_window": 0, "name": "low", "aggregation_methods": ["std", "count", "95pct", "min", "max", "sum", "median", "mean"]}'
-          - '{"definition": [{"points": 60, "timespan": "1:00:00", "granularity": "0:01:00"}, {"points": 168, "timespan": "7 days, 0:00:00", "granularity": "1:00:00"}, {"points": 365, "timespan": "365 days, 0:00:00", "granularity": "1 day, 0:00:00"}], "back_window": 0, "name": "medium", "aggregation_methods": ["std", "count", "95pct", "min", "max", "sum", "median", "mean"]}'
+          - '{"definition": [{"points": 1440, "timespan": "1 day, 0:00:00", "granularity": "0:01:00"}, {"points": 168, "timespan": "7 days, 0:00:00", "granularity": "1:00:00"}, {"points": 365, "timespan": "365 days, 0:00:00", "granularity": "1 day, 0:00:00"}], "back_window": 0, "name": "medium", "aggregation_methods": ["std", "count", "95pct", "min", "max", "sum", "median", "mean"]}'
 
     - name: check generic resources with the default one for statsd
       url: /v1/resource/generic
