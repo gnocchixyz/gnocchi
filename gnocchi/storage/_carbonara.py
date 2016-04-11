@@ -412,13 +412,18 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 before_truncate_callback=_map_add_measures,
                                 ignore_too_old_timestamps=True)
                             elapsed = sw.elapsed()
-                            speed = ((len(agg_methods)
-                                      * len(metric.archive_policy.definition)
-                                      * computed_points['number']) / elapsed)
+                            number_of_operations = (
+                                len(agg_methods)
+                                * len(metric.archive_policy.definition)
+                            )
+                            speed = ((number_of_operations
+                                     * computed_points['number']) / elapsed)
                             LOG.debug(
                                 "Computed new metric %s with %d new measures "
-                                "in %.2f seconds (%d points/s)"
-                                % (metric.id, len(measures), elapsed, speed))
+                                "in %.2f seconds (%d points/s, %d measures/s)"
+                                % (metric.id, len(measures), elapsed, speed,
+                                   (number_of_operations * len(measures))
+                                   / elapsed))
 
                         self._store_unaggregated_timeserie(metric,
                                                            ts.serialize())
