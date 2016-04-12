@@ -54,7 +54,7 @@ largely more scalable. Ceph also offers better consistency, and hence is the
 recommended driver.
 
 How to plan for Gnocchi’s storage
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 Gnocchi uses a custom file format based on its library *Carbonara*. In Gnocchi,
 a time series is a collection of points, where a point is a given measure, or
@@ -84,7 +84,7 @@ the 8 default aggregation methods (mean, min, max, sum, std, median, count,
 used will go up to a maximum of 8 × 4.5 MiB = 36 MiB.
 
 How to set the archive policy and granularity
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------
 
 In Gnocchi, the archive policy is expressed in number of points. If your
 archive policy defines a policy of 10 points with a granularity of 1 second,
@@ -109,3 +109,28 @@ policies. A typical low grained use case could be::
 This would represent 7205 points × 17.92 = 126 KiB per aggregation method. If
 you use the 8 standard aggregation method, your metric will take up to 8 × 126
 KiB = 0.98 MiB of disk space.
+
+Default archive policies
+------------------------
+
+By default, 3 archive policies are created using the default archive policy
+list (listed in `default_aggregation_methods`, i.e. mean, min, max, sum, std,
+median, count, 95pct):
+
+- low (maximum estimated size per metric: 5 KiB)
+
+  * 5 minutes granularity over 1 hour
+  * 1 hour granularity over 1 day
+  * 1 day granularity over 1 month
+
+- medium (maximum estimated size per metric: 139 KiB)
+
+  * 1 minute granularity over 1 day
+  * 1 hour granularity over 1 week
+  * 1 day granularity over 1 year
+
+- high (maximum estimated size per metric: 1 578 KiB)
+
+  * 1 second granularity over 1 hour
+  * 1 minute granularity over 1 week
+  * 1 hour granularity over 1 year

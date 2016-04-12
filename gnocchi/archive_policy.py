@@ -222,8 +222,8 @@ DEFAULT_ARCHIVE_POLICIES = {
     ),
     'medium': ArchivePolicy(
         "medium", 0, [
-            # 1 minute resolution for an hour
-            ArchivePolicyItem(granularity=60, points=60),
+            # 1 minute resolution for an day
+            ArchivePolicyItem(granularity=60, points=60 * 24),
             # 1 hour resolution for a week
             ArchivePolicyItem(granularity=3600, points=7 * 24),
             # 1 day resolution for a year
@@ -232,10 +232,10 @@ DEFAULT_ARCHIVE_POLICIES = {
     ),
     'high': ArchivePolicy(
         "high", 0, [
-            # 1 second resolution for a day
-            ArchivePolicyItem(granularity=1, points=3600 * 24),
-            # 1 minute resolution for a month
-            ArchivePolicyItem(granularity=60, points=60 * 24 * 30),
+            # 1 second resolution for an hour
+            ArchivePolicyItem(granularity=1, points=3600),
+            # 1 minute resolution for a week
+            ArchivePolicyItem(granularity=60, points=60 * 24 * 7),
             # 1 hour resolution for a year
             ArchivePolicyItem(granularity=3600, points=365 * 24),
         ],
