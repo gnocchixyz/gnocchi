@@ -296,7 +296,7 @@ function configure_gnocchi {
         _config_gnocchi_apache_wsgi
     elif [ "$GNOCCHI_DEPLOY" == "uwsgi" ]; then
         # iniset creates these files when it's called if they don't exist.
-        GNOCCHI_UWSGI_FILE=$GNOCCHI_CONF_DIR/gnocchi-uwsgi.ini
+        GNOCCHI_UWSGI_FILE=$GNOCCHI_CONF_DIR/uwsgi.ini
 
         rm -f "$GNOCCHI_UWSGI_FILE"
 
