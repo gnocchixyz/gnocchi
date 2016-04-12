@@ -203,6 +203,12 @@ tests:
             value: 43.1
       status: 404
 
+    - name: get metric list for authenticated user
+      request_headers:
+          x-user-id: foo
+          x-project-id: bar
+      url: /v1/metric
+
     - name: get metric list
       url: /v1/metric
       status: 200

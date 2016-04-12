@@ -660,7 +660,7 @@ class MetricsController(rest.RestController):
             project_id = kwargs.get('project_id')
         attr_filter = {}
         if user_id is not None:
-            attr_filter['creater_by_user_id'] = user_id
+            attr_filter['created_by_user_id'] = user_id
         if project_id is not None:
             attr_filter['created_by_project_id'] = project_id
         return pecan.request.indexer.list_metrics(**attr_filter)
