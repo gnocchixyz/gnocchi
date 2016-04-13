@@ -196,3 +196,13 @@ tests:
       request_headers:
         x-roles: admin
       status: 404
+
+    - name: delete missing archive policy rule utf8
+      url: /v1/archive_policy_rule/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      method: DELETE
+      request_headers:
+        x-roles: admin
+      status: 404
+      response_strings:
+          - Archive policy rule ✔éñ☃ does not exist
+
