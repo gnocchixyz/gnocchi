@@ -157,6 +157,13 @@ tests:
       url: /v1/archive_policy_rule/foo
       status: 404
 
+    - name: delete used archive policy
+      url: /v1/archive_policy/low
+      request_headers:
+          x-roles: admin
+      method: DELETE
+      status: 400
+
 # delete rule as non admin
 
     - name: delete archive policy rule non admin

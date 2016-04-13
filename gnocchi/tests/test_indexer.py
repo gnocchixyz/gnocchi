@@ -82,6 +82,10 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual('abc.xyz', rules[1]['metric_pattern'])
         self.assertEqual('abc.*', rules[2]['metric_pattern'])
 
+        # Ensure we can't delete the archive policy
+        self.assertRaises(indexer.ArchivePolicyInUse,
+                          self.index.delete_archive_policy, name)
+
     def test_create_metric(self):
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())

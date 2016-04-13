@@ -312,13 +312,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return session.query(ArchivePolicy).get(name)
 
     def delete_archive_policy(self, name):
+        constraints = [
+            "fk_metric_ap_name_ap_name",
+            "fk_apr_ap_name_ap_name"]
         with self.facade.writer() as session:
             try:
                 if session.query(ArchivePolicy).filter(
                         ArchivePolicy.name == name).delete() == 0:
                     raise indexer.NoSuchArchivePolicy(name)
             except exception.DBReferenceError as e:
-                if (e.constraint == "fk_metric_ap_name_ap_name"):
+                if e.constraint in constraints:
                     raise indexer.ArchivePolicyInUse(name)
                 raise
 
