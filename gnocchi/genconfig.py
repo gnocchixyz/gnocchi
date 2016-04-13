@@ -19,6 +19,6 @@ def prehook(cmd):
     try:
         from oslo_config import generator
         generator.main(['--config-file',
-                        'gnocchi-config-generator.conf'])
+                        'etc/gnocchi/gnocchi-config-generator.conf'])
     except Exception as e:
         print("Unable to build sample configuration file: %s" % e)
