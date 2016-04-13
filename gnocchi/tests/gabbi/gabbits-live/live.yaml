@@ -56,6 +56,11 @@ tests:
       method: DELETE
       status: 204
 
+    - name: delete again unicode archive policy
+      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      method: DELETE
+      status: 404
+
     - name: post instance resource
       url: /v1/resource/instance
       method: post

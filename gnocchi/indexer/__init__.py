@@ -87,7 +87,7 @@ class NoSuchResourceType(IndexerException):
     """Error raised when the resource type is unknown."""
     def __init__(self, type):
         super(NoSuchResourceType, self).__init__(
-            "Resource type %s does not exist" % str(type))
+            "Resource type %s does not exist" % type)
         self.type = type
 
 
@@ -95,7 +95,7 @@ class NoSuchMetric(IndexerException):
     """Error raised when a metric does not exist."""
     def __init__(self, metric):
         super(NoSuchMetric, self).__init__("Metric %s does not exist" %
-                                           str(metric))
+                                           metric)
         self.metric = metric
 
 
@@ -103,7 +103,7 @@ class NoSuchResource(IndexerException):
     """Error raised when a resource does not exist."""
     def __init__(self, resource):
         super(NoSuchResource, self).__init__("Resource %s does not exist" %
-                                             str(resource))
+                                             resource)
         self.resource = resource
 
 
@@ -111,8 +111,7 @@ class NoSuchArchivePolicy(IndexerException):
     """Error raised when an archive policy does not exist."""
     def __init__(self, archive_policy):
         super(NoSuchArchivePolicy, self).__init__(
-            "Archive policy %s does not exist" %
-            str(archive_policy))
+            "Archive policy %s does not exist" % archive_policy)
         self.archive_policy = archive_policy
 
 
@@ -137,7 +136,7 @@ class NoSuchArchivePolicyRule(IndexerException):
     def __init__(self, archive_policy_rule):
         super(NoSuchArchivePolicyRule, self).__init__(
             "Archive policy rule %s does not exist" %
-            str(archive_policy_rule))
+            archive_policy_rule)
         self.archive_policy_rule = archive_policy_rule
 
 
@@ -146,7 +145,7 @@ class NoArchivePolicyRuleMatch(IndexerException):
     def __init__(self, metric_name):
         super(NoArchivePolicyRuleMatch, self).__init__(
             "No Archive policy rule found for metric %s" %
-            str(metric_name))
+            metric_name)
         self.metric_name = metric_name
 
 
