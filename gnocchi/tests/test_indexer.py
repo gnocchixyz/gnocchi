@@ -77,10 +77,17 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.create_archive_policy_rule('rule2', 'abc.xyz.*', name)
         self.index.create_archive_policy_rule('rule3', 'abc.xyz', name)
         rules = self.index.list_archive_policy_rules()
-        self.assertEqual(3, len(rules))
-        self.assertEqual('abc.xyz.*', rules[0]['metric_pattern'])
-        self.assertEqual('abc.xyz', rules[1]['metric_pattern'])
-        self.assertEqual('abc.*', rules[2]['metric_pattern'])
+        # NOTE(jd) The test is not isolated, there might be more than 3 rules
+        found = 0
+        for r in rules:
+            if r['metric_pattern'] == 'abc.xyz.*':
+                found = 1
+            if found == 1 and r['metric_pattern'] == 'abc.xyz':
+                found = 2
+            if found == 2 and r['metric_pattern'] == 'abc.*':
+                break
+        else:
+            self.fail("Metric patterns are not ordered")
 
     def test_create_metric(self):
         r1 = uuid.uuid4()
