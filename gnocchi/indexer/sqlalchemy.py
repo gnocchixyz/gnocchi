@@ -235,9 +235,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # NOTE(sileht): mysql have a stupid and small length limitation on the
         # foreign key and index name, so we can't use the resource type name as
         # tablename, the limit is 64. The longest name we have is
-        # fk_<tablename>_history_revision_resource_history_revision,
-        # so 64 - 46 = 18
-        tablename = "rt_%s" % uuid.uuid4().hex[:15]
+        # fk_<tablename>_h_revision_rh_revision,
+        # so 64 - 26 = 38 and 3 chars for rt_, 35 chars, uuid is 32, it's cool.
+        tablename = "rt_%s" % uuid.uuid4().hex
         resource_type = ResourceType(name=resource_type.name,
                                      tablename=tablename,
                                      attributes=resource_type.attributes)
@@ -291,7 +291,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         except exception.DBReferenceError as e:
             if (e.constraint in [
                     'fk_resource_resource_type_name',
-                    'fk_resource_history_resource_type_name']):
+                    'fk_rh_resource_type_name']):
                 raise indexer.ResourceTypeInUse(name)
             raise
 
@@ -318,8 +318,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         ArchivePolicy.name == name).delete() == 0:
                     raise indexer.NoSuchArchivePolicy(name)
             except exception.DBReferenceError as e:
-                if (e.constraint ==
-                   'fk_metric_archive_policy_name_archive_policy_name'):
+                if (e.constraint == "fk_metric_ap_name_ap_name"):
                     raise indexer.ArchivePolicyInUse(name)
                 raise
 
@@ -380,7 +379,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 session.add(m)
         except exception.DBReferenceError as e:
             if (e.constraint ==
-               'fk_metric_archive_policy_name_archive_policy_name'):
+               'fk_metric_ap_name_ap_name'):
                 raise indexer.NoSuchArchivePolicy(archive_policy_name)
             raise
         return m
@@ -547,7 +546,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     raise indexer.NamedMetricAlreadyExists(name)
                 except exception.DBReferenceError as e:
                     if (e.constraint ==
-                       'fk_metric_archive_policy_name_archive_policy_name'):
+                       'fk_metric_ap_name_ap_name'):
                         raise indexer.NoSuchArchivePolicy(ap_name)
                     raise
 

@@ -148,7 +148,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
         sqlalchemy.ForeignKey(
             'archive_policy.name',
             ondelete="RESTRICT",
-            name="fk_metric_archive_policy_name_archive_policy_name"),
+            name="fk_metric_ap_name_ap_name"),
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
     created_by_user_id = sqlalchemy.Column(
@@ -238,7 +238,7 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
 
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True,
                              nullable=False)
-    tablename = sqlalchemy.Column(sqlalchemy.String(18), nullable=False)
+    tablename = sqlalchemy.Column(sqlalchemy.String(35), nullable=False)
     attributes = sqlalchemy.Column(ResourceTypeAttributes)
 
     def to_baseclass(self):
@@ -327,7 +327,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                            sqlalchemy.ForeignKey(
                                'resource.id',
                                ondelete="CASCADE",
-                               name="fk_resource_history_id_resource_id"),
+                               name="fk_rh_id_resource_id"),
                            nullable=False)
     revision_end = sqlalchemy.Column(PreciseTimestamp, nullable=False,
                                      default=lambda: utils.utcnow())
@@ -350,12 +350,15 @@ class ResourceExtMixin(object):
 
     @declarative.declared_attr
     def id(cls):
+        tablename_compact = cls.__tablename__
+        if tablename_compact.endswith("_history"):
+            tablename_compact = tablename_compact[:-6]
         return sqlalchemy.Column(
             sqlalchemy_utils.UUIDType(),
             sqlalchemy.ForeignKey(
                 'resource.id',
                 ondelete="CASCADE",
-                name="fk_%s_id_resource_id" % cls.__tablename__,
+                name="fk_%s_id_resource_id" % tablename_compact,
                 # NOTE(sileht): We use to ensure that postgresql
                 # does not use AccessExclusiveLock on destination table
                 use_alter=True),
@@ -370,13 +373,16 @@ class ResourceHistoryExtMixin(object):
 
     @declarative.declared_attr
     def revision(cls):
+        tablename_compact = cls.__tablename__
+        if tablename_compact.endswith("_history"):
+            tablename_compact = tablename_compact[:-6]
         return sqlalchemy.Column(
             sqlalchemy.Integer,
             sqlalchemy.ForeignKey(
                 'resource_history.revision',
                 ondelete="CASCADE",
-                name="fk_%s_revision_resource_history_revision"
-                % cls.__tablename__,
+                name="fk_%s_revision_rh_revision"
+                % tablename_compact,
                 # NOTE(sileht): We use to ensure that postgresql
                 # does not use AccessExclusiveLock on destination table
                 use_alter=True),
@@ -403,7 +409,6 @@ class ArchivePolicyRule(Base, GnocchiBase):
         sqlalchemy.ForeignKey(
             'archive_policy.name',
             ondelete="RESTRICT",
-            name="fk_archive_policy_rule_"
-            "archive_policy_name_archive_policy_name"),
+            name="fk_apr_ap_name_ap_name"),
         nullable=False)
     metric_pattern = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
