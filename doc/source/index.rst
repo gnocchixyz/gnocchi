@@ -46,6 +46,7 @@ Key Features
 - Archiving policy
 - Metric value search
 - Structured resources
+- Resource history
 - Queryable resource indexer
 - Multi-tenant
 - Grafana support
