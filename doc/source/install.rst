@@ -46,6 +46,7 @@ The list of variants available is:
 * mysql - provides MySQL indexer support
 * postgresql – provides PostgreSQL indexer support
 * swift – provides OpenStack Swift storage support
+* s3 – provides Amazon S3 storage support
 * ceph – provides common part of Ceph storage support
 * ceph_recommended_lib – provides Ceph (>=0.80) storage support
 * ceph_alternative_lib – provides Ceph (>=10.1.0) storage support

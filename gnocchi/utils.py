@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import itertools
 import multiprocessing
 
 import iso8601
@@ -124,3 +125,12 @@ def get_default_workers():
     except NotImplementedError:
         default_workers = 1
     return default_workers
+
+
+def grouper(iterable, n):
+    it = iter(iterable)
+    while True:
+        chunk = tuple(itertools.islice(it, n))
+        if not chunk:
+            return
+        yield chunk

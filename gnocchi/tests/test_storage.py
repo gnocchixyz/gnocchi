@@ -56,6 +56,10 @@ class TestStorageDriver(tests_base.TestCase):
     def test_corrupted_data(self):
         if not isinstance(self.storage, _carbonara.CarbonaraBasedStorage):
             self.skipTest("This driver is not based on Carbonara")
+        if self.conf.storage.driver == "s3":
+            self.skipTest(
+                "This test does not work with S3 as backend as the S3 driver "
+                "has no fake client, and tests run in parallel.")
 
         self.storage.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
@@ -78,6 +82,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 300.0, 1), m)
 
     def test_list_metric_with_measures_to_process(self):
+        if self.conf.storage.driver == "s3":
+            self.skipTest(
+                "This test does not work with S3 as backend as the S3 driver "
+                "has no fake client, and tests run in parallel.")
         metrics = self.storage.list_metric_with_measures_to_process(
             None, None, full=True)
         self.assertEqual(set(), metrics)
@@ -143,6 +151,10 @@ class TestStorageDriver(tests_base.TestCase):
 
     @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
+        if self.conf.storage.driver == "s3":
+            self.skipTest(
+                "This test does not work with S3 as backend as the S3 driver "
+                "has no fake client, and tests run in parallel.")
         m, m_sql = self._create_metric('medium')
         measures = [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, i, j, 0), 100)
@@ -166,6 +178,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(1, count)
 
     def test_add_measures_update_subset(self):
+        if self.conf.storage.driver == "s3":
+            self.skipTest(
+                "This test does not work with S3 as backend as the S3 driver "
+                "has no fake client, and tests run in parallel.")
         m, m_sql = self._create_metric('medium')
         measures = [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, i, j, 0), 100)

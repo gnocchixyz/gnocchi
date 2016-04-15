@@ -1,0 +1,5 @@
+---
+features:
+  - New storage driver for AWS S3.
+    This new driver works in the same way that the Swift driver, expect that it
+    leverages the Amazon Web Services S3 object storage API.
