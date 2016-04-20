@@ -44,6 +44,12 @@ def upgrade():
         sa.Column('attributes', sa.Text, nullable=False)
     )
 
+    # NOTE(gordc): fix for incorrect migration:
+    # 0735ed97e5b3_add_tablename_to_resource_type.py#L46
+    op.execute(resource_type.update().where(
+        resource_type.c.name == "instance_network_interface"
+    ).values({'tablename': 'instance_net_int'}))
+
     resource_type_names = [rt.name for rt in
                            list(bind.execute(resource_type.select()))]
 
