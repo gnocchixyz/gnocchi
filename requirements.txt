@@ -4,7 +4,7 @@ oslo.config>=2.6.0
 oslo.log>=1.0.0
 oslo.policy>=0.3.0
 oslo.serialization>=1.4.0
-oslo.utils>=1.6.0
+oslo.utils>=3.3.0
 oslo.middleware
 pandas>=0.17.0
 pecan>=0.9
