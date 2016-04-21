@@ -14,10 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import multiprocessing
-import signal
 import sys
+import threading
 import time
 
+import cotyledon
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
@@ -78,13 +79,14 @@ def retry_if_retry_is_raised(exception):
     return isinstance(exception, Retry)
 
 
-class MetricProcessBase(multiprocessing.Process):
-    def __init__(self, conf, worker_id=0, interval_delay=0):
-        super(MetricProcessBase, self).__init__()
+class MetricProcessBase(cotyledon.Service):
+    def __init__(self, worker_id, conf, interval_delay=0):
+        super(MetricProcessBase, self).__init__(worker_id)
         self.conf = conf
-        self.worker_id = worker_id
         self.startup_delay = worker_id
         self.interval_delay = interval_delay
+        self._shutdown = threading.Event()
+        self._shutdown_done = threading.Event()
 
     # Retry with exponential backoff for up to 1 minute
     @retrying.retry(wait_exponential_multiplier=500,
@@ -109,15 +111,22 @@ class MetricProcessBase(multiprocessing.Process):
         # Delay startup so workers are jittered.
         time.sleep(self.startup_delay)
 
-        while True:
-            try:
-                with timeutils.StopWatch() as timer:
-                    self._run_job()
-                    time.sleep(max(0, self.interval_delay - timer.elapsed()))
-            except KeyboardInterrupt:
-                # Ignore KeyboardInterrupt so parent handler can kill
-                # all children.
-                pass
+        while not self._shutdown.is_set():
+            with timeutils.StopWatch() as timer:
+                self._run_job()
+                self._shutdown.wait(max(0, self.interval_delay -
+                                        timer.elapsed()))
+        self._shutdown_done.set()
+
+    def terminate(self):
+        self._shutdown.set()
+        self.close_queues()
+        LOG.info("Waiting ongoing metric processing to finish")
+        self._shutdown_done.wait()
+
+    @staticmethod
+    def close_queues():
+        raise NotImplementedError
 
     @staticmethod
     def _run_job():
@@ -125,18 +134,20 @@ class MetricProcessBase(multiprocessing.Process):
 
 
 class MetricReporting(MetricProcessBase):
-    def __init__(self, conf, worker_id=0, interval_delay=0, queues=None):
-        super(MetricReporting, self).__init__(conf, worker_id, interval_delay)
+    name = "reporting"
+
+    def __init__(self, worker_id, conf, queues):
+        super(MetricReporting, self).__init__(
+            worker_id, conf, conf.storage.metric_reporting_delay)
         self.queues = queues
 
     def _run_job(self):
         try:
             report = self.store.measures_report(details=False)
-            if self.queues:
-                block_size = max(16, min(
-                    256, report['summary']['metrics'] // len(self.queues)))
-                for queue in self.queues:
-                    queue.put(block_size)
+            block_size = max(16, min(
+                256, report['summary']['metrics'] // len(self.queues)))
+            for queue in self.queues:
+                queue.put(block_size)
             LOG.info("Metricd reporting: %d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],
@@ -145,8 +156,18 @@ class MetricReporting(MetricProcessBase):
             LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)
 
+    def close_queues(self):
+        for queue in self.queues:
+            queue.close()
+
 
 class MetricJanitor(MetricProcessBase):
+    name = "janitor"
+
+    def __init__(self,  worker_id, conf):
+        super(MetricJanitor, self).__init__(
+            worker_id, conf, conf.storage.metric_cleanup_delay)
+
     def _run_job(self):
         try:
             self.store.expunge_metrics(self.index)
@@ -156,22 +177,43 @@ class MetricJanitor(MetricProcessBase):
 
 
 class MetricProcessor(MetricProcessBase):
-    def __init__(self, conf, worker_id=0, interval_delay=0, queue=None):
-        super(MetricProcessor, self).__init__(conf, worker_id, interval_delay)
+    name = "processing"
+
+    def __init__(self, worker_id, conf, queue):
+        super(MetricProcessor, self).__init__(
+            worker_id, conf, conf.storage.metric_processing_delay)
         self.queue = queue
         self.block_size = 128
 
     def _run_job(self):
         try:
-            if self.queue:
-                while not self.queue.empty():
-                    self.block_size = self.queue.get()
-                    LOG.debug("Re-configuring worker to handle up to %s "
-                              "metrics", self.block_size)
+            while not self.queue.empty():
+                self.block_size = self.queue.get()
+                LOG.debug("Re-configuring worker to handle up to %s "
+                          "metrics", self.block_size)
             self.store.process_background_tasks(self.index, self.block_size)
         except Exception:
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
+
+    def close_queues(self):
+        self.queue.close()
+
+
+class MetricdServiceManager(cotyledon.ServiceManager):
+    def __init__(self, conf):
+        super(MetricdServiceManager, self).__init__()
+        self.conf = conf
+        self.queues = [multiprocessing.Queue()
+                       for i in range(conf.metricd.workers)]
+
+        self.add(self.create_processor, workers=conf.metricd.workers)
+        self.add(MetricReporting, args=(self.conf, self.queues))
+        self.add(MetricJanitor, args=(self.conf,))
+
+    def create_processor(self, worker_id):
+        queue = self.queues[worker_id - 1]
+        return MetricProcessor(worker_id, self.conf, queue)
 
 
 def metricd():
@@ -180,50 +222,4 @@ def metricd():
             conf.storage.metric_processing_delay):
         LOG.error("Metric reporting must run less frequently then processing")
         sys.exit(0)
-
-    signal.signal(signal.SIGTERM, _metricd_terminate)
-
-    try:
-        queues = []
-        workers = []
-        for worker in range(conf.metricd.workers):
-            queue = multiprocessing.Queue()
-            metric_worker = MetricProcessor(
-                conf, worker, conf.storage.metric_processing_delay, queue)
-            metric_worker.start()
-            queues.append(queue)
-            workers.append(metric_worker)
-
-        metric_report = MetricReporting(
-            conf, 0, conf.storage.metric_reporting_delay, queues)
-        metric_report.start()
-        workers.append(metric_report)
-
-        metric_janitor = MetricJanitor(
-            conf, interval_delay=conf.storage.metric_cleanup_delay)
-        metric_janitor.start()
-        workers.append(metric_janitor)
-
-        for worker in workers:
-            worker.join()
-    except KeyboardInterrupt:
-        _metricd_cleanup(workers)
-        sys.exit(0)
-    except Exception:
-        LOG.warning("exiting", exc_info=True)
-        _metricd_cleanup(workers)
-        sys.exit(1)
-
-
-def _metricd_cleanup(workers):
-    for worker in workers:
-        if hasattr(worker, 'queue'):
-            worker.queue.close()
-        worker.terminate()
-    for worker in workers:
-        worker.join()
-
-
-def _metricd_terminate(signum, frame):
-    _metricd_cleanup(multiprocessing.active_children())
-    sys.exit(0)
+    MetricdServiceManager(conf).run()
