@@ -73,6 +73,8 @@ def prepare_service(args=None, conf=None,
                          urlparse.urlunparse(parsed),
                          "storage")
 
+    log.set_defaults(default_log_levels=log.get_default_log_levels() +
+                     ["passlib.utils.compat=INFO"])
     log.setup(conf, 'gnocchi')
     conf.log_opt_values(LOG, log.DEBUG)
 
