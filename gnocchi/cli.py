@@ -13,13 +13,13 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import logging
 import multiprocessing
 import signal
 import sys
 import time
 
 from oslo_config import cfg
+from oslo_log import log
 from oslo_utils import timeutils
 import retrying
 import six
@@ -32,7 +32,7 @@ from gnocchi import statsd as statsd_service
 from gnocchi import storage
 
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 
 def upgrade():

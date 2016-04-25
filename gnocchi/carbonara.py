@@ -18,7 +18,6 @@
 
 import datetime
 import functools
-import logging
 import numbers
 import operator
 import re
@@ -27,6 +26,7 @@ import time
 import iso8601
 import lz4
 import msgpack
+from oslo_log import log
 import pandas
 import six
 
@@ -38,7 +38,7 @@ from gnocchi import utils
 # to ensure the module is correctly loaded before we use really it.
 time.strptime("2016-02-19", "%Y-%m-%d")
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 
 class NoDeloreanAvailable(Exception):

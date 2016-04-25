@@ -16,10 +16,10 @@
 from collections import defaultdict
 import contextlib
 import datetime
-import logging
 import uuid
 
 from oslo_config import cfg
+from oslo_log import log
 import retrying
 import six
 from six.moves.urllib.parse import quote
@@ -32,7 +32,7 @@ except ImportError:
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 OPTS = [
     cfg.StrOpt('swift_auth_version',

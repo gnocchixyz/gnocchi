@@ -16,7 +16,6 @@
 # under the License.
 import collections
 import datetime
-import logging
 import multiprocessing
 import operator
 import threading
@@ -26,6 +25,7 @@ import uuid
 from concurrent import futures
 import iso8601
 from oslo_config import cfg
+from oslo_log import log
 from oslo_serialization import msgpackutils
 from oslo_utils import timeutils
 import six
@@ -44,7 +44,7 @@ OPTS = [
 
 ]
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):

@@ -18,17 +18,17 @@ import contextlib
 import datetime
 import errno
 import itertools
-import logging
 import uuid
 
 from oslo_config import cfg
+from oslo_log import log
 from oslo_utils import importutils
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 
 
-LOG = logging.getLogger(__name__)
+LOG = log.getLogger(__name__)
 
 for RADOS_MODULE_NAME in ('cradox', 'rados'):
     rados = importutils.try_import(RADOS_MODULE_NAME)

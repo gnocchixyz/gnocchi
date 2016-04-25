@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import logging
 import multiprocessing
 
 from oslo_config import cfg
@@ -75,6 +74,6 @@ def prepare_service(args=None, conf=None,
                          "storage")
 
     log.setup(conf, 'gnocchi')
-    conf.log_opt_values(LOG, logging.DEBUG)
+    conf.log_opt_values(LOG, log.DEBUG)
 
     return conf
