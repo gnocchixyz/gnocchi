@@ -354,9 +354,10 @@ function init_gnocchi {
 }
 
 function preinstall_gnocchi {
-    # Needed to build psycopg2
     if is_ubuntu; then
-        install_package libpq-dev
+        # libpq-dev is needed to build psycopg2
+        # uuid-runtime is needed to use the uuidgen command
+        install_package libpq-dev uuid-runtime
     else
         install_package postgresql-devel
     fi
