@@ -102,6 +102,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual(m.created_by_user_id, user)
         self.assertEqual(m.created_by_project_id, project)
         self.assertIsNone(m.name)
+        self.assertIsNone(m.unit)
         self.assertIsNone(m.resource_id)
         m2 = self.index.list_metrics(id=r1)
         self.assertEqual([m], m2)

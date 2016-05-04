@@ -370,12 +370,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
-                      name=None, resource_id=None):
+                      name=None, unit=None, resource_id=None):
         m = Metric(id=id,
                    created_by_user_id=created_by_user_id,
                    created_by_project_id=created_by_project_id,
                    archive_policy_name=archive_policy_name,
                    name=name,
+                   unit=unit,
                    resource_id=resource_id)
         try:
             with self.facade.writer() as session:
@@ -535,12 +536,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if update == 0:
                     raise indexer.NoSuchMetric(value)
             else:
+                unit = value.get('unit')
                 ap_name = value['archive_policy_name']
                 m = Metric(id=uuid.uuid4(),
                            created_by_user_id=r.created_by_user_id,
                            created_by_project_id=r.created_by_project_id,
                            archive_policy_name=ap_name,
                            name=name,
+                           unit=unit,
                            resource_id=r.id)
                 session.add(m)
                 try:

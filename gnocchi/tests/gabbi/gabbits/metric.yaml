@@ -63,17 +63,33 @@ tests:
       response_strings:
           - "[]"
 
-    - name: create metric with name
+    - name: create metric with name and unit
       url: /v1/metric
       request_headers:
           content-type: application/json
       method: post
       data:
           name: "disk.io.rate"
+          unit: "B/s"
       status: 201
       response_json_paths:
           $.archive_policy_name: cookies
           $.name: disk.io.rate
+          $.unit: B/s
+
+    - name: create metric with name and over length unit
+      url: /v1/metric
+      request_headers:
+          content-type: application/json
+      method: post
+      data:
+          name: "disk.io.rate"
+          unit: "over_length_unit_over_length_unit"
+      status: 400
+      response_strings:
+          # split to not match the u' in py2
+          - "Invalid input: length of value must be at most 31 for dictionary value @ data["
+          - "'unit']"
 
     - name: create metric with name no rule
       url: /v1/metric
