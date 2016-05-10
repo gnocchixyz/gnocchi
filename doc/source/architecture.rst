@@ -32,7 +32,7 @@ responsible for linking resources with metrics.
 How to choose back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Gnocchi currently offers 4 storage drivers:
+Gnocchi currently offers different storage drivers:
 
 * File
 * Swift
