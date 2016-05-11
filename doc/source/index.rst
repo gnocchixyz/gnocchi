@@ -67,5 +67,6 @@ Documentation
    rest
    statsd
    grafana
+   glossary
 
 .. _`OpenStack`: http://openstack.org
