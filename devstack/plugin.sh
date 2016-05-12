@@ -225,7 +225,6 @@ function configure_gnocchi {
     sudo chown $STACK_USER $GNOCCHI_DATA_DIR
 
     # Configure logging
-    iniset $GNOCCHI_CONF DEFAULT verbose True
     iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
 
     # Install the configuration files
