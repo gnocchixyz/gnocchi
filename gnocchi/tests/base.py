@@ -403,14 +403,12 @@ class TestCase(base.BaseTestCase):
 
         self.archive_policies = self.ARCHIVE_POLICIES.copy()
         self.archive_policies.update(archive_policy.DEFAULT_ARCHIVE_POLICIES)
-        # Used in gnocchi.gendoc
-        if not getattr(self, "skip_archive_policies_creation", False):
-            for name, ap in six.iteritems(self.archive_policies):
-                # Create basic archive policies
-                try:
-                    self.index.create_archive_policy(ap)
-                except indexer.ArchivePolicyAlreadyExists:
-                    pass
+        for name, ap in six.iteritems(self.archive_policies):
+            # Create basic archive policies
+            try:
+                self.index.create_archive_policy(ap)
+            except indexer.ArchivePolicyAlreadyExists:
+                pass
 
         if swexc:
             self.useFixture(mockpatch.Patch(
