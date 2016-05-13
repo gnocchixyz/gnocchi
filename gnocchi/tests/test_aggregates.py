@@ -17,6 +17,7 @@ import datetime
 import uuid
 
 import pandas
+from stevedore import extension
 
 from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
@@ -26,6 +27,12 @@ from gnocchi import utils
 
 
 class TestAggregates(tests_base.TestCase):
+
+    def setUp(self):
+        super(TestAggregates, self).setUp()
+        mgr = extension.ExtensionManager('gnocchi.aggregates',
+                                         invoke_on_load=True)
+        self.custom_agg = dict((x.name, x.obj) for x in mgr)
 
     def test_extension_dict(self):
         self.assertIsInstance(self.custom_agg['moving-average'],

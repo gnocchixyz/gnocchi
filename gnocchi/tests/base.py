@@ -24,7 +24,6 @@ from oslotest import base
 from oslotest import mockpatch
 import six
 from six.moves.urllib.parse import unquote
-from stevedore import extension
 try:
     from swiftclient import exceptions as swexc
 except ImportError:
@@ -445,10 +444,6 @@ class TestCase(base.BaseTestCase):
         # explodes because MySQL does not support that many connections in real
         # life.
         # self.storage.upgrade(self.index)
-
-        self.mgr = extension.ExtensionManager('gnocchi.aggregates',
-                                              invoke_on_load=True)
-        self.custom_agg = dict((x.name, x.obj) for x in self.mgr)
 
     def tearDown(self):
         self.index.disconnect()
