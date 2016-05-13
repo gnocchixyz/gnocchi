@@ -598,6 +598,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         session.expire(r, ['metrics'])
 
+    @retry_on_deadlock
     def delete_resource(self, resource_id):
         with self.facade.writer() as session:
             # We are going to delete the resource; the on delete will set the
