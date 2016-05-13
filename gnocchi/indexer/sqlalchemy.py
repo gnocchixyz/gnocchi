@@ -49,6 +49,17 @@ _marker = indexer._marker
 LOG = log.getLogger(__name__)
 
 
+def retry_on_deadlock(f):
+    # FIXME(jd) The default values in oslo.db are useless, we need to fix that.
+    # Once it's done, let's remove that wrapper of wrapper.
+    return oslo_db.api.wrap_db_retry(retry_on_deadlock=True,
+                                     retry_on_request=True,
+                                     max_retries=10,
+                                     retry_interval=0.1,
+                                     inc_retry_interval=True,
+                                     max_retry_interval=2)(f)
+
+
 class PerInstanceFacade(object):
     def __init__(self, conf):
         self.trans = enginefacade.transaction_context()
@@ -125,7 +136,7 @@ class ResourceClassMapper(object):
                 self._cache[resource_type.tablename] = mapper
                 return mapper
 
-    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    @retry_on_deadlock
     def map_and_create_tables(self, resource_type, connection):
         with self._lock:
             # NOTE(sileht): map this resource_type to have
@@ -167,7 +178,7 @@ class ResourceClassMapper(object):
                 Base.metadata.remove(table)
             del self._cache[resource_type.tablename]
 
-    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    @retry_on_deadlock
     def _safe_execute(self, connection, works):
         # NOTE(sileht): we create a transaction to ensure mysql
         # create locks on other transaction...
@@ -477,7 +488,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
             return r
 
-    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    @retry_on_deadlock
     def update_resource(self, resource_type,
                         resource_id, ended_at=_marker, metrics=_marker,
                         append_metrics=False,
@@ -650,7 +661,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         return Result
 
-    @oslo_db.api.wrap_db_retry(retry_on_deadlock=True)
+    @retry_on_deadlock
     def list_resources(self, resource_type='generic',
                        attribute_filter=None,
                        details=False,
