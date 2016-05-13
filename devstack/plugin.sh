@@ -68,13 +68,7 @@ function is_gnocchi_enabled {
 # Test if a Ceph services are enabled
 # _is_ceph_enabled
 function _is_ceph_enabled {
-    if is_service_enabled ceph; then
-        # Old ceph setup
-        return 0
-    elif type is_ceph_enabled_for_service >/dev/null 2>&1; then
-        # New devstack-plugin-ceph
-        return 0
-    fi
+    type is_ceph_enabled_for_service >/dev/null 2>&1 && return 0
     return 1
 }
 
