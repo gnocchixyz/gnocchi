@@ -27,6 +27,7 @@ from oslo_db.sqlalchemy import utils as oslo_db_utils
 from oslo_log import log
 import six
 import sqlalchemy
+from sqlalchemy.engine import url as sqlalchemy_url
 from sqlalchemy import types
 import sqlalchemy_utils
 
@@ -178,8 +179,19 @@ class ResourceClassMapper(object):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
+    @staticmethod
+    def dress_url(url):
+        # If no explicit driver has been set, we default to pymysql
+        if url.startswith("mysql://"):
+            url = sqlalchemy_url.make_url(url)
+            url.drivername = "mysql+pymysql"
+            return str(url)
+        return url
+
     def __init__(self, conf):
-        conf.set_override("connection", conf.indexer.url, "database")
+        conf.set_override("connection",
+                          self.dress_url(conf.indexer.url),
+                          "database")
         self.conf = conf
         self.facade = PerInstanceFacade(conf)
 
