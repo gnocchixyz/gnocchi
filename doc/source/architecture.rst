@@ -103,12 +103,12 @@ policies. A typical low grained use case could be::
 
     3600 points with a granularity of 1 second = 1 hour
     1440 points with a granularity of 1 minute = 24 hours
-    1800 points with a granularity of 1 hour = 30 days
+    720 points with a granularity of 1 hour = 30 days
     365 points with a granularity of 1 day = 1 year
 
-This would represent 7205 points × 17.92 = 126 KiB per aggregation method. If
-you use the 8 standard aggregation method, your metric will take up to 8 × 126
-KiB = 0.98 MiB of disk space.
+This would represent 6125 points × 9 = 54 KiB per aggregation method. If
+you use the 8 standard aggregation method, your metric will take up to 8 × 54
+KiB = 432 KiB of disk space.
 
 Default archive policies
 ------------------------
