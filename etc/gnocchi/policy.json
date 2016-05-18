@@ -20,6 +20,7 @@
     "get archive policy": "",
     "list archive policy": "",
     "create archive policy": "role:admin",
+    "update archive policy": "role:admin",
     "delete archive policy": "role:admin",
 
     "create archive policy rule": "role:admin",

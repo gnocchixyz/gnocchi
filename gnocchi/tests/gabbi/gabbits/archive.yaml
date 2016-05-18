@@ -189,6 +189,81 @@ tests:
           accept: text/plain
       status: 406
 
+# Update archive policy
+
+    - name: patch archive policy with bad definition
+      url: /v1/archive_policy/medium
+      method: PATCH
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          definition:
+              - granularity: 1 second
+                points: 50
+                timespan: 1 hour
+              - granularity: 2 second
+      status: 400
+      response_strings:
+          - timespan ≠ granularity × points
+
+    - name: patch archive policy with missing granularity
+      url: /v1/archive_policy/medium
+      method: PATCH
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          definition:
+              - granularity: 1 second
+                points: 50
+      status: 400
+      response_strings:
+          - "Archive policy medium does not support change: Cannot add or drop granularities"
+
+    - name: patch archive policy with non-matching granularity
+      url: /v1/archive_policy/medium
+      method: PATCH
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          definition:
+              - granularity: 5 second
+                points: 20
+              - granularity: 2 second
+      status: 400
+      response_strings:
+          - "Archive policy medium does not support change: 1.0 granularity interval was changed"
+
+    - name: patch archive policy
+      url: /v1/archive_policy/medium
+      method: PATCH
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          definition:
+              - granularity: 1 second
+                points: 50
+              - granularity: 2 second
+      status: 200
+      response_json_paths:
+          $.name: medium
+          $.definition[0].granularity: "0:00:01"
+          $.definition[0].points: 50
+          $.definition[0].timespan: "0:00:50"
+
+    - name: get patched archive policy
+      url: /v1/archive_policy/medium
+      response_headers:
+          content-type: /application/json/
+      response_json_paths:
+          $.name: medium
+          $.definition[0].granularity: "0:00:01"
+          $.definition[0].points: 50
+          $.definition[0].timespan: "0:00:50"
+
 # Unexpected methods
 
     - name: post single archive

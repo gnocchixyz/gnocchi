@@ -159,6 +159,17 @@ It is also possible to list archive policies:
 
 {{ scenarios['list-archive-policy']['doc'] }}
 
+Existing archive policies can be modified to retain more or less data depending
+on requirements. If the policy coverage is expanded, measures are not
+retroactively calculated as backfill to accommodate the new timespan:
+
+{{ scenarios['update-archive-policy']['doc'] }}
+
+.. note::
+
+   Granularities cannot be changed to a different rate. Also, granularities
+   cannot be added or dropped from a policy.
+
 It is possible to delete an archive policy if it is not used by any metric:
 
 {{ scenarios['delete-archive-policy']['doc'] }}

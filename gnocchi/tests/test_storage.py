@@ -21,6 +21,7 @@ from oslo_utils import timeutils
 from oslotest import base
 import six.moves
 
+from gnocchi import archive_policy
 from gnocchi import carbonara
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -519,6 +520,58 @@ class TestStorageDriver(tests_base.TestCase):
                 {u"∧": [
                     {u"eq": 100},
                     {u"≠": 50}]}))
+
+    def test_resize_policy(self):
+        name = str(uuid.uuid4())
+        ap = archive_policy.ArchivePolicy(name, 0, [(3, 5)])
+        self.index.create_archive_policy(ap)
+        m = storage.Metric(uuid.uuid4(), ap)
+        self.index.create_metric(m.id, str(uuid.uuid4()),
+                                 str(uuid.uuid4()), name)
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 0), 1),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 5), 1),
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 10), 1),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
+        ], self.storage.get_measures(m))
+        # expand to more points
+        self.index.update_archive_policy(
+            name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 15), 1),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
+        ], self.storage.get_measures(m))
+        # shrink timespan
+        self.index.update_archive_policy(
+            name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
+        # unchanged after update if no samples
+        self.storage.process_background_tasks(self.index, sync=True)
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
+        ], self.storage.get_measures(m))
+        # drop points
+        self.storage.add_measures(m, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 20), 1),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 20), 5.0, 1.0),
+        ], self.storage.get_measures(m))
 
 
 class TestMeasureQuery(base.BaseTestCase):
