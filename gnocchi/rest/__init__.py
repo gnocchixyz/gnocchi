@@ -1411,7 +1411,8 @@ class StatusController(rest.RestController):
     @pecan.expose('json')
     def get(details=True):
         enforce("get status", {})
-        report = pecan.request.storage.measures_report(details)
+        report = pecan.request.storage.measures_report(
+            strutils.bool_from_string(details))
         report_dict = {"storage": {"summary": report['summary']}}
         if 'details' in report:
             report_dict["storage"]["measures_to_process"] = report['details']
