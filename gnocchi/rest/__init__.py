@@ -217,6 +217,8 @@ def get_details(params):
 RESOURCE_DEFAULT_PAGINATION = ['revision_start:asc',
                                'started_at:asc']
 
+METRIC_DEFAULT_PAGINATION = ['id:asc']
+
 
 def get_pagination_options(params, default):
     max_limit = pecan.request.conf.api.max_limit
@@ -694,7 +696,12 @@ class MetricsController(rest.RestController):
             attr_filter['created_by_user_id'] = user_id
         if project_id is not None:
             attr_filter['created_by_project_id'] = project_id
-        return pecan.request.indexer.list_metrics(**attr_filter)
+        attr_filter.update(get_pagination_options(
+            kwargs, METRIC_DEFAULT_PAGINATION))
+        try:
+            return pecan.request.indexer.list_metrics(**attr_filter)
+        except indexer.IndexerException as e:
+            abort(400, e)
 
 
 _MetricsSchema = voluptuous.Schema({

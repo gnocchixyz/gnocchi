@@ -493,12 +493,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @retry_on_deadlock
     def list_metrics(self, names=None, ids=None, details=False,
-                     status='active', **kwargs):
+                     status='active', limit=None, marker=None, sorts=None,
+                     **kwargs):
+        sorts = sorts or []
         if ids is not None and not ids:
             return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
-                Metric.status == status).order_by(Metric.id)
+                Metric.status == status)
             if names is not None:
                 q = q.filter(Metric.name.in_(names))
             if ids is not None:
@@ -507,6 +509,30 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 q = q.filter(getattr(Metric, attr) == kwargs[attr])
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
+
+            sort_keys, sort_dirs = self._build_sort_keys(sorts)
+
+            if marker:
+                metric_marker = self.list_metrics(ids=[marker])
+                if metric_marker:
+                    metric_marker = metric_marker[0]
+                else:
+                    raise indexer.InvalidPagination(
+                        "Invalid marker: `%s'" % marker)
+            else:
+                metric_marker = None
+
+            try:
+                q = oslo_db_utils.paginate_query(q, Metric, limit=limit,
+                                                 sort_keys=sort_keys,
+                                                 marker=metric_marker,
+                                                 sort_dirs=sort_dirs)
+            except ValueError as e:
+                raise indexer.InvalidPagination(e)
+            except exception.InvalidSortKey as e:
+                # FIXME(jd) Wait for https://review.openstack.org/274868 to be
+                # released so we can return which key
+                raise indexer.InvalidPagination("Invalid sort keys")
 
             return list(q.all())
 
@@ -762,18 +788,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                 q = q.filter(f)
 
-            # transform the api-wg representation to the oslo.db one
-            sort_keys = []
-            sort_dirs = []
-            for sort in sorts:
-                sort_key, __, sort_dir = sort.partition(":")
-                sort_keys.append(sort_key.strip())
-                sort_dirs.append(sort_dir or 'asc')
-
-            # paginate_query require at list one uniq column
-            if 'id' not in sort_keys:
-                sort_keys.append('id')
-                sort_dirs.append('asc')
+            sort_keys, sort_dirs = self._build_sort_keys(sorts)
 
             if marker:
                 resource_marker = self.get_resource(resource_type, marker)
@@ -854,6 +869,23 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Metric.id == id, Metric.status == 'active').update(
                     {"status": "delete"}) == 0:
                 raise indexer.NoSuchMetric(id)
+
+    @staticmethod
+    def _build_sort_keys(sorts):
+        # transform the api-wg representation to the oslo.db one
+        sort_keys = []
+        sort_dirs = []
+        for sort in sorts:
+            sort_key, __, sort_dir = sort.partition(":")
+            sort_keys.append(sort_key.strip())
+            sort_dirs.append(sort_dir or 'asc')
+
+        # paginate_query require at list one uniq column
+        if 'id' not in sort_keys:
+            sort_keys.append('id')
+            sort_dirs.append('asc')
+
+        return sort_keys, sort_dirs
 
 
 class QueryTransformer(object):

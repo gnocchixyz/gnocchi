@@ -41,6 +41,13 @@ To retrieve the list of all the metrics created, use the following request:
 
 {{ scenarios['list-metric']['doc'] }}
 
+Considering the large volume of metrics Gnocchi will store, query results are
+limited to `max_limit` value set in the configuration file. Returned results
+are ordered by metrics' id values. Default ordering and limits as well as page
+start can be modified using query parameters:
+
+{{ scenarios['list-metric-pagination']['doc'] }}
+
 It is possible to send measures to the metric:
 
 {{ scenarios['post-measures']['doc'] }}
@@ -291,6 +298,12 @@ resource type endpoint:
 or using `details=true` in the query parameter:
 
 {{ scenarios['list-resource-generic-details']['doc'] }}
+
+Similar to metric list, query results are limited to `max_limit` value set in
+the configuration file. Returned results are ordered by resouces'
+revision_start time and started_at values:
+
+{{ scenarios['list-resource-generic-pagination']['doc'] }}
 
 Each resource can be linked to any number of metrics. The `metrics` attributes
 is a key/value field where the key is the name of the relationship and

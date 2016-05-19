@@ -142,6 +142,9 @@
 - name: list-metric
   request: GET /v1/metric HTTP/1.1
 
+- name: list-metric-pagination
+  request: GET /v1/metric?limit=100&sort=name:asc HTTP/1.1
+
 - name: post-measures
   request: |
     POST /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures HTTP/1.1
@@ -276,6 +279,9 @@
 
 - name: list-resource-generic-details
   request: GET /v1/resource/generic?details=true HTTP/1.1
+
+- name: list-resource-generic-pagination
+  request: GET /v1/resource/generic?limit=2&sort=id:asc HTTP/1.1
 
 - name: search-resource-for-user
   request: |
