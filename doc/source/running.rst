@@ -60,6 +60,9 @@ monitor (see `How many metricd workers do we need to run`_). Making sure that
 the HTTP server and `gnocchi-metricd` daemon are running and are not writing
 anything alarming in their logs is a sign of good health of the overall system.
 
+Total measures for backlog status may not accurately reflect the number of
+points to be processed when measures are submitted via batch.
+
 How to backup and restore Gnocchi
 =================================
 
