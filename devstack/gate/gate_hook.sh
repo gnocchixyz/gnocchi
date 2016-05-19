@@ -41,10 +41,6 @@ case $STORAGE_DRIVER in
         DEVSTACK_GATE_TEMPEST+=$'\nexport SWIFT_USE_MOD_WSGI=True'
         ;;
     ceph)
-        if [ "${PROJECTS//devstack-plugin-ceph/}" == "$PROJECTS" ]; then
-            # Old fashion ceph plugin
-            ENABLED_SERVICES+="ceph"
-        fi
         DEVSTACK_LOCAL_CONFIG+=$'\nexport GNOCCHI_STORAGE_BACKEND=ceph'
         ;;
 esac
