@@ -354,6 +354,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         except exception.DBReferenceError as e:
             if (e.constraint in [
                     'fk_resource_resource_type_name',
+                    'fk_resource_history_resource_type_name',
                     'fk_rh_resource_type_name']):
                 raise indexer.ResourceTypeInUse(name)
             raise
