@@ -214,6 +214,7 @@ def get_legacy_resource_types():
             attributes)
         resource_types.append(ResourceType(name=name,
                                            tablename=tablename,
+                                           state="creating",
                                            attributes=attrs))
     return resource_types
 
@@ -241,6 +242,12 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
                              nullable=False)
     tablename = sqlalchemy.Column(sqlalchemy.String(35), nullable=False)
     attributes = sqlalchemy.Column(ResourceTypeAttributes)
+    state = sqlalchemy.Column(sqlalchemy.Enum("active", "creating",
+                                              "creation_error", "deleting",
+                                              "deletion_error",
+                                              name="resource_type_state_enum"),
+                              nullable=False,
+                              server_default="creating")
 
     def to_baseclass(self):
         cols = {}

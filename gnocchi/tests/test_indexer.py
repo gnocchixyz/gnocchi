@@ -17,10 +17,16 @@ import datetime
 import operator
 import uuid
 
+import mock
+
 from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
+
+
+class MockException(Exception):
+    pass
 
 
 class TestIndexer(tests_base.TestCase):
@@ -1035,6 +1041,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual("string", rtype.attributes[0].typename)
         self.assertEqual(15, rtype.attributes[0].max_length)
         self.assertEqual(2, rtype.attributes[0].min_length)
+        self.assertEqual("active", rtype.state)
 
         # List
         rtypes = self.index.list_resource_types()
@@ -1069,3 +1076,59 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchResourceType,
                           self.index.delete_resource_type,
                           "indexer_test")
+
+    def _get_rt_state(self, name):
+        return self.index.get_resource_type(name).state
+
+    def test_resource_type_unexpected_creation_error(self):
+        mgr = self.index.get_resource_type_schema()
+        rtype = mgr.resource_type_from_dict("indexer_test_fail", {
+            "col1": {"type": "string", "required": True,
+                     "min_length": 2, "max_length": 15}
+        })
+
+        states = {'before': None,
+                  'after': None}
+
+        def map_and_create_mock(rt, conn):
+            states['before'] = self._get_rt_state("indexer_test_fail")
+            raise MockException("boom!")
+
+        with mock.patch.object(self.index._RESOURCE_TYPE_MANAGER,
+                               "map_and_create_tables",
+                               side_effect=map_and_create_mock):
+            self.assertRaises(MockException,
+                              self.index.create_resource_type,
+                              rtype)
+            states['after'] = self._get_rt_state('indexer_test_fail')
+
+        self.assertEqual([('after', 'creation_error'),
+                          ('before', 'creating')],
+                         sorted(states.items()))
+
+    def test_resource_type_unexpected_deleting_error(self):
+        mgr = self.index.get_resource_type_schema()
+        rtype = mgr.resource_type_from_dict("indexer_test_fail2", {
+            "col1": {"type": "string", "required": True,
+                     "min_length": 2, "max_length": 15}
+        })
+        self.index.create_resource_type(rtype)
+
+        states = {'before': None,
+                  'after': None}
+
+        def map_and_create_mock(rt, conn):
+            states['before'] = self._get_rt_state("indexer_test_fail2")
+            raise MockException("boom!")
+
+        with mock.patch.object(self.index._RESOURCE_TYPE_MANAGER,
+                               "unmap_and_delete_tables",
+                               side_effect=map_and_create_mock):
+            self.assertRaises(MockException,
+                              self.index.delete_resource_type,
+                              rtype.name)
+            states['after'] = self._get_rt_state('indexer_test_fail2')
+
+        self.assertEqual([('after', 'deletion_error'),
+                          ('before', 'deleting')],
+                         sorted(states.items()))
