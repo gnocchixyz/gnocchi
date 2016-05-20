@@ -26,6 +26,7 @@ import warnings
 from gabbi import fixture
 import sqlalchemy.engine.url as sqlalchemy_url
 import sqlalchemy_utils
+from tooz import coordination
 
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
@@ -114,7 +115,20 @@ class ConfigFixture(fixture.GabbiFixture):
 
         index = indexer.get_driver(conf)
         index.connect()
-        index.upgrade(create_legacy_resource_types=True)
+
+        coord = coordination.get_coordinator(
+            conf.storage.coordination_url,
+            str(uuid.uuid4()).encode('ascii'))
+        coord.start()
+        with coord.get_lock(b"gnocchi-tests-db-lock"):
+            # Force upgrading using Alembic rather than creating the
+            # database from scratch so we are sure we don't miss anything
+            # in the Alembic upgrades. We have a test to check that
+            # upgrades == create but it misses things such as custom CHECK
+            # constraints.
+            index.upgrade(nocreate=True,
+                          create_legacy_resource_types=True)
+        coord.stop()
 
         conf.set_override('pecan_debug', False, 'api')
 
