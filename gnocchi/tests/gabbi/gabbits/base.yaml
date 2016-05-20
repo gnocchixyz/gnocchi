@@ -147,3 +147,23 @@ tests:
 - name: get status denied
   url: /v1/status
   status: 403
+
+- name: get status
+  url: /v1/status
+  request_headers:
+    content-type: application/json
+    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+    x-roles: admin
+  response_json_paths:
+    $.storage.`len`: 2
+
+- name: get status, no details
+  url: /v1/status?details=False
+  request_headers:
+    content-type: application/json
+    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
+    x-roles: admin
+  response_json_paths:
+    $.storage.`len`: 1
