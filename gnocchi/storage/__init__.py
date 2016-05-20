@@ -35,6 +35,10 @@ OPTS = [
                default=60,
                help="How many seconds to wait between "
                "metric ingestion reporting"),
+    cfg.IntOpt('metric_cleanup_delay',
+               default=60,
+               help="How many seconds to wait between "
+               "cleaning of expired data"),
 ]
 
 LOG = log.getLogger(__name__)
@@ -171,8 +175,7 @@ class StorageDriver(object):
     def process_background_tasks(self, index, block_size=128, sync=False):
         """Process background tasks for this storage.
 
-        This calls :func:`process_measures` to process new measures and
-        :func:`expunge_metrics` to expunge deleted metrics.
+        This calls :func:`process_measures` to process new measures
 
         :param index: An indexer to be used for querying metrics
         :param block_size: number of metrics to process
@@ -180,7 +183,7 @@ class StorageDriver(object):
                      on error
         :type sync: bool
         """
-        LOG.debug("Processing new and to delete measures")
+        LOG.debug("Processing new measures")
         try:
             self.process_measures(index, block_size, sync)
         except Exception:
@@ -188,16 +191,16 @@ class StorageDriver(object):
                 raise
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
-        LOG.debug("Expunging deleted metrics")
-        try:
-            self.expunge_metrics(index, sync)
-        except Exception:
-            if sync:
-                raise
-            LOG.error("Unexpected error during deleting metrics",
-                      exc_info=True)
 
     def expunge_metrics(self, index, sync=False):
+        """Remove deleted metrics
+
+        :param index: An indexer to be used for querying metrics
+        :param sync: If True, then delete everything synchronously and raise
+                     on error
+        :type sync: bool
+        """
+
         metrics_to_expunge = index.list_metrics(status='delete')
         for m in metrics_to_expunge:
             try:

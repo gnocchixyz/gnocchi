@@ -23,6 +23,7 @@ import six.moves
 
 from gnocchi import archive_policy
 from gnocchi import carbonara
+from gnocchi import indexer
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 from gnocchi.storage import null
@@ -88,6 +89,16 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.storage.delete_metric(self.metric)
         self.storage.process_background_tasks(self.index, sync=True)
+
+    def test_delete_expunge_metric(self):
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
+        ])
+        self.storage.process_background_tasks(self.index, sync=True)
+        self.index.delete_metric(self.metric.id)
+        self.storage.expunge_metrics(self.index, sync=True)
+        self.assertRaises(indexer.NoSuchMetric, self.index.delete_metric,
+                          self.metric.id)
 
     def test_measures_reporting(self):
         report = self.storage.measures_report(True)

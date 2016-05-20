@@ -151,6 +151,15 @@ class MetricReporting(MetricProcessBase):
                       exc_info=True)
 
 
+class MetricJanitor(MetricProcessBase):
+    def _run_job(self):
+        try:
+            self.store.expunge_metrics(self.index)
+            LOG.debug("Metrics marked for deletion removed from backend")
+        except Exception:
+            LOG.error("Unexpected error during metric cleanup", exc_info=True)
+
+
 class MetricProcessor(MetricProcessBase):
     def __init__(self, conf, worker_id=0, interval_delay=0, queue=None):
         super(MetricProcessor, self).__init__(conf, worker_id, interval_delay)
@@ -194,6 +203,11 @@ def metricd():
             conf, 0, conf.storage.metric_reporting_delay, queues)
         metric_report.start()
         workers.append(metric_report)
+
+        metric_janitor = MetricJanitor(
+            conf, interval_delay=conf.storage.metric_cleanup_delay)
+        metric_janitor.start()
+        workers.append(metric_janitor)
 
         for worker in workers:
             worker.join()
