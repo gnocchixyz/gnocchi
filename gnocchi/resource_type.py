@@ -171,14 +171,15 @@ class ResourceTypeSchemaManager(stevedore.ExtensionManager):
             self[attr["type"]].plugin(name=name, **attr)
             for name, attr in attributes.items())
 
-    def resource_type_from_dict(self, name, attributes):
-        return ResourceType(name, self.attributes_from_dict(attributes))
+    def resource_type_from_dict(self, name, attributes, state):
+        return ResourceType(name, self.attributes_from_dict(attributes), state)
 
 
 class ResourceType(object):
-    def __init__(self, name, attributes):
+    def __init__(self, name, attributes, state):
         self.name = name
         self.attributes = attributes
+        self.state = state
 
     @property
     def schema(self):
@@ -192,4 +193,5 @@ class ResourceType(object):
 
     def jsonify(self):
         return {"name": self.name,
-                "attributes": self.attributes.jsonify()}
+                "attributes": self.attributes.jsonify(),
+                "state": self.state}
