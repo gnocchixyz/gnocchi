@@ -35,7 +35,12 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
     @classmethod
     def resource_setup(cls):
         super(GnocchiGabbiTest, cls).resource_setup()
-        url, token = cls._get_gnocchi_auth()
+
+        url = cls.os_admin.auth_provider.base_url(
+            {'service':  CONF.metric.catalog_type,
+             'endpoint_type': CONF.metric.endpoint_type})
+        token = cls.os_admin.auth_provider.get_token()
+
         parsed_url = urlparse.urlsplit(url)
         prefix = parsed_url.path.rstrip('/')  # turn it into a prefix
         port = 443 if parsed_url.scheme == 'https' else 80
@@ -67,19 +72,6 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
         finally:
             super(GnocchiGabbiTest, self).clear_credentials()
             self.tearDown()
-
-    @classmethod
-    def _get_gnocchi_auth(cls):
-        endpoint_type = CONF.metric.endpoint_type
-        if not endpoint_type.endswith("URL"):
-            endpoint_type += "URL"
-
-        auth = cls.os_admin.auth_provider.get_auth()
-        endpoints = [e for e in auth[1]['serviceCatalog']
-                     if e['type'] == CONF.metric.catalog_type]
-        if not endpoints:
-            raise Exception("%s endpoint not found" % CONF.metric.catalog_type)
-        return endpoints[0]['endpoints'][0][endpoint_type], auth[0]
 
     def test_fake(self):
         # NOTE(sileht): A fake test is needed to have the class loaded
