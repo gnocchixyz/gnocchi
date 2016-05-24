@@ -773,7 +773,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def delete_metric(self, id):
         with self.facade.writer() as session:
             if session.query(Metric).filter(
-                    Metric.id == id).update({"status": "delete"}) == 0:
+                Metric.id == id, Metric.status == 'active').update(
+                    {"status": "delete"}) == 0:
                 raise indexer.NoSuchMetric(id)
 
 

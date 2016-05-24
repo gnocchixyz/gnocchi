@@ -278,6 +278,10 @@ tests:
       method: DELETE
       status: 204
 
+    - name: delete metric again
+      DELETE: $LAST_URL
+      status: 404
+
     - name: delete non existent metric
       url: /v1/metric/foo
       method: DELETE
