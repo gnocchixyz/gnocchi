@@ -110,7 +110,7 @@ tests:
       url: /v1/resource/generic
       method: post
       data:
-          id: four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts
+          id: four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           metrics:
@@ -125,7 +125,7 @@ tests:
       method: post
       data:
           # 255 char string
-          id: four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue that counts four score and seven years ago we the people of the united states of america i have a dream it is the courage to continue
+          id: four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           metrics:

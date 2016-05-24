@@ -97,7 +97,7 @@ For a more robust multi-nodes deployment, the coordinator may be changed via
 the `storage.coordination_url` configuration option to one of the other `tooz
 backends`_.
 
-For example to use Redis backend::
+For example, to use Redis backend::
 
     coordination_url = redis://<sentinel host>?sentinel=<master name>
 
@@ -128,7 +128,7 @@ processed:
   each time we would change it.
 
 Instead, the omaps of one empty rados object are used. No lock is needed to
-add/remove a omap attribute.
+add/remove an omap attribute.
 
 Also xattrs attributes are used to store the list of aggregations used for a
 metric. So depending on the filesystem used by ceph OSDs, xattrs can have
@@ -155,7 +155,7 @@ So, in realistic scenarios, the direct relation between the archive policy and
 the size of the rados objects created by Gnocchi is not a problem.
 
 
-Also Gnocchi can use `cradox`_ Python libary if installed. This library is a
+Also Gnocchi can use `cradox`_ Python library if installed. This library is a
 Python binding to librados written with `Cython`_, aiming to replace the one
 written with `ctypes`_ provided by Ceph.
 This new library will be part of next Ceph release (10.0.4).
