@@ -159,7 +159,10 @@ function _gnocchi_install_grafana {
         sudo yum install "$GRAFANA_RPM_PKG"
     fi
 
-    git_clone ${GRAFANA_PLUGINS_REPO} ${GRAFANA_PLUGINS_DIR}
+    # NOTE(sileht): We current support only 2.6, when 
+    # plugin for 3.0 will be ready we will switch to the grafana
+    # plugin tool to install it
+    git_clone ${GRAFANA_PLUGINS_REPO} ${GRAFANA_PLUGINS_DIR} 2.6
     # Grafana-server does not handle symlink :(
     sudo mkdir -p /usr/share/grafana/public/app/plugins/datasource/gnocchi
     sudo mount -o bind ${GRAFANA_PLUGINS_DIR}/datasources/gnocchi /usr/share/grafana/public/app/plugins/datasource/gnocchi
