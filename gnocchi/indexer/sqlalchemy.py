@@ -411,6 +411,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.ArchivePolicyRuleAlreadyExists(name)
         return apr
 
+    @retry_on_deadlock
     def create_metric(self, id, created_by_user_id, created_by_project_id,
                       archive_policy_name,
                       name=None, resource_id=None):
