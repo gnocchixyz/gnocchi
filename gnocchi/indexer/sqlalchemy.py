@@ -614,6 +614,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     Resource.id == resource_id).delete() == 0:
                 raise indexer.NoSuchResource(resource_id)
 
+    @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         with self.facade.independent_reader() as session:
             resource_cls = self._resource_type_to_classes(
