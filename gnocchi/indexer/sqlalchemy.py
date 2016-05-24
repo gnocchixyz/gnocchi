@@ -431,6 +431,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise
         return m
 
+    @retry_on_deadlock
     def list_metrics(self, names=None, ids=None, details=False,
                      status='active', **kwargs):
         if ids is not None and not ids:
