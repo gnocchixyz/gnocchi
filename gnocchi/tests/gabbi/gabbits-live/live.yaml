@@ -234,7 +234,7 @@ tests:
     # Fail to delete one that does not exist
 
     - name: delete missing archive
-      desc: delete non-existint archive policy
+      desc: delete non-existent archive policy
       url: /v1/archive_policy/grandiose
       method: DELETE
       status: 404
@@ -479,12 +479,12 @@ tests:
       status: 404
 
     - name: identity resource
-      desc: maybe theres are no identity resources yet
+      desc: maybe there's are no identity resources yet
       url: /v1/resource/identity
       status: 200
 
     - name: ceph_account resource
-      desc: maybe theres are no ceph_account resources yet
+      desc: maybe there's are no ceph_account resources yet
       url: /v1/resource/ceph_account
       status: 200
 
@@ -494,43 +494,43 @@ tests:
       status: 200
 
     - name: instance_network_interface resource
-      desc: maybe theres are no instance_network_interface resources yet
+      desc: maybe there's are no instance_network_interface resources yet
       url: /v1/resource/instance_network_interface
       status: 200
 
     - name: instance_disk resource
-      desc: maybe theres are no instance_disk resources yet
+      desc: maybe there's are no instance_disk resources yet
       url: /v1/resource/instance_disk
       status: 200
 
     - name: image resource
-      desc: maybe theres are no image resources yet
+      desc: maybe there's are no image resources yet
       url: /v1/resource/image
       status: 200
 
     - name: ipmi resource
-      desc: maybe theres are no ipmi resources yet
+      desc: maybe there's are no ipmi resources yet
       url: /v1/resource/ipmi
       status: 200
 
     - name: network resource
-      desc: maybe theres are no network resources yet
+      desc: maybe there's are no network resources yet
       url: /v1/resource/network
       status: 200
 
     - name: orchestration resource
-      desc: maybe theres are no orchestration resources yet
+      desc: maybe there's are no orchestration resources yet
       #url: /v1/resource/orchestration
       url: /v1/resource/stack
       status: 200
 
     - name: swift_account resource
-      desc: maybe theres are no swift_account resources yet
+      desc: maybe there's are no swift_account resources yet
       url: /v1/resource/swift_account
       status: 200
 
     - name: volume resource
-      desc: maybe theres are no volume resources yet
+      desc: maybe there's are no volume resources yet
       url: /v1/resource/volume
       status: 200
 

@@ -450,9 +450,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             )
             granularities_in_common = [
                 g
-                for g, occurence in six.iteritems(
+                for g, occurrence in six.iteritems(
                     collections.Counter(granularities))
-                if occurence == len(metrics)
+                if occurrence == len(metrics)
             ]
 
             if not granularities_in_common:
