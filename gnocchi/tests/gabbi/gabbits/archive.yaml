@@ -25,20 +25,20 @@ tests:
 # Do we care?
 
     - name: empty archive policy list
-      url: /v1/archive_policy
+      GET: /v1/archive_policy
       response_headers:
           content-type: /application/json/
       response_strings:
           - "[]"
 
     - name: empty list text
-      url: /v1/archive_policy
+      GET: /v1/archive_policy
       request_headers:
           accept: text/plain
       status: 406
 
     - name: empty list html
-      url: /v1/archive_policy
+      GET: /v1/archive_policy
       request_headers:
           accept: text/html
       status: 406
@@ -46,8 +46,7 @@ tests:
 # Fail to create an archive policy for various reasons.
 
     - name: wrong content type
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: text/plain
           x-roles: admin
@@ -56,16 +55,14 @@ tests:
           - Unsupported Media Type
 
     - name: wrong method
-      url: /v1/archive_policy
-      method: PUT
+      PUT: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
       status: 405
 
     - name: wrong authZ
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: clancy
@@ -76,8 +73,7 @@ tests:
       status: 403
 
     - name: missing authZ
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -87,8 +83,7 @@ tests:
       status: 403
 
     - name: bad request body
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -99,8 +94,7 @@ tests:
           - "Invalid input: extra keys not allowed"
 
     - name: missing definition
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -111,8 +105,7 @@ tests:
           - "Invalid input: required key not provided"
 
     - name: empty definition
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -124,8 +117,7 @@ tests:
           - "Invalid input: length of value must be at least 1"
 
     - name: wrong value definition
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -137,8 +129,7 @@ tests:
           - "Invalid input: expected a list"
 
     - name: useless definition
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -153,8 +144,7 @@ tests:
 # Create a valid archive policy.
 
     - name: create archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -171,7 +161,7 @@ tests:
 # Retrieve it correctly and then poorly
 
     - name: get archive policy
-      url: $LOCATION
+      GET: $LOCATION
       response_headers:
           content-type: /application/json/
       response_json_paths:
@@ -184,7 +174,7 @@ tests:
           $.definition[1].timespan: null
 
     - name: get wrong accept
-      url: /v1/archive_policy/medium
+      GET: $LAST_URL
       request_headers:
           accept: text/plain
       status: 406
@@ -192,8 +182,7 @@ tests:
 # Update archive policy
 
     - name: patch archive policy with bad definition
-      url: /v1/archive_policy/medium
-      method: PATCH
+      PATCH: $LAST_URL
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -208,8 +197,7 @@ tests:
           - timespan ≠ granularity × points
 
     - name: patch archive policy with missing granularity
-      url: /v1/archive_policy/medium
-      method: PATCH
+      PATCH: $LAST_URL
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -222,8 +210,7 @@ tests:
           - "Archive policy medium does not support change: Cannot add or drop granularities"
 
     - name: patch archive policy with non-matching granularity
-      url: /v1/archive_policy/medium
-      method: PATCH
+      PATCH: $LAST_URL
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -237,8 +224,7 @@ tests:
           - "Archive policy medium does not support change: 1.0 granularity interval was changed"
 
     - name: patch archive policy
-      url: /v1/archive_policy/medium
-      method: PATCH
+      PATCH: $LAST_URL
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -255,7 +241,7 @@ tests:
           $.definition[0].timespan: "0:00:50"
 
     - name: get patched archive policy
-      url: /v1/archive_policy/medium
+      GET: $LAST_URL
       response_headers:
           content-type: /application/json/
       response_json_paths:
@@ -267,20 +253,17 @@ tests:
 # Unexpected methods
 
     - name: post single archive
-      url: /v1/archive_policy/medium
-      method: POST
+      POST: $LAST_URL
       status: 405
 
     - name: put single archive
-      url: /v1/archive_policy/medium
-      method: PUT
+      PUT: $LAST_URL
       status: 405
 
 # Create another one and then test duplication
 
     - name: create second policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -293,8 +276,7 @@ tests:
       status: 201
 
     - name: create duplicate policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -309,8 +291,7 @@ tests:
 # Create a unicode named policy
 
     - name: post unicode policy name
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -326,13 +307,12 @@ tests:
           name: ✔éñ☃
 
     - name: retrieve unicode policy name
-      url: $LOCATION
+      GET: $LOCATION
       response_json_paths:
           name: ✔éñ☃
 
     - name: post small unicode policy name
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -348,31 +328,31 @@ tests:
           name: æ
 
     - name: retrieve small unicode policy name
-      url: $LOCATION
+      GET: $LOCATION
       response_json_paths:
           name: æ
 
 # List the collection
 
     - name: get archive policy list
-      url: /v1/archive_policy
-      # TODO(chdent): We do not know the order, should we?
+      GET: /v1/archive_policy
       response_strings:
           - '"name": "medium"'
           - '"name": "large"'
+      response_json_paths:
+          $[?name = "large"].definition[?granularity = "1:00:00"].points: null
+          $[?name = "medium"].definition[?granularity = "0:00:02"].points: null
 
 # Delete one as non-admin
 
     - name: delete single archive non admin
-      url: /v1/archive_policy/medium
-      method: DELETE
+      DELETE: /v1/archive_policy/medium
       status: 403
 
 # Delete one
 
     - name: delete single archive
-      url: /v1/archive_policy/medium
-      method: DELETE
+      DELETE: /v1/archive_policy/medium
       request_headers:
         x-roles: admin
       status: 204
@@ -380,14 +360,13 @@ tests:
 # It really is gone
 
     - name: confirm delete
-      url: /v1/archive_policy/medium
+      GET: $LAST_URL
       status: 404
 
 # Fail to delete one that does not exist
 
     - name: delete missing archive
-      url: /v1/archive_policy/grandiose
-      method: DELETE
+      DELETE: /v1/archive_policy/grandiose
       request_headers:
         x-roles: admin
       status: 404
@@ -395,15 +374,13 @@ tests:
           - Archive policy grandiose does not exist
 
     - name: delete archive utf8
-      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
-      method: DELETE
+      DELETE: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
         x-roles: admin
       status: 204
 
     - name: delete missing archive utf8 again
-      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
-      method: DELETE
+      DELETE: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
         x-roles: admin
       status: 404
@@ -413,8 +390,7 @@ tests:
 # Add metric using the policy and then be unable to delete policy
 
     - name: create metric
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
           x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
@@ -424,8 +400,7 @@ tests:
       status: 201
 
     - name: delete in use policy
-      url: /v1/archive_policy/large
-      method: DELETE
+      DELETE: /v1/archive_policy/large
       request_headers:
         x-roles: admin
       status: 400
@@ -435,8 +410,7 @@ tests:
 # Attempt to create illogical policies
 
     - name: create illogical policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -451,8 +425,7 @@ tests:
           - timespan ≠ granularity × points
 
     - name: create invalid points policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -466,8 +439,7 @@ tests:
           - "Invalid input: not a valid value for dictionary value"
 
     - name: create invalid granularity policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -481,8 +453,7 @@ tests:
           - "Invalid input: not a valid value for dictionary value"
 
     - name: create identical granularities policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -498,8 +469,7 @@ tests:
           - "More than one archive policy uses granularity `1.0'"
 
     - name: policy invalid unit
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -513,8 +483,7 @@ tests:
 # Non admin user attempt
 
     - name: fail to create policy non-admin
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           x-user-id: b45187c5-150b-4730-bcb2-b5e04e234220
           x-project-id: 16764ee0-bffe-4843-aa36-04b002cdbc7c
@@ -530,8 +499,7 @@ tests:
 # Back windows
 
     - name: policy with back window
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -548,8 +516,7 @@ tests:
 
     - name: policy no back window
       desc: and default seconds on int granularity
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -568,8 +535,7 @@ tests:
 # Timespan, points, granularity input tests
 
     - name: policy float granularity
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -585,8 +551,7 @@ tests:
           $.definition[0].timespan: "1:06:40"
 
     - name: policy float timespan
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
