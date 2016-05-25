@@ -8,8 +8,7 @@ fixtures:
 tests:
 
     - name: create archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -20,8 +19,7 @@ tests:
       status: 201
 
     - name: make a generic resource
-      url: /v1/resource/generic
-      method: POST
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
           x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
@@ -35,17 +33,16 @@ tests:
       status: 201
 
     - name: confirm no metrics yet
+      GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
       request_headers:
           x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
           x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
           content-type: application/json
-      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
       response_json_paths:
           $: []
 
     - name: post some measures
-      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
-      method: post
+      POST: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
       request_headers:
           x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
           x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
@@ -61,7 +58,7 @@ tests:
 # aggregated.
 
     - name: get some measures
-      url: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
+      GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
       poll:
           count: 50
           delay: .1
