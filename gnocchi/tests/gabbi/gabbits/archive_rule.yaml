@@ -10,8 +10,7 @@ tests:
 
 # create dependent policy
     - name: create archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -19,14 +18,14 @@ tests:
           name: low
           definition:
               - granularity: 1 hour
+      status: 201
       response_headers:
           location: $SCHEME://$NETLOC/v1/archive_policy/low
-      status: 201
 
 # Attempt to create an archive policy rule
 
     - name: create archive policy rule1
-      url: /v1/archive_policy_rule
+      POST: /v1/archive_policy_rule
       method: POST
       request_headers:
           content-type: application/json
@@ -42,7 +41,7 @@ tests:
         $.name: test_rule1
 
     - name: create archive policy rule 2
-      url: /v1/archive_policy_rule
+      POST: /v1/archive_policy_rule
       method: POST
       request_headers:
           content-type: application/json
@@ -58,8 +57,7 @@ tests:
         $.name: test_rule2
 
     - name: create archive policy rule 3
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -77,8 +75,7 @@ tests:
 # Attempt to create an invalid policy rule
 
     - name: create invalid archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -88,8 +85,7 @@ tests:
       status: 400
 
     - name: missing auth archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
       data:
@@ -99,8 +95,7 @@ tests:
       status: 403
 
     - name: wrong content type
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: text/plain
           x-roles: admin
@@ -109,8 +104,7 @@ tests:
           - Unsupported Media Type
 
     - name: wrong auth create rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: foo
@@ -121,8 +115,7 @@ tests:
       status: 403
 
     - name: missing auth createrule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
       data:
@@ -132,8 +125,7 @@ tests:
       status: 403
 
     - name: bad request body
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -146,7 +138,7 @@ tests:
 # get an archive policy rules
 
     - name: get archive policy rule
-      url: /v1/archive_policy_rule
+      GET: /v1/archive_policy_rule
       status: 200
       response_json_paths:
         $.[0].metric_pattern: disk.foo.*
@@ -154,43 +146,38 @@ tests:
         $.[2].metric_pattern: "*"
 
     - name: get unknown archive policy rule
-      url: /v1/archive_policy_rule/foo
+      GET: /v1/archive_policy_rule/foo
       status: 404
 
     - name: delete used archive policy
-      url: /v1/archive_policy/low
+      DELETE: /v1/archive_policy/low
       request_headers:
           x-roles: admin
-      method: DELETE
       status: 400
 
 # delete rule as non admin
 
     - name: delete archive policy rule non admin
-      url: /v1/archive_policy_rule/test_rule1
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/test_rule1
       status: 403
 
 # delete rule
 
     - name: delete archive policy rule1
-      url: /v1/archive_policy_rule/test_rule1
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/test_rule1
       request_headers:
           x-roles: admin
       status: 204
 
     - name: delete archive policy rule2
-      url: /v1/archive_policy_rule/test_rule2
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/test_rule2
       request_headers:
           x-roles: admin
       status: 204
 
 
     - name: delete archive policy rule3
-      url: /v1/archive_policy_rule/test_rule3
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/test_rule3
       request_headers:
           x-roles: admin
       status: 204
@@ -198,18 +185,15 @@ tests:
 # delete again
 
     - name: confirm delete archive policy rule
-      url: /v1/archive_policy_rule/test_rule1
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/test_rule1
       request_headers:
         x-roles: admin
       status: 404
 
     - name: delete missing archive policy rule utf8
-      url: /v1/archive_policy_rule/%E2%9C%94%C3%A9%C3%B1%E2%98%83
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
         x-roles: admin
       status: 404
       response_strings:
           - Archive policy rule ✔éñ☃ does not exist
-
