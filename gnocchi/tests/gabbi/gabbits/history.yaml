@@ -7,8 +7,7 @@ fixtures:
 
 tests:
     - name: create archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -16,15 +15,14 @@ tests:
           name: low
           definition:
               - granularity: 1 hour
+      status: 201
       response_headers:
           location: $SCHEME://$NETLOC/v1/archive_policy/low
-      status: 201
 
 # Try creating a new generic resource
 
     - name: post generic resource
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -45,8 +43,7 @@ tests:
 
 # Update it twice
     - name: patch resource user_id
-      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
-      method: patch
+      PATCH: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -59,7 +56,7 @@ tests:
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
     - name: patch resource project_id
-      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
+      PATCH: $LAST_URL
       method: patch
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -78,7 +75,7 @@ tests:
 # List resources
 
     - name: list all resources without history
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -87,7 +84,7 @@ tests:
           $[0].project_id: fe20a931-1012-4cc6-addc-39556ec60907
 
     - name: list all resources with history
-      url: /v1/resource/generic
+      GET: $LAST_URL
       request_headers:
           accept: application/json; details=True; history=True
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -105,8 +102,7 @@ tests:
           $[2].project_id: fe20a931-1012-4cc6-addc-39556ec60907
 
     - name: patch resource metrics
-      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
-      method: patch
+      PATCH: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -118,7 +114,7 @@ tests:
       status: 200
 
     - name: list all resources with history no change after metrics update
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       request_headers:
           accept: application/json; details=True; history=True
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -136,8 +132,7 @@ tests:
           $[2].project_id: fe20a931-1012-4cc6-addc-39556ec60907
 
     - name: create new metrics
-      url: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1/metric
-      method: post
+      POST: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -148,7 +143,7 @@ tests:
       status: 204
 
     - name: list all resources with history no change after metrics creation
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       request_headers:
           accept: application/json; details=True; history=True
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
