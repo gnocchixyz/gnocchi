@@ -152,15 +152,19 @@ function _gnocchi_install_grafana {
     elif is_fedora; then
         sudo yum install "$GRAFANA_RPM_PKG"
     fi
-
-    # NOTE(sileht): We current support only 2.6, when 
-    # plugin for 3.0 will be ready we will switch to the grafana
-    # plugin tool to install it
-    git_clone ${GRAFANA_PLUGINS_REPO} ${GRAFANA_PLUGINS_DIR} 2.6
-    # Grafana-server does not handle symlink :(
-    sudo mkdir -p /usr/share/grafana/public/app/plugins/datasource/gnocchi
-    sudo mount -o bind ${GRAFANA_PLUGINS_DIR}/datasources/gnocchi /usr/share/grafana/public/app/plugins/datasource/gnocchi
-
+    if [ ! "$GRAFANA_PLUGIN_VERSION" ]; then
+        sudo grafana-cli plugins install sileht-gnocchi-datasource
+    elif [ "$GRAFANA_PLUGIN_VERSION" != "git" ]; then
+        tmpfile=/tmp/sileht-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz
+        wget https://github.com/sileht/grafana-gnocchi-datasource/releases/download/${GRAFANA_PLUGIN_VERSION}/sileht-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz -O $tmpfile
+        sudo -u grafana tar -xzf $tmpfile -C /var/lib/grafana/plugins
+        rm -f $file
+    else
+        git_clone ${GRAFANA_PLUGINS_REPO} ${GRAFANA_PLUGINS_DIR}
+        sudo ln -sf ${GRAFANA_PLUGINS_DIR}/dist  /var/lib/grafana/plugins/grafana-gnocchi-datasource
+        # NOTE(sileht): This is long and have chance to fail, thx nodejs/npm
+        (cd /var/lib/grafana/plugins/grafana-gnocchi-datasource && npm install && ./run-tests.sh) || true
+    fi
     sudo service grafana-server restart
 }
 
@@ -274,7 +278,6 @@ function configure_gnocchi {
     if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
         iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
         if is_service_enabled gnocchi-grafana; then
-            iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
             iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token
         fi
@@ -312,6 +315,17 @@ function configure_gnocchi {
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi add-header "Connection: close"
         # Don't share rados resources and python-requests globals between processes
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi lazy-apps true
+    fi
+}
+
+# configure_keystone_for_gnocchi() - Configure Keystone needs for Gnocchi
+function configure_keystone_for_gnocchi {
+    if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
+        if is_service_enabled gnocchi-grafana; then
+            # NOTE(sileht): keystone configuration have to be set before uwsgi
+            # is started
+            iniset $KEYSTONE_CONF cors allowed_origin ${GRAFANA_URL}
+        fi
     fi
 }
 
@@ -447,10 +461,6 @@ function stop_gnocchi {
     for serv in gnocchi-api; do
         stop_process $serv
     done
-
-    if is_service_enabled gnocchi-grafana; then
-        sudo umount /usr/share/grafana/public/app/plugins/datasource/gnocchi
-    fi
 }
 
 if is_service_enabled gnocchi-api; then
@@ -460,6 +470,7 @@ if is_service_enabled gnocchi-api; then
     elif [[ "$1" == "stack" && "$2" == "install" ]]; then
         echo_summary "Installing Gnocchi"
         stack_install_service gnocchi
+        configure_keystone_for_gnocchi
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         echo_summary "Configuring Gnocchi"
         configure_gnocchi
