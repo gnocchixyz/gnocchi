@@ -159,6 +159,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
                               ondelete="SET NULL",
                               name="fk_metric_resource_id_resource_id"))
     name = sqlalchemy.Column(sqlalchemy.String(255))
+    unit = sqlalchemy.Column(sqlalchemy.String(31))
     status = sqlalchemy.Column(sqlalchemy.Enum('active', 'delete',
                                                name="metric_status_enum"),
                                nullable=False,
@@ -170,6 +171,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
             "created_by_user_id": self.created_by_user_id,
             "created_by_project_id": self.created_by_project_id,
             "name": self.name,
+            "unit": self.unit,
         }
         unloaded = sqlalchemy.inspect(self).unloaded
         if 'resource' in unloaded:
@@ -193,6 +195,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
                  and self.created_by_user_id == other.created_by_user_id
                  and self.created_by_project_id == other.created_by_project_id
                  and self.name == other.name
+                 and self.unit == other.unit
                  and self.resource_id == other.resource_id)
                 or (storage.Metric.__eq__(self, other)))
 
