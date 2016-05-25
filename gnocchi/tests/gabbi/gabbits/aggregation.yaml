@@ -4,8 +4,7 @@ fixtures:
 tests:
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -19,19 +18,17 @@ tests:
 # Aggregation by metric ids
 
     - name: create metric 1
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
         archive_policy_name: low
       status: 201
 
     - name: create metric 2
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
         archive_policy_name: low
       status: 201
@@ -40,10 +37,9 @@ tests:
       url: /v1/metric
 
     - name: push measurements to metric 1
-      url: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -52,13 +48,12 @@ tests:
       status: 202
 
     - name: get metric list to push metric 2
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: push measurements to metric 2
-      url: /v1/metric/$RESPONSE['$[1].id']/measures
+      POST: /v1/metric/$RESPONSE['$[1].id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 3.1
@@ -67,17 +62,17 @@ tests:
       status: 202
 
     - name: get metric list to get aggregates
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: get measure aggregates by granularity not float
-      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=foobar
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=foobar
       status: 400
 
     - name: get metric list to get aggregates 2
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: get measure aggregates by granularity
-      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1
       poll:
           count: 10
           delay: 1
@@ -87,10 +82,10 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
     - name: get metric list to push metric 3
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: get measure aggregates by granularity with timestamps
-      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
       poll:
           count: 10
           delay: 1
@@ -102,8 +97,7 @@ tests:
 # Aggregation by resource and metric_name
 
     - name: post a resource
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -116,8 +110,7 @@ tests:
       status: 201
 
     - name: post another resource
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -130,12 +123,11 @@ tests:
       status: 201
 
     - name: push measurements to resource 1
-      url: /v1/resource/generic/bcd3441c-b5aa-4d1b-af9a-5a72322bb269/metric/agg_meter/measures
+      POST: /v1/resource/generic/bcd3441c-b5aa-4d1b-af9a-5a72322bb269/metric/agg_meter/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -144,12 +136,11 @@ tests:
       status: 202
 
     - name: push measurements to resource 2
-      url: /v1/resource/generic/1b0a8345-b279-4cb8-bd7a-2cb83193624f/metric/agg_meter/measures
+      POST: /v1/resource/generic/1b0a8345-b279-4cb8-bd7a-2cb83193624f/metric/agg_meter/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 3.1
@@ -158,8 +149,7 @@ tests:
       status: 202
 
     - name: get measure aggregates by granularity from resources
-      method: POST
-      url: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -173,8 +163,7 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
     - name: get measure aggregates by granularity with timestamps from resources
-      method: POST
-      url: /v1/aggregation/resource/generic/metric/agg_meter?start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -190,12 +179,11 @@ tests:
 # Some negative tests
 
     - name: get measure aggregates with wrong GET
-      url: /v1/aggregation/resource/generic/metric/agg_meter
+      GET: /v1/aggregation/resource/generic/metric/agg_meter
       status: 405
 
     - name: get measure aggregates with wrong metric_name
-      method: POST
-      url: /v1/aggregation/resource/generic/metric/notexists
+      POST: /v1/aggregation/resource/generic/metric/notexists
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -205,8 +193,7 @@ tests:
         $.`len`: 0
 
     - name: get measure aggregates with wrong resource
-      method: POST
-      url: /v1/aggregation/resource/notexits/metric/agg_meter
+      POST: /v1/aggregation/resource/notexits/metric/agg_meter
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -216,8 +203,7 @@ tests:
           - Resource type notexits does not exist
 
     - name: get measure aggregates with wrong path
-      method: POST
-      url: /v1/aggregation/re/generic/metric/agg_meter
+      POST: /v1/aggregation/re/generic/metric/agg_meter
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -225,8 +211,7 @@ tests:
       status: 404
 
     - name: get measure aggregates with wrong path 2
-      method: POST
-      url: /v1/aggregation/resource/generic/notexists/agg_meter
+      POST: /v1/aggregation/resource/generic/notexists/agg_meter
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -234,8 +219,7 @@ tests:
       status: 404
 
     - name: get measure aggregates with no resource name
-      method: POST
-      url: /v1/aggregation/resource/generic/metric
+      POST: /v1/aggregation/resource/generic/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
