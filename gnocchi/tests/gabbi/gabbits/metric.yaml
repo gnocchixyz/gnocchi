@@ -4,13 +4,12 @@ fixtures:
 tests:
     - name: wrong metric
       desc: https://bugs.launchpad.net/gnocchi/+bug/1429949
-      url: /v1/metric/foobar
+      GET: /v1/metric/foobar
       status: 404
 
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -21,8 +20,7 @@ tests:
       status: 201
 
     - name: create archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -33,8 +31,7 @@ tests:
       status: 201
 
     - name: create alt archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -46,8 +43,7 @@ tests:
 
     - name: create alt archive policy rule
       desc: extra rule that won't be matched
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -58,16 +54,15 @@ tests:
       status: 201
 
     - name: get metric empty
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
       response_strings:
           - "[]"
 
     - name: create metric with name and unit
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           name: "disk.io.rate"
           unit: "B/s"
@@ -78,10 +73,9 @@ tests:
           $.unit: B/s
 
     - name: create metric with name and over length unit
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           name: "disk.io.rate"
           unit: "over_length_unit_over_length_unit"
@@ -92,10 +86,9 @@ tests:
           - "'unit']"
 
     - name: create metric with name no rule
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           name: "volume.io.rate"
       status: 400
@@ -103,8 +96,7 @@ tests:
           - No archive policy name specified and no archive policy rule found matching the metric name volume.io.rate
 
     - name: create metric bad archive policy
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -114,8 +106,7 @@ tests:
           - Archive policy bad-cookie does not exist
 
     - name: create metric bad content-type
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: plain/text
       data:
@@ -123,8 +114,7 @@ tests:
       status: 415
 
     - name: create valid metric
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -134,16 +124,15 @@ tests:
           $.archive_policy_name: cookies
 
     - name: get valid metric id
-      url: /v1/metric/$RESPONSE['$.id']
+      GET: /v1/metric/$RESPONSE['$.id']
       status: 200
       response_json_paths:
         $.archive_policy.name: cookies
 
     - name: push measurements to metric before epoch
-      url: /v1/metric/$RESPONSE['$.id']/measures
+      POST: /v1/metric/$RESPONSE['$.id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "1915-03-06T14:33:57"
             value: 43.1
@@ -152,14 +141,13 @@ tests:
         - Timestamp must be after Epoch
 
     - name: get valid metric id again
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
 
     - name: push measurements to metric
-      url: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -168,8 +156,7 @@ tests:
       status: 202
 
     - name: create valid metric two
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -179,10 +166,9 @@ tests:
           $.archive_policy_name: cookies
 
     - name: push invalid measurements to metric
-      url: /v1/metric/$RESPONSE['$.id']/measures
+      POST: /v1/metric/$RESPONSE['$.id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 12
@@ -191,8 +177,7 @@ tests:
       status: 400
 
     - name: create valid metric three
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -202,18 +187,16 @@ tests:
           $.archive_policy_name: cookies
 
     - name: push invalid measurements to metric bis
-      url: /v1/metric/$RESPONSE['$.id']/measures
+      POST: /v1/metric/$RESPONSE['$.id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data: 1
       status: 400
 
     - name: add measure unknown metric
-      url: /v1/metric/fake/measures
+      POST: /v1/metric/fake/measures
       request_headers:
           content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -223,59 +206,58 @@ tests:
       request_headers:
           x-user-id: foo
           x-project-id: bar
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: get metric list
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
       response_json_paths:
           $[0].archive_policy.name: cookies
 
     - name: get measurements from metric
-      url: /v1/metric/$RESPONSE['$[0].id']/measures
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures
       status: 200
 
     - name: get metric list for start test
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
       response_json_paths:
           $[0].archive_policy.name: cookies
 
     - name: get measurements by start
-      url: /v1/metric/$RESPONSE['$[0].id']/measures?start=2015-03-06T14:33:57
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?start=2015-03-06T14:33:57
       status: 200
 
     - name: get measures unknown metric
-      url: /v1/metric/fake/measures
+      GET: /v1/metric/fake/measures
       status: 404
 
     - name: get metric list for aggregates
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
       response_json_paths:
           $[0].archive_policy.name: cookies
 
     - name: get measure unknown aggregates
-      url: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&aggregation=last
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&aggregation=last
       status: 404
       response_strings:
           - Aggregation method 'last' for metric $RESPONSE['$[0].id'] does not exist
 
     - name: aggregate measure unknown metric
-      url: /v1/aggregation/metric?metric=cee6ef1f-52cc-4a16-bbb5-648aedfd1c37
+      GET: /v1/aggregation/metric?metric=cee6ef1f-52cc-4a16-bbb5-648aedfd1c37
       status: 404
       response_strings:
           - Metric cee6ef1f-52cc-4a16-bbb5-648aedfd1c37 does not exist
 
     - name: get metric list for delete
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
       response_json_paths:
           $[0].archive_policy.name: cookies
 
     - name: delete metric
-      url: /v1/metric/$RESPONSE['$[0].id']
-      method: DELETE
+      DELETE: /v1/metric/$RESPONSE['$[0].id']
       status: 204
 
     - name: delete metric again
@@ -283,6 +265,5 @@ tests:
       status: 404
 
     - name: delete non existent metric
-      url: /v1/metric/foo
-      method: DELETE
+      DELETE: /v1/metric/foo
       status: 404
