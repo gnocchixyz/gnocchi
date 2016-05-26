@@ -313,10 +313,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return list(session.query(ResourceType).order_by(
                 ResourceType.name.asc()).all())
 
-    def delete_resource_type(self, name):
-        if name == "generic":
-            raise indexer.ResourceTypeInUse(name)
-
+    # NOTE(jd) We can have deadlock errors either here or later in
+    # map_and_create_tables(). We can't decorate delete_resource_type()
+    # directly or each part might retry later on its own and cause a
+    # duplicate. And it seems there's no way to use the same session for
+    # both adding the resource_type in our table and calling
+    # map_and_create_tables() :-(
+    @retry_on_deadlock
+    def _delete_resource_type(self, name):
         try:
             with self.facade.writer() as session:
                 resource_type = self._get_resource_type(session, name)
@@ -327,6 +331,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     'fk_rh_resource_type_name']):
                 raise indexer.ResourceTypeInUse(name)
             raise
+        return resource_type
+
+    def delete_resource_type(self, name):
+        if name == "generic":
+            raise indexer.ResourceTypeInUse(name)
+
+        resource_type = self._delete_resource_type(name)
 
         with self.facade.writer_connection() as connection:
             self._RESOURCE_TYPE_MANAGER.unmap_and_delete_tables(resource_type,
