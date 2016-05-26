@@ -29,6 +29,11 @@ try:
     import psycopg2
 except ImportError:
     psycopg2 = None
+try:
+    import pymysql.constants.ER
+    import pymysql.err
+except ImportError:
+    pymysql = None
 import six
 import sqlalchemy
 import sqlalchemy.exc
@@ -768,7 +773,26 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         q = session.query(target_cls).filter(f)
                         # Always include metrics
                         q = q.options(sqlalchemy.orm.joinedload('metrics'))
-                        all_resources.extend(q.all())
+                        try:
+                            all_resources.extend(q.all())
+                        except sqlalchemy.exc.ProgrammingError as e:
+                            # NOTE(jd) This exception can happen when the
+                            # resources and their resource type have been
+                            # deleted in the meantime:
+                            #  sqlalchemy.exc.ProgrammingError:
+                            #    (pymysql.err.ProgrammingError)
+                            #    (1146, "Table \'test.rt_f00\' doesn\'t exist")
+                            # In that case, just ignore those resources.
+                            inn_e = e.inner_exception
+                            if (not pymysql
+                               or not isinstance(
+                                   inn_e, sqlalchemy.exc.ProgrammingError)
+                               or not isinstance(
+                                   inn_e.orig, pymysql.err.ProgrammingError)
+                               or (inn_e.orig.args[0]
+                                   != pymysql.constants.ER.NO_SUCH_TABLE)):
+                                raise
+
             return all_resources
 
     def expunge_metric(self, id):
