@@ -254,6 +254,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 self._RESOURCE_TYPE_MANAGER.map_and_create_tables(
                     rt, connection)
 
+    # NOTE(jd) We can have deadlock errors either here or later in
+    # map_and_create_tables(). We can't decorate create_resource_type()
+    # directly or each part might retry later on its own and cause a
+    # duplicate. And it seems there's no way to use the same session for
+    # both adding the resource_type in our table and calling
+    # map_and_create_tables() :-(
+    @retry_on_deadlock
+    def _add_resource_type(self, resource_type):
+        try:
+            with self.facade.writer() as session:
+                session.add(resource_type)
+        except exception.DBDuplicateEntry:
+            raise indexer.ResourceTypeAlreadyExists(resource_type.name)
+
     def create_resource_type(self, resource_type):
         # NOTE(sileht): mysql have a stupid and small length limitation on the
         # foreign key and index name, so we can't use the resource type name as
@@ -269,11 +283,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # resource_type
         resource_type.to_baseclass()
 
-        try:
-            with self.facade.writer() as session:
-                session.add(resource_type)
-        except exception.DBDuplicateEntry:
-            raise indexer.ResourceTypeAlreadyExists(resource_type.name)
+        self._add_resource_type(resource_type)
 
         with self.facade.writer_connection() as connection:
             self._RESOURCE_TYPE_MANAGER.map_and_create_tables(resource_type,
