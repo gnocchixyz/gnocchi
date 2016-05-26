@@ -4,8 +4,7 @@ fixtures:
 tests:
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -16,8 +15,7 @@ tests:
       status: 201
 
     - name: create valid metric
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -25,10 +23,9 @@ tests:
       status: 201
 
     - name: push measurements to metric
-      url: /v1/metric/$RESPONSE['$.id']/measures
+      POST: /v1/metric/$RESPONSE['$.id']/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -37,21 +34,21 @@ tests:
       status: 202
 
     - name: get metric list for invalid granularity
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
 
     - name: get measurements invalid granularity
-      url: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=42
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=42
       status: 404
       response_strings:
         - Granularity '42.0' for metric $RESPONSE['$[0].id'] does not exist
 
     - name: get metric list for granularity
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
 
     - name: get measurements granularity
-      url: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=1
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=1
       status: 200
       poll:
           count: 50
