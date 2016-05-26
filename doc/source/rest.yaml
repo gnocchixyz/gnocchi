@@ -4,7 +4,7 @@
     Content-Type: application/json
 
     {
-      "name": "low",
+      "name": "short",
       "back_window": 0,
       "definition": [
         {
@@ -24,7 +24,7 @@
     Content-Type: application/json
 
     {
-      "name": "low-without-max",
+      "name": "short-without-max",
       "aggregation_methods": ["-max", "-min"],
       "back_window": 0,
       "definition": [
@@ -69,7 +69,7 @@
     Content-Type: application/json
 
     {
-      "name": "medium",
+      "name": "some-archive-policy",
       "back_window": 0,
       "definition": [
         {
@@ -92,7 +92,7 @@
     Content-Type: application/json
 
     {
-      "archive_policy_name": "low"
+      "archive_policy_name": "high"
     }
 
 - name: create-metric-2
