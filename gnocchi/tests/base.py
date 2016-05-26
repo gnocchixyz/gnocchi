@@ -374,8 +374,9 @@ class TestCase(base.BaseTestCase):
             return os.path.join(root, project_file)
         return root
 
-    def setUp(self):
-        super(TestCase, self).setUp()
+    @classmethod
+    def setUpClass(self):
+        super(TestCase, self).setUpClass()
         self.conf = service.prepare_service([],
                                             default_config_files=[])
         self.conf.set_override('policy_file',
@@ -410,6 +411,13 @@ class TestCase(base.BaseTestCase):
             except indexer.ArchivePolicyAlreadyExists:
                 pass
 
+        self.conf.set_override(
+            'driver',
+            os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "null"),
+            'storage')
+
+    def setUp(self):
+        super(TestCase, self).setUp()
         if swexc:
             self.useFixture(mockpatch.Patch(
                 'swiftclient.client.Connection',
@@ -417,11 +425,6 @@ class TestCase(base.BaseTestCase):
 
         self.useFixture(mockpatch.Patch('gnocchi.storage.ceph.rados',
                                         FakeRadosModule()))
-
-        self.conf.set_override(
-            'driver',
-            os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "null"),
-            'storage')
 
         if self.conf.storage.driver == 'file':
             tempdir = self.useFixture(fixtures.TempDir())
