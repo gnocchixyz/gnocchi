@@ -234,6 +234,22 @@
       "metrics": {"temperature": {"archive_policy_name": "low"}}
     }
 
+- name: create-resource-type-instance
+  request: |
+    POST /v1/resource_type HTTP/1.1
+    Content-Type: application/json
+
+    {
+        "name": "instance",
+        "attributes": {
+            "display_name": {"type": "string", "required": true},
+            "flavor_id": {"type": "string", "required": true},
+            "image_ref": {"type": "string", "required": true},
+            "host": {"type": "string", "required": true},
+            "server_group": {"type": "string", "required": false}
+        }
+    }
+
 - name: create-resource-instance
   request: |
     POST /v1/resource/instance HTTP/1.1

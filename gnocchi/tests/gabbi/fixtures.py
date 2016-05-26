@@ -20,11 +20,9 @@ import tempfile
 import threading
 import time
 from unittest import case
-import uuid
 import warnings
 
 from gabbi import fixture
-import sqlalchemy.engine.url as sqlalchemy_url
 import sqlalchemy_utils
 
 from gnocchi import indexer
@@ -103,14 +101,11 @@ class ConfigFixture(fixture.GabbiFixture):
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
-        url = sqlalchemy_url.make_url(
-            sqlalchemy.SQLAlchemyIndexer.dress_url(
-                conf.indexer.url))
-
-        url.database = url.database + str(uuid.uuid4()).replace('-', '')
-        db_url = str(url)
-        conf.set_override('url', db_url, 'indexer')
-        sqlalchemy_utils.create_database(db_url)
+        conf.set_override(
+            'url',
+            sqlalchemy.SQLAlchemyIndexer._create_new_database(
+                conf.indexer.url),
+            'indexer')
 
         index = indexer.get_driver(conf)
         index.connect()

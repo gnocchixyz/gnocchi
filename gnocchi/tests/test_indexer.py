@@ -228,52 +228,6 @@ class TestIndexerDriver(tests_base.TestCase):
         m = self.index.list_metrics(id=rc.metrics[0].id)
         self.assertEqual(m[0], rc.metrics[0])
 
-    def _do_test_create_instance(self, server_group=None, image_ref=None):
-        r1 = uuid.uuid4()
-        user = str(uuid.uuid4())
-        project = str(uuid.uuid4())
-        kwargs = {'server_group': server_group} if server_group else {}
-
-        rc = self.index.create_resource('instance', r1, user, project,
-                                        flavor_id="1",
-                                        image_ref=image_ref,
-                                        host="foo",
-                                        display_name="lol", **kwargs)
-        self.assertIsNotNone(rc.started_at)
-        self.assertIsNotNone(rc.revision_start)
-        self.assertEqual({"id": r1,
-                          "revision_start": rc.revision_start,
-                          "revision_end": None,
-                          "type": "instance",
-                          "created_by_user_id": user,
-                          "created_by_project_id": project,
-                          "user_id": None,
-                          "project_id": None,
-                          "started_at": rc.started_at,
-                          "ended_at": None,
-                          "display_name": "lol",
-                          "server_group": server_group,
-                          "host": "foo",
-                          "image_ref": image_ref,
-                          "flavor_id": "1",
-                          "original_resource_id": None,
-                          "metrics": {}},
-                         rc.jsonify())
-        rg = self.index.get_resource('generic', r1, with_metrics=True)
-        self.assertEqual(rc.id, rg.id)
-        self.assertEqual(rc.revision_start, rg.revision_start)
-        self.assertEqual(rc.metrics, rg.metrics)
-
-    def test_create_instance(self):
-        self._do_test_create_instance(image_ref='http://foo/bar')
-
-    def test_create_instance_with_server_group(self):
-        self._do_test_create_instance('my_autoscaling_group',
-                                      image_ref='http://foo/bar')
-
-    def test_create_instance_without_image_ref(self):
-        self._do_test_create_instance(image_ref=None)
-
     def test_delete_resource(self):
         r1 = uuid.uuid4()
         self.index.create_resource('generic', r1, str(uuid.uuid4()),
@@ -484,30 +438,40 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual(e1, r.metrics[0].id)
 
     def test_update_resource_attribute(self):
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        rtype = mgr.resource_type_from_dict(resource_type, {
+            "col1": {"type": "string", "required": True,
+                     "min_length": 2, "max_length": 15}
+        })
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
         project = str(uuid.uuid4())
-        rc = self.index.create_resource('instance', r1, user, project,
-                                        flavor_id="1",
-                                        image_ref="http://foo/bar",
-                                        host="foo",
-                                        display_name="lol")
-        rc = self.index.update_resource('instance', r1, host="bar")
-        r = self.index.get_resource('instance', r1, with_metrics=True)
+        # Create
+        self.index.create_resource_type(rtype)
+
+        rc = self.index.create_resource(resource_type, r1, user, project,
+                                        col1="foo")
+        rc = self.index.update_resource(resource_type, r1, col1="foo")
+        r = self.index.get_resource(resource_type, r1, with_metrics=True)
         self.assertEqual(rc, r)
 
     def test_update_resource_no_change(self):
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        rtype = mgr.resource_type_from_dict(resource_type, {
+            "col1": {"type": "string", "required": True,
+                     "min_length": 2, "max_length": 15}
+        })
+        self.index.create_resource_type(rtype)
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
         project = str(uuid.uuid4())
-        rc = self.index.create_resource('instance', r1, user, project,
-                                        flavor_id="1",
-                                        image_ref="http://foo/bar",
-                                        host="foo",
-                                        display_name="lol")
-        updated = self.index.update_resource('instance', r1, host="foo",
+        rc = self.index.create_resource(resource_type, r1, user, project,
+                                        col1="foo")
+        updated = self.index.update_resource(resource_type, r1, col1="foo",
                                              create_revision=False)
-        r = self.index.list_resources('instance',
+        r = self.index.list_resources(resource_type,
                                       {"=": {"id": r1}},
                                       history=True)
         self.assertEqual(1, len(r))
@@ -518,28 +482,27 @@ class TestIndexerDriver(tests_base.TestCase):
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
         project = str(uuid.uuid4())
-        self.index.create_resource('instance', r1, user, project,
-                                   flavor_id="1",
-                                   image_ref="http://foo/bar",
-                                   host="foo",
-                                   display_name="lol")
+        self.index.create_resource('generic', r1, user, project)
         self.assertRaises(
             indexer.ResourceValueError,
             self.index.update_resource,
-            'instance', r1,
+            'generic', r1,
             ended_at=utils.datetime_utc(2010, 1, 1, 1, 1, 1))
 
     def test_update_resource_unknown_attribute(self):
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        rtype = mgr.resource_type_from_dict(resource_type, {
+            "col1": {"type": "string", "required": False,
+                     "min_length": 1, "max_length": 2},
+        })
+        self.index.create_resource_type(rtype)
         r1 = uuid.uuid4()
-        self.index.create_resource('instance', r1, str(uuid.uuid4()),
-                                   str(uuid.uuid4()),
-                                   flavor_id="1",
-                                   image_ref="http://foo/bar",
-                                   host="foo",
-                                   display_name="lol")
+        self.index.create_resource(resource_type, r1,
+                                   str(uuid.uuid4()), str(uuid.uuid4()))
         self.assertRaises(indexer.ResourceAttributeError,
                           self.index.update_resource,
-                          'instance',
+                          resource_type,
                           r1, foo="bar")
 
     def test_update_non_existent_metric(self):
@@ -601,19 +564,25 @@ class TestIndexerDriver(tests_base.TestCase):
                           "type": "generic",
                           "metrics": {'bar': str(e2)}}, r.jsonify())
 
-    def test_delete_instance(self):
+    def test_delete_resource_custom(self):
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {
+                "flavor_id": {"type": "string",
+                              "min_length": 1,
+                              "max_length": 20,
+                              "required": True}
+            }))
         r1 = uuid.uuid4()
-        created = self.index.create_resource('instance', r1,
+        created = self.index.create_resource(resource_type, r1,
                                              str(uuid.uuid4()),
                                              str(uuid.uuid4()),
-                                             flavor_id="123",
-                                             image_ref="foo",
-                                             host="dwq",
-                                             display_name="foobar")
-        got = self.index.get_resource('instance', r1, with_metrics=True)
+                                             flavor_id="foo")
+        got = self.index.get_resource(resource_type, r1, with_metrics=True)
         self.assertEqual(created, got)
         self.index.delete_resource(r1)
-        got = self.index.get_resource('instance', r1)
+        got = self.index.get_resource(resource_type, r1)
         self.assertIsNone(got)
 
     def test_list_resources_by_unknown_field(self):
@@ -659,14 +628,14 @@ class TestIndexerDriver(tests_base.TestCase):
         project = str(uuid.uuid4())
         g = self.index.create_resource('generic', r1, user, project,
                                        user, project)
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {}))
         r2 = uuid.uuid4()
-        i = self.index.create_resource('instance', r2,
+        i = self.index.create_resource(resource_type, r2,
                                        user, project,
-                                       user, project,
-                                       flavor_id="123",
-                                       image_ref="foo",
-                                       host="dwq",
-                                       display_name="foobar")
+                                       user, project)
         resources = self.index.list_resources(
             'generic',
             attribute_filter={"=": {"user_id": user}},
@@ -724,13 +693,13 @@ class TestIndexerDriver(tests_base.TestCase):
         r1 = uuid.uuid4()
         g = self.index.create_resource('generic', r1,
                                        str(uuid.uuid4()), str(uuid.uuid4()))
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {}))
         r2 = uuid.uuid4()
-        i = self.index.create_resource('instance', r2,
-                                       str(uuid.uuid4()), str(uuid.uuid4()),
-                                       flavor_id="123",
-                                       image_ref="foo",
-                                       host="dwq",
-                                       display_name="foobar")
+        i = self.index.create_resource(resource_type, r2,
+                                       str(uuid.uuid4()), str(uuid.uuid4()))
         resources = self.index.list_resources('generic')
         self.assertGreaterEqual(len(resources), 2)
         g_found = False
@@ -746,7 +715,7 @@ class TestIndexerDriver(tests_base.TestCase):
         else:
             self.fail("Some resources were not found")
 
-        resources = self.index.list_resources('instance')
+        resources = self.index.list_resources(resource_type)
         self.assertGreaterEqual(len(resources), 1)
         for r in resources:
             if r.id == r2:
@@ -765,9 +734,19 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             attribute_filter={"=": {"id": "f00bar" * 50}})
 
-    def test_list_resource_instance_flavor_id_numeric(self):
+    def test_list_resource_attribute_type_numeric(self):
+        """Test that we can pass an integer to filter on a string type."""
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {
+                "flavor_id": {"type": "string",
+                              "min_length": 1,
+                              "max_length": 20,
+                              "required": False},
+            }))
         r = self.index.list_resources(
-            'instance', attribute_filter={"=": {"flavor_id": 1.0}})
+            resource_type, attribute_filter={"=": {"flavor_id": 1.0}})
         self.assertEqual(0, len(r))
 
     def test_list_resource_weird_date(self):
@@ -845,7 +824,7 @@ class TestIndexerDriver(tests_base.TestCase):
             key=operator.itemgetter("revision_start"))
         self.assertEqual([r1, r2], resources)
 
-    def test_list_resources_instance_with_history(self):
+    def test_list_resources_custom_with_history(self):
         e1 = uuid.uuid4()
         e2 = uuid.uuid4()
         rid = uuid.uuid4()
@@ -854,6 +833,14 @@ class TestIndexerDriver(tests_base.TestCase):
         new_user = str(uuid.uuid4())
         new_project = str(uuid.uuid4())
 
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {
+                "col1": {"type": "string", "required": True,
+                         "min_length": 2, "max_length": 15}
+            }))
+
         self.index.create_metric(e1, user, project,
                                  archive_policy_name="low")
         self.index.create_metric(e2, user, project,
@@ -861,17 +848,14 @@ class TestIndexerDriver(tests_base.TestCase):
         self.index.create_metric(uuid.uuid4(), user, project,
                                  archive_policy_name="low")
 
-        r1 = self.index.create_resource('instance', rid, user, project,
+        r1 = self.index.create_resource(resource_type, rid, user, project,
                                         user, project,
-                                        flavor_id="123",
-                                        image_ref="foo",
-                                        host="dwq",
-                                        display_name="foobar_history",
+                                        col1="foo",
                                         metrics={'foo': e1, 'bar': e2}
                                         ).jsonify()
-        r2 = self.index.update_resource('instance', rid, user_id=new_user,
+        r2 = self.index.update_resource(resource_type, rid, user_id=new_user,
                                         project_id=new_project,
-                                        host="other",
+                                        col1="bar",
                                         append_metrics=True).jsonify()
 
         r1['revision_end'] = r2['revision_start']
@@ -880,8 +864,8 @@ class TestIndexerDriver(tests_base.TestCase):
                           'bar': str(e2)}, r2['metrics'])
         self.assertEqual(new_user, r2['user_id'])
         self.assertEqual(new_project, r2['project_id'])
-        self.assertEqual('other', r2['host'])
-        resources = self.index.list_resources('instance', history=True,
+        self.assertEqual('bar', r2['col1'])
+        resources = self.index.list_resources(resource_type, history=True,
                                               details=False,
                                               attribute_filter={
                                                   "=": {"id": rid}})
@@ -903,12 +887,12 @@ class TestIndexerDriver(tests_base.TestCase):
             started_at=utils.datetime_utc(2000, 1, 1, 23, 23, 23),
             ended_at=utils.datetime_utc(2000, 1, 3, 23, 23, 23))
         r2 = uuid.uuid4()
+        mgr = self.index.get_resource_type_schema()
+        resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(resource_type, {}))
         i = self.index.create_resource(
-            'instance', r2, user, project,
-            flavor_id="123",
-            image_ref="foo",
-            host="dwq",
-            display_name="foobar",
+            resource_type, r2, user, project,
             started_at=utils.datetime_utc(2000, 1, 1, 23, 23, 23),
             ended_at=utils.datetime_utc(2000, 1, 4, 23, 23, 23))
         resources = self.index.list_resources(
@@ -934,7 +918,7 @@ class TestIndexerDriver(tests_base.TestCase):
             self.fail("Some resources were not found")
 
         resources = self.index.list_resources(
-            'instance',
+            resource_type,
             attribute_filter={
                 ">=": {
                     "started_at": datetime.datetime(2000, 1, 1, 23, 23, 23)

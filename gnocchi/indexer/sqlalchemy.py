@@ -218,6 +218,17 @@ class ResourceClassMapper(object):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
+    @classmethod
+    def _create_new_database(cls, url):
+        """Used by testing to create a new database."""
+        purl = sqlalchemy_url.make_url(
+            cls.dress_url(
+                url))
+        purl.database = purl.database + str(uuid.uuid4()).replace('-', '')
+        new_url = str(purl)
+        sqlalchemy_utils.create_database(new_url)
+        return new_url
+
     @staticmethod
     def dress_url(url):
         # If no explicit driver has been set, we default to pymysql

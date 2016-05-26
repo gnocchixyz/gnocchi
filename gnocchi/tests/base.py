@@ -397,13 +397,7 @@ class TestCase(base.BaseTestCase):
         self.coord.start()
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
-            # Force upgrading using Alembic rather than creating the
-            # database from scratch so we are sure we don't miss anything
-            # in the Alembic upgrades. We have a test to check that
-            # upgrades == create but it misses things such as custom CHECK
-            # constraints.
-            self.index.upgrade(nocreate=True,
-                               create_legacy_resource_types=True)
+            self.index.upgrade()
 
         self.coord.stop()
 
