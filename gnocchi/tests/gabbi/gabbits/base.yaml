@@ -5,7 +5,7 @@ tests:
 
 - name: get information on APIs
   desc: Root URL must return information about API versions
-  url: /
+  GET: /
   response_headers:
       content-type: application/json; charset=UTF-8
   response_json_paths:
@@ -13,8 +13,7 @@ tests:
       $.versions.[0].status: "CURRENT"
 
 - name: archive policy post success
-  url: /v1/archive_policy
-  method: POST
+  POST: /v1/archive_policy
   request_headers:
       content-type: application/json
       x-roles: admin
@@ -35,8 +34,7 @@ tests:
 
 - name: post archive policy no auth
   desc: this confirms that auth handling comes before data validation
-  url: /v1/archive_policy
-  method: POST
+  POST: /v1/archive_policy
   request_headers:
       content-type: application/json
   data:
@@ -46,13 +44,12 @@ tests:
   status: 403
 
 - name: post metric with archive policy
-  url: /v1/metric
+  POST: /v1/metric
   request_headers:
       content-type: application/json
       x-roles: admin
       x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
       x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
-  method: POST
   data:
       archive_policy_name: test1
   status: 201
@@ -62,7 +59,7 @@ tests:
       $.archive_policy_name: test1
 
 - name: retrieve metric info
-  url: $LOCATION
+  GET: $LOCATION
   status: 200
   request_headers:
       content_type: /application\/json/
@@ -73,15 +70,14 @@ tests:
       $.created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
 
 - name: list the one metric
-  url: /v1/metric
+  GET: /v1/metric
   status: 200
   response_json_paths:
       $[0].archive_policy.name: test1
 
 - name: post a single measure
   desc: post one measure
-  url: /v1/metric/$RESPONSE['$[0].id']/measures
-  method: POST
+  POST: /v1/metric/$RESPONSE['$[0].id']/measures
   request_headers:
       content-type: application/json
       x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
@@ -93,7 +89,7 @@ tests:
 
 - name: Get list of resource type and URL
   desc: Resources index page should return list of type associated with a URL
-  url: /v1/resource/
+  GET: /v1/resource/
   response_headers:
       content-type: application/json; charset=UTF-8
   status: 200
@@ -101,8 +97,7 @@ tests:
       $.generic: $SCHEME://$NETLOC/v1/resource/generic
 
 - name: post generic resource
-  url: /v1/resource/generic
-  method: post
+  POST: /v1/resource/generic
   request_headers:
     content-type: application/json
     x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
@@ -122,8 +117,7 @@ tests:
     created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
 
 - name: post generic resource bad id
-  url: /v1/resource/generic
-  method: post
+  POST: /v1/resource/generic
   request_headers:
     content-type: application/json
     x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
@@ -145,11 +139,11 @@ tests:
     original_resource_id: 1.2.3.4
 
 - name: get status denied
-  url: /v1/status
+  GET: /v1/status
   status: 403
 
 - name: get status
-  url: /v1/status
+  GET: /v1/status
   request_headers:
     content-type: application/json
     x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
@@ -159,7 +153,7 @@ tests:
     $.storage.`len`: 2
 
 - name: get status, no details
-  url: /v1/status?details=False
+  GET: /v1/status?details=False
   request_headers:
     content-type: application/json
     x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
