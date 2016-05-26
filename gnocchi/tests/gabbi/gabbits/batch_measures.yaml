@@ -4,8 +4,7 @@ fixtures:
 tests:
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -16,19 +15,17 @@ tests:
       status: 201
 
     - name: create metric
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           archive_policy_name: simple
       status: 201
 
     - name: push measurements to metric
-      url: /v1/batch/metrics/measures
+      POST: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
         $RESPONSE['$.id']:
           - timestamp: "2015-03-06T14:33:57"
@@ -38,10 +35,9 @@ tests:
       status: 202
 
     - name: push measurements to unknown metrics
-      url: /v1/batch/metrics/measures
+      POST: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
         37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5C:
           - timestamp: "2015-03-06T14:33:57"
@@ -58,10 +54,9 @@ tests:
         - "Unknown metrics: 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5c, 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5d"
 
     - name: push measurements to unknown named metrics
-      url: /v1/batch/resources/metrics/measures
+      POST: /v1/batch/resources/metrics/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
         37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5D:
           cpu_util:
@@ -80,17 +75,15 @@ tests:
           - "Unknown metrics: 37aec8b7-c0d9-445b-8ab9-d3c6312dcf5d/cpu_util, 46c9418d-d63b-4cdd-be89-8f57ffc5952e/disk.iops"
 
     - name: create second metric
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           archive_policy_name: simple
       status: 201
 
     - name: post a resource
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           content-type: application/json
       data:
@@ -105,8 +98,7 @@ tests:
       status: 201
 
     - name: post a second resource
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           content-type: application/json
       data:
@@ -121,13 +113,12 @@ tests:
       status: 201
 
     - name: list metrics
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: push measurements to two metrics
-      url: /v1/batch/metrics/measures
+      POST: /v1/batch/metrics/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
         $RESPONSE['$[0].id']:
           - timestamp: "2015-03-06T14:33:57"
@@ -142,10 +133,9 @@ tests:
       status: 202
 
     - name: push measurements to two named metrics
-      url: /v1/batch/resources/metrics/measures
+      POST: /v1/batch/resources/metrics/measures
       request_headers:
            content-type: application/json
-      method: post
       data:
         46c9418d-d63b-4cdd-be89-8f57ffc5952e:
           disk.iops:
@@ -169,5 +159,4 @@ tests:
               value: 43.1
             - timestamp: "2015-03-06T14:34:12"
               value: 12
-
       status: 202
