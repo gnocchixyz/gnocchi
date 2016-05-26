@@ -751,7 +751,7 @@ class ResourceHistoryController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404, "foo")
+            abort(404, indexer.NoSuchResource(self.resource_id))
 
         enforce("get resource", resource)
 
