@@ -25,9 +25,14 @@ from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as oslo_db_utils
 from oslo_log import log
+try:
+    import psycopg2
+except ImportError:
+    psycopg2 = None
 import six
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
+import sqlalchemy.exc
 from sqlalchemy import types
 import sqlalchemy_utils
 
@@ -137,14 +142,32 @@ class ResourceClassMapper(object):
                 return mapper
 
     @retry_on_deadlock
-    def map_and_create_tables(self, resource_type, connection):
+    def map_and_create_tables(self, resource_type, facade):
         with self._lock:
             # NOTE(sileht): map this resource_type to have
             # Base.metadata filled with sa.Table objects
             mappers = self.get_classes(resource_type)
             tables = [Base.metadata.tables[klass.__tablename__]
                       for klass in mappers.values()]
-            Base.metadata.create_all(connection, tables=tables)
+            try:
+                with facade.writer_connection() as connection:
+                    Base.metadata.create_all(connection, tables=tables)
+            except exception.DBError as e:
+                # HACK(jd) Sometimes, PostgreSQL raises an error such as
+                # "current transaction is aborted, commands ignored until end
+                # of transaction block" on its own catalog, so we need to
+                # retry, but this is not caught by oslo.db as a deadlock. This
+                # is likely because when we use Base.metadata.create_all(),
+                # sqlalchemy itself gets an error it does not catch or
+                # something. So this is paperover I guess.
+                inn_e = e.inner_exception
+                if (psycopg2
+                   and isinstance(inn_e, sqlalchemy.exc.InternalError)
+                   and isinstance(inn_e.orig, psycopg2.InternalError)
+                    # current transaction is aborted
+                   and inn_e.orig.pgcode == '25P02'):
+                    raise exception.RetryRequest(e)
+                raise
 
     def unmap_and_delete_tables(self, resource_type, connection):
         with self._lock:
@@ -250,9 +273,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session.add(rt)
             except exception.DBDuplicateEntry:
                 pass
-            with self.facade.writer_connection() as connection:
-                self._RESOURCE_TYPE_MANAGER.map_and_create_tables(
-                    rt, connection)
+            self._RESOURCE_TYPE_MANAGER.map_and_create_tables(rt, self.facade)
 
     # NOTE(jd) We can have deadlock errors either here or later in
     # map_and_create_tables(). We can't decorate create_resource_type()
@@ -285,9 +306,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         self._add_resource_type(resource_type)
 
-        with self.facade.writer_connection() as connection:
-            self._RESOURCE_TYPE_MANAGER.map_and_create_tables(resource_type,
-                                                              connection)
+        self._RESOURCE_TYPE_MANAGER.map_and_create_tables(resource_type,
+                                                          self.facade)
+
         return resource_type
 
     def get_resource_type(self, name):
