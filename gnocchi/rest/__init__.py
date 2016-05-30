@@ -1404,10 +1404,11 @@ class CapabilityController(rest.RestController):
     def get():
         aggregation_methods = set(
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-        aggregation_methods.update(
-            ext.name for ext in extension.ExtensionManager(
-                namespace='gnocchi.aggregates'))
-        return dict(aggregation_methods=aggregation_methods)
+        return dict(aggregation_methods=aggregation_methods,
+                    dynamic_aggregation_methods=[
+                        ext.name for ext in extension.ExtensionManager(
+                            namespace='gnocchi.aggregates')
+                    ])
 
 
 class StatusController(rest.RestController):
