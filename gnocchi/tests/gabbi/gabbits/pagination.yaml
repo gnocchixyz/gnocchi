@@ -11,8 +11,7 @@ tests:
 # Creation resources for this scenarion
 #
     - name: post resource 1
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -25,8 +24,7 @@ tests:
       status: 201
 
     - name: post resource 2
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -39,8 +37,7 @@ tests:
       status: 201
 
     - name: post resource 3
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -53,8 +50,7 @@ tests:
       status: 201
 
     - name: post resource 4
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -67,8 +63,7 @@ tests:
       status: 201
 
     - name: post resource 5
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -84,8 +79,7 @@ tests:
 # Basic resource limit/ordering tests
 #
     - name: list first two items default order
-      url: /v1/resource/generic?limit=2
-      method: get
+      GET: /v1/resource/generic?limit=2
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -96,8 +90,7 @@ tests:
           $[1].id: 4facbf7e-a900-406d-a828-82393f7006b3
 
     - name: list next third items default order
-      url: /v1/resource/generic?limit=4&marker=4facbf7e-a900-406d-a828-82393f7006b3
-      method: get
+      GET: /v1/resource/generic?limit=4&marker=4facbf7e-a900-406d-a828-82393f7006b3
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -109,8 +102,7 @@ tests:
           $[2].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
 
     - name: list first two items order by id witouth direction
-      url: /v1/resource/generic?limit=2&sort=id
-      method: get
+      GET: /v1/resource/generic?limit=2&sort=id
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -122,8 +114,7 @@ tests:
           $[1].id: 28593168-52bb-43b5-a6db-fc2343aac02a
 
     - name: list first two items order by id
-      url: /v1/resource/generic?limit=2&sort=id:asc
-      method: get
+      GET: /v1/resource/generic?limit=2&sort=id:asc
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -134,8 +125,7 @@ tests:
           $[1].id: 28593168-52bb-43b5-a6db-fc2343aac02a
 
     - name: list next third items order by id
-      url: /v1/resource/generic?limit=4&sort=id:asc&marker=28593168-52bb-43b5-a6db-fc2343aac02a
-      method: get
+      GET: /v1/resource/generic?limit=4&sort=id:asc&marker=28593168-52bb-43b5-a6db-fc2343aac02a
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -147,8 +137,7 @@ tests:
           $[2].id: 57a9e836-87b8-4a21-9e30-18a474b98fef
 
     - name: search for some resources with limit, order and marker
-      url: /v1/search/resource/generic?limit=2&sort=id:asc&marker=36775172-ebc9-4060-9870-a649361bc3ab
-      method: POST
+      POST: /v1/search/resource/generic?limit=2&sort=id:asc&marker=36775172-ebc9-4060-9870-a649361bc3ab
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -168,8 +157,7 @@ tests:
 # Invalid limit/ordering
 #
     - name: invalid sort_key
-      url: /v1/resource/generic?sort=invalid:asc
-      method: get
+      GET: /v1/resource/generic?sort=invalid:asc
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -177,8 +165,7 @@ tests:
       status: 400
 
     - name: invalid sort_dir
-      url: /v1/resource/generic?sort=id:invalid
-      method: get
+      GET: /v1/resource/generic?sort=id:invalid
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -186,8 +173,7 @@ tests:
       status: 400
 
     - name: invalid marker
-      url: /v1/resource/generic?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
-      method: get
+      GET: /v1/resource/generic?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -195,8 +181,7 @@ tests:
       status: 400
 
     - name: invalid negative limit
-      url: /v1/resource/generic?limit=-2
-      method: get
+      GET: /v1/resource/generic?limit=-2
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -204,8 +189,7 @@ tests:
       status: 400
 
     - name: invalid limit
-      url: /v1/resource/generic?limit=invalid
-      method: get
+      GET: /v1/resource/generic?limit=invalid
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -217,8 +201,7 @@ tests:
 #
 
     - name: post resource 6
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -231,8 +214,7 @@ tests:
       status: 201
 
     - name: post resource 7
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -245,8 +227,7 @@ tests:
       status: 201
 
     - name: post resource 8
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -259,8 +240,7 @@ tests:
       status: 201
 
     - name: default limit
-      url: /v1/resource/generic
-      method: get
+      GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -271,8 +251,7 @@ tests:
 
 
     - name: update resource 5
-      url: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
-      method: patch
+      PATCH: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -281,8 +260,7 @@ tests:
           ended_at: "2014-01-30T02:02:02.000000"
 
     - name: update resource 5 bis
-      url: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -291,8 +269,7 @@ tests:
           ended_at: "2014-01-31T02:02:02.000000"
 
     - name: default limit with history and multiple sort key
-      url: /v1/resource/generic?history=true&sort=id:asc&sort=ended_at:desc-nullslast
-      method: get
+      GET: /v1/resource/generic?history=true&sort=id:asc&sort=ended_at:desc-nullslast
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
