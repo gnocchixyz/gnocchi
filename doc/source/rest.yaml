@@ -284,6 +284,13 @@
 
     {"=": {"user_id": "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}"}}
 
+- name: search-resource-for-host-like
+  request: |
+    POST /v1/search/resource/instance HTTP/1.1
+    Content-Type: application/json
+
+    {"like": {"host": "compute%"}}
+
 - name: search-resource-for-user-details
   request: |
     POST /v1/search/resource/generic?details=true HTTP/1.1
