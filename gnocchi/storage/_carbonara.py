@@ -52,10 +52,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
-        self.coord = coordination.get_coordinator(
-            conf.coordination_url,
-            str(uuid.uuid4()).encode('ascii'))
-        self.coord.start()
+        try:
+            self.coord = coordination.get_coordinator(
+                conf.coordination_url,
+                str(uuid.uuid4()).encode('ascii'))
+            self.coord.start()
+        except Exception as e:
+            raise storage.StorageError("Unable to start coordinator: %s" % e)
         if conf.aggregation_workers_number is None:
             try:
                 self.aggregation_workers_number = multiprocessing.cpu_count()
