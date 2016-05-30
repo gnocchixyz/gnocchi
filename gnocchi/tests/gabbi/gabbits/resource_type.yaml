@@ -25,6 +25,19 @@ tests:
           content-type: application/json
       status: 403
 
+    - name: post resource type with existing name
+      url: /v1/resource_type
+      method: post
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+          attributes:
+              project_id:
+                  type: string
+      status: 400
+
     - name: post resource type bad string
       url: /v1/resource_type
       method: post
