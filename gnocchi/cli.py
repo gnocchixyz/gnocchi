@@ -75,6 +75,14 @@ def statsd():
     statsd_service.start()
 
 
+class Retry(Exception):
+    pass
+
+
+def retry_if_retry_is_raised(exception):
+    return isinstance(exception, Retry)
+
+
 class MetricProcessBase(multiprocessing.Process):
     def __init__(self, conf, worker_id=0, interval_delay=0):
         super(MetricProcessBase, self).__init__()
@@ -85,12 +93,21 @@ class MetricProcessBase(multiprocessing.Process):
 
     # Retry with exponential backoff for up to 1 minute
     @retrying.retry(wait_exponential_multiplier=500,
-                    wait_exponential_max=60000)
+                    wait_exponential_max=60000,
+                    retry_on_exception=retry_if_retry_is_raised)
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
-        self.store.partition = self.worker_id
-        self.index = indexer.get_driver(self.conf)
-        self.index.connect()
+        try:
+            self.store = storage.get_driver(self.conf)
+            self.store.partition = self.worker_id
+        except storage.StorageError as e:
+            LOG.error("Unable to initialize storage: %s" % e)
+            raise Retry(e)
+        try:
+            self.index = indexer.get_driver(self.conf)
+            self.index.connect()
+        except indexer.IndexerException as e:
+            LOG.error("Unable to initialize indexer: %s" % e)
+            raise Retry(e)
 
     def run(self):
         self._configure()
