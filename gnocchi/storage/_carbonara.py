@@ -68,9 +68,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                             name='heartbeat')
         self.heartbeater.setDaemon(True)
         self.heartbeater.start()
+        self._stop_heartbeat = threading.Event()
 
     def _heartbeat(self):
-        while True:
+        while not self._stop_heartbeat.is_set():
             # FIXME(jd) Why 10? Why not. We should have a way to find out
             # what's the best value here, but it depends on the timeout used by
             # the driver; tooz should help us here!
@@ -78,6 +79,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self.coord.heartbeat()
 
     def stop(self):
+        self._stop_heartbeat.set()
         self.coord.stop()
 
     def _lock(self, metric_id):
