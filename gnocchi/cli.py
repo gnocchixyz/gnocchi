@@ -83,10 +83,9 @@ class MetricProcessBase(multiprocessing.Process):
         self.startup_delay = worker_id
         self.interval_delay = interval_delay
 
-    # Retry with exponential backoff for up to 5 minutes
+    # Retry with exponential backoff for up to 1 minute
     @retrying.retry(wait_exponential_multiplier=500,
-                    wait_exponential_max=60000,
-                    stop_max_delay=300000)
+                    wait_exponential_max=60000)
     def _configure(self):
         self.store = storage.get_driver(self.conf)
         self.store.partition = self.worker_id
