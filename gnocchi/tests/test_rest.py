@@ -147,18 +147,20 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
     def test_capabilities(self):
         custom_agg = extension.Extension('test_aggregation', None, None, None)
-        aggregation_methods = set(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-        aggregation_methods.add('test_aggregation')
         mgr = extension.ExtensionManager.make_test_instance(
             [custom_agg], 'gnocchi.aggregates')
+        aggregation_methods = set(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
 
         with mock.patch.object(extension, 'ExtensionManager',
                                return_value=mgr):
-            result = self.app.get("/v1/capabilities")
+            result = self.app.get("/v1/capabilities").json
             self.assertEqual(
                 sorted(aggregation_methods),
-                sorted(json.loads(result.text)['aggregation_methods']))
+                sorted(result['aggregation_methods']))
+            self.assertEqual(
+                ['test_aggregation'],
+                result['dynamic_aggregation_methods'])
 
     def test_status(self):
         with self.app.use_admin_user():
