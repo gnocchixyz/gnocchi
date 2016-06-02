@@ -58,6 +58,9 @@ OPTS = [
     cfg.StrOpt('swift_container_prefix',
                default='gnocchi',
                help='Prefix to namespace metric containers.'),
+    cfg.StrOpt('swift_endpoint_type',
+               default='publicURL',
+               help='Endpoint type to connect to Swift',),
     cfg.IntOpt('swift_timeout',
                min=0,
                default=300,
@@ -85,6 +88,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name,
             timeout=conf.swift_timeout,
+            os_options={'endpoint_type': conf.swift_endpoint_type},
             retries=0)
         self._container_prefix = conf.swift_container_prefix
         self.swift.put_container(self.MEASURE_PREFIX)
