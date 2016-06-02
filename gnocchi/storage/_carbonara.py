@@ -67,11 +67,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         else:
             self.aggregation_workers_number = conf.aggregation_workers_number
         self.partition = 0
+        self._stop_heartbeat = threading.Event()
         self.heartbeater = threading.Thread(target=self._heartbeat,
                                             name='heartbeat')
         self.heartbeater.setDaemon(True)
         self.heartbeater.start()
-        self._stop_heartbeat = threading.Event()
 
     def _heartbeat(self):
         while not self._stop_heartbeat.is_set():
