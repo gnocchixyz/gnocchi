@@ -43,7 +43,12 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
 
         parsed_url = urlparse.urlsplit(url)
         prefix = parsed_url.path.rstrip('/')  # turn it into a prefix
-        port = 443 if parsed_url.scheme == 'https' else 80
+        if parsed_url.scheme == 'https':
+            port = 443
+            require_ssl = True
+        else:
+            port = 80
+            require_ssl = False
         host = parsed_url.hostname
         if parsed_url.port:
             port = parsed_url.port
@@ -53,7 +58,8 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
         cls.tests = driver.build_tests(
             test_dir, unittest.TestLoader(),
             host=host, port=port, prefix=prefix,
-            test_loader_name='tempest.scenario.gnocchi.test')
+            test_loader_name='tempest.scenario.gnocchi.test',
+            require_ssl=require_ssl)
 
         os.environ["GNOCCHI_SERVICE_TOKEN"] = token
 
