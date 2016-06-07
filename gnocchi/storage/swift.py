@@ -152,9 +152,14 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def _bulk_delete(self, container, objects):
         objects = [quote(('/%s/%s' % (container, obj['name'])).encode('utf-8'))
                    for obj in objects]
+        resp = {}
         headers, body = self.swift.post_account(
             headers=self.POST_HEADERS, query_string='bulk-delete',
-            data=b''.join(obj.encode('utf-8') + b'\n' for obj in objects))
+            data=b''.join(obj.encode('utf-8') + b'\n' for obj in objects),
+            response_dict=resp)
+        if resp['status'] != 200:
+            raise storage.StorageError(
+                "Unable to bulk-delete, is bulk-delete enabled in Swift?")
         resp = swift_utils.parse_api_response(headers, body)
         LOG.debug('# of objects deleted: %s, # of objects skipped: %s',
                   resp['Number Deleted'], resp['Number Not Found'])

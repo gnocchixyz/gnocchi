@@ -331,21 +331,30 @@ class FakeSwiftClient(object):
             raise swexc.ClientException("No such container",
                                         http_status=404)
 
-    def post_account(self, headers, query_string=None, data=None):
-        resp = {'Response Status': '200 OK',
-                'Response Body': '',
-                'Number Deleted': 0,
-                'Number Not Found': 0}
-        if query_string == 'bulk-delete' and data:
-            for path in data.splitlines():
-                try:
-                    __, container, obj = (unquote(path.decode('utf8'))
-                                          .split('/', 2))
-                    del self.kvs[container][obj]
-                    resp['Number Deleted'] += 1
-                except KeyError:
-                    resp['Number Not Found'] += 1
-        return {}, json.dumps(resp).encode('utf-8')
+    def post_account(self, headers, query_string=None, data=None,
+                     response_dict=None):
+        if query_string == 'bulk-delete':
+            resp = {'Response Status': '200 OK',
+                    'Response Body': '',
+                    'Number Deleted': 0,
+                    'Number Not Found': 0}
+            if response_dict is not None:
+                response_dict['status'] = 200
+            if data:
+                for path in data.splitlines():
+                    try:
+                        __, container, obj = (unquote(path.decode('utf8'))
+                                              .split('/', 2))
+                        del self.kvs[container][obj]
+                        resp['Number Deleted'] += 1
+                    except KeyError:
+                        resp['Number Not Found'] += 1
+            return {}, json.dumps(resp).encode('utf-8')
+
+        if response_dict is not None:
+            response_dict['status'] = 204
+
+        return {}, None
 
 
 @six.add_metaclass(SkipNotImplementedMeta)
