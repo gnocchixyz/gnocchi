@@ -85,7 +85,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             key=conf.swift_key,
             tenant_name=conf.swift_tenant_name,
             timeout=conf.swift_timeout,
-            retries=0)
+            retries=1)
         self._container_prefix = conf.swift_container_prefix
         self.swift.put_container(self.MEASURE_PREFIX)
 
