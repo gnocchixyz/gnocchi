@@ -468,7 +468,7 @@ tests:
     - name: root of resource
       url: /v1/resource
       response_json_paths:
-          $.volume: $SCHEME://$NETLOC/v1/resource/volume
+          $.generic: $SCHEME://$NETLOC/v1/resource/generic
 
     - name: typo of resource
       url: /v1/resoue
@@ -478,80 +478,45 @@ tests:
       url: /v1/resource/foobar
       status: 404
 
-    - name: identity resource
-      desc: maybe there's are no identity resources yet
-      url: /v1/resource/identity
+    - name: generic resource
+      url: /v1/resource/generic
       status: 200
 
-    - name: ceph_account resource
-      desc: maybe there's are no ceph_account resources yet
-      url: /v1/resource/ceph_account
-      status: 200
+    - name: post resource type
+      url: /v1/resource_type
+      method: post
+      request_headers:
+          content-type: application/json
+      data:
+          name: myresource
+          attributes:
+              display_name:
+                  type: string
+                  required: true
+                  max_length: 5
+                  min_length: 2
+      status: 201
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/resource_type/myresource
 
-    - name: instance resource
-      desc: maybe there are no instance resources yet
-      url: /v1/resource/instance
-      status: 200
-
-    - name: instance_network_interface resource
-      desc: maybe there's are no instance_network_interface resources yet
-      url: /v1/resource/instance_network_interface
-      status: 200
-
-    - name: instance_disk resource
-      desc: maybe there's are no instance_disk resources yet
-      url: /v1/resource/instance_disk
-      status: 200
-
-    - name: image resource
-      desc: maybe there's are no image resources yet
-      url: /v1/resource/image
-      status: 200
-
-    - name: ipmi resource
-      desc: maybe there's are no ipmi resources yet
-      url: /v1/resource/ipmi
-      status: 200
-
-    - name: network resource
-      desc: maybe there's are no network resources yet
-      url: /v1/resource/network
-      status: 200
-
-    - name: orchestration resource
-      desc: maybe there's are no orchestration resources yet
-      #url: /v1/resource/orchestration
-      url: /v1/resource/stack
-      status: 200
-
-    - name: swift_account resource
-      desc: maybe there's are no swift_account resources yet
-      url: /v1/resource/swift_account
-      status: 200
-
-    - name: volume resource
-      desc: maybe there's are no volume resources yet
-      url: /v1/resource/volume
-      status: 200
-
-    - name: instance resource bad accept
+    - name: myresource resource bad accept
       desc: Expect 406 on bad accept type
       request_headers:
           accept: text/plain
-      url: /v1/resource/instance
+      url: /v1/resource/myresource
       status: 406
       response_strings:
           - 406 Not Acceptable
 
-    - name: instance resource complex accept
+    - name: myresource resource complex accept
       desc: failover accept media type appropriately
       request_headers:
           accept: text/plain, application/json; q=0.8
-      url: /v1/resource/instance
+      url: /v1/resource/myresource
       status: 200
 
-    - name: post instance resource
-      url: /v1/resource/instance
+    - name: post myresource resource
+      url: /v1/resource/myresource
       method: post
       request_headers:
           content-type: application/json
@@ -559,9 +524,6 @@ tests:
           id: 2ae35573-7f9f-4bb1-aae8-dad8dff5706e
           user_id: 126204ef-989a-46fd-999b-ee45c8108f31
           project_id: 98e785d7-9487-4159-8ab8-8230ec37537a
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute1
           display_name: myvm
           metrics:
               vcpus:
@@ -571,20 +533,20 @@ tests:
           $.id: 2ae35573-7f9f-4bb1-aae8-dad8dff5706e
           $.user_id: 126204ef-989a-46fd-999b-ee45c8108f31
           $.project_id: 98e785d7-9487-4159-8ab8-8230ec37537a
-          $.flavor_id: "2"
+          $.display_name: "myvm"
 
-    - name: get instance resource
+    - name: get myresource resource
       url: $LOCATION
       status: 200
       response_json_paths:
           $.id: 2ae35573-7f9f-4bb1-aae8-dad8dff5706e
           $.user_id: 126204ef-989a-46fd-999b-ee45c8108f31
           $.project_id: 98e785d7-9487-4159-8ab8-8230ec37537a
-          $.flavor_id: "2"
+          $.display_name: "myvm"
 
-    - name: search for instance resource via user_id
+    - name: search for myresource resource via user_id
       #url: /v1/search/resource/generic
-      url: /v1/search/resource/instance
+      url: /v1/search/resource/myresource
       method: POST
       request_headers:
         content-type: application/json
@@ -597,7 +559,7 @@ tests:
         $..project_id: 98e785d7-9487-4159-8ab8-8230ec37537a
         $..display_name: myvm
 
-    - name: search for instance resource via user_id and 'generic' type
+    - name: search for myresource resource via user_id and 'generic' type
       url: /v1/search/resource/generic
       method: POST
       request_headers:
@@ -608,7 +570,7 @@ tests:
       response_strings:
         '"user_id": "126204ef-989a-46fd-999b-ee45c8108f31"'
 
-    - name: search for instance resource via user_id and project_id
+    - name: search for myresource resource via user_id and project_id
       url: /v1/search/resource/generic
       method: POST
       request_headers:
@@ -622,19 +584,19 @@ tests:
       response_strings:
         '"id": "2ae35573-7f9f-4bb1-aae8-dad8dff5706e"'
 
-    - name: patch instance resource
-      url: /v1/resource/instance/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
+    - name: patch myresource resource
+      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       method: patch
       request_headers:
           content-type: application/json
       data:
-          host: compute2
+          display_name: myvm2
       status: 200
       response_json_paths:
-          host: compute2
+          display_name: myvm2
 
-    - name: post some measures to the metric on instance
-      url: /v1/resource/instance/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
+    - name: post some measures to the metric on myresource
+      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
       request_headers:
           content-type: application/json
       method: POST
@@ -645,8 +607,8 @@ tests:
             value: 2
       status: 202
 
-    - name: get instance measures with poll
-      url: /v1/resource/instance/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
+    - name: get myresource measures with poll
+      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
       # wait up to 60 seconds before policy is deleted
       poll:
           count: 60
@@ -678,7 +640,7 @@ tests:
           id: "cd9eef"
 
 
-    - name: delete instance resource
+    - name: delete myresource resource
       url: /v1/resource/generic/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       method: DELETE
       status: 204
@@ -689,7 +651,7 @@ tests:
       method: GET
       status: 404
 
-    - name: post instance resource no data
+    - name: post myresource resource no data
       url: /v1/resource/generic
       method: post
       request_headers:
@@ -706,7 +668,10 @@ tests:
 
     # It really is gone
 
+    - name: delete our resource type
+      DELETE: /v1/resource_type/myresource
+      status: 204
+
     - name: confirm delete of cleanup
       url: /v1/archive_policy/gabbilive
       status: 404
-
