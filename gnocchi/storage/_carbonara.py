@@ -16,7 +16,6 @@
 # under the License.
 import collections
 import datetime
-import multiprocessing
 import operator
 import threading
 import time
@@ -36,8 +35,10 @@ from gnocchi import storage
 
 OPTS = [
     cfg.IntOpt('aggregation_workers_number',
+               default=1, min=1,
                help='Number of workers to run during adding new measures for '
-                    'pre-aggregation needs.'),
+                    'pre-aggregation needs. Due to the Python GIL, '
+                    '1 is usually faster, unless you have high latency I/O'),
     cfg.StrOpt('coordination_url',
                secret=True,
                help='Coordination driver URL'),
@@ -59,13 +60,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self.coord.start()
         except Exception as e:
             raise storage.StorageError("Unable to start coordinator: %s" % e)
-        if conf.aggregation_workers_number is None:
-            try:
-                self.aggregation_workers_number = multiprocessing.cpu_count()
-            except NotImplementedError:
-                self.aggregation_workers_number = 2
-        else:
-            self.aggregation_workers_number = conf.aggregation_workers_number
+        self.aggregation_workers_number = conf.aggregation_workers_number
         self.partition = 0
         self._stop_heartbeat = threading.Event()
         self.heartbeater = threading.Thread(target=self._heartbeat,
