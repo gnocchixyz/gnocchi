@@ -14,8 +14,7 @@ tests:
 
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -26,8 +25,7 @@ tests:
       status: 201
 
     - name: create archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -43,14 +41,14 @@ tests:
 # xfails.
 
     - name: root of all
-      url: /
+      GET: /
       response_headers:
           content-type: /application/json/
       response_json_paths:
           $.versions[0].links[0].href: $SCHEME://$NETLOC/v1/
 
     - name: root of v1
-      url: /v1
+      GET: /v1
       redirects: true
       response_json_paths:
           $.version: "1.0"
@@ -59,16 +57,16 @@ tests:
           $.links[7].href: $SCHEME://$NETLOC/v1/resource
 
     - name: root of resource
-      url: /v1/resource
+      GET: /v1/resource
       response_json_paths:
           $.volume: $SCHEME://$NETLOC/v1/resource/volume
 
     - name: typo of resource
-      url: /v1/resoue
+      GET: /v1/resoue
       status: 404
 
     - name: typo of resource extra
-      url: /v1/resource/foobar
+      GET: /v1/resource/foobar
       status: 404
 
 # Explore that GETting a list of resources demonstrates the expected
@@ -76,24 +74,24 @@ tests:
 
     - name: instance resource
       desc: there are no instance resources yet
-      url: /v1/resource/instance
+      GET: /v1/resource/instance
       response_strings:
           - "[]"
 
     - name: instance resource bad accept
       desc: Expect 406 on bad accept type
+      GET: $LAST_URL
       request_headers:
           accept: text/plain
-      url: /v1/resource/instance
       status: 406
       response_strings:
           - 406 Not Acceptable
 
     - name: instance resource complex accept
       desc: failover accept media type appropriately
+      GET: $LAST_URL
       request_headers:
           accept: text/plain, application/json; q=0.8
-      url: /v1/resource/instance
       response_strings:
           - "[]"
 
@@ -101,14 +99,13 @@ tests:
 
     - name: generic resource
       desc: there are no generic resources yet
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       response_strings:
           - "[]"
 
     - name: post resource no user-id
       desc: https://bugs.launchpad.net/gnocchi/+bug/1424005
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           # Only provide one of these auth headers
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -121,8 +118,7 @@ tests:
       status: 201
 
     - name: post generic resource
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -143,8 +139,7 @@ tests:
 
     - name: post same resource refuse
       desc: We can only post one identified resource once
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -157,8 +152,7 @@ tests:
       status: 409
 
     - name: post generic resource bad content type
-      url: /v1/resource/generic
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -174,8 +168,7 @@ tests:
 # gets a useful 400 response.
 
     - name: post instance resource no data
-      url: /v1/resource/instance
-      method: post
+      POST: /v1/resource/instance
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -183,8 +176,7 @@ tests:
       status: 400
 
     - name: post instance resource with missing data
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -202,8 +194,7 @@ tests:
           - "'display_name']"
 
     - name: post instance resource
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -224,8 +215,7 @@ tests:
 # associate metrics. If a metric does not exist there should be a
 # graceful failure.
     - name: patch instance resource
-      url: $LOCATION
-      method: patch
+      PATCH: $LOCATION
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -238,8 +228,7 @@ tests:
 
     - name: patch instance resource with same data
       desc: Ensure no useless revision have been created
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -252,8 +241,7 @@ tests:
           revision_start: $RESPONSE['$.revision_start']
 
     - name: patch instance resource with id
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -266,8 +254,7 @@ tests:
           - "'id']"
 
     - name: patch instance with metrics
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -282,7 +269,7 @@ tests:
 
     - name: get instance history
       desc: Ensure we can get the history
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history?sort=revision_end:asc-nullslast
+      GET: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history?sort=revision_end:asc-nullslast
       request_headers:
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -296,8 +283,7 @@ tests:
         $[1].metrics.'disk.iops': $RESPONSE["metrics.'disk.iops'"]
 
     - name: patch instance bad metric association
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -310,8 +296,7 @@ tests:
           - Metric f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea does not exist
 
     - name: patch instance with bad archive policy
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -325,8 +310,7 @@ tests:
           - Archive policy noexist does not exist
 
     - name: patch instance with no archive policy rule
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -339,8 +323,7 @@ tests:
           - No archive policy name specified and no archive policy rule found matching the metric name disk.iops
 
     - name: patch instance with archive policy rule
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -352,7 +335,7 @@ tests:
 
     - name: get patched resource
       desc: confirm the patched resource is properly patched
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -361,8 +344,7 @@ tests:
 
     - name: patch resource empty dict
       desc: an empty dict in patch is an existence check
-      url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: PATCH
+      PATCH:  $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -374,8 +356,7 @@ tests:
 
     - name: patch resource without change with metrics in response
       desc: an empty dict in patch is an existence check
-      url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: PATCH
+      PATCH:  $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -389,8 +370,7 @@ tests:
 
     - name: post instance history
       desc: should don't work
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
-      method: POST
+      POST: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -399,8 +379,7 @@ tests:
 
     - name: delete instance history
       desc: should don't work
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
-      method: DELETE
+      DELETE: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -411,8 +390,7 @@ tests:
 
     - name: patch resource no data
       desc: providing no data is an error
-      url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: PATCH
+      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -423,8 +401,7 @@ tests:
 
     - name: patch resource bad data
       desc: providing data that is not a dict is an error
-      url:  /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
-      method: PATCH
+      PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -437,8 +414,7 @@ tests:
 
     - name: patch noexit resource
       desc: "patching something that doesn't exist is a 404"
-      url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
-      method: patch
+      PATCH: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -449,7 +425,7 @@ tests:
 
     - name: get noexist resource
       desc: if a resource does not exist 404
-      url:  /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
+      GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -459,7 +435,7 @@ tests:
 
     - name: get bad resource id
       desc: https://bugs.launchpad.net/gnocchi/+bug/1425588
-      url:  /v1/resource/instance/noexist
+      GET:  /v1/resource/instance/noexist
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -468,7 +444,7 @@ tests:
           - The resource could not be found.
 
     - name: get metrics for this not-existing resource
-      url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
+      GET: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -478,12 +454,12 @@ tests:
 # List resources
 
     - name: list instance resources no auth
-      url: /v1/resource/instance
+      GET: /v1/resource/instance
       response_strings:
           - "[]"
 
     - name: list instance resources
-      url: /v1/resource/instance
+      GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -492,7 +468,7 @@ tests:
           $[-1].host: compute2
 
     - name: list all resources
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -502,8 +478,7 @@ tests:
 # Metric handling when POSTing resources.
 
     - name: post new instance with non-existent metrics
-      url: /v1/resource/instance
-      method: post
+      POST: /v1/resource/instance
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -521,8 +496,7 @@ tests:
       status: 400
 
     - name: post new instance with metrics bad policy
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -541,8 +515,7 @@ tests:
       status: 400
 
     - name: post new instance with metrics no policy rule
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -562,8 +535,7 @@ tests:
         - No archive policy name specified and no archive policy rule found matching the metric name cpu.util
 
     - name: post new instance with metrics using policy rule
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -581,8 +553,7 @@ tests:
       status: 201
 
     - name: post new instance with metrics
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -604,8 +575,7 @@ tests:
           created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
     - name: post new instance with metrics and un-normalized user/project id from keystone middleware
-      url: /v1/resource/instance
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -627,7 +597,7 @@ tests:
 
     - name: get metrics for this resource
       desc: with async measure handling this is a null test
-      url: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
+      GET: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -638,13 +608,13 @@ tests:
 # Interrogate the NamedMetricController
 
     - name: list the instances
-      url: /v1/resource/instance
+      GET: /v1/resource/instance
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
     - name: request metrics from one of the instances
-      url: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
+      GET: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -655,7 +625,7 @@ tests:
 
     - name: request metrics from non uuid metrics
       desc: 404 from GenericResourceController
-      url: /v1/resource/instance/not.a.uuid/metric
+      GET: /v1/resource/instance/not.a.uuid/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -663,7 +633,7 @@ tests:
       status: 404
 
     - name: request cpuutil metric from instance
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
+      GET: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -672,8 +642,7 @@ tests:
           $.archive_policy.name: medium
 
     - name: try post cpuutil metric to instance
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -682,7 +651,7 @@ tests:
 
     - name: request cpuutil measures from instance
       desc: with async measure handling this is a null test
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
+      GET: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -690,8 +659,7 @@ tests:
           - "[]"
 
     - name: post cpuutil measures
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -704,7 +672,7 @@ tests:
       status: 202
 
     - name: request cpuutil measures again
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
+      GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -717,8 +685,7 @@ tests:
           $[0][2]: 43.100000000000001
 
     - name: post metric at instance
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
-      method: post
+      POST: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -730,8 +697,7 @@ tests:
       response_headers:
 
     - name: post metric at instance with empty definition
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -743,8 +709,7 @@ tests:
         - No archive policy name specified and no archive policy rule found matching the metric name foo.bar
 
     - name: post metric at instance using archive policy rule
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -754,8 +719,7 @@ tests:
           disk.io.rate: {}
 
     - name: duplicate metrics at instance
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -768,8 +732,7 @@ tests:
           - Named metric electron.spin already exists
 
     - name: post metrics at instance bad policy
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
-      method: post
+      POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -784,8 +747,7 @@ tests:
 # Check bad timestamps
 
     - name: post new instance with bad timestamp
-      url: /v1/resource/instance
-      method: post
+      POST: /v1/resource/instance
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -811,8 +773,7 @@ tests:
 
     - name: post to non uuid metrics
       desc: 404 from GenericResourceController
-      url: /v1/resource/instance/not.a.uuid/metric
-      method: post
+      POST: /v1/resource/instance/not.a.uuid/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -824,8 +785,7 @@ tests:
 
     - name: post to missing uuid metrics
       desc: 404 from NamedMetricController
-      url: /v1/resource/instance/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
-      method: post
+      POST: /v1/resource/instance/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -839,8 +799,7 @@ tests:
 
     - name: post measure on unknown metric
       desc: 404 from NamedMetricController with metric error
-      url: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
-      method: post
+      POST: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -855,17 +814,15 @@ tests:
 # DELETE-ing instances
 
     - name: delete instance
-      url: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      DELETE: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-      method: DELETE
       status: 204
 
     - name: delete noexist instance
-      url: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
+      DELETE: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-      method: DELETE
       status: 404
