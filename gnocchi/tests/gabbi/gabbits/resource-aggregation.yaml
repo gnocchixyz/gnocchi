@@ -4,8 +4,7 @@ fixtures:
 tests:
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
         content-type: application/json
         x-roles: admin
@@ -17,8 +16,7 @@ tests:
       status: 201
 
     - name: create resource 1
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -33,8 +31,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 1
-      url: /v1/resource/generic/4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4/metric/cpu.util/measures
-      method: post
+      POST: /v1/resource/generic/4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4/metric/cpu.util/measures
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -47,8 +44,7 @@ tests:
       status: 202
 
     - name: create resource 2
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -63,8 +59,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 2
-      url: /v1/resource/generic/1447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
-      method: post
+      POST: /v1/resource/generic/1447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -77,8 +72,7 @@ tests:
       status: 202
 
     - name: create resource 3
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -93,8 +87,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 3
-      url: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
-      method: post
+      POST: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -107,8 +100,7 @@ tests:
       status: 202
 
     - name: aggregate metric with groupby on project_id
-      url: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
-      method: post
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -135,8 +127,7 @@ tests:
               project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
 
     - name: aggregate metric with groupby on project_id and invalid group
-      url: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=thisisdumb
-      method: post
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=thisisdumb
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -149,8 +140,7 @@ tests:
         - Invalid groupby attribute
 
     - name: aggregate metric with groupby on project_id and user_id
-      url: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id
-      method: post
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
