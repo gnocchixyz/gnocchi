@@ -9,8 +9,7 @@ fixtures:
 tests:
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
         content-type: application/json
         x-roles: admin
@@ -21,17 +20,15 @@ tests:
       status: 201
 
     - name: create metric
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
         content-type: application/json
-      method: post
       data:
         archive_policy_name: "high"
       status: 201
 
     - name: search measure with wrong start
-      url: /v1/search/metric?metric_id=$RESPONSE['$.id']&start=foobar
-      method: post
+      POST: /v1/search/metric?metric_id=$RESPONSE['$.id']&start=foobar
       request_headers:
         content-type: application/json
       data:
@@ -42,17 +39,15 @@ tests:
         - Invalid value for start
 
     - name: create metric 2
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
         content-type: application/json
-      method: post
       data:
         archive_policy_name: "high"
       status: 201
 
     - name: search measure with wrong stop
-      url: /v1/search/metric?metric_id=$RESPONSE['$.id']&stop=foobar
-      method: post
+      POST: /v1/search/metric?metric_id=$RESPONSE['$.id']&stop=foobar
       request_headers:
         content-type: application/json
       data:
