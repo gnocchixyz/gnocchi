@@ -79,10 +79,14 @@ class SerializableMixin(object):
 
     @classmethod
     def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
+        try:
+            uncompressed = lz4.loads(data)
+        except ValueError:
+            uncompressed = data
+        return cls.from_dict(msgpack.loads(uncompressed, encoding='utf-8'))
 
     def serialize(self):
-        return msgpack.dumps(self.to_dict())
+        return lz4.dumps(msgpack.dumps(self.to_dict()))
 
 
 class TimeSerie(SerializableMixin):
@@ -429,13 +433,6 @@ class AggregatedTimeSerie(TimeSerie):
             'timestamps': timestamps,
             'values': values,
         }
-
-    @classmethod
-    def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(lz4.loads(data), encoding='utf-8'))
-
-    def serialize(self):
-        return lz4.dumps(msgpack.dumps(self.to_dict()))
 
     def _truncate(self):
         """Truncate the timeserie."""
