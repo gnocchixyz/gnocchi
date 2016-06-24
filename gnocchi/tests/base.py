@@ -206,6 +206,10 @@ class FakeRadosModule(object):
             self.kvs_xattrs.pop(key, None)
             self.kvs_omaps.pop(key, None)
 
+        @staticmethod
+        def aio_flush():
+            pass
+
     class FakeRados(object):
         def __init__(self, kvs, kvs_xattrs, kvs_omaps):
             self.kvs = kvs
