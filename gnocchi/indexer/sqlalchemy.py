@@ -36,6 +36,7 @@ except ImportError:
     pymysql = None
 import six
 import sqlalchemy
+import sqlalchemy.engine.url as sqlalchemy_url
 import sqlalchemy.exc
 from sqlalchemy import types
 import sqlalchemy_utils
@@ -216,6 +217,15 @@ class ResourceClassMapper(object):
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
+
+    @classmethod
+    def _create_new_database(cls, url):
+        """Used by testing to create a new database."""
+        purl = sqlalchemy_url.make_url(url)
+        purl.database = purl.database + str(uuid.uuid4()).replace('-', '')
+        new_url = str(purl)
+        sqlalchemy_utils.create_database(new_url)
+        return new_url
 
     def __init__(self, conf):
         conf.set_override("connection", conf.indexer.url, "database")
