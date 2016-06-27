@@ -224,11 +224,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 oldest_point_to_keep)
 
     def add_measures(self, metric, measures):
-        self._store_measures(metric, msgpackutils.dumps(
+        self._store_new_measures(metric, msgpackutils.dumps(
             list(map(tuple, measures))))
 
     @staticmethod
-    def _store_measures(metric, data):
+    def _store_new_measures(metric, data):
         raise NotImplementedError
 
     @staticmethod
@@ -317,7 +317,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self._check_for_metric_upgrade,
             ((metric,) for metric in index.list_metrics()))
 
-    def process_measures(self, indexer, block_size, sync=False):
+    def process_new_measures(self, indexer, block_size, sync=False):
         metrics_to_process = self._list_metric_with_measures_to_process(
             block_size, full=sync)
         metrics = indexer.list_metrics(ids=metrics_to_process)

@@ -111,7 +111,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 if e.errno != errno.EEXIST:
                     raise
 
-    def _store_measures(self, metric, data):
+    def _store_new_measures(self, metric, data):
         tmpfile = self._get_tempfile()
         tmpfile.write(data)
         tmpfile.close()

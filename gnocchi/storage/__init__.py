@@ -175,7 +175,7 @@ class StorageDriver(object):
     def process_background_tasks(self, index, block_size=128, sync=False):
         """Process background tasks for this storage.
 
-        This calls :func:`process_measures` to process new measures
+        This calls :func:`process_new_measures` to process new measures
 
         :param index: An indexer to be used for querying metrics
         :param block_size: number of metrics to process
@@ -185,7 +185,7 @@ class StorageDriver(object):
         """
         LOG.debug("Processing new measures")
         try:
-            self.process_measures(index, block_size, sync)
+            self.process_new_measures(index, block_size, sync)
         except Exception:
             if sync:
                 raise
@@ -228,7 +228,7 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def process_measures(indexer=None, block_size=None, sync=False):
+    def process_new_measures(indexer=None, block_size=None, sync=False):
         """Process added measures in background.
 
         Some drivers might need to have a background task running that process
