@@ -110,7 +110,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
-    def _store_measures(self, metric, data):
+    def _store_new_measures(self, metric, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
             self.MEASURE_PREFIX,

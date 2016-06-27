@@ -125,7 +125,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             for xattr in xattrs:
                 ioctx.rm_xattr(self.MEASURE_PREFIX, xattr)
 
-    def _store_measures(self, metric, data):
+    def _store_new_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
         # many objects (2min for 20000 objects in 50osds cluster),
         # and enforce us to iterrate over all objects
