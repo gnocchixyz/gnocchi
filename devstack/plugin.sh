@@ -377,7 +377,7 @@ function install_gnocchi {
 
     install_gnocchiclient
 
-    [ "$GNOCCHI_USE_KEYSTONE" == "True" ] && EXTRA_FLAVOR=,keystonmiddleware
+    [ "$GNOCCHI_USE_KEYSTONE" == "True" ] && EXTRA_FLAVOR=,keystonemiddleware
 
     # We don't use setup_package because we don't follow openstack/requirements
     sudo -H pip install -e "$GNOCCHI_DIR"[test,$GNOCCHI_STORAGE_BACKEND,${DATABASE_TYPE}${EXTRA_FLAVOR}]
