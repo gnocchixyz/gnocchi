@@ -793,13 +793,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                             #    (pymysql.err.ProgrammingError)
                             #    (1146, "Table \'test.rt_f00\' doesn\'t exist")
                             # In that case, just ignore those resources.
-                            inn_e = e.inner_exception
                             if (not pymysql
                                or not isinstance(
-                                   inn_e, sqlalchemy.exc.ProgrammingError)
+                                   e, sqlalchemy.exc.ProgrammingError)
                                or not isinstance(
-                                   inn_e.orig, pymysql.err.ProgrammingError)
-                               or (inn_e.orig.args[0]
+                                   e.orig, pymysql.err.ProgrammingError)
+                               or (e.orig.args[0]
                                    != pymysql.constants.ER.NO_SUCH_TABLE)):
                                 raise
 
