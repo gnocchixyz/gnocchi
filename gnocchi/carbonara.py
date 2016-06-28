@@ -129,12 +129,10 @@ class TimeSerie(SerializableMixin):
 
     @staticmethod
     def _timestamps_and_values_from_dict(values):
-        v = tuple(
-            zip(*dict(
-                (pandas.Timestamp(k), v)
-                for k, v in six.iteritems(values)).items()))
+        timestamps = pandas.to_datetime(list(values.keys()), unit='ns')
+        v = list(values.values())
         if v:
-            return v
+            return timestamps, v
         return (), ()
 
     @classmethod
