@@ -404,7 +404,7 @@ class TestCase(base.BaseTestCase):
             self.conf.storage.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
 
-        self.coord.start()
+        self.coord.start(start_heart=True)
 
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()

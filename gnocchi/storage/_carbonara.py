@@ -17,8 +17,6 @@
 import collections
 import datetime
 import operator
-import threading
-import time
 import uuid
 
 from concurrent import futures
@@ -57,27 +55,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self.coord = coordination.get_coordinator(
                 conf.coordination_url,
                 str(uuid.uuid4()).encode('ascii'))
-            self.coord.start()
+            self.coord.start(start_heart=True)
         except Exception as e:
             raise storage.StorageError("Unable to start coordinator: %s" % e)
         self.aggregation_workers_number = conf.aggregation_workers_number
         self.partition = 0
-        self._stop_heartbeat = threading.Event()
-        self.heartbeater = threading.Thread(target=self._heartbeat,
-                                            name='heartbeat')
-        self.heartbeater.setDaemon(True)
-        self.heartbeater.start()
-
-    def _heartbeat(self):
-        while not self._stop_heartbeat.is_set():
-            # FIXME(jd) Why 10? Why not. We should have a way to find out
-            # what's the best value here, but it depends on the timeout used by
-            # the driver; tooz should help us here!
-            time.sleep(10)
-            self.coord.heartbeat()
 
     def stop(self):
-        self._stop_heartbeat.set()
         self.coord.stop()
 
     def _lock(self, metric_id):
