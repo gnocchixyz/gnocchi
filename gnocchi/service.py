@@ -54,7 +54,6 @@ def prepare_service(args=None, conf=None,
     except NotImplementedError:
         default_workers = 1
 
-    conf.set_default("workers", default_workers, group="api")
     conf.set_default("workers", default_workers, group="metricd")
 
     conf(args, project='gnocchi', validate_default_values=True,

@@ -36,18 +36,9 @@ def list_opts():
             cfg.StrOpt('paste_config',
                        default='api-paste.ini',
                        help='Path to API Paste configuration.'),
-            cfg.PortOpt('port',
-                        default=8041,
-                        help='The port for the Gnocchi API server.'),
-            cfg.StrOpt('host',
-                       default='0.0.0.0',
-                       help='The listen IP for the Gnocchi API server.'),
             cfg.BoolOpt('pecan_debug',
                         default=False,
                         help='Toggle Pecan Debug Middleware.'),
-            cfg.IntOpt('workers', min=1,
-                       help='Number of workers for Gnocchi API server. '
-                       'By default the available number of CPU is used.'),
             cfg.IntOpt('max_limit',
                        default=1000,
                        help=('The maximum number of items returned in a '
