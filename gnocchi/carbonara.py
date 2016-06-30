@@ -18,11 +18,13 @@
 
 import datetime
 import functools
+import itertools
 import logging
 import math
 import numbers
 import random
 import re
+import struct
 import time
 
 import iso8601
@@ -151,8 +153,7 @@ class TimeSerie(SerializableMixin):
     def to_dict(self):
         return {
             'values': dict((timestamp.value, float(v))
-                           for timestamp, v
-                           in six.iteritems(self.ts.dropna())),
+                           for timestamp, v in six.iteritems(self.ts.dropna()))
         }
 
     @staticmethod
@@ -286,6 +287,7 @@ class AggregatedTimeSerie(TimeSerie):
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
     POINTS_PER_SPLIT = 14400
+    SERIAL_LEN = 9
 
     def __init__(self, sampling, aggregation_method,
                  ts=None, max_size=None):
@@ -342,7 +344,9 @@ class AggregatedTimeSerie(TimeSerie):
         groupby = self.ts.groupby(functools.partial(
             self.get_split_key_datetime, sampling=self.sampling))
         for group, ts in groupby:
-            yield self._split_key_to_string(group), TimeSerie(ts)
+            yield (self._split_key_to_string(group),
+                   AggregatedTimeSerie(self.sampling, self.aggregation_method,
+                                       ts))
 
     @classmethod
     def from_timeseries(cls, timeseries, sampling, aggregation_method,
@@ -371,71 +375,44 @@ class AggregatedTimeSerie(TimeSerie):
         )
 
     @classmethod
-    def from_dict(cls, d):
-        """Build a time series from a dict.
+    def unserialize(cls, data, start, agg_method, sampling):
+        x, y = [], []
+        start = float(start)
+        decompress = lz4.loads(data)
+        v_len = len(decompress) // cls.SERIAL_LEN
+        # NOTE(gordc): use '<' for standardized, little-endian byte order.
+        deserial = struct.unpack('<' + '?d' * v_len, decompress)
+        # alternating split into 2 list and drop items with False flag
+        for i, val in itertools.compress(six.moves.zip(six.moves.range(v_len),
+                                                       deserial[1::2]),
+                                         deserial[::2]):
+            x.append(val)
+            y.append(start + (i * sampling))
+        y = pandas.to_datetime(y, unit='s')
+        return cls.from_data(sampling, agg_method, y, x)
 
-        The dict format must be datetime as key and values as values.
-
-        :param d: The dict.
-        :returns: A TimeSerie object
-        """
-        sampling = d.get('sampling')
-        if 'first_timestamp' in d:
-            prev_timestamp = pandas.Timestamp(d.get('first_timestamp') * 10e8)
-            timestamps = []
-            for delta in d.get('timestamps'):
-                prev_timestamp = datetime.timedelta(
-                    seconds=delta * sampling) + prev_timestamp
-                timestamps.append(prev_timestamp)
-        else:
-            # migrate from v1.3, remove with TimeSerieArchive
-            timestamps, d['values'] = (
-                cls._timestamps_and_values_from_dict(d['values']))
-
-        return cls.from_data(
-            sampling=sampling,
-            aggregation_method=d.get('aggregation_method', 'mean'),
-            timestamps=timestamps,
-            values=d.get('values'),
-            max_size=d.get('max_size'))
-
-    def to_dict(self):
-        if self.ts.empty:
-            timestamps = []
-            values = []
-            first_timestamp = 0
-        else:
-            first_timestamp = float(
-                self.get_split_key(self.ts.index[0], self.sampling))
-            timestamps = []
-            prev_timestamp = pandas.Timestamp(
-                first_timestamp * 10e8).to_pydatetime()
-            # Use double delta encoding for timestamps
-            for i in self.ts.index:
-                # Convert to pydatetime because it's faster to compute than
-                # Pandas' objects
-                asdt = i.to_pydatetime()
-                timestamps.append(
-                    int((asdt - prev_timestamp).total_seconds()
-                        / self.sampling))
-                prev_timestamp = asdt
-            values = self.ts.values.tolist()
-
-        return {
-            'first_timestamp': first_timestamp,
-            'aggregation_method': self.aggregation_method,
-            'max_size': self.max_size,
-            'sampling': self.sampling,
-            'timestamps': timestamps,
-            'values': values,
-        }
-
-    @classmethod
-    def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(lz4.loads(data), encoding='utf-8'))
-
-    def serialize(self):
-        return lz4.dumps(msgpack.dumps(self.to_dict()))
+    def serialize(self, start=None):
+        # NOTE(gordc): this binary serializes series based on the split time.
+        # the format is 1B True/False flag which denotes whether subsequent 8B
+        # is a real float or zero padding. every 9B represents one second from
+        # start time. this is intended to be run on data already split.
+        # ie. False,0,True,0 serialization means start datapoint is padding,
+        # and 1s after start time, the aggregate value is 0.
+        if not self.ts.index.is_monotonic:
+            self.ts = self.ts.sort_index()
+        offset_div = self.sampling * 10e8
+        start = (float(start) * 10e8 if start else
+                 float(self.get_split_key(self.first, self.sampling)) * 10e8)
+        # calculate how many seconds from start the series runs until and
+        # initialize list to store alternating delimiter, float entries
+        e_offset = int((self.last.value - start) // (self.sampling * 10e8)) + 1
+        serial = [False] * e_offset * 2
+        for i, v in self.ts.iteritems():
+            # overwrite zero padding with real points and set flag True
+            loc = int((i.value - start) // offset_div)
+            serial[loc * 2] = True
+            serial[loc * 2 + 1] = float(v)
+        return lz4.dumps(struct.pack('<' + '?d' * e_offset, *serial))
 
     def _truncate(self, quick=False):
         """Truncate the timeserie."""

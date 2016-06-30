@@ -97,8 +97,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 
     @staticmethod
-    def _object_name(split_key, aggregation, granularity):
-        return '%s_%s_%s' % (split_key, aggregation, granularity)
+    def _object_name(split_key, aggregation, granularity, version=3):
+        name = '%s_%s_%s' % (split_key, aggregation, granularity)
+        return name + '_v%s' % version if version else name
 
     def _create_metric(self, metric):
         # TODO(jd) A container per user in their account?
@@ -188,17 +189,18 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self._bulk_delete(self.MEASURE_PREFIX, files)
 
     def _store_metric_measures(self, metric, timestamp_key,
-                               aggregation, granularity, data):
+                               aggregation, granularity, data, version=3):
         self.swift.put_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity),
-            data)
+            self._object_name(timestamp_key, aggregation, granularity,
+                              version), data)
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity):
+                                granularity, version=3):
         self.swift.delete_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity))
+            self._object_name(timestamp_key, aggregation, granularity,
+                              version))
 
     def _delete_metric(self, metric):
         self._delete_unaggregated_timeserie(metric)
@@ -222,11 +224,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     @retrying.retry(stop_max_attempt_number=4,
                     wait_fixed=500,
                     retry_on_result=retry_if_result_empty)
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity):
+    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
+                      version=3):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
-                    timestamp_key, aggregation, granularity))
+                    timestamp_key, aggregation, granularity, version))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
@@ -251,12 +254,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         keys = []
         for f in files:
             try:
-                key, agg, g = f['name'].split('_', 2)
-            except ValueError:
+                meta = f['name'].split('_')
+                if aggregation == meta[1] and granularity == float(meta[2]):
+                    keys.append(meta[0])
+            except (ValueError, IndexError):
                 # Might be "none", or any other file. Be resilient.
                 continue
-            if aggregation == agg and granularity == float(g):
-                keys.append(key)
         return keys
 
     @retrying.retry(stop_max_attempt_number=4,
