@@ -8,16 +8,15 @@ fixtures:
 
 tests:
     - name: typo of search
-      url: /v1/search/notexists
+      GET: /v1/search/notexists
       status: 404
 
     - name: typo of search in resource
-      url: /v1/search/resource/foobar
+      GET: /v1/search/resource/foobar
       status: 404
 
     - name: search with invalid uuid
-      url: /v1/search/resource/generic
-      method: POST
+      POST: /v1/search/resource/generic
       request_headers:
         content-type: application/json
       data:
