@@ -70,11 +70,10 @@ class TestStorageDriver(tests_base.TestCase):
                             side_effect=ValueError("boom!")):
                 self.storage.process_background_tasks(self.index, sync=True)
 
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 1),
-            (utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1),
-            (utils.datetime_utc(2014, 1, 1, 13), 300.0, 1),
-        ], self.storage.get_measures(self.metric))
+        m = self.storage.get_measures(self.metric)
+        self.assertIn((utils.datetime_utc(2014, 1, 1), 86400.0, 1), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 300.0, 1), m)
 
     def test_delete_nonempty_metric(self):
         self.storage.add_measures(self.metric, [
@@ -144,7 +143,8 @@ class TestStorageDriver(tests_base.TestCase):
         count = 0
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
-            if mock.call(m_sql, mock.ANY, 'mean', 60.0, mock.ANY) == call:
+            args = call[1]
+            if args[0] == m_sql and args[2] == 'mean' and args[3] == 60.0:
                 count += 1
         self.assertEqual(1, count)
 

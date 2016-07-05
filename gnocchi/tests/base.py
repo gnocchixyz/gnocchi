@@ -136,6 +136,16 @@ class FakeRadosModule(object):
             self._ensure_key_exists(key)
             self.kvs[key] = value
 
+        def write(self, key, value, offset):
+            self._validate_key(key)
+            try:
+                current = self.kvs[key]
+                if len(current) < offset:
+                    current += b'\x00' * (offset - len(current))
+                self.kvs[key] = current[:offset] + value
+            except KeyError:
+                raise FakeRadosModule.ObjectNotFound
+
         def stat(self, key):
             self._validate_key(key)
             if key not in self.kvs:

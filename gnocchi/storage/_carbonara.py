@@ -84,7 +84,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     @staticmethod
     def _store_metric_measures(metric, timestamp_key, aggregation,
-                               granularity, data, version=3):
+                               granularity, data, offset=0, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -170,16 +170,21 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             timeseries=timeseries,
             max_size=points)
 
+    def _get_measures_to_update(self, metric, agg, apolicy, timeserie):
+        return self._get_measures_timeserie(metric, agg, apolicy.granularity,
+                                            timeserie.first, timeserie.last)
+
     def _add_measures(self, aggregation, archive_policy_def,
                       metric, timeserie):
-        ts = self._get_measures_timeserie(metric, aggregation,
-                                          archive_policy_def.granularity,
-                                          timeserie.first, timeserie.last)
+        ts = self._get_measures_to_update(metric, aggregation,
+                                          archive_policy_def, timeserie)
         ts.update(timeserie)
         for key, split in ts.split():
             self._store_metric_measures(metric, key, aggregation,
                                         archive_policy_def.granularity,
-                                        split.serialize(key))
+                                        split.serialize(key, self.WRITE_FULL),
+                                        offset=(0 if self.WRITE_FULL else
+                                                split.offset_from_split()))
 
         if ts.last and archive_policy_def.timespan:
             oldest_point_to_keep = ts.last - datetime.timedelta(
@@ -277,7 +282,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     for key, split in ts.split():
                         self._store_metric_measures(
                             metric, key, ts.aggregation_method,
-                            ts.sampling, split.serialize(key))
+                            ts.sampling, split.serialize(key, self.WRITE_FULL),
+                            offset=(0 if self.WRITE_FULL else
+                                    split.offset_from_split()))
                     for key in all_keys:
                         self._delete_metric_measures(
                             metric, key, agg_method,

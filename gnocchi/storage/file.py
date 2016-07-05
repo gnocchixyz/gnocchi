@@ -22,6 +22,7 @@ import shutil
 import tempfile
 import uuid
 
+import lz4
 from oslo_config import cfg
 import six
 
@@ -40,6 +41,9 @@ OPTS = [
 
 
 class FileStorage(_carbonara.CarbonaraBasedStorage):
+
+    WRITE_FULL = True
+
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
@@ -229,11 +233,12 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             metric, aggregation, timestamp_key, granularity, version))
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, version=3):
+                               granularity, data, offset=0, version=3):
         self._atomic_file_store(
             self._build_metric_path_for_split(metric, aggregation,
                                               timestamp_key, granularity,
-                                              version), data)
+                                              version),
+            lz4.dumps(data))
 
     def _delete_metric(self, metric):
         path = self._build_metric_dir(metric)
@@ -251,7 +256,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             metric, aggregation, timestamp_key, granularity, version)
         try:
             with open(path, 'rb') as aggregation_file:
-                return aggregation_file.read()
+                return lz4.loads(aggregation_file.read())
         except IOError as e:
             if e.errno == errno.ENOENT:
                 if os.path.exists(self._build_metric_dir(metric)):
