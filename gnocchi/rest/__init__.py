@@ -82,7 +82,8 @@ def enforce(rule, target):
     creds = {
         'roles': headers.get("X-Roles", "").split(","),
         'user_id': user_id,
-        'project_id': project_id
+        'project_id': project_id,
+        'domain_id': headers.get("X-Domain-Id", ""),
     }
 
     if not isinstance(target, dict):

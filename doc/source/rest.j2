@@ -12,7 +12,7 @@ these headers in your HTTP requests:
 * X-Project-Id
 
 The `X-Roles` header can also be provided in order to match role based ACL
-specified in `policy.json`.
+specified in `policy.json`, as `X-Domain-Id` to match domain based ACL.
 
 If you enable the OpenStack Keystone middleware, you only need to authenticate
 against Keystone and provide `X-Auth-Token` header with a valid token for each
