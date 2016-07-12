@@ -2,14 +2,12 @@
 Grafana support
 =================
 
-`Grafana`_ has support for Gnocchi through a plugin. The repository named
-`grafana-plugins`_ contains this plugin. You can enable the plugin by following
-the instructions in the `Grafana documentation`_.
+`Grafana`_ has support for Gnocchi through a plugin. It can be installed with
+grafana-cli::
 
-.. note::
-   A `pull request`_ has been made to merge this plugin directly into Grafana
-   main tree, but it has unfortunately being denied for the time being. Feel
-   free to post a comment there requesting its reopening.
+     sudo grafana-cli plugins install sileht-gnocchi-datasource
+
+`Source`_ and `Documentation`_ are also available.
 
 Grafana has 2 modes of operation: proxy or direct mode. In proxy mode, your
 browser only communicates with Grafana, and Grafana communicates with Gnocchi.
@@ -34,9 +32,12 @@ steps:
 
      [cors]
      allowed_origin = http://example.com/grafana
-     allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token
+     allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token,X-User-Id,X-Domain-Id,X-Project-Id,X-Roles
 
-2. Configure the CORS middleware in Keystone in the same fashion.
+2. Configure the CORS middleware in Keystone to allow request from Grafana too:
+
+     [cors]
+     allowed_origin = http://example.com/grafana
 
 3. Configure a new datasource in Grafana with the Keystone URL, a user, a
    project and a password. Your browser will query Keystone for a token, and
@@ -47,7 +48,6 @@ steps:
   :alt: Grafana screenshot
 
 .. _`Grafana`: http://grafana.org
-.. _`grafana-plugins`: https://github.com/grafana/grafana-plugins
-.. _`pull request`: https://github.com/grafana/grafana/pull/2716
-.. _`Grafana documentation`: http://docs.grafana.org/
+.. _`Documentation`: https://grafana.net/plugins/sileht-gnocchi-datasource
+.. _`Source`: https://github.com/sileht/grafana-gnocchi-datasource
 .. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
