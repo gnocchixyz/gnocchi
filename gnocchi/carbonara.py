@@ -310,6 +310,7 @@ class AggregatedTimeSerie(TimeSerie):
         self.sampling = self._to_offset(sampling).nanos / 10e8
         self.max_size = max_size
         self.aggregation_method = aggregation_method
+        self._truncate(quick=True)
 
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps=None,
@@ -435,11 +436,12 @@ class AggregatedTimeSerie(TimeSerie):
     def serialize(self):
         return lz4.dumps(msgpack.dumps(self.to_dict()))
 
-    def _truncate(self):
+    def _truncate(self, quick=False):
         """Truncate the timeserie."""
         if self.max_size is not None:
             # Remove empty points if any that could be added by aggregation
-            self.ts = self.ts.dropna()[-self.max_size:]
+            self.ts = (self.ts[-self.max_size:] if quick
+                       else self.ts.dropna()[-self.max_size:])
 
     def _resample(self, after):
         # Group by the sampling, and then apply the aggregation method on
