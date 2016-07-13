@@ -10,6 +10,7 @@ pandas>=0.17.0
 pecan>=0.9
 pytimeparse>=1.1.5
 futures
+cotyledon>=1.2.2
 requests
 six
 stevedore
