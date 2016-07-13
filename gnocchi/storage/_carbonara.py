@@ -81,7 +81,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _store_metric_measures(metric, aggregation, granularity, data):
+    def _store_metric_measures(metric, timestamp_key,
+                               aggregation, granularity, data):
         raise NotImplementedError
 
     @staticmethod
