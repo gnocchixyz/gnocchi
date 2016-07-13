@@ -59,6 +59,12 @@ tests:
       response_strings:
           - "[]"
 
+    - name: get metric list with nonexistent sort key
+      GET: /v1/metric?sort=nonexistent_key:asc
+      status: 400
+      response_strings:
+          - "Sort key supplied is invalid: nonexistent_key"
+
     - name: create metric with name and unit
       POST: /v1/metric
       request_headers:

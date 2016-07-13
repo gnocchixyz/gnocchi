@@ -530,9 +530,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             except ValueError as e:
                 raise indexer.InvalidPagination(e)
             except exception.InvalidSortKey as e:
-                # FIXME(jd) Wait for https://review.openstack.org/274868 to be
-                # released so we can return which key
-                raise indexer.InvalidPagination("Invalid sort keys")
+                raise indexer.InvalidPagination(e)
 
             return list(q.all())
 
@@ -806,9 +804,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             except ValueError as e:
                 raise indexer.InvalidPagination(e)
             except exception.InvalidSortKey as e:
-                # FIXME(jd) Wait for https://review.openstack.org/274868 to be
-                # released so we can return which key
-                raise indexer.InvalidPagination("Invalid sort keys")
+                raise indexer.InvalidPagination(e)
 
             # Always include metrics
             q = q.options(sqlalchemy.orm.joinedload("metrics"))
