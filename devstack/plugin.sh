@@ -279,7 +279,6 @@ function configure_gnocchi {
         iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
         if is_service_enabled gnocchi-grafana; then
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
-            iniset $GNOCCHI_CONF cors allow_headers Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token,X-User-Id,X-Domain-Id,X-Project-Id,X-Roles
         fi
     else
         iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+noauth

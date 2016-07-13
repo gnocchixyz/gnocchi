@@ -32,7 +32,6 @@ steps:
 
      [cors]
      allowed_origin = http://example.com/grafana
-     allow_headers = Content-Type,Cache-Control,Content-Language,Expires,Last-Modified,Pragma,X-Auth-Token,X-Subject-Token,X-User-Id,X-Domain-Id,X-Project-Id,X-Roles
 
 2. Configure the CORS middleware in Keystone to allow request from Grafana too:
 
