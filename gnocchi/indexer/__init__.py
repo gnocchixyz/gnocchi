@@ -141,6 +141,17 @@ class ResourceTypeInUse(IndexerException):
         self.resource_type = resource_type
 
 
+class UnexpectedResourceTypeState(IndexerException):
+    """Error raised when an resource type state is not expected."""
+    def __init__(self, resource_type, expected_state, state):
+        super(UnexpectedResourceTypeState, self).__init__(
+            "Resource type %s state is %s (expected: %s)" % (
+                resource_type, state, expected_state))
+        self.resource_type = resource_type
+        self.expected_state = expected_state
+        self.state = state
+
+
 class NoSuchArchivePolicyRule(IndexerException):
     """Error raised when an archive policy rule does not exist."""
     def __init__(self, archive_policy_rule):
