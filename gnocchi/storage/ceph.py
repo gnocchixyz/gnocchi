@@ -280,8 +280,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                          aggregation, granularity)
             return self._get_object_content(name)
         except rados.ObjectNotFound:
-            if self._object_exists(
-                    self.ioctx, "gnocchi_%s_container" % metric.id):
+            if self._object_exists("gnocchi_%s_container" % metric.id):
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             else:
                 raise storage.MetricDoesNotExist(metric)
