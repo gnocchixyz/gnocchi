@@ -347,6 +347,17 @@ It can also be deleted if no more resources are associated to it:
 
 {{ scenarios['delete-resource-type']['doc'] }}
 
+Creating resource type means creation of new tables on the indexer backend.
+This is heavy operation that will lock some tables for a short amount of times.
+When the resource type is created, its initial `state` is `creating`. When the
+new tables have been created, the state switches to `active` and the new
+resource type is ready to be used. If something unexpected occurs during this
+step, the state switches to `creation_error`.
+
+The same behavior occurs when the resource type is deleted. The state starts to
+switch to `deleting`, the resource type is no more usable. Then the tables are
+removed and the finally the resource_type is really deleted from the database.
+If some unexpected occurs the state switches to `deletion_error`.
 
 Searching for resources
 =======================

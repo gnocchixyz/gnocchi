@@ -512,7 +512,7 @@ class MetricTest(RestTest):
                                  "min_length": 1,
                                  "max_length": 40,
                                  "required": True}
-            }))
+            }, 'creating'))
 
         attributes = {
             "server_group": str(uuid.uuid4()),
@@ -626,7 +626,7 @@ class ResourceTest(RestTest):
                          "min_length": 1,
                          "max_length": 40,
                          "required": True}
-            }))
+            }, "creating"))
         self.resource['type'] = self.resource_type
 
     @mock.patch.object(utils, 'utcnow')

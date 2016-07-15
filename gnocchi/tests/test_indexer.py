@@ -449,7 +449,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict(resource_type, {
             "col1": {"type": "string", "required": True,
                      "min_length": 2, "max_length": 15}
-        })
+        }, 'creating')
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
         project = str(uuid.uuid4())
@@ -468,7 +468,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict(resource_type, {
             "col1": {"type": "string", "required": True,
                      "min_length": 2, "max_length": 15}
-        })
+        }, 'creating')
         self.index.create_resource_type(rtype)
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
@@ -501,7 +501,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict(resource_type, {
             "col1": {"type": "string", "required": False,
                      "min_length": 1, "max_length": 2},
-        })
+        }, 'creating')
         self.index.create_resource_type(rtype)
         r1 = uuid.uuid4()
         self.index.create_resource(resource_type, r1,
@@ -579,7 +579,7 @@ class TestIndexerDriver(tests_base.TestCase):
                               "min_length": 1,
                               "max_length": 20,
                               "required": True}
-            }))
+            }, 'creating'))
         r1 = uuid.uuid4()
         created = self.index.create_resource(resource_type, r1,
                                              str(uuid.uuid4()),
@@ -637,7 +637,7 @@ class TestIndexerDriver(tests_base.TestCase):
         mgr = self.index.get_resource_type_schema()
         resource_type = str(uuid.uuid4())
         self.index.create_resource_type(
-            mgr.resource_type_from_dict(resource_type, {}))
+            mgr.resource_type_from_dict(resource_type, {}, 'creating'))
         r2 = uuid.uuid4()
         i = self.index.create_resource(resource_type, r2,
                                        user, project,
@@ -702,7 +702,7 @@ class TestIndexerDriver(tests_base.TestCase):
         mgr = self.index.get_resource_type_schema()
         resource_type = str(uuid.uuid4())
         self.index.create_resource_type(
-            mgr.resource_type_from_dict(resource_type, {}))
+            mgr.resource_type_from_dict(resource_type, {}, 'creating'))
         r2 = uuid.uuid4()
         i = self.index.create_resource(resource_type, r2,
                                        str(uuid.uuid4()), str(uuid.uuid4()))
@@ -750,7 +750,7 @@ class TestIndexerDriver(tests_base.TestCase):
                               "min_length": 1,
                               "max_length": 20,
                               "required": False},
-            }))
+            }, 'creating'))
         r = self.index.list_resources(
             resource_type, attribute_filter={"=": {"flavor_id": 1.0}})
         self.assertEqual(0, len(r))
@@ -845,7 +845,7 @@ class TestIndexerDriver(tests_base.TestCase):
             mgr.resource_type_from_dict(resource_type, {
                 "col1": {"type": "string", "required": True,
                          "min_length": 2, "max_length": 15}
-            }))
+            }, 'creating'))
 
         self.index.create_metric(e1, user, project,
                                  archive_policy_name="low")
@@ -896,7 +896,7 @@ class TestIndexerDriver(tests_base.TestCase):
         mgr = self.index.get_resource_type_schema()
         resource_type = str(uuid.uuid4())
         self.index.create_resource_type(
-            mgr.resource_type_from_dict(resource_type, {}))
+            mgr.resource_type_from_dict(resource_type, {}, 'creating'))
         i = self.index.create_resource(
             resource_type, r2, user, project,
             started_at=utils.datetime_utc(2000, 1, 1, 23, 23, 23),
@@ -1025,7 +1025,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict("indexer_test", {
             "col1": {"type": "string", "required": True,
                      "min_length": 2, "max_length": 15}
-        })
+        }, "creating")
 
         # Create
         self.index.create_resource_type(rtype)
@@ -1085,7 +1085,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict("indexer_test_fail", {
             "col1": {"type": "string", "required": True,
                      "min_length": 2, "max_length": 15}
-        })
+        }, "creating")
 
         states = {'before': None,
                   'after': None}
@@ -1111,7 +1111,7 @@ class TestIndexerDriver(tests_base.TestCase):
         rtype = mgr.resource_type_from_dict("indexer_test_fail2", {
             "col1": {"type": "string", "required": True,
                      "min_length": 2, "max_length": 15}
-        })
+        }, "creating")
         self.index.create_resource_type(rtype)
 
         states = {'before': None,
