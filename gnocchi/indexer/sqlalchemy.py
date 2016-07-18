@@ -902,20 +902,19 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         # No need for a second query
                         all_resources.extend(resources)
                     else:
-                        # TODO(sileht): _resource_type_to_classes can raise
-                        # UnexpectedResourceTypeState or NoSuchResourceType if
-                        # all resources of 'type' and the resource_type 'type'
-                        # is deleted between q.all() and here. This don't
-                        # have many change to occurs. An enhancement can be to
-                        # drop from all_resources the delete resource types.
+                        try:
+                            target_cls = self._resource_type_to_classes(
+                                session, type)['history' if is_history else
+                                               'resource']
+                        except (indexer.UnexpectedResourceTypeState,
+                                indexer.NoSuchResourceType):
+                            # NOTE(sileht): This resource_type have been
+                            # removed in the meantime.
+                            continue
                         if is_history:
-                            target_cls = self._resource_type_to_classes(
-                                session, type)['history']
-                            f = target_cls.revision.in_(
-                                [r.revision for r in resources])
+                            f = target_cls.revision.in_([r.revision
+                                                         for r in resources])
                         else:
-                            target_cls = self._resource_type_to_classes(
-                                session, type)["resource"]
                             f = target_cls.id.in_([r.id for r in resources])
 
                         q = session.query(target_cls).filter(f)
