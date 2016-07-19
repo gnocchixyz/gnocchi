@@ -66,7 +66,9 @@ class TestAggregates(tests_base.TestCase):
                                  str(uuid.uuid4()), str(uuid.uuid4()),
                                  'medium')
         self.storage.add_measures(metric, measures)
-        self.storage.process_background_tasks(self.index, sync=True)
+        metrics = self.storage.list_metric_with_measures_to_process(
+            None, None, full=True)
+        self.storage.process_background_tasks(self.index, metrics, sync=True)
 
         return metric
 

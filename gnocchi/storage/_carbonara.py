@@ -59,7 +59,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         except Exception as e:
             raise storage.StorageError("Unable to start coordinator: %s" % e)
         self.aggregation_workers_number = conf.aggregation_workers_number
-        self.partition = 0
 
     def stop(self):
         self.coord.stop()
@@ -216,7 +215,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _list_metric_with_measures_to_process(full=False):
+    def list_metric_with_measures_to_process(size, part, full=False):
         raise NotImplementedError
 
     @staticmethod
@@ -297,9 +296,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self._check_for_metric_upgrade,
             ((metric,) for metric in index.list_metrics()))
 
-    def process_new_measures(self, indexer, block_size, sync=False):
-        metrics_to_process = self._list_metric_with_measures_to_process(
-            block_size, full=sync)
+    def process_new_measures(self, indexer, metrics_to_process, sync=False):
         metrics = indexer.list_metrics(ids=metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
         # measures to process for but that are not in the indexer anymore.

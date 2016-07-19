@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import multiprocessing
-import sys
 import threading
 import time
 
@@ -95,7 +94,6 @@ class MetricProcessBase(cotyledon.Service):
     def _configure(self):
         try:
             self.store = storage.get_driver(self.conf)
-            self.store.partition = self.worker_id
         except storage.StorageError as e:
             LOG.error("Unable to initialize storage: %s" % e)
             raise Retry(e)
@@ -136,18 +134,13 @@ class MetricProcessBase(cotyledon.Service):
 class MetricReporting(MetricProcessBase):
     name = "reporting"
 
-    def __init__(self, worker_id, conf, queues):
+    def __init__(self, worker_id, conf):
         super(MetricReporting, self).__init__(
             worker_id, conf, conf.storage.metric_reporting_delay)
-        self.queues = queues
 
     def _run_job(self):
         try:
             report = self.store.measures_report(details=False)
-            block_size = max(16, min(
-                256, report['summary']['metrics'] // len(self.queues)))
-            for queue in self.queues:
-                queue.put(block_size)
             LOG.info("%d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],
@@ -156,9 +149,44 @@ class MetricReporting(MetricProcessBase):
             LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)
 
+
+class MetricScheduler(MetricProcessBase):
+    name = "scheduler"
+    BLOCK_SIZE = 500
+    MAX_OVERLAP = 0.3
+
+    def __init__(self, worker_id, conf, queue):
+        super(MetricScheduler, self).__init__(
+            worker_id, conf, conf.storage.metric_processing_delay)
+        self.queue = queue
+        self.previously_scheduled_metrics = set()
+
+    def _run_job(self):
+        try:
+            # TODO(gordc): add support to detect other agents to enable
+            #              partitioning
+            metrics = set(self.store.list_metric_with_measures_to_process(
+                self.BLOCK_SIZE, 0))
+            if metrics and not self.queue.empty():
+                # NOTE(gordc): drop metrics we previously process to avoid
+                #              handling twice
+                number_of_scheduled_metrics = len(metrics)
+                metrics = metrics - self.previously_scheduled_metrics
+                if (float(number_of_scheduled_metrics - len(metrics)) /
+                        self.BLOCK_SIZE > self.MAX_OVERLAP):
+                    LOG.warning('Metric processing lagging scheduling rate. '
+                                'It is recommended to increase the number of '
+                                'workers or to lengthen processing interval.')
+            for m_id in metrics:
+                self.queue.put(m_id)
+            self.previously_scheduled_metrics = metrics
+            LOG.debug("%d metrics scheduled for processing.", len(metrics))
+        except Exception:
+            LOG.error("Unexpected error scheduling metrics for processing",
+                      exc_info=True)
+
     def close_queues(self):
-        for queue in self.queues:
-            queue.close()
+        self.queue.close()
 
 
 class MetricJanitor(MetricProcessBase):
@@ -178,20 +206,23 @@ class MetricJanitor(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     name = "processing"
+    BLOCK_SIZE = 4
 
     def __init__(self, worker_id, conf, queue):
-        super(MetricProcessor, self).__init__(
-            worker_id, conf, conf.storage.metric_processing_delay)
+        super(MetricProcessor, self).__init__(worker_id, conf, 1)
         self.queue = queue
-        self.block_size = 128
 
     def _run_job(self):
         try:
-            while not self.queue.empty():
-                self.block_size = self.queue.get()
-                LOG.debug("Re-configuring worker to handle up to %s "
-                          "metrics", self.block_size)
-            self.store.process_background_tasks(self.index, self.block_size)
+            metrics = []
+            while len(metrics) < self.BLOCK_SIZE:
+                try:
+                    metrics.append(self.queue.get(block=False))
+                except six.moves.queue.Empty:
+                    # queue might be emptied by other workers, continue on.
+                    break
+            if metrics:
+                self.store.process_background_tasks(self.index, metrics)
         except Exception:
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
@@ -204,22 +235,15 @@ class MetricdServiceManager(cotyledon.ServiceManager):
     def __init__(self, conf):
         super(MetricdServiceManager, self).__init__()
         self.conf = conf
-        self.queues = [multiprocessing.Queue()
-                       for i in range(conf.metricd.workers)]
+        self.queue = multiprocessing.Manager().Queue()
 
-        self.add(self.create_processor, workers=conf.metricd.workers)
-        self.add(MetricReporting, args=(self.conf, self.queues))
+        self.add(MetricScheduler, args=(self.conf, self.queue))
+        self.add(MetricProcessor, args=(self.conf, self.queue),
+                 workers=conf.metricd.workers)
+        self.add(MetricReporting, args=(self.conf,))
         self.add(MetricJanitor, args=(self.conf,))
-
-    def create_processor(self, worker_id):
-        queue = self.queues[worker_id - 1]
-        return MetricProcessor(worker_id, self.conf, queue)
 
 
 def metricd():
     conf = service.prepare_service()
-    if (conf.storage.metric_reporting_delay <
-            conf.storage.metric_processing_delay):
-        LOG.error("Metric reporting must run less frequently then processing")
-        sys.exit(0)
     MetricdServiceManager(conf).run()
