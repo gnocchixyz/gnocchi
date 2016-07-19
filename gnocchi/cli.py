@@ -16,13 +16,19 @@
 import multiprocessing
 import threading
 import time
+import uuid
 
+from concurrent import futures
 import cotyledon
+from futurist import periodics
+import msgpack
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
 import retrying
 import six
+import tooz
+from tooz import coordination
 
 from gnocchi import archive_policy
 from gnocchi import indexer
@@ -118,12 +124,12 @@ class MetricProcessBase(cotyledon.Service):
 
     def terminate(self):
         self._shutdown.set()
-        self.close_queues()
+        self.close_services()
         LOG.info("Waiting ongoing metric processing to finish")
         self._shutdown_done.wait()
 
     @staticmethod
-    def close_queues():
+    def close_services():
         raise NotImplementedError
 
     @staticmethod
@@ -152,28 +158,100 @@ class MetricReporting(MetricProcessBase):
 
 class MetricScheduler(MetricProcessBase):
     name = "scheduler"
-    BLOCK_SIZE = 500
     MAX_OVERLAP = 0.3
+    GROUP_ID = "gnocchi-scheduler"
+    SYNC_RATE = 30
+    TASKS_PER_WORKER = 16
+
+    def _enable_coordination(self, conf):
+        self._coord = coordination.get_coordinator(
+            conf.storage.coordination_url, self._my_id)
+        self._coord.start(start_heart=True)
 
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
             worker_id, conf, conf.storage.metric_processing_delay)
+        self._my_id = str(uuid.uuid4())
+        self._enable_coordination(conf)
         self.queue = queue
         self.previously_scheduled_metrics = set()
+        self.workers = conf.metricd.workers
+        self.block_index = 0
+        self.block_size_default = self.workers * self.TASKS_PER_WORKER
+        self.block_size = self.block_size_default
+        self.periodic = None
+
+    def set_block(self, event):
+        get_members_req = self._coord.get_members(self.GROUP_ID)
+        try:
+            members = sorted(get_members_req.get())
+            self.block_index = members.index(self._my_id)
+            reqs = list(self._coord.get_member_capabilities(self.GROUP_ID, m)
+                        for m in members)
+            for req in reqs:
+                cap = msgpack.loads(req.get(), encoding='utf-8')
+                max_workers = max(cap['workers'], self.workers)
+            self.block_size = max_workers * self.TASKS_PER_WORKER
+            LOG.info('New set of agents detected. Now working on block: %s, '
+                     'with up to %s metrics', self.block_index,
+                     self.block_size)
+        except Exception:
+            LOG.warning('Error getting block to work on, defaulting to first')
+            self.block_index = 0
+            self.block_size = self.block_size_default
+
+    # Retry with exponential backoff for up to 1 minute
+    @retrying.retry(wait_exponential_multiplier=500,
+                    wait_exponential_max=60000,
+                    retry_on_exception=retry_if_retry_is_raised)
+    def _configure(self):
+        super(MetricScheduler, self)._configure()
+        try:
+            cap = msgpack.dumps({'workers': self.workers})
+            join_req = self._coord.join_group(self.GROUP_ID, cap)
+            join_req.get()
+            LOG.info('Joined coordination group: %s', self.GROUP_ID)
+            self.set_block(None)
+
+            @periodics.periodic(spacing=self.SYNC_RATE, run_immediately=True)
+            def run_watchers():
+                self._coord.run_watchers()
+
+            self.periodic = periodics.PeriodicWorker.create(
+                [], executor_factory=lambda:
+                futures.ThreadPoolExecutor(max_workers=10))
+            self.periodic.add(run_watchers)
+            t = threading.Thread(target=self.periodic.start)
+            t.daemon = True
+            t.start()
+
+            self._coord.watch_join_group(self.GROUP_ID, self.set_block)
+            self._coord.watch_leave_group(self.GROUP_ID, self.set_block)
+        except coordination.GroupNotCreated as e:
+            create_group_req = self._coord.create_group(self.GROUP_ID)
+            try:
+                create_group_req.get()
+            except coordination.GroupAlreadyExist:
+                pass
+            raise Retry(e)
+        except tooz.NotImplemented:
+            LOG.warning('Configured coordination driver does not support '
+                        'required functionality. Coordination is disabled.')
+        except Exception as e:
+            LOG.error('Failed to configure coordination. Coordination is '
+                      'disabled: %s', e)
 
     def _run_job(self):
         try:
-            # TODO(gordc): add support to detect other agents to enable
-            #              partitioning
             metrics = set(self.store.list_metric_with_measures_to_process(
-                self.BLOCK_SIZE, 0))
+                self.block_size, self.block_index))
             if metrics and not self.queue.empty():
                 # NOTE(gordc): drop metrics we previously process to avoid
                 #              handling twice
                 number_of_scheduled_metrics = len(metrics)
                 metrics = metrics - self.previously_scheduled_metrics
                 if (float(number_of_scheduled_metrics - len(metrics)) /
-                        self.BLOCK_SIZE > self.MAX_OVERLAP):
+                        self.block_size > self.MAX_OVERLAP):
                     LOG.warning('Metric processing lagging scheduling rate. '
                                 'It is recommended to increase the number of '
                                 'workers or to lengthen processing interval.')
@@ -185,7 +263,12 @@ class MetricScheduler(MetricProcessBase):
             LOG.error("Unexpected error scheduling metrics for processing",
                       exc_info=True)
 
-    def close_queues(self):
+    def close_services(self):
+        if self.periodic:
+            self.periodic.stop()
+            self.periodic.wait()
+        self._coord.leave_group(self.GROUP_ID)
+        self._coord.stop()
         self.queue.close()
 
 
@@ -227,7 +310,7 @@ class MetricProcessor(MetricProcessBase):
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
 
-    def close_queues(self):
+    def close_services(self):
         self.queue.close()
 
 
