@@ -317,25 +317,3 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             content += data
             offset += len(data)
         return content
-
-    # The following methods deal with Gnocchi <= 1.3 archives
-    def _get_metric_archive(self, metric, aggregation):
-        """Retrieve data in the place we used to store TimeSerieArchive."""
-        try:
-            return self._get_object_content(
-                str("gnocchi_%s_%s" % (metric.id, aggregation)))
-        except rados.ObjectNotFound:
-            raise storage.AggregationDoesNotExist(metric, aggregation)
-
-    def _store_metric_archive(self, metric, aggregation, data):
-        """Stores data in the place we used to store TimeSerieArchive."""
-        self.ioctx.write_full(
-            str("gnocchi_%s_%s" % (metric.id, aggregation)), data)
-
-    def _delete_metric_archives(self, metric):
-        for aggregation in metric.archive_policy.aggregation_methods:
-            try:
-                self.ioctx.remove_object(
-                    str("gnocchi_%s_%s" % (metric.id, aggregation)))
-            except rados.ObjectNotFound:
-                pass

@@ -135,31 +135,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             all_keys = self._list_split_keys_for_metric(
                 metric, aggregation, granularity)
         except storage.MetricDoesNotExist:
-            # This can happen if it's an old metric with a TimeSerieArchive
-            all_keys = None
-
-        if not all_keys:
-            # It does not mean we have no data: it can be an old metric with a
-            # TimeSerieArchive.
-            try:
-                data = self._get_metric_archive(metric, aggregation)
-            except (storage.MetricDoesNotExist,
-                    storage.AggregationDoesNotExist):
-                # It really does not exist
-                for d in metric.archive_policy.definition:
-                    if d.granularity == granularity:
-                        return carbonara.AggregatedTimeSerie(
-                            sampling=granularity,
-                            aggregation_method=aggregation,
-                            max_size=d.points)
-                raise storage.GranularityDoesNotExist(metric, granularity)
-            else:
-                archive = carbonara.TimeSerieArchive.unserialize(data)
-                # It's an old metric with an TimeSerieArchive!
-                for ts in archive.agg_timeseries:
-                    if ts.sampling == granularity:
-                        return ts
-                raise storage.GranularityDoesNotExist(metric, granularity)
+            for d in metric.archive_policy.definition:
+                if d.granularity == granularity:
+                    return carbonara.AggregatedTimeSerie(
+                        sampling=granularity,
+                        aggregation_method=aggregation,
+                        max_size=d.points)
+            raise storage.GranularityDoesNotExist(metric, granularity)
 
         if from_timestamp:
             from_timestamp = carbonara.AggregatedTimeSerie.get_split_key(
@@ -227,7 +209,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         with self._lock(metric.id)(blocking=sync):
             # If the metric has never been upgraded, we need to delete this
             # here too
-            self._delete_metric_archives(metric)
             self._delete_metric(metric)
 
     def _delete_metric_measures_before(self, metric, aggregation_method,
@@ -262,35 +243,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return report
 
     def _check_for_metric_upgrade(self, metric):
-        lock = self._lock(metric.id)
-        with lock:
-            for agg_method in metric.archive_policy.aggregation_methods:
-                LOG.debug(
-                    "Checking if the metric %s needs migration for %s"
-                    % (metric, agg_method))
-                try:
-                    data = self._get_metric_archive(metric, agg_method)
-                except storage.MetricDoesNotExist:
-                    # Just try the next metric, this one has no measures
-                    break
-                except storage.AggregationDoesNotExist:
-                    # This should not happen, but you never know.
-                    LOG.warning(
-                        "Metric %s does not have an archive "
-                        "for aggregation %s, "
-                        "no migration can be done" % (metric, agg_method))
-                else:
-                    LOG.info("Migrating metric %s to new format" % metric)
-                    archive = carbonara.TimeSerieArchive.unserialize(data)
-                    for ts in archive.agg_timeseries:
-                        # Store each AggregatedTimeSerie independently
-                        for key, split in ts.split():
-                            self._store_metric_measures(metric, key,
-                                                        ts.aggregation_method,
-                                                        ts.sampling,
-                                                        split.serialize())
-            self._delete_metric_archives(metric)
-            LOG.info("Migrated metric %s to new format" % metric)
+        # TODO(gordc): add upgrade for v3
+        pass
 
     def upgrade(self, index):
         self._map_in_thread(

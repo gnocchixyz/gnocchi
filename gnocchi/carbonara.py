@@ -15,12 +15,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """Time series data manipulation, better with pancetta."""
+
 import datetime
 import functools
 import logging
 import math
 import numbers
-import operator
 import random
 import re
 import time
@@ -651,72 +651,6 @@ class AggregatedTimeSerie(TimeSerie):
                                             ascending=[0, 1]).itertuples())
         return [(timestamp, granularity, value)
                 for __, timestamp, granularity, value in points]
-
-
-class TimeSerieArchive(SerializableMixin):
-
-    def __init__(self, agg_timeseries):
-        """A raw data buffer and a collection of downsampled timeseries.
-
-        Used to represent the set of AggregatedTimeSeries for the range of
-        granularities supported for a metric (for a particular aggregation
-        function).
-
-        """
-        self.agg_timeseries = sorted(agg_timeseries,
-                                     key=operator.attrgetter("sampling"))
-
-    @classmethod
-    def from_definitions(cls, definitions, aggregation_method='mean'):
-        """Create a new collection of archived time series.
-
-        :param definition: A list of tuple (sampling, max_size)
-        :param aggregation_method: Aggregation function to use.
-        """
-        # Limit the main timeserie to a timespan mapping
-        return cls(
-            [AggregatedTimeSerie(
-                sampling=sampling,
-                aggregation_method=aggregation_method,
-                max_size=size)
-             for sampling, size in definitions]
-        )
-
-    def fetch(self, from_timestamp=None, to_timestamp=None):
-        """Fetch aggregated time value.
-
-        Returns a sorted list of tuples (timestamp, granularity, value).
-        """
-        result = []
-        end_timestamp = to_timestamp
-        for ts in reversed(self.agg_timeseries):
-            points = ts[from_timestamp:to_timestamp]
-            try:
-                # Do not include stop timestamp
-                del points[end_timestamp]
-            except KeyError:
-                pass
-            result.extend([(timestamp, ts.sampling, value)
-                           for timestamp, value
-                           in six.iteritems(points)])
-        return result
-
-    def update(self, timeserie):
-        for agg in self.agg_timeseries:
-            agg.update(timeserie)
-
-    def to_dict(self):
-        return {
-            "archives": [ts.to_dict() for ts in self.agg_timeseries],
-        }
-
-    def __eq__(self, other):
-        return (isinstance(other, TimeSerieArchive)
-                and self.agg_timeseries == other.agg_timeseries)
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
 
 
 if __name__ == '__main__':
