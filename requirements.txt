@@ -1,5 +1,6 @@
 pbr
 numpy
+iso8601
 oslo.config>=2.6.0
 oslo.log>=1.0.0
 oslo.policy>=0.3.0
