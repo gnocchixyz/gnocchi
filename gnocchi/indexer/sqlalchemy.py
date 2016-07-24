@@ -156,19 +156,7 @@ class ResourceClassMapper(object):
             with facade.writer_connection() as connection:
                 Base.metadata.create_all(connection, tables=tables)
         except exception.DBError as e:
-            # HACK(jd) Sometimes, PostgreSQL raises an error such as
-            # "current transaction is aborted, commands ignored until end
-            # of transaction block" on its own catalog, so we need to
-            # retry, but this is not caught by oslo.db as a deadlock. This
-            # is likely because when we use Base.metadata.create_all(),
-            # sqlalchemy itself gets an error it does not catch or
-            # something. So this is paperover I guess.
-            inn_e = e.inner_exception
-            if (psycopg2
-                    and isinstance(inn_e, sqlalchemy.exc.InternalError)
-                    and isinstance(inn_e.orig, psycopg2.InternalError)
-                    # current transaction is aborted
-                    and inn_e.orig.pgcode == '25P02'):
+            if self._is_current_transaction_aborted(e):
                 raise exception.RetryRequest(e)
             raise
 
@@ -176,6 +164,23 @@ class ResourceClassMapper(object):
         # get_classes cannot be called in state creating
         self._cache[resource_type.tablename] = mappers
 
+    @staticmethod
+    def _is_current_transaction_aborted(exception):
+        # HACK(jd) Sometimes, PostgreSQL raises an error such as "current
+        # transaction is aborted, commands ignored until end of transaction
+        # block" on its own catalog, so we need to retry, but this is not
+        # caught by oslo.db as a deadlock. This is likely because when we use
+        # Base.metadata.create_all(), sqlalchemy itself gets an error it does
+        # not catch or something. So this is why this function exists. To
+        # paperover I guess.
+        inn_e = exception.inner_exception
+        return (psycopg2
+                and isinstance(inn_e, sqlalchemy.exc.InternalError)
+                and isinstance(inn_e.orig, psycopg2.InternalError)
+                # current transaction is aborted
+                and inn_e.orig.pgcode == '25P02')
+
+    @retry_on_deadlock
     def unmap_and_delete_tables(self, resource_type, connection):
         if resource_type.state != "deleting":
             raise RuntimeError("unmap_and_delete_tables must be called in "
@@ -196,14 +201,25 @@ class ResourceClassMapper(object):
             # the resource_type table is already cleaned and commited
             # so this code cannot be triggerred anymore for this
             # resource_type
-            for table in tables:
-                for fk in table.foreign_key_constraints:
-                    self._safe_execute(
-                        connection,
-                        sqlalchemy.schema.DropConstraint(fk))
-            for table in tables:
-                self._safe_execute(connection,
-                                   sqlalchemy.schema.DropTable(table))
+            try:
+                for table in tables:
+                    for fk in table.foreign_key_constraints:
+                        try:
+                            self._safe_execute(
+                                connection,
+                                sqlalchemy.schema.DropConstraint(fk))
+                        except exception.DBNonExistentConstraint:
+                            pass
+                for table in tables:
+                    try:
+                        self._safe_execute(connection,
+                                           sqlalchemy.schema.DropTable(table))
+                    except exception.DBNonExistentTable:
+                        pass
+            except exception.DBError as e:
+                if self._is_current_transaction_aborted(e):
+                    raise exception.RetryRequest(e)
+                raise
 
             # NOTE(sileht): If something goes wrong here, we are currently
             # fucked, that why we expose the state to the superuser.
