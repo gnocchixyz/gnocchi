@@ -63,7 +63,6 @@ def retry_on_deadlock(f):
     # FIXME(jd) The default values in oslo.db are useless, we need to fix that.
     # Once it's done, let's remove that wrapper of wrapper.
     return oslo_db.api.wrap_db_retry(retry_on_deadlock=True,
-                                     retry_on_request=True,
                                      max_retries=10,
                                      retry_interval=0.1,
                                      inc_retry_interval=True,
