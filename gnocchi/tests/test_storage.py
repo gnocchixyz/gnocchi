@@ -536,9 +536,9 @@ class TestStorageDriver(tests_base.TestCase):
         name = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(name, 0, [(3, 5)])
         self.index.create_archive_policy(ap)
-        m = storage.Metric(uuid.uuid4(), ap)
-        self.index.create_metric(m.id, str(uuid.uuid4()),
-                                 str(uuid.uuid4()), name)
+        m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()),
+                                     str(uuid.uuid4()), name)
+        m = self.index.list_metrics(ids=[m.id])[0]
         self.storage.add_measures(m, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 0), 1),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 5), 1),
@@ -553,6 +553,7 @@ class TestStorageDriver(tests_base.TestCase):
         # expand to more points
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
+        m = self.index.list_metrics(ids=[m.id])[0]
         self.storage.add_measures(m, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 15), 1),
         ])
@@ -566,22 +567,10 @@ class TestStorageDriver(tests_base.TestCase):
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
-        # unchanged after update if no samples
-        self.storage.process_background_tasks(self.index, sync=True)
+        m = self.index.list_metrics(ids=[m.id])[0]
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
             (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
             (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
-        ], self.storage.get_measures(m))
-        # drop points
-        self.storage.add_measures(m, [
-            storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 20), 1),
-        ])
-        self.storage.process_background_tasks(self.index, sync=True)
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 20), 5.0, 1.0),
         ], self.storage.get_measures(m))
 
 
