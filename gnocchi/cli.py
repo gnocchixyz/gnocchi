@@ -148,7 +148,7 @@ class MetricReporting(MetricProcessBase):
                 256, report['summary']['metrics'] // len(self.queues)))
             for queue in self.queues:
                 queue.put(block_size)
-            LOG.info("Metricd reporting: %d measurements bundles across %d "
+            LOG.info("%d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],
                      report['summary']['metrics'])
