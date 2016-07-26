@@ -18,6 +18,7 @@ import uuid
 
 from oslo_config import cfg
 from oslo_log import log
+from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
 import pecan
@@ -128,7 +129,8 @@ def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
 def app_factory(global_config, **local_conf):
     global APPCONFIGS
     appconfig = APPCONFIGS.get(global_config.get('configkey'))
-    return _setup_app(root=local_conf.get('root'), **appconfig)
+    app = _setup_app(root=local_conf.get('root'), **appconfig)
+    return cors.CORS(app, conf=appconfig['conf'])
 
 
 def build_wsgi_app():
