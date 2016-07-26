@@ -26,6 +26,9 @@ from gnocchi import carbonara
 
 
 class TestBoundTimeSerie(base.BaseTestCase):
+    def test_benchmark(self):
+        carbonara.AggregatedTimeSerie.benchmark()
+
     @staticmethod
     def test_base():
         carbonara.BoundTimeSerie.from_data(
