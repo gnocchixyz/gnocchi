@@ -115,18 +115,20 @@ class ResourceClassMapper(object):
     @staticmethod
     def _build_class_mappers(resource_type, baseclass=None):
         tablename = resource_type.tablename
+        tables_args = {"extend_existing": True}
+        tables_args.update(base.COMMON_TABLES_ARGS)
         # TODO(sileht): Add columns
         if not baseclass:
             baseclass = resource_type.to_baseclass()
         resource_ext = type(
             str("%s_resource" % tablename),
             (baseclass, base.ResourceExtMixin, base.Resource),
-            {"__tablename__": tablename, "extend_existing": True})
+            {"__tablename__": tablename, "__table_args__": tables_args})
         resource_history_ext = type(
             str("%s_history" % tablename),
             (baseclass, base.ResourceHistoryExtMixin, base.ResourceHistory),
             {"__tablename__": ("%s_history" % tablename),
-             "extend_existing": True})
+             "__table_args__": tables_args})
         return {'resource': resource_ext,
                 'history': resource_history_ext}
 
