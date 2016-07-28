@@ -15,12 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 """Time series data manipulation, better with pancetta."""
-
 import datetime
 import functools
 import logging
+import math
 import numbers
 import operator
+import random
 import re
 import time
 
@@ -510,6 +511,48 @@ class AggregatedTimeSerie(TimeSerie):
         self._resample(first_timestamp)
         self._truncate()
 
+    @classmethod
+    def benchmark(cls):
+        """Run a speed benchmark!"""
+        points = cls.POINTS_PER_SPLIT
+        sampling = 5
+        compress_times = 50
+
+        now = datetime.datetime(2015, 4, 3, 23, 11)
+
+        for title, values in [
+                ("Simple continuous range", six.moves.range(points)),
+                ("All 0", [float(0)] * points),
+                ("All 1", [float(1)] * points),
+                ("0 and 1", [0, 1] * (points // 2)),
+                ("1 and 0 random",
+                 [random.randint(0, 1)
+                  for x in six.moves.range(points)]),
+                ("Small number random pos/neg",
+                 [random.randint(-100000, 10000)
+                  for x in six.moves.range(points)]),
+                ("Small number random pos",
+                 [random.randint(0, 20000) for x in six.moves.range(points)]),
+                ("Small number random neg",
+                 [random.randint(-20000, 0) for x in six.moves.range(points)]),
+                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("random ", [random.random()
+                             for x in six.moves.range(points)]),
+        ]:
+            pts = pandas.Series(values,
+                                [now + datetime.timedelta(seconds=i*sampling)
+                                 for i in six.moves.range(points)])
+            ts = cls(ts=pts, sampling=sampling, aggregation_method='mean')
+            t0 = time.time()
+            for i in six.moves.range(compress_times):
+                s = ts.serialize()
+            t1 = time.time()
+            print(title)
+            print(" Bytes per point: %.2f" % (len(s) / float(points)))
+            print(" Compression speed: %.2f MB/s"
+                  % ((len(msgpack.dumps(ts.to_dict()))
+                      / ((t1 - t0) / compress_times)) / (1024.0 * 1024.0)))
+
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
                    to_timestamp=None, needed_percent_of_overlap=100.0):
@@ -674,3 +717,7 @@ class TimeSerieArchive(SerializableMixin):
     @classmethod
     def from_dict(cls, d):
         return cls([AggregatedTimeSerie.from_dict(a) for a in d['archives']])
+
+
+if __name__ == '__main__':
+    AggregatedTimeSerie.benchmark()
