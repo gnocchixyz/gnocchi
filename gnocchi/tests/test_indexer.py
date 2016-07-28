@@ -69,13 +69,16 @@ class TestIndexerDriver(tests_base.TestCase):
                                                             points=12),
                            archive_policy.ArchivePolicyItem(granularity=5,
                                                             points=6)])
+        apname = str(uuid.uuid4())
+        self.index.create_archive_policy(archive_policy.ArchivePolicy(
+            apname, 0, [(12, 300), (24, 3600), (30, 86400)]))
         ap = self.index.update_archive_policy(
-            "low", [archive_policy.ArchivePolicyItem(granularity=300,
-                                                     points=6),
-                    archive_policy.ArchivePolicyItem(granularity=3600,
-                                                     points=24),
-                    archive_policy.ArchivePolicyItem(granularity=86400,
-                                                     points=30)])
+            apname, [archive_policy.ArchivePolicyItem(granularity=300,
+                                                      points=6),
+                     archive_policy.ArchivePolicyItem(granularity=3600,
+                                                      points=24),
+                     archive_policy.ArchivePolicyItem(granularity=86400,
+                                                      points=30)])
         self.assertEqual({
             'back_window': 0,
             'aggregation_methods':
@@ -84,14 +87,14 @@ class TestIndexerDriver(tests_base.TestCase):
                 {u'granularity': 300, u'points': 6, u'timespan': 1800},
                 {u'granularity': 3600, u'points': 24, u'timespan': 86400},
                 {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
-            'name': u'low'}, dict(ap))
+            'name': apname}, dict(ap))
         ap = self.index.update_archive_policy(
-            "low", [archive_policy.ArchivePolicyItem(granularity=300,
-                                                     points=12),
-                    archive_policy.ArchivePolicyItem(granularity=3600,
-                                                     points=24),
-                    archive_policy.ArchivePolicyItem(granularity=86400,
-                                                     points=30)])
+            apname, [archive_policy.ArchivePolicyItem(granularity=300,
+                                                      points=12),
+                     archive_policy.ArchivePolicyItem(granularity=3600,
+                                                      points=24),
+                     archive_policy.ArchivePolicyItem(granularity=86400,
+                                                      points=30)])
         self.assertEqual({
             'back_window': 0,
             'aggregation_methods':
@@ -100,7 +103,7 @@ class TestIndexerDriver(tests_base.TestCase):
                 {u'granularity': 300, u'points': 12, u'timespan': 3600},
                 {u'granularity': 3600, u'points': 24, u'timespan': 86400},
                 {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
-            'name': u'low'}, dict(ap))
+            'name': apname}, dict(ap))
 
     def test_delete_archive_policy(self):
         name = str(uuid.uuid4())
