@@ -14,6 +14,7 @@
 #    under the License.
 import abc
 
+import fixtures
 import mock
 from oslo_db.sqlalchemy import test_migrations
 import six
@@ -34,6 +35,9 @@ class ModelsMigrationsSync(
         six.with_metaclass(ABCSkip,
                            base.TestCase,
                            test_migrations.ModelsMigrationsSync)):
+
+    def _set_timeout(self):
+        self.useFixture(fixtures.Timeout(120, gentle=True))
 
     def setUp(self):
         super(ModelsMigrationsSync, self).setUp()
