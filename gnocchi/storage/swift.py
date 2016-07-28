@@ -132,16 +132,16 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 metric_details[metric] += 1
         return metrics, measures, metric_details if details else None
 
-    def _list_metric_with_measures_to_process(self, block_size, full=False):
+    def list_metric_with_measures_to_process(self, size, part, full=False):
         limit = None
         if not full:
-            limit = block_size * (self.partition + 1)
+            limit = size * (part + 1)
         headers, files = self.swift.get_container(self.MEASURE_PREFIX,
                                                   delimiter='/',
                                                   full_listing=full,
                                                   limit=limit)
         if not full:
-            files = files[block_size * self.partition:]
+            files = files[size * part:]
         return set(f['subdir'][:-1] for f in files if 'subdir' in f)
 
     def _list_measure_files_for_metric_id(self, metric_id):
