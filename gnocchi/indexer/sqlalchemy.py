@@ -61,7 +61,7 @@ LOG = log.getLogger(__name__)
 
 def retry_on_deadlock(f):
     return oslo_db.api.wrap_db_retry(retry_on_deadlock=True,
-                                     max_retries=10,
+                                     max_retries=20,
                                      retry_interval=0.1,
                                      max_retry_interval=2)(f)
 
