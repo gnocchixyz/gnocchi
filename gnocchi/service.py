@@ -34,6 +34,7 @@ def prepare_service(args=None, conf=None,
                     default_config_files=None):
     if conf is None:
         conf = cfg.ConfigOpts()
+    opts.set_defaults()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
     log.register_options(conf)
     db_options.set_defaults(conf)

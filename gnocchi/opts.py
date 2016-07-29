@@ -14,6 +14,7 @@
 import itertools
 
 from oslo_config import cfg
+from oslo_middleware import cors
 import uuid
 
 import gnocchi.archive_policy
@@ -76,3 +77,14 @@ def list_opts():
         )),
         ("archive_policy", gnocchi.archive_policy.OPTS),
     ]
+
+
+def set_defaults():
+    cfg.set_defaults(cors.CORS_OPTS,
+                     allow_headers=[
+                         'X-Auth-Token',
+                         'X-Subject-Token',
+                         'X-User-Id',
+                         'X-Domain-Id',
+                         'X-Project-Id',
+                         'X-Roles'])
