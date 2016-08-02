@@ -882,21 +882,21 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     def test_split_key(self):
         self.assertEqual(
-            "1420128000.0",
+            "1420146000.0",
             carbonara.AggregatedTimeSerie.get_split_key(
                 datetime.datetime(2015, 1, 1, 23, 34), 5))
         self.assertEqual(
-            "1420056000.0",
+            "1420110000.0",
             carbonara.AggregatedTimeSerie.get_split_key(
                 datetime.datetime(2015, 1, 1, 15, 3), 5))
 
     def test_split_key_datetime(self):
         self.assertEqual(
-            datetime.datetime(2014, 5, 10),
+            datetime.datetime(2014, 10, 7),
             carbonara.AggregatedTimeSerie.get_split_key_datetime(
                 datetime.datetime(2015, 1, 1, 15, 3), 3600))
         self.assertEqual(
-            datetime.datetime(2014, 12, 29, 8),
+            datetime.datetime(2014, 12, 31, 18),
             carbonara.AggregatedTimeSerie.get_split_key_datetime(
                 datetime.datetime(2015, 1, 1, 15, 3), 58))
 
@@ -919,8 +919,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             len(grouped_points))
         self.assertEqual("0.0",
                          grouped_points[0][0])
-        # 14400 × 5s = 20 hours
-        self.assertEqual("72000.0",
+        # 3600 × 5s = 5 hours
+        self.assertEqual("18000.0",
                          grouped_points[1][0])
         self.assertEqual(carbonara.AggregatedTimeSerie.POINTS_PER_SPLIT,
                          len(grouped_points[0][1]))

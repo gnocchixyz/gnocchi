@@ -285,7 +285,7 @@ class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
-    POINTS_PER_SPLIT = 14400
+    POINTS_PER_SPLIT = 3600
     SERIAL_LEN = 9
 
     def __init__(self, sampling, aggregation_method,

@@ -49,24 +49,31 @@ class TestCarbonaraMigration(tests_base.TestCase):
         # serialise in old format
         with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.serialize',
                         autospec=True) as f:
-            f.side_effect = _serialize_v2
+            with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.'
+                            'POINTS_PER_SPLIT', 14400):
+                f.side_effect = _serialize_v2
 
-            for d, agg in itertools.product(
-                    self.metric.archive_policy.definition, ['mean', 'max']):
-                ts = carbonara.AggregatedTimeSerie(
-                    sampling=d.granularity, aggregation_method=agg,
-                    max_size=d.points)
+                for d, agg in itertools.product(
+                        self.metric.archive_policy.definition,
+                        ['mean', 'max']):
+                    ts = carbonara.AggregatedTimeSerie(
+                        sampling=d.granularity, aggregation_method=agg,
+                        max_size=d.points)
 
-                ts.update(carbonara.TimeSerie.from_data(
-                    [datetime.datetime(2014, 1, 1, 12, 0, 0),
-                     datetime.datetime(2014, 1, 1, 12, 0, 4),
-                     datetime.datetime(2014, 1, 1, 12, 0, 9)],
-                    [4, 5, 6]))
+                    # NOTE: there is a split at 2016-07-18 on granularity 300
+                    ts.update(carbonara.TimeSerie.from_data(
+                        [datetime.datetime(2016, 7, 17, 23, 59, 0),
+                         datetime.datetime(2016, 7, 17, 23, 59, 4),
+                         datetime.datetime(2016, 7, 17, 23, 59, 9),
+                         datetime.datetime(2016, 7, 18, 0, 0, 0),
+                         datetime.datetime(2016, 7, 18, 0, 0, 4),
+                         datetime.datetime(2016, 7, 18, 0, 0, 9)],
+                        [4, 5, 6, 7, 8, 9]))
 
-                for key, split in ts.split():
-                    self.storage._store_metric_measures(
-                        self.metric, key, agg, d.granularity,
-                        split.serialize(), offset=0, version=None)
+                    for key, split in ts.split():
+                        self.storage._store_metric_measures(
+                            self.metric, key, agg, d.granularity,
+                            split.serialize(), offset=0, version=None)
 
     def upgrade(self):
         with mock.patch.object(self.index, 'list_metrics') as f:
@@ -78,29 +85,41 @@ class TestCarbonaraMigration(tests_base.TestCase):
                 self.storage, '_get_measures_and_unserialize',
                 side_effect=self.storage._get_measures_and_unserialize_v2):
             self.assertEqual([
-                (utils.datetime_utc(2014, 1, 1), 86400, 5),
-                (utils.datetime_utc(2014, 1, 1, 12), 3600, 5),
-                (utils.datetime_utc(2014, 1, 1, 12), 300, 5)
+                (utils.datetime_utc(2016, 7, 17), 86400, 5),
+                (utils.datetime_utc(2016, 7, 18), 86400, 8),
+                (utils.datetime_utc(2016, 7, 17, 23), 3600, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 3600, 8),
+                (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 300, 8)
             ], self.storage.get_measures(self.metric))
 
             self.assertEqual([
-                (utils.datetime_utc(2014, 1, 1), 86400, 6),
-                (utils.datetime_utc(2014, 1, 1, 12), 3600, 6),
-                (utils.datetime_utc(2014, 1, 1, 12), 300, 6)
+                (utils.datetime_utc(2016, 7, 17), 86400, 6),
+                (utils.datetime_utc(2016, 7, 18), 86400, 9),
+                (utils.datetime_utc(2016, 7, 17, 23), 3600, 6),
+                (utils.datetime_utc(2016, 7, 18, 0), 3600, 9),
+                (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 6),
+                (utils.datetime_utc(2016, 7, 18, 0), 300, 9)
             ], self.storage.get_measures(self.metric, aggregation='max'))
 
         self.upgrade()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400, 5),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600, 5),
-            (utils.datetime_utc(2014, 1, 1, 12), 300, 5)
+            (utils.datetime_utc(2016, 7, 17), 86400, 5),
+            (utils.datetime_utc(2016, 7, 18), 86400, 8),
+            (utils.datetime_utc(2016, 7, 17, 23), 3600, 5),
+            (utils.datetime_utc(2016, 7, 18, 0), 3600, 8),
+            (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 5),
+            (utils.datetime_utc(2016, 7, 18, 0), 300, 8)
         ], self.storage.get_measures(self.metric))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400, 6),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600, 6),
-            (utils.datetime_utc(2014, 1, 1, 12), 300, 6)
+            (utils.datetime_utc(2016, 7, 17), 86400, 6),
+            (utils.datetime_utc(2016, 7, 18), 86400, 9),
+            (utils.datetime_utc(2016, 7, 17, 23), 3600, 6),
+            (utils.datetime_utc(2016, 7, 18, 0), 3600, 9),
+            (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 6),
+            (utils.datetime_utc(2016, 7, 18, 0), 300, 9)
         ], self.storage.get_measures(self.metric, aggregation='max'))
 
         with mock.patch.object(
