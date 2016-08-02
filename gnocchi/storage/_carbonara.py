@@ -30,6 +30,8 @@ from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
+from gnocchi import utils
+
 
 OPTS = [
     cfg.IntOpt('aggregation_workers_number',
@@ -51,14 +53,19 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
+        self.coord = coordination.get_coordinator(
+            conf.coordination_url,
+            str(uuid.uuid4()).encode('ascii'))
+        self.aggregation_workers_number = conf.aggregation_workers_number
+        self.start()
+
+    @utils.retry
+    def start(self):
         try:
-            self.coord = coordination.get_coordinator(
-                conf.coordination_url,
-                str(uuid.uuid4()).encode('ascii'))
             self.coord.start(start_heart=True)
         except Exception as e:
-            raise storage.StorageError("Unable to start coordinator: %s" % e)
-        self.aggregation_workers_number = conf.aggregation_workers_number
+            LOG.error("Unable to start coordinator: %s" % e)
+            raise utils.Retry(e)
 
     def stop(self):
         self.coord.stop()
