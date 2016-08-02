@@ -425,6 +425,16 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 24.0)
         ], values)
 
+        values = self.storage.get_cross_metric_measures([self.metric, metric2],
+                                                        reaggregation='max')
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 69),
+            (utils.datetime_utc(2014, 1, 1, 12, 5, 0), 300.0, 23),
+            (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 44)
+        ], values)
+
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
             from_timestamp=utils.to_timestamp('2014-01-01 12:10:00'))
