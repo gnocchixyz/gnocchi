@@ -501,6 +501,97 @@
 - name: delete-resource-generic
   request: DELETE /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
 
+- name: create-resources-a
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AA19-BBE0-E1E2-2D3JDC7D289R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: create-resources-b
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AAEF-AA90-E1E2-2D3JDC7D289R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: create-resources-c
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AAEF-BCEF-E112-2D3JDC7D289R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: create-resources-d
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AAEF-BCEF-E112-2D15DC7D289R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: create-resources-e
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AAEF-BCEF-E112-2D3JDC30289R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: create-resources-f
+  request: |
+    POST /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "340102AA-AAEF-BCEF-E112-2D15349D109R",
+      "user_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ",
+      "project_id": "BD3A1E52-KKKC-2123-BGLH-WWUUD88CD7WZ"
+    }
+
+- name: delete-resources-by-ids
+  request: |
+    DELETE /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "in": {
+        "id": [
+          "{{ scenarios['create-resources-a']['response'].json['id'] }}",
+          "{{ scenarios['create-resources-b']['response'].json['id'] }}",
+          "{{ scenarios['create-resources-c']['response'].json['id'] }}"
+        ]
+      }
+    }
+
+- name: delete-resources-by-time
+  request: |
+    DELETE /v1/resource/generic HTTP/1.1
+    Content-Type: application/json
+
+    {
+      ">=": {"started_at": "{{ scenarios['create-resources-f']['response'].json['started_at'] }}"}
+    }
+
+
 - name: get-resource-named-metrics-measures
   request: GET /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric/cpu.util/measures?start=2014-10-06T14:34 HTTP/1.1
 

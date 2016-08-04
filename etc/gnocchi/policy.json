@@ -9,6 +9,7 @@
     "get resource": "rule:admin_or_creator or rule:resource_owner",
     "update resource": "rule:admin_or_creator",
     "delete resource": "rule:admin_or_creator",
+    "delete resources": "rule:admin_or_creator",
     "list resource": "rule:admin_or_creator or rule:resource_owner",
     "search resource": "rule:admin_or_creator or rule:resource_owner",
 
