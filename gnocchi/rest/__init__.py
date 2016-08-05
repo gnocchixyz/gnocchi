@@ -483,6 +483,7 @@ class AggregatedMetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_cross_metric_measures(
                     metrics, start, stop, aggregation,
+                    None,
                     granularity,
                     needed_overlap)
             # Replace timestamp keys by their string versions
