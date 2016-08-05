@@ -73,6 +73,17 @@ endpoint:
 
 {{ scenarios['get-measures']['doc'] }}
 
+Depending on the driver, there may be some lag after POSTing measures before
+they are processed and queryable. To ensure your query returns all measures
+that have been POSTed, you can force any unprocessed measures to be handled:
+
+{{ scenarios['get-measures-refresh']['doc'] }}
+
+.. note::
+
+   Depending on the amount of data that is unprocessed, `refresh` may add
+   some overhead to your query.
+
 The list of points returned is composed of tuples with (timestamp, granularity,
 value) sorted by timestamp. The granularity is the timespan covered by
 aggregation for this point.
@@ -473,6 +484,10 @@ It is possible to group the resource search results by any attribute of the
 requested resource type, and the compute the aggregation:
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup-groupby']['doc'] }}
+
+Similar to retrieving measures for a single metric, the `refresh` parameter
+can be provided to force all POSTed measures to be processed across all
+metrics before computing the result.
 
 Also aggregation across metrics have different behavior depending
 on if boundary are set ('start' and 'stop') and if 'needed_overlap' is set.

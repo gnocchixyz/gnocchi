@@ -214,6 +214,9 @@
 - name: get-measures-granularity
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?granularity=1 HTTP/1.1
 
+- name: get-measures-refresh
+  request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?refresh=true HTTP/1.1
+
 - name: create-resource-generic
   request: |
     POST /v1/resource/generic HTTP/1.1

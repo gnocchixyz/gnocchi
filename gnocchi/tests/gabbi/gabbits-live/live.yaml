@@ -617,6 +617,26 @@ tests:
           $[0][2]: 2
           $[1][2]: 2
 
+    - name: post some more measures to the metric on myresource
+      POST: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
+      request_headers:
+          content-type: application/json
+      data:
+          - timestamp: "2015-03-06T14:34:15"
+            value: 5
+          - timestamp: "2015-03-06T14:34:20"
+            value: 5
+      status: 202
+
+    - name: get myresource measures with refresh
+      GET: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures?refresh=true
+      response_json_paths:
+          $[0][2]: 2
+          $[1][2]: 4
+          $[2][2]: 2
+          $[3][2]: 2
+          $[4][2]: 5
+          $[5][2]: 5
 
     #
     # Search for resources
