@@ -281,28 +281,3 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         except swclient.ClientException as e:
             if e.http_status != 404:
                 raise
-
-    # The following methods deal with Gnocchi <= 1.3 archives
-    def _get_metric_archive(self, metric, aggregation):
-        """Retrieve data in the place we used to store TimeSerieArchive."""
-        try:
-            headers, contents = self.swift.get_object(
-                self._container_name(metric), aggregation)
-        except swclient.ClientException as e:
-            if e.http_status == 404:
-                raise storage.AggregationDoesNotExist(metric, aggregation)
-            raise
-        return contents
-
-    def _store_metric_archive(self, metric, aggregation, data):
-        """Stores data in the place we used to store TimeSerieArchive."""
-        self.swift.put_object(self._container_name(metric), aggregation, data)
-
-    def _delete_metric_archives(self, metric):
-        for aggregation in metric.archive_policy.aggregation_methods:
-            try:
-                self.swift.delete_object(self._container_name(metric),
-                                         aggregation)
-            except swclient.ClientException as e:
-                if e.http_status != 404:
-                    raise

@@ -257,17 +257,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(1, ts[datetime.datetime(2014, 1, 1, 12, 2, 0)])
 
     def test_to_dict_from_dict(self):
-        ts = carbonara.AggregatedTimeSerie(
-            sampling='1Min',
-            max_size=2,
-            aggregation_method='max')
-        ts.update(carbonara.TimeSerie.from_data(
+        ts = carbonara.TimeSerie.from_data(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
              datetime.datetime(2014, 1, 1, 12, 1, 4),
              datetime.datetime(2014, 1, 1, 12, 1, 9),
              datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 5, 7, 1]))
-        ts2 = carbonara.AggregatedTimeSerie.from_dict(ts.to_dict())
+            [3, 5, 7, 1])
+        ts2 = carbonara.TimeSerie.from_dict(ts.to_dict())
         self.assertEqual(ts, ts2)
 
     def test_aggregated_different_archive_no_overlap(self):
