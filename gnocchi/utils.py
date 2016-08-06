@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2015 eNovance
+# Copyright © 2015-2016 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,9 +18,9 @@ import datetime
 import iso8601
 from oslo_utils import timeutils
 from pytimeparse import timeparse
+import retrying
 import six
 import uuid
-
 
 # uuid5 namespace for id transformation.
 # NOTE(chdent): This UUID must stay the same, forever, across all
@@ -48,6 +48,20 @@ def UUID(value):
         return uuid.UUID(value)
     except Exception as e:
         raise ValueError(e)
+
+
+class Retry(Exception):
+    pass
+
+
+def retry_if_retry_is_raised(exception):
+    return isinstance(exception, Retry)
+
+
+# Retry with exponential backoff for up to 1 minute
+retry = retrying.retry(wait_exponential_multiplier=500,
+                       wait_exponential_max=60000,
+                       retry_on_exception=retry_if_retry_is_raised)
 
 
 def to_timestamp(v):
