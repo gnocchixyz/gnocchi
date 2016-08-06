@@ -69,9 +69,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 13, 0, 1), 1),
         ])
-        with mock.patch('gnocchi.carbonara.msgpack.unpack',
+
+        with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.unserialize',
                         side_effect=ValueError("boom!")):
-            with mock.patch('gnocchi.carbonara.msgpack.loads',
+            with mock.patch('gnocchi.carbonara.TimeSerie.unserialize',
                             side_effect=ValueError("boom!")):
                 self.trigger_processing(self.storage, self.index)
 
