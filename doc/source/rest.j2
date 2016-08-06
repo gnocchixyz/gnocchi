@@ -457,6 +457,12 @@ It can also be done by providing the list of metrics to aggregate:
    of this already aggregated data may not have sense for certain kind of
    aggregation method (e.g. stdev).
 
+By default, the measures are aggregated using the aggregation method provided,
+e.g. you'll get a mean of means, or a max of maxs. You can specify what method
+to use over the retrieved aggregation by using the `reaggregate` parameter:
+
+{{ scenarios['get-across-metrics-measures-by-metric-ids-reaggregate']['doc'] }}
+
 It's also possible to do that aggregation on metrics linked to resources. In
 order to select these resources, the following endpoint accepts a query such as
 the one described in `Searching for resources`_.
