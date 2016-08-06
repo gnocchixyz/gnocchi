@@ -28,7 +28,6 @@ import struct
 import time
 
 import iso8601
-import lz4
 import msgpack
 import pandas
 import six
@@ -378,10 +377,9 @@ class AggregatedTimeSerie(TimeSerie):
     def unserialize(cls, data, start, agg_method, sampling):
         x, y = [], []
         start = float(start)
-        decompress = lz4.loads(data)
-        v_len = len(decompress) // cls.SERIAL_LEN
-        # NOTE(gordc): use '<' for standardized, little-endian byte order.
-        deserial = struct.unpack('<' + '?d' * v_len, decompress)
+        v_len = len(data) // cls.SERIAL_LEN
+        # NOTE(gordc): use '<' for standardized, little-endian byte order
+        deserial = struct.unpack('<' + '?d' * v_len, data)
         # alternating split into 2 list and drop items with False flag
         for i, val in itertools.compress(six.moves.zip(six.moves.range(v_len),
                                                        deserial[1::2]),
@@ -391,7 +389,7 @@ class AggregatedTimeSerie(TimeSerie):
         y = pandas.to_datetime(y, unit='s')
         return cls.from_data(sampling, agg_method, y, x)
 
-    def serialize(self, start=None):
+    def serialize(self, start=None, padded=True):
         # NOTE(gordc): this binary serializes series based on the split time.
         # the format is 1B True/False flag which denotes whether subsequent 8B
         # is a real float or zero padding. every 9B represents one second from
@@ -401,8 +399,9 @@ class AggregatedTimeSerie(TimeSerie):
         if not self.ts.index.is_monotonic:
             self.ts = self.ts.sort_index()
         offset_div = self.sampling * 10e8
-        start = (float(start) * 10e8 if start else
-                 float(self.get_split_key(self.first, self.sampling)) * 10e8)
+        start = ((float(start) * 10e8 if start else
+                  float(self.get_split_key(self.first, self.sampling)) * 10e8)
+                 if padded else self.first.value)
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
         e_offset = int((self.last.value - start) // (self.sampling * 10e8)) + 1
@@ -412,7 +411,18 @@ class AggregatedTimeSerie(TimeSerie):
             loc = int((i.value - start) // offset_div)
             serial[loc * 2] = True
             serial[loc * 2 + 1] = float(v)
-        return lz4.dumps(struct.pack('<' + '?d' * e_offset, *serial))
+        return struct.pack('<' + '?d' * e_offset, *serial)
+
+    def offset_from_split(self):
+        split = float(self.get_split_key(self.first, self.sampling)) * 10e8
+        return int((self.first.value - split) // (self.sampling * 10e8)
+                   * self.SERIAL_LEN)
+
+    @staticmethod
+    def padding(offset):
+        offset = offset // AggregatedTimeSerie.SERIAL_LEN
+        pad = [False] * offset * 2
+        return struct.pack('<' + '?d' * offset, *pad)
 
     def _truncate(self, quick=False):
         """Truncate the timeserie."""

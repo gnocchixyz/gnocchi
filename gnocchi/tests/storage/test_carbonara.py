@@ -66,7 +66,7 @@ class TestCarbonaraMigration(tests_base.TestCase):
                 for key, split in ts.split():
                     self.storage._store_metric_measures(
                         self.metric, key, agg, d.granularity,
-                        split.serialize(), version=None)
+                        split.serialize(), offset=0, version=None)
 
     def upgrade(self):
         with mock.patch.object(self.index, 'list_metrics') as f:

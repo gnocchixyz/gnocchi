@@ -83,6 +83,15 @@ the 8 default aggregation methods (mean, min, max, sum, std, median, count,
 95pct) with the same "one year, one minute aggregations" resolution, the space
 used will go up to a maximum of 8 × 4.5 MiB = 36 MiB.
 
+.. note::
+
+   The Ceph driver does not utilize compression as the Swift and File drivers
+   do in favour of more efficient write support. Therefore, each point is
+   always 9B in Ceph where as the Swift and File backends may have a smaller
+   storage footprint but higher I/O requirements. It also requires some
+   additional formatting which may add to disk size.
+
+
 How to set the archive policy and granularity
 ---------------------------------------------
 
