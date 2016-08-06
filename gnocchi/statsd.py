@@ -44,8 +44,8 @@ class Stats(object):
                                          self.conf.statsd.user_id,
                                          self.conf.statsd.project_id)
         except indexer.ResourceAlreadyExists:
-            LOG.info("Resource %s already exists"
-                     % self.conf.statsd.resource_id)
+            LOG.debug("Resource %s already exists"
+                      % self.conf.statsd.resource_id)
         else:
             LOG.info("Created resource %s" % self.conf.statsd.resource_id)
         self.gauges = {}
@@ -185,6 +185,9 @@ def start():
 
     loop.call_later(conf.statsd.flush_delay, _flush)
     transport, protocol = loop.run_until_complete(listen)
+
+    LOG.info("Started on %s:%d" % (conf.statsd.host, conf.statsd.port))
+    LOG.info("Flush delay: %d seconds" % conf.statsd.flush_delay)
 
     try:
         loop.run_forever()
