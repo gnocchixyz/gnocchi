@@ -401,103 +401,6 @@ class ArchivePolicyRulesController(rest.RestController):
             abort(400, e)
 
 
-class AggregatedMetricController(rest.RestController):
-    _custom_actions = {
-        'measures': ['GET']
-    }
-
-    def __init__(self, metric_ids):
-        self.metric_ids = metric_ids
-
-    @pecan.expose('json')
-    def get_measures(self, start=None, stop=None, aggregation='mean',
-                     granularity=None, needed_overlap=100.0):
-        return self.get_cross_metric_measures_from_ids(
-            self.metric_ids, start, stop,
-            aggregation, granularity, needed_overlap)
-
-    @classmethod
-    def get_cross_metric_measures_from_ids(cls, metric_ids, start=None,
-                                           stop=None, aggregation='mean',
-                                           granularity=None,
-                                           needed_overlap=100.0):
-        # Check RBAC policy
-        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
-        missing_metric_ids = (set(metric_ids)
-                              - set(six.text_type(m.id) for m in metrics))
-        if missing_metric_ids:
-            # Return one of the missing one in the error
-            abort(404, storage.MetricDoesNotExist(
-                missing_metric_ids.pop()))
-        return cls.get_cross_metric_measures_from_objs(
-            metrics, start, stop, aggregation, granularity, needed_overlap)
-
-    @staticmethod
-    def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
-                                            aggregation='mean',
-                                            granularity=None,
-                                            needed_overlap=100.0):
-        try:
-            needed_overlap = float(needed_overlap)
-        except ValueError:
-            abort(400, 'needed_overlap must be a number')
-
-        if start is not None:
-            try:
-                start = Timestamp(start)
-            except Exception:
-                abort(400, "Invalid value for start")
-
-        if stop is not None:
-            try:
-                stop = Timestamp(stop)
-            except Exception:
-                abort(400, "Invalid value for stop")
-
-        if (aggregation
-           not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
-            abort(
-                400,
-                'Invalid aggregation value %s, must be one of %s'
-                % (aggregation,
-                   archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
-
-        for metric in metrics:
-            enforce("get metric", metric)
-
-        number_of_metrics = len(metrics)
-        try:
-            if number_of_metrics == 0:
-                return []
-            if granularity is not None:
-                try:
-                    granularity = float(granularity)
-                except ValueError as e:
-                    abort(400, "granularity must be a float: %s" % e)
-            if number_of_metrics == 1:
-                # NOTE(sileht): don't do the aggregation if we only have one
-                # metric
-                measures = pecan.request.storage.get_measures(
-                    metrics[0], start, stop, aggregation,
-                    granularity)
-            else:
-                measures = pecan.request.storage.get_cross_metric_measures(
-                    metrics, start, stop, aggregation,
-                    None,
-                    granularity,
-                    needed_overlap)
-            # Replace timestamp keys by their string versions
-            return [(timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
-        except storage.MetricUnaggregatable as e:
-            abort(400, ("One of the metrics being aggregated doesn't have "
-                        "matching granularity: %s") % str(e))
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        except storage.AggregationDoesNotExist as e:
-            abort(404, e)
-
-
 def MeasureSchema(m):
     # NOTE(sileht): don't use voluptuous for performance reasons
     try:
@@ -1364,7 +1267,7 @@ class AggregationResourceController(rest.RestController):
             metrics = list(filter(None,
                                   (r.get_metric(self.metric_name)
                                    for r in resources)))
-            return AggregatedMetricController.get_cross_metric_measures_from_objs(  # noqa
+            return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, granularity, needed_overlap)
 
         def groupper(r):
@@ -1377,7 +1280,7 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             results.append({
                 "group": dict(key),
-                "measures": AggregatedMetricController.get_cross_metric_measures_from_objs(  # noqa
+                "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation,
                     granularity, needed_overlap)
             })
@@ -1404,12 +1307,86 @@ class AggregationController(rest.RestController):
         return AggregationResourceController(resource_type,
                                              metric_name), remainder
 
+    @staticmethod
+    def get_cross_metric_measures_from_objs(metrics, start=None, stop=None,
+                                            aggregation='mean',
+                                            granularity=None,
+                                            needed_overlap=100.0):
+        try:
+            needed_overlap = float(needed_overlap)
+        except ValueError:
+            abort(400, 'needed_overlap must be a number')
+
+        if start is not None:
+            try:
+                start = Timestamp(start)
+            except Exception:
+                abort(400, "Invalid value for start")
+
+        if stop is not None:
+            try:
+                stop = Timestamp(stop)
+            except Exception:
+                abort(400, "Invalid value for stop")
+
+        if (aggregation
+           not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
+            abort(
+                400,
+                'Invalid aggregation value %s, must be one of %s'
+                % (aggregation,
+                   archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
+
+        for metric in metrics:
+            enforce("get metric", metric)
+
+        number_of_metrics = len(metrics)
+        try:
+            if number_of_metrics == 0:
+                return []
+            if granularity is not None:
+                try:
+                    granularity = float(granularity)
+                except ValueError as e:
+                    abort(400, "granularity must be a float: %s" % e)
+            if number_of_metrics == 1:
+                # NOTE(sileht): don't do the aggregation if we only have one
+                # metric
+                measures = pecan.request.storage.get_measures(
+                    metrics[0], start, stop, aggregation,
+                    granularity)
+            else:
+                measures = pecan.request.storage.get_cross_metric_measures(
+                    metrics, start, stop, aggregation,
+                    None,
+                    granularity,
+                    needed_overlap)
+            # Replace timestamp keys by their string versions
+            return [(timestamp.isoformat(), offset, v)
+                    for timestamp, offset, v in measures]
+        except storage.MetricUnaggregatable as e:
+            abort(400, ("One of the metrics being aggregated doesn't have "
+                        "matching granularity: %s") % str(e))
+        except storage.MetricDoesNotExist as e:
+            abort(404, e)
+        except storage.AggregationDoesNotExist as e:
+            abort(404, e)
+
     @pecan.expose('json')
     def get_metric(self, metric=None, start=None,
                    stop=None, aggregation='mean',
                    granularity=None, needed_overlap=100.0):
-        return AggregatedMetricController.get_cross_metric_measures_from_ids(
-            arg_to_list(metric), start, stop, aggregation,
+        # Check RBAC policy
+        metric_ids = arg_to_list(metric)
+        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
+        missing_metric_ids = (set(metric_ids)
+                              - set(six.text_type(m.id) for m in metrics))
+        if missing_metric_ids:
+            # Return one of the missing one in the error
+            abort(404, storage.MetricDoesNotExist(
+                missing_metric_ids.pop()))
+        return self.get_cross_metric_measures_from_objs(
+            metrics, start, stop, aggregation,
             granularity, needed_overlap)
 
 
