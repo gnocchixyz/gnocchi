@@ -94,6 +94,20 @@ tests:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
+    - name: get metric list to push metric 4
+      GET: /v1/metric
+
+    - name: get measure aggregates and reaggregate
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&reaggregation=min
+      poll:
+          count: 10
+          delay: 1
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 2.55]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 2.0]
+
 # Aggregation by resource and metric_name
 
     - name: post a resource
@@ -175,6 +189,20 @@ tests:
         $:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+
+    - name: get measure aggregates by granularity from resources and reaggregate
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&reaggregate=min
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      poll:
+          count: 10
+          delay: 1
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
 # Some negative tests
 

@@ -541,6 +541,10 @@
   request: |
     GET /v1/aggregation/metric?metric={{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}&metric={{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}&start=2014-10-06T14:34&aggregation=mean HTTP/1.1
 
+- name: get-across-metrics-measures-by-metric-ids-reaggregate
+  request: |
+    GET /v1/aggregation/metric?metric={{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}&metric={{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}&aggregation=mean&reaggregation=min HTTP/1.1
+
 - name: append-metrics-to-resource
   request: |
     POST /v1/resource/generic/{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}/metric HTTP/1.1
