@@ -175,11 +175,9 @@ class RootTest(RestTest):
         with self.app.use_admin_user():
             r = self.app.get("/v1/status")
         status = json.loads(r.text)
-        # We are sure this is empty because we call process_measures() each
-        # time we do a REST request in this TestingApp.
-        self.assertEqual({}, status['storage']['measures_to_process'])
-        self.assertIs(type(status['storage']['summary']['metrics']), int)
-        self.assertIs(type(status['storage']['summary']['measures']), int)
+        self.assertIsInstance(status['storage']['measures_to_process'], dict)
+        self.assertIsInstance(status['storage']['summary']['metrics'], int)
+        self.assertIsInstance(status['storage']['summary']['measures'], int)
 
 
 class ArchivePolicyTest(RestTest):
