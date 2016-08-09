@@ -77,17 +77,7 @@ class UnknownAggregationMethod(Exception):
             "Unknown aggregation method `%s'" % agg)
 
 
-class SerializableMixin(object):
-
-    @classmethod
-    def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
-
-    def serialize(self):
-        return msgpack.dumps(self.to_dict())
-
-
-class TimeSerie(SerializableMixin):
+class TimeSerie(object):
     """A representation of series of a timestamp with a value.
 
     Duplicate timestamps are not allowed and will be filtered to use the
@@ -184,6 +174,13 @@ class TimeSerie(SerializableMixin):
             return self.ts.index[-1]
         except IndexError:
             return
+
+    @classmethod
+    def unserialize(cls, data):
+        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
+
+    def serialize(self):
+        return msgpack.dumps(self.to_dict())
 
 
 class BoundTimeSerie(TimeSerie):
