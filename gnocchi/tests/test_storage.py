@@ -56,8 +56,7 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, null.NullStorage)
 
-    @mock.patch('gnocchi.storage._carbonara.LOG')
-    def test_corrupted_data(self, logger):
+    def test_corrupted_data(self):
         if not isinstance(self.storage, _carbonara.CarbonaraBasedStorage):
             self.skipTest("This driver is not based on Carbonara")
 
