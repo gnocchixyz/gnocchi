@@ -121,19 +121,23 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             data)
 
     def _build_report(self, details):
-        headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                  delimiter='/',
-                                                  full_listing=True)
-        metrics = len(files)
-        measures = int(headers.get('x-container-object-count'))
         metric_details = defaultdict(int)
         if details:
             headers, files = self.swift.get_container(self.MEASURE_PREFIX,
                                                       full_listing=True)
+            metrics = set()
             for f in files:
-                metric = f['name'].split('/', 1)[0]
+                metric, metric_files = f['name'].split("/", 1)
                 metric_details[metric] += 1
-        return metrics, measures, metric_details if details else None
+                metrics.add(metric)
+            nb_metrics = len(metrics)
+        else:
+            headers, files = self.swift.get_container(self.MEASURE_PREFIX,
+                                                      delimiter='/',
+                                                      full_listing=True)
+            nb_metrics = len(files)
+        measures = int(headers.get('x-container-object-count'))
+        return nb_metrics, measures, metric_details if details else None
 
     def list_metric_with_measures_to_process(self, size, part, full=False):
         limit = None
