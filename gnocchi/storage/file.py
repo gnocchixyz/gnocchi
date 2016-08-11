@@ -212,7 +212,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
+                                    version=None):
         try:
             files = os.listdir(self._build_metric_path(metric, aggregation))
         except OSError as e:
@@ -222,7 +223,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         keys = []
         for f in files:
             meta = f.split("_")
-            if meta[1] == str(granularity):
+            if meta[1] == str(granularity) and self._version_check(f, version):
                 keys.append(meta[0])
         return keys
 
