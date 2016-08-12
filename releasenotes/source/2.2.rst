@@ -1,0 +1,6 @@
+===================================
+ 2.2 Series Release Notes
+===================================
+
+.. release-notes::
+   :branch: origin/stable/2.2
