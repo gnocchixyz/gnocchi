@@ -57,7 +57,7 @@ sudo chown -R tempest:stack $BASE/data/tempest
 # Run tests with tempst
 cd $BASE/new/tempest
 set +e
-sudo -H -u tempest OS_TEST_TIMEOUT=$TEMPEST_OS_TEST_TIMEOUT tox -eall-plugin -- --concurrency=$TEMPEST_CONCURRENCY gnocchi
+sudo -H -u tempest OS_TEST_TIMEOUT=$TEMPEST_OS_TEST_TIMEOUT tox -eall-plugin -- gnocchi --concurrency=$TEMPEST_CONCURRENCY
 TEMPEST_EXIT_CODE=$?
 set -e
 if [[ $TEMPEST_EXIT_CODE != 0 ]]; then
