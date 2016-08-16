@@ -436,7 +436,7 @@ class TestCase(base.BaseTestCase):
 
         self.conf.set_override(
             'driver',
-            os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "null"),
+            os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file"),
             'storage')
 
     def setUp(self):

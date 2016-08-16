@@ -83,10 +83,7 @@ class ConfigFixture(fixture.GabbiFixture):
         self.conf = conf
         self.tmp_dir = data_tmp_dir
 
-        # TODO(jd) It would be cool if Gabbi was able to use the null://
-        # indexer, but this makes the API returns a lot of 501 error, which
-        # Gabbi does not want to see, so let's just disable it.
-        if conf.indexer.url is None or conf.indexer.url == "null://":
+        if conf.indexer.url is None:
             raise case.SkipTest("No indexer configured")
 
         # Use the presence of DEVSTACK_GATE_TEMPEST as a semaphore
@@ -141,13 +138,13 @@ class ConfigFixture(fixture.GabbiFixture):
         if hasattr(self, 'index'):
             self.index.disconnect()
 
-        if not self.conf.indexer.url.startswith("null://"):
-            # Swallow noise from missing tables when dropping
-            # database.
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore',
-                                        module='sqlalchemy.engine.default')
-                sqlalchemy_utils.drop_database(self.conf.indexer.url)
+        # Swallow noise from missing tables when dropping
+        # database.
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore',
+                                    module='sqlalchemy.engine.default')
+            sqlalchemy_utils.drop_database(self.conf.indexer.url)
+
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
 

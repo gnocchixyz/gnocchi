@@ -26,7 +26,6 @@ from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage import null
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
@@ -52,9 +51,8 @@ class TestStorageDriver(tests_base.TestCase):
         storage.process_background_tasks(index, metrics, sync=True)
 
     def test_get_driver(self):
-        self.conf.set_override('driver', 'null', 'storage')
         driver = storage.get_driver(self.conf)
-        self.assertIsInstance(driver, null.NullStorage)
+        self.assertIsInstance(driver, storage.StorageDriver)
 
     def test_corrupted_data(self):
         if not isinstance(self.storage, _carbonara.CarbonaraBasedStorage):
