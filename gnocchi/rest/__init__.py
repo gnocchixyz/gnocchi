@@ -449,7 +449,7 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
-                     granularity=None, **param):
+                     granularity=None, refresh=False, **param):
         self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
@@ -472,6 +472,10 @@ class MetricController(rest.RestController):
                 stop = Timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
+
+        if strutils.bool_from_string(refresh):
+            pecan.request.storage.process_new_measures(
+                pecan.request.indexer, [six.text_type(self.metric.id)], True)
 
         try:
             if aggregation in self.custom_agg:
@@ -1244,9 +1248,8 @@ class AggregationResourceController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
-             reaggregation=None,
-             granularity=None, needed_overlap=100.0,
-             groupby=None):
+             reaggregation=None, granularity=None, needed_overlap=100.0,
+             groupby=None, refresh=False):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1270,7 +1273,7 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
-                granularity, needed_overlap)
+                granularity, needed_overlap, refresh)
 
         def groupper(r):
             return tuple((attr, r[attr]) for attr in groupby)
@@ -1284,7 +1287,7 @@ class AggregationResourceController(rest.RestController):
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation, reaggregation,
-                    granularity, needed_overlap)
+                    granularity, needed_overlap, refresh)
             })
 
         return results
@@ -1314,7 +1317,8 @@ class AggregationController(rest.RestController):
                                             aggregation='mean',
                                             reaggregation=None,
                                             granularity=None,
-                                            needed_overlap=100.0):
+                                            needed_overlap=100.0,
+                                            refresh=False):
         try:
             needed_overlap = float(needed_overlap)
         except ValueError:
@@ -1344,14 +1348,18 @@ class AggregationController(rest.RestController):
             enforce("get metric", metric)
 
         number_of_metrics = len(metrics)
+        if number_of_metrics == 0:
+            return []
+        if granularity is not None:
+            try:
+                granularity = float(granularity)
+            except ValueError as e:
+                abort(400, "granularity must be a float: %s" % e)
         try:
-            if number_of_metrics == 0:
-                return []
-            if granularity is not None:
-                try:
-                    granularity = float(granularity)
-                except ValueError as e:
-                    abort(400, "granularity must be a float: %s" % e)
+            if strutils.bool_from_string(refresh):
+                pecan.request.storage.process_new_measures(
+                    pecan.request.indexer,
+                    [six.text_type(m.id) for m in metrics], True)
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
@@ -1376,10 +1384,9 @@ class AggregationController(rest.RestController):
             abort(404, e)
 
     @pecan.expose('json')
-    def get_metric(self, metric=None, start=None,
-                   stop=None, aggregation='mean',
-                   reaggregation=None,
-                   granularity=None, needed_overlap=100.0):
+    def get_metric(self, metric=None, start=None, stop=None,
+                   aggregation='mean', reaggregation=None, granularity=None,
+                   needed_overlap=100.0, refresh=False):
         # Check RBAC policy
         metric_ids = arg_to_list(metric)
         metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
@@ -1391,7 +1398,7 @@ class AggregationController(rest.RestController):
                 missing_metric_ids.pop()))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
-            granularity, needed_overlap)
+            granularity, needed_overlap, refresh)
 
 
 class CapabilityController(rest.RestController):
