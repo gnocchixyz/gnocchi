@@ -97,14 +97,14 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
-        self.storage.delete_metric(self.metric)
+        self.storage.delete_metric(self.metric, sync=True)
         self.trigger_processing()
 
     def test_delete_nonempty_metric_unprocessed(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
         ])
-        self.storage.delete_metric(self.metric)
+        self.storage.delete_metric(self.metric, sync=True)
         self.trigger_processing()
 
     def test_delete_expunge_metric(self):
