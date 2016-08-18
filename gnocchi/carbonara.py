@@ -221,7 +221,7 @@ class BoundTimeSerie(TimeSerie):
                    ignore_too_old_timestamps=False):
         # NOTE: values must be sorted when passed in.
         if self.block_size is not None and not self.ts.empty:
-            first_block_timestamp = self._first_block_timestamp()
+            first_block_timestamp = self.first_block_timestamp()
             if ignore_too_old_timestamps:
                 for index, (timestamp, value) in enumerate(values):
                     if timestamp >= first_block_timestamp:
@@ -263,7 +263,8 @@ class BoundTimeSerie(TimeSerie):
         })
         return basic
 
-    def _first_block_timestamp(self):
+    def first_block_timestamp(self):
+        """Return the timestamp of the first block."""
         rounded = self.round_timestamp(self.ts.index[-1],
                                        self.block_size.delta.value)
 
@@ -275,7 +276,7 @@ class BoundTimeSerie(TimeSerie):
             # Change that to remove the amount of block needed to have
             # the size <= max_size. A block is a number of "seconds" (a
             # timespan)
-            self.ts = self.ts[self._first_block_timestamp():]
+            self.ts = self.ts[self.first_block_timestamp():]
 
 
 class AggregatedTimeSerie(TimeSerie):
