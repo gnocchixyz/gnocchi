@@ -77,7 +77,7 @@ class TestCarbonaraMigration(tests_base.TestCase):
 
     def upgrade(self):
         with mock.patch.object(self.index, 'list_metrics') as f:
-            f.return_value = [self.metric]
+            f.side_effect = [[self.metric], []]
             self.storage.upgrade(self.index)
 
     def test_get_measures(self):
@@ -157,6 +157,66 @@ class TestCarbonaraMigration(tests_base.TestCase):
 
         self.upgrade()
         self.upgrade()
+
+    def test_get_measures_upgrade_limit(self):
+        self.metric2 = storage.Metric(uuid.uuid4(),
+                                      self.archive_policies['low'])
+        self.storage._create_metric(self.metric2)
+
+        # serialise in old format
+        with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.serialize',
+                        autospec=True) as f:
+            with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.'
+                            'POINTS_PER_SPLIT', 14400):
+                f.side_effect = _serialize_v2
+
+                for d, agg in itertools.product(
+                        self.metric2.archive_policy.definition,
+                        ['mean', 'max']):
+                    ts = carbonara.AggregatedTimeSerie(
+                        sampling=d.granularity, aggregation_method=agg,
+                        max_size=d.points)
+
+                    # NOTE: there is a split at 2016-07-18 on granularity 300
+                    ts.update(carbonara.TimeSerie.from_data(
+                        [datetime.datetime(2016, 7, 17, 23, 59, 0),
+                         datetime.datetime(2016, 7, 17, 23, 59, 4),
+                         datetime.datetime(2016, 7, 17, 23, 59, 9),
+                         datetime.datetime(2016, 7, 18, 0, 0, 0),
+                         datetime.datetime(2016, 7, 18, 0, 0, 4),
+                         datetime.datetime(2016, 7, 18, 0, 0, 9)],
+                        [4, 5, 6, 7, 8, 9]))
+
+                    for key, split in ts.split():
+                        self.storage._store_metric_measures(
+                            self.metric2, key, agg, d.granularity,
+                            split.serialize(), offset=0, version=None)
+
+        with mock.patch.object(
+                self.storage, '_get_measures_and_unserialize',
+                side_effect=self.storage._get_measures_and_unserialize_v2):
+            self.assertEqual([
+                (utils.datetime_utc(2016, 7, 17), 86400, 5),
+                (utils.datetime_utc(2016, 7, 18), 86400, 8),
+                (utils.datetime_utc(2016, 7, 17, 23), 3600, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 3600, 8),
+                (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 300, 8)
+            ], self.storage.get_measures(self.metric2))
+
+        with mock.patch.object(self.index, 'list_metrics') as f:
+            f.side_effect = [[self.metric], [self.metric2], []]
+            with mock.patch.object(self.storage, 'UPGRADE_BATCH_SIZE', 1):
+                self.storage.upgrade(self.index)
+
+        self.assertEqual([
+            (utils.datetime_utc(2016, 7, 17), 86400, 5),
+            (utils.datetime_utc(2016, 7, 18), 86400, 8),
+            (utils.datetime_utc(2016, 7, 17, 23), 3600, 5),
+            (utils.datetime_utc(2016, 7, 18, 0), 3600, 8),
+            (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 5),
+            (utils.datetime_utc(2016, 7, 18, 0), 300, 8)
+        ], self.storage.get_measures(self.metric2))
 
     def test_delete_metric_not_upgraded(self):
         # Make sure that we delete everything (e.g. objects + container)
