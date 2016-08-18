@@ -207,6 +207,13 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing(self.storage, self.index)
 
+        self.assertEqual([
+            (utils.datetime_utc(2014, 1, 1), 86400.0, 55.5),
+            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 55.5),
+            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69),
+            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 42.0),
+        ], self.storage.get_measures(self.metric))
+
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 12, 45), 44),
