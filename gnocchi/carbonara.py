@@ -343,7 +343,7 @@ class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
-    SERIAL_LEN = 9
+    SERIAL_LEN = struct.calcsize("<?d")
 
     def __init__(self, sampling, aggregation_method,
                  ts=None, max_size=None):
