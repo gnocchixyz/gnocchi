@@ -24,7 +24,6 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
 
-from gnocchi import carbonara
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 
@@ -254,10 +253,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.write_full(name, "metric created")
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=0, version=3):
+                               granularity, data, offset=None, version=3):
         name = self._get_object_name(metric, timestamp_key,
                                      aggregation, granularity, version)
-        self.ioctx.write(name, data, offset=offset)
+        if offset is None:
+            self.ioctx.write_full(name, data)
+        else:
+            self.ioctx.write(name, data, offset=offset)
         self.ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, "")
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
@@ -289,10 +291,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             else:
                 raise storage.MetricDoesNotExist(metric)
-
-    def _get_measures_to_update(self, metric, agg, apolicy, timeserie):
-        return carbonara.AggregatedTimeSerie(
-            apolicy.granularity, agg, max_size=apolicy.points)
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=None):

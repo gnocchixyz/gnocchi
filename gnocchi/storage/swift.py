@@ -190,7 +190,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self._bulk_delete(self.MEASURE_PREFIX, files)
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=0, version=3):
+                               granularity, data, offset=None, version=3):
         self.swift.put_object(
             self._container_name(metric),
             self._object_name(timestamp_key, aggregation, granularity,

@@ -172,8 +172,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5.48, ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
 
         # Serialize and unserialize
+        key = ts.get_split_key()
         ts = carbonara.AggregatedTimeSerie.unserialize(
-            ts.serialize(), ts.get_split_key(ts.first, 60), '74pct', 60)
+            ts.serialize(key), key, '74pct', 60)
 
         ts.update(carbonara.TimeSerie.from_tuples(
             [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
@@ -611,9 +612,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 2, 12, 532), 1),
         ], before_truncate_callback=ts.update)
 
+        key = ts.get_split_key()
         self.assertEqual(ts,
                          carbonara.AggregatedTimeSerie.unserialize(
-                             ts.serialize(), ts.get_split_key(ts.first, 0.5),
+                             ts.serialize(key), key,
                              'mean', 0.5))
 
     def test_no_truncation(self):
@@ -882,23 +884,23 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     def test_split_key(self):
         self.assertEqual(
-            "1420146000.0",
-            carbonara.AggregatedTimeSerie.get_split_key(
-                datetime.datetime(2015, 1, 1, 23, 34), 5))
-        self.assertEqual(
-            "1420110000.0",
-            carbonara.AggregatedTimeSerie.get_split_key(
-                datetime.datetime(2015, 1, 1, 15, 3), 5))
-
-    def test_split_key_datetime(self):
-        self.assertEqual(
             datetime.datetime(2014, 10, 7),
-            carbonara.AggregatedTimeSerie.get_split_key_datetime(
+            carbonara.SplitKey.from_timestamp_and_sampling(
                 datetime.datetime(2015, 1, 1, 15, 3), 3600))
         self.assertEqual(
             datetime.datetime(2014, 12, 31, 18),
-            carbonara.AggregatedTimeSerie.get_split_key_datetime(
+            carbonara.SplitKey.from_timestamp_and_sampling(
                 datetime.datetime(2015, 1, 1, 15, 3), 58))
+
+    def test_split_key_next(self):
+        self.assertEqual(
+            datetime.datetime(2015, 3, 6),
+            next(carbonara.SplitKey.from_timestamp_and_sampling(
+                datetime.datetime(2015, 1, 1, 15, 3), 3600)))
+        self.assertEqual(
+            datetime.datetime(2015, 8, 3),
+            next(next(carbonara.SplitKey.from_timestamp_and_sampling(
+                datetime.datetime(2015, 1, 1, 15, 3), 3600))))
 
     def test_split(self):
         sampling = 5
@@ -915,14 +917,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             math.ceil((points / float(sampling))
-                      / carbonara.AggregatedTimeSerie.POINTS_PER_SPLIT),
+                      / carbonara.SplitKey.POINTS_PER_SPLIT),
             len(grouped_points))
         self.assertEqual("0.0",
-                         grouped_points[0][0])
+                         str(carbonara.SplitKey(grouped_points[0][0])))
         # 3600 × 5s = 5 hours
-        self.assertEqual("18000.0",
+        self.assertEqual(datetime.datetime(1970, 1, 1, 5),
                          grouped_points[1][0])
-        self.assertEqual(carbonara.AggregatedTimeSerie.POINTS_PER_SPLIT,
+        self.assertEqual(carbonara.SplitKey.POINTS_PER_SPLIT,
                          len(grouped_points[0][1]))
 
     def test_from_timeseries(self):
