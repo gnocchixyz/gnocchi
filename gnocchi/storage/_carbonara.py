@@ -49,6 +49,13 @@ OPTS = [
 LOG = log.getLogger(__name__)
 
 
+class CorruptionError(ValueError):
+    """Data corrupted, damn it."""
+
+    def __init__(self, message):
+        super(CorruptionError, self).__init__(message)
+
+
 class CarbonaraBasedStorage(storage.StorageDriver):
     MEASURE_PREFIX = "measure"
 
@@ -88,6 +95,24 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     @staticmethod
     def _get_unaggregated_timeserie(metric):
         raise NotImplementedError
+
+    def _get_unaggregated_timeserie_and_unserialize(self, metric):
+        with timeutils.StopWatch() as sw:
+            raw_measures = (
+                self._get_unaggregated_timeserie(
+                    metric)
+            )
+            LOG.debug(
+                "Retrieve unaggregated measures "
+                "for %s in %.2fs"
+                % (metric.id, sw.elapsed()))
+        try:
+            return carbonara.BoundTimeSerie.unserialize(
+                raw_measures)
+        except ValueError:
+            raise CorruptionError(
+                "Data corruption detected for %s "
+                "unaggregated timeserie" % metric.id)
 
     @staticmethod
     def _store_unaggregated_timeserie(metric, data):
@@ -352,16 +377,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             continue
 
                         measures = sorted(measures, key=operator.itemgetter(0))
+
                         try:
-                            with timeutils.StopWatch() as sw:
-                                raw_measures = (
-                                    self._get_unaggregated_timeserie(
-                                        metric)
-                                )
-                                LOG.debug(
-                                    "Retrieve unaggregated measures "
-                                    "for %s in %.2fs"
-                                    % (metric.id, sw.elapsed()))
+                            ts = self._get_unaggregated_timeserie_and_unserialize(  # noqa
+                                metric)
                         except storage.MetricDoesNotExist:
                             try:
                                 self._create_metric(metric)
@@ -369,17 +388,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 # Created in the mean time, do not worry
                                 pass
                             ts = None
-                        else:
-                            try:
-                                ts = carbonara.BoundTimeSerie.unserialize(
-                                    raw_measures)
-                            except ValueError:
-                                ts = None
-                                LOG.error(
-                                    "Data corruption detected for %s "
-                                    "unaggregated timeserie, "
-                                    "recreating an empty one."
-                                    % metric.id)
+                        except CorruptionError as e:
+                            LOG.error(e)
+                            ts = None
 
                         if ts is None:
                             # This is the first time we treat measures for this
