@@ -1,0 +1,13 @@
+---
+features:
+  - The Carbonara based storage engine has been updated and greatly improved.
+    It now features fast write for Ceph (no change for file and Swift based
+    drivers) by using an append method.
+    It also features on the fly data compression (using LZ4) of the aggregated
+    time serie, reducing the data space usage by at least 50 %.
+upgrade:
+  - gnocchi-upgrade must be run before running the new version of
+    gnocchi-metric and the HTTP REST API in order to upgrade from version 2 of
+    the Carbonara storage engine to version 3. It will read all metrics and
+    convert them to new version 3 serialization format (compressing the data),
+    which might take some time.

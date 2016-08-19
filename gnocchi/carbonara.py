@@ -28,6 +28,7 @@ import struct
 import time
 
 import iso8601
+import lz4
 import msgpack
 import pandas
 import six
@@ -343,7 +344,8 @@ class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
-    SERIAL_LEN = struct.calcsize("<?d")
+    PADDED_SERIAL_LEN = struct.calcsize("<?d")
+    COMPRESSED_SERIAL_LEN = struct.calcsize("<Hd")
 
     def __init__(self, sampling, aggregation_method,
                  ts=None, max_size=None):
@@ -413,20 +415,43 @@ class AggregatedTimeSerie(TimeSerie):
             self.aggregation_method,
         )
 
+    @staticmethod
+    def is_compressed(serialized_data):
+        """Check whatever the data was serialized with compression."""
+        return six.indexbytes(serialized_data, 0) == ord("c")
+
     @classmethod
     def unserialize(cls, data, start, agg_method, sampling):
         x, y = [], []
         start = float(start)
-        v_len = len(data) // cls.SERIAL_LEN
-        # NOTE(gordc): use '<' for standardized, little-endian byte order
-        deserial = struct.unpack('<' + '?d' * v_len, data)
-        # alternating split into 2 list and drop items with False flag
-        for i, val in itertools.compress(six.moves.zip(six.moves.range(v_len),
-                                                       deserial[1::2]),
-                                         deserial[::2]):
-            x.append(val)
-            y.append(start + (i * sampling))
-        y = pandas.to_datetime(y, unit='s')
+        if data:
+            if cls.is_compressed(data):
+                # Compressed format
+                uncompressed = lz4.loads(memoryview(data)[1:].tobytes())
+                nb_points = len(uncompressed) // cls.COMPRESSED_SERIAL_LEN
+                deserial = struct.unpack(
+                    '<' + 'H' * nb_points + 'd' * nb_points,
+                    uncompressed)
+                for delta in itertools.islice(deserial, nb_points):
+                    ts = start + (delta * sampling)
+                    y.append(ts)
+                    start = ts
+                x = deserial[nb_points:]
+            else:
+                # Padded format
+                nb_points = len(data) // cls.PADDED_SERIAL_LEN
+                # NOTE(gordc): use '<' for standardized
+                # little-endian byte order
+                deserial = struct.unpack('<' + '?d' * nb_points, data)
+                # alternating split into 2 list and drop items with False flag
+                for i, val in itertools.compress(
+                        six.moves.zip(six.moves.range(nb_points),
+                                      deserial[1::2]),
+                        deserial[::2]):
+                    x.append(val)
+                    y.append(start + (i * sampling))
+
+            y = pandas.to_datetime(y, unit='s')
         return cls.from_data(sampling, agg_method, y, x)
 
     def get_split_key(self, timestamp=None):
@@ -441,43 +466,58 @@ class AggregatedTimeSerie(TimeSerie):
         return SplitKey.from_timestamp_and_sampling(
             timestamp, self.sampling)
 
-    def serialize(self, start=None, padded=True):
+    def serialize(self, start, compressed=True):
         """Serialize an aggregated timeserie.
 
-        :param start: timestamp to start serialization
-        :param padded: pad the beginning of the serialization with zeroes
+        The serialization starts with a byte that indicate the serialization
+        format: 'c' for compressed format, '\x00' or '\x01' for uncompressed
+        format. Both format can be unserialized using the `unserialize` method.
+
+        The offset returned indicates at which offset the data should be
+        written from. In the case of compressed data, this is always 0.
+
+        :param start: Timestamp to start serialization at.
+        :param compressed: Serialize in a compressed format.
+        :return: a tuple of (offset, data)
+
         """
-        # NOTE(gordc): this binary serializes series based on the split time.
-        # the format is 1B True/False flag which denotes whether subsequent 8B
-        # is a real float or zero padding. every 9B represents one second from
-        # start time. this is intended to be run on data already split.
-        # ie. False,0,True,0 serialization means start datapoint is padding,
-        # and 1s after start time, the aggregate value is 0.
         if not self.ts.index.is_monotonic:
             self.ts = self.ts.sort_index()
         offset_div = self.sampling * 10e8
-        if padded:
-            if start is None:
-                start = pandas.Timestamp(start).value
-            else:
-                start = self.get_split_key().value
-        else:
-            start = self.first.value
+        start = pandas.Timestamp(start).value
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
-        e_offset = int((self.last.value - start) // (self.sampling * 10e8)) + 1
+        if compressed:
+            # NOTE(jd) Use a double delta encoding for timestamps
+            timestamps = []
+            for i in self.ts.index:
+                v = i.value
+                timestamps.append(int((v - start) // offset_div))
+                start = v
+            values = self.ts.values.tolist()
+            return None, b"c" + lz4.dumps(struct.pack(
+                '<' + 'H' * len(timestamps) + 'd' * len(values),
+                *(timestamps + values)))
+        # NOTE(gordc): this binary serializes series based on the split
+        # time. the format is 1B True/False flag which denotes whether
+        # subsequent 8B is a real float or zero padding. every 9B
+        # represents one second from start time. this is intended to be run
+        # on data already split. ie. False,0,True,0 serialization means
+        # start datapoint is padding, and 1s after start time, the
+        # aggregate value is 0. calculate how many seconds from start the
+        # series runs until and initialize list to store alternating
+        # delimiter, float entries
+        e_offset = int(
+            (self.last.value - self.first.value) // offset_div) + 1
         serial = [False] * e_offset * 2
+        first = self.first.value  # NOTE(jd) needed because faster
         for i, v in self.ts.iteritems():
             # overwrite zero padding with real points and set flag True
-            loc = int((i.value - start) // offset_div)
+            loc = int((i.value - first) // offset_div)
             serial[loc * 2] = True
             serial[loc * 2 + 1] = float(v)
-        return struct.pack('<' + '?d' * e_offset, *serial)
-
-    def offset_from_timestamp(self, timestamp):
-        return int((self.first.value - pandas.Timestamp(timestamp).value)
-                   // (self.sampling * 10e8)
-                   * self.SERIAL_LEN)
+        offset = int((first - start) // offset_div) * self.PADDED_SERIAL_LEN
+        return offset, struct.pack('<' + '?d' * e_offset, *serial)
 
     def _truncate(self, quick=False):
         """Truncate the timeserie."""
@@ -523,6 +563,14 @@ class AggregatedTimeSerie(TimeSerie):
                 for timestamp, value
                 in six.iteritems(points)]
 
+    def merge(self, ts):
+        """Merge a timeserie into this one.
+
+        This is equivalent to `update` but is faster as they are is no
+        resampling. Be careful on what you merge.
+        """
+        self.ts = self.ts.combine_first(ts.ts)
+
     def update(self, ts):
         if ts.ts.empty:
             return
@@ -558,7 +606,7 @@ class AggregatedTimeSerie(TimeSerie):
         """Run a speed benchmark!"""
         points = SplitKey.POINTS_PER_SPLIT
         sampling = 5
-        compress_times = 50
+        serialize_times = 50
 
         now = datetime.datetime(2015, 4, 3, 23, 11)
 
@@ -581,20 +629,45 @@ class AggregatedTimeSerie(TimeSerie):
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
+            print(title)
             pts = pandas.Series(values,
                                 [now + datetime.timedelta(seconds=i*sampling)
                                  for i in six.moves.range(points)])
             ts = cls(ts=pts, sampling=sampling, aggregation_method='mean')
             t0 = time.time()
             key = ts.get_split_key()
-            for i in six.moves.range(compress_times):
-                s = ts.serialize(key)
+            for i in six.moves.range(serialize_times):
+                e, s = ts.serialize(key, compressed=False)
             t1 = time.time()
-            print(title)
-            print(" Bytes per point: %.2f" % (len(s) / float(points)))
-            print(" Serialization speed: %.2f MB/s"
+            print("  Uncompressed serialization speed: %.2f MB/s"
                   % (((points * 2 * 8)
-                      / ((t1 - t0) / compress_times)) / (1024.0 * 1024.0)))
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+            print("   Bytes per point: %.2f" % (len(s) / float(points)))
+
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                cls.unserialize(s, key, 'mean', sampling)
+            t1 = time.time()
+            print("  Unserialization speed: %.2f MB/s"
+                  % (((points * 2 * 8)
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                o, s = ts.serialize(key, compressed=True)
+            t1 = time.time()
+            print("  Compressed serialization speed: %.2f MB/s"
+                  % (((points * 2 * 8)
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+            print("   Bytes per point: %.2f" % (len(s) / float(points)))
+
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                cls.unserialize(s, key, 'mean', sampling)
+            t1 = time.time()
+            print("  Uncompression speed: %.2f MB/s"
+                  % (((points * 2 * 8)
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
