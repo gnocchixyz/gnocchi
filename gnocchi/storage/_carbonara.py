@@ -58,6 +58,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             conf.coordination_url,
             str(uuid.uuid4()).encode('ascii'))
         self.aggregation_workers_number = conf.aggregation_workers_number
+        if self.aggregation_workers_number == 1:
+            # NOTE(jd) Avoid using futures at all if we don't want any threads.
+            self._map_in_thread = self._map_no_thread
+        else:
+            self._map_in_thread = self._map_in_futures_threads
         self.start()
 
     @utils.retry
@@ -503,7 +508,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         return result
 
-    def _map_in_thread(self, method, list_of_args):
+    @staticmethod
+    def _map_no_thread(method, list_of_args):
+        return list(itertools.starmap(method, list_of_args))
+
+    def _map_in_futures_threads(self, method, list_of_args):
         with futures.ThreadPoolExecutor(
                 max_workers=self.aggregation_workers_number) as executor:
             # We use 'list' to iterate all threads here to raise the first
