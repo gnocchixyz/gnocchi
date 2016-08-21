@@ -257,12 +257,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                granularity, data, offset=0, version=3):
         name = self._get_object_name(metric, timestamp_key,
                                      aggregation, granularity, version)
-        try:
-            self.ioctx.write(name, data, offset=offset)
-        except rados.ObjectNotFound:
-            # first time writing data
-            self.ioctx.write_full(
-                name, carbonara.AggregatedTimeSerie.padding(offset) + data)
+        self.ioctx.write(name, data, offset=offset)
         self.ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, "")
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,

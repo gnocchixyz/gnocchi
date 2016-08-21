@@ -415,12 +415,6 @@ class AggregatedTimeSerie(TimeSerie):
         return int((self.first.value - split) // (self.sampling * 10e8)
                    * self.SERIAL_LEN)
 
-    @staticmethod
-    def padding(offset):
-        offset = offset // AggregatedTimeSerie.SERIAL_LEN
-        pad = [False] * offset * 2
-        return struct.pack('<' + '?d' * offset, *pad)
-
     def _truncate(self, quick=False):
         """Truncate the timeserie."""
         if self.max_size is not None:
