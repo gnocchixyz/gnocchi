@@ -21,7 +21,6 @@ import uuid
 import lz4
 from oslo_config import cfg
 from oslo_log import log
-import retrying
 import six
 from six.moves.urllib.parse import quote
 try:
@@ -67,10 +66,6 @@ OPTS = [
                default=300,
                help='Connection timeout in seconds.'),
 ]
-
-
-def retry_if_result_empty(result):
-    return len(result) == 0
 
 
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):
@@ -228,9 +223,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                     # Deleted in the meantime? Whatever.
                     raise
 
-    @retrying.retry(stop_max_attempt_number=4,
-                    wait_fixed=500,
-                    retry_on_result=retry_if_result_empty)
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
                       version=3):
         try:
@@ -271,9 +263,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 continue
         return keys
 
-    @retrying.retry(stop_max_attempt_number=4,
-                    wait_fixed=500,
-                    retry_on_result=retry_if_result_empty)
     def _get_unaggregated_timeserie(self, metric):
         try:
             headers, contents = self.swift.get_object(
