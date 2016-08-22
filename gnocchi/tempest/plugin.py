@@ -41,4 +41,5 @@ class GnocchiTempestPlugin(plugins.TempestPlugin):
 
     def get_opt_lists(self):
         return [(tempest_config.metric_group.name,
-                 tempest_config.metric_opts)]
+                 tempest_config.metric_opts),
+                ('service_available', tempest_config.service_available_opts)]
