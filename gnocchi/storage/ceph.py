@@ -294,7 +294,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         return carbonara.AggregatedTimeSerie(
             apolicy.granularity, agg, max_size=apolicy.points)
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
+                                    version=None):
         try:
             xattrs = self.ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
         except rados.ObjectNotFound:
@@ -302,7 +303,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         keys = []
         for xattr, value in xattrs:
             meta = xattr.split('_')
-            if aggregation == meta[3] and granularity == float(meta[4]):
+            if (aggregation == meta[3] and granularity == float(meta[4]) and
+                    self._version_check(xattr, version)):
                 keys.append(meta[2])
         return keys
 

@@ -133,6 +133,31 @@ class TestCarbonaraMigration(tests_base.TestCase):
                 storage.AggregationDoesNotExist,
                 self.storage.get_measures, self.metric, aggregation='max')
 
+    def test_upgrade_upgraded_storage(self):
+        with mock.patch.object(
+                self.storage, '_get_measures_and_unserialize',
+                side_effect=self.storage._get_measures_and_unserialize_v2):
+            self.assertEqual([
+                (utils.datetime_utc(2016, 7, 17), 86400, 5),
+                (utils.datetime_utc(2016, 7, 18), 86400, 8),
+                (utils.datetime_utc(2016, 7, 17, 23), 3600, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 3600, 8),
+                (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 5),
+                (utils.datetime_utc(2016, 7, 18, 0), 300, 8)
+            ], self.storage.get_measures(self.metric))
+
+            self.assertEqual([
+                (utils.datetime_utc(2016, 7, 17), 86400, 6),
+                (utils.datetime_utc(2016, 7, 18), 86400, 9),
+                (utils.datetime_utc(2016, 7, 17, 23), 3600, 6),
+                (utils.datetime_utc(2016, 7, 18, 0), 3600, 9),
+                (utils.datetime_utc(2016, 7, 17, 23, 55), 300, 6),
+                (utils.datetime_utc(2016, 7, 18, 0), 300, 9)
+            ], self.storage.get_measures(self.metric, aggregation='max'))
+
+        self.upgrade()
+        self.upgrade()
+
     def test_delete_metric_not_upgraded(self):
         # Make sure that we delete everything (e.g. objects + container)
         # correctly even if the metric has not been upgraded.

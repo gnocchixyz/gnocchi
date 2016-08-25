@@ -249,7 +249,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             raise
         return lz4.loads(contents)
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity):
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
+                                    version=None):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -262,7 +263,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         for f in files:
             try:
                 meta = f['name'].split('_')
-                if aggregation == meta[1] and granularity == float(meta[2]):
+                if (aggregation == meta[1] and granularity == float(meta[2])
+                        and self._version_check(f['name'], version)):
                     keys.append(meta[0])
             except (ValueError, IndexError):
                 # Might be "none", or any other file. Be resilient.

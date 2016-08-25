@@ -94,8 +94,19 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _list_split_keys_for_metric(metric, aggregation, granularity):
+    def _list_split_keys_for_metric(metric, aggregation, granularity,
+                                    version=None):
         raise NotImplementedError
+
+    @staticmethod
+    def _version_check(name, v):
+        """Validate object matches expected version.
+
+        Version should be last attribute and start with 'v'
+        """
+        attrs = name.split("_")
+        return not v or (not attrs[-1].startswith('v') if v == 2
+                         else attrs[-1] == 'v%s' % v)
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean', granularity=None):
@@ -268,7 +279,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
                 try:
                     all_keys = self._list_split_keys_for_metric(
-                        metric, agg_method, d.granularity)
+                        metric, agg_method, d.granularity, version=2)
                 except storage.MetricDoesNotExist:
                     # Just try the next metric, this one has no measures
                     break
