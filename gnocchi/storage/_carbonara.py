@@ -327,7 +327,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 with self._lock(metric_id)(blocking=sync):
                     self._delete_unprocessed_measures_for_metric_id(metric_id)
             except coordination.LockAcquireFailed:
-                LOG.debug("Cannot acquire lock for metric %s, postponing"
+                LOG.debug("Cannot acquire lock for metric %s, postponing "
                           "unprocessed measures deletion" % metric_id)
         for metric in metrics:
             lock = self._lock(metric.id)
