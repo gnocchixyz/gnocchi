@@ -29,7 +29,7 @@ from gnocchi import utils
 def injector():
     conf = cfg.ConfigOpts()
     conf.register_cli_opts([
-        cfg.IntOpt("metrics", default=None),
+        cfg.IntOpt("metrics"),
         cfg.IntOpt("batch-of-measures", default=1000),
         cfg.IntOpt("measures-per-batch", default=10),
     ])
