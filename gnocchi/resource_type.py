@@ -40,6 +40,16 @@ class InvalidResourceAttributeName(Exception):
         self.name = name
 
 
+class InvalidResourceAttributeValue(ValueError):
+    """Error raised when the resource attribute min is greater than max"""
+    def __init__(self, min, max):
+        super(InvalidResourceAttributeValue, self).__init__(
+            "Resource attribute value min (or min_length) %s must be less  "
+            "than or equal to max (or max_length) %s!" % (str(min), str(max)))
+        self.min = min
+        self.max = max
+
+
 class CommonAttributeSchema(object):
     meta_schema_ext = {}
     schema_ext = None
@@ -80,10 +90,12 @@ class StringSchema(CommonAttributeSchema):
 
     def __init__(self, min_length, max_length, *args, **kwargs):
         super(StringSchema, self).__init__(*args, **kwargs)
+        if min_length > max_length:
+            raise InvalidResourceAttributeValue(min_length, max_length)
+
         self.min_length = min_length
         self.max_length = max_length
 
-    # TODO(sileht): ensure min_length <= max_length
     meta_schema_ext = {
         voluptuous.Required('min_length', default=0):
         voluptuous.All(int, voluptuous.Range(min=0, max=255)),
@@ -115,10 +127,12 @@ class NumberSchema(CommonAttributeSchema):
 
     def __init__(self, min, max, *args, **kwargs):
         super(NumberSchema, self).__init__(*args, **kwargs)
+        if max is not None and min > max:
+            raise InvalidResourceAttributeValue(min, max)
+
         self.min = min
         self.max = max
 
-    # TODO(sileht): ensure min_length <= max_length
     meta_schema_ext = {
         voluptuous.Required('min', default=None): voluptuous.Any(
             None, numbers.Real),
