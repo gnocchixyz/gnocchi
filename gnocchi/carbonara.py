@@ -305,6 +305,10 @@ class SplitKey(pandas.Timestamp):
                 timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8),
             sampling)
 
+    @classmethod
+    def from_key_string(cls, keystr, sampling):
+        return cls._init(float(keystr) * 10e8, sampling)
+
     def __next__(self):
         """Get the split key of the next split.
 
@@ -425,9 +429,17 @@ class AggregatedTimeSerie(TimeSerie):
         y = pandas.to_datetime(y, unit='s')
         return cls.from_data(sampling, agg_method, y, x)
 
-    def get_split_key(self):
+    def get_split_key(self, timestamp=None):
+        """Return the split key for a particular timestamp.
+
+        :param timestamp: If None, the first timestamp of the timeserie
+                          is used.
+        :return: A SplitKey object.
+        """
+        if timestamp is None:
+            timestamp = self.first
         return SplitKey.from_timestamp_and_sampling(
-            self.first, self.sampling)
+            timestamp, self.sampling)
 
     def serialize(self, start=None, padded=True):
         """Serialize an aggregated timeserie.

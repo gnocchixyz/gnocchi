@@ -224,6 +224,53 @@ class TestStorageDriver(tests_base.TestCase):
                          self.storage._list_split_keys_for_metric(
                              self.metric, "mean", 300.0))
 
+    def test_rewrite_measures(self):
+        self.metric, metric_sql = self._create_metric("high")
+
+        # First store some points scattered across different splits
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2016, 1, 1, 12, 0, 1), 69),
+            storage.Measure(datetime.datetime(2016, 1, 2, 13, 7, 31), 42),
+            storage.Measure(datetime.datetime(2016, 1, 4, 14, 9, 31), 4),
+            storage.Measure(datetime.datetime(2016, 1, 6, 15, 12, 45), 44),
+        ])
+        self.trigger_processing()
+
+        self.assertEqual({'1451520000.0', '1451736000.0', '1451952000.0'},
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 60.0))
+
+        self.assertEqual([
+            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
+        ], self.storage.get_measures(self.metric, granularity=60.0))
+
+        # Now store brand new points that should force a rewrite of one of the
+        # split (keep in mind the back window size in one hour here). We move
+        # the BoundTimeSerie processing timeserie to be between
+        # "2016-01-07 16:12:45" and "2016-01-07 17:12:45".
+        self.storage.add_measures(self.metric, [
+            storage.Measure(datetime.datetime(2016, 1, 7, 16, 18, 45), 45),
+            storage.Measure(datetime.datetime(2016, 1, 7, 17, 12, 45), 46),
+        ])
+        self.trigger_processing()
+
+        self.assertEqual({'1452168000.0', '1451736000.0',
+                          '1451520000.0', '1451952000.0'},
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 60.0))
+
+        self.assertEqual([
+            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
+            (utils.datetime_utc(2016, 1, 7, 16, 18), 60.0, 45),
+            (utils.datetime_utc(2016, 1, 7, 17, 12), 60.0, 46),
+        ], self.storage.get_measures(self.metric, granularity=60.0))
+
     def test_updated_measures(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
