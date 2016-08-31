@@ -183,6 +183,12 @@ class TimeSerie(object):
     def serialize(self):
         return msgpack.dumps(self.to_dict())
 
+    def aggregate(self, granularity, aggregation_method='mean', max_size=None):
+        ats = AggregatedTimeSerie(
+            granularity, aggregation_method, max_size=max_size)
+        ats.update(self)
+        return ats
+
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, ts=None, block_size=None, back_window=0):

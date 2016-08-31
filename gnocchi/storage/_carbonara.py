@@ -257,11 +257,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                       metric, timeserie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
-        ts = carbonara.AggregatedTimeSerie(
+        ts = timeserie.aggregate(
             archive_policy_def.granularity,
             aggregation,
-            max_size=archive_policy_def.points)
-        ts.update(timeserie)
+            archive_policy_def.points)
 
         # Don't do anything if the timeserie is empty
         if not ts:
