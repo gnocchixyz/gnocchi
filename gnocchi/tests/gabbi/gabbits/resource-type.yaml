@@ -334,6 +334,8 @@ tests:
             required: False
             min_length: 0
             max_length: 255
+        - op: remove
+          path: /attributes/foobar
       status: 200
       response_json_paths:
           $.name: my_custom_resource
@@ -343,11 +345,6 @@ tests:
                   required: True
                   min_length: 2
                   max_length: 5
-              foobar:
-                  type: string
-                  required: False
-                  min_length: 0
-                  max_length: 255
               uuid:
                   type: uuid
                   required: True
@@ -380,11 +377,6 @@ tests:
                   required: True
                   min_length: 2
                   max_length: 5
-              foobar:
-                  type: string
-                  required: False
-                  min_length: 0
-                  max_length: 255
               uuid:
                   type: uuid
                   required: True
@@ -409,6 +401,73 @@ tests:
 
 # Invalid patch
 
+    - name: add/delete the same resource attribute
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/what
+          value:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+        - op: remove
+          path: /attributes/what
+      status: 200
+      response_json_paths:
+          $.name: my_custom_resource
+          $.attributes:
+              name:
+                  type: string
+                  required: True
+                  min_length: 2
+                  max_length: 5
+              uuid:
+                  type: uuid
+                  required: True
+              int:
+                  type: number
+                  required: False
+                  min: -2
+                  max: 3
+              float:
+                  type: number
+                  required: false
+                  min: -2.3
+                  max:
+              bool:
+                  type: bool
+                  required: false
+              newstuff:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+
+    - name: delete/add the same resource attribute
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: remove
+          path: /attributes/what
+        - op: add
+          path: /attributes/what
+          value:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+      status: 400
+      response_strings:
+       - "can't remove non-existent object 'what'"
+
     - name: patch a resource attribute replace
       url: /v1/resource_type/my_custom_resource
       method: patch
@@ -424,6 +483,9 @@ tests:
             min_length: 0
             max_length: 255
       status: 400
+      response_strings:
+       - "Invalid input: not a valid value for dictionary value @ data[0]["
+       - "'op']"
 
     - name: patch a resource attribute type not exist
       url: /v1/resource_type/my_custom_resource
@@ -440,6 +502,19 @@ tests:
             min_length: 0
             max_length: 255
       status: 400
+
+    - name: patch a resource attribute type unknown
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: remove
+          path: /attributes/unknown
+      status: 400
+      response_strings:
+       - "can't remove non-existent object 'unknown'"
 
 # Ensure we can't delete the type
 

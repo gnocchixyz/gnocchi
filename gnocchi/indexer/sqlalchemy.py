@@ -390,8 +390,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         resource_type.state = "active"
         return resource_type
 
-    def update_resource_type(self, name, add_attributes=None):
-        if not add_attributes:
+    def update_resource_type(self, name, add_attributes=None,
+                             del_attributes=None):
+        if not add_attributes and not del_attributes:
             return
         self._set_resource_type_state(name, "updating", "active")
 
@@ -403,6 +404,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     ctx = migration.MigrationContext.configure(connection)
                     op = operations.Operations(ctx)
                     with op.batch_alter_table(rt.tablename) as batch_op:
+                        for attr in del_attributes:
+                            batch_op.drop_column(attr)
                         for attr in add_attributes:
                             # TODO(sileht): When attr.required is True, we have
                             # to pass a default. rest layer current protect us,
@@ -414,6 +417,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 rt.state = "active"
                 rt.updated_at = utils.utcnow()
                 rt.attributes.extend(add_attributes)
+                for attr in list(rt.attributes):
+                    if attr.name in del_attributes:
+                        rt.attributes.remove(attr)
                 # FIXME(sileht): yeah that's wierd but attributes is a custom
                 # json column and 'extend' doesn't trigger sql update, this
                 # enforce the update. I wonder if sqlalchemy provides something

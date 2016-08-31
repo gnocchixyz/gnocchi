@@ -399,6 +399,10 @@
             "op": "add",
             "path": "/attributes/awesome-stuff",
             "value": {"type": "bool", "required": false}
+         },
+         {
+            "op": "remove",
+            "path": "/attributes/prefix"
          }
     ]
 

@@ -758,11 +758,10 @@ def AttributesPath(value):
     raise ValueError("Only attributes can be modified")
 
 
-# TODO(sileht): Implements delete op
 ResourceTypeJsonPatchSchema = voluptuous.Schema([{
-    "op": "add",
+    "op": voluptuous.Any("add", "remove"),
     "path": AttributesPath,
-    "value": dict,
+    voluptuous.Optional("value"): dict,
 }])
 
 
@@ -811,26 +810,34 @@ class ResourceTypeController(rest.RestController):
         except voluptuous.Error as e:
             abort(400, "Invalid input: %s" % e)
 
-        # Get only newly formatted attributes
-        attrs = {k: v for k, v in rt_json_next["attributes"].items()
-                 if k not in rt_json_current["attributes"]}
+        # Get only newly formatted and deleted attributes
+        add_attrs = {k: v for k, v in rt_json_next["attributes"].items()
+                     if k not in rt_json_current["attributes"]}
+        del_attrs = [k for k in rt_json_current["attributes"]
+                     if k not in rt_json_next["attributes"]]
+
+        if not add_attrs and not del_attrs:
+            # NOTE(sileht): just returns the resource, the asked changes
+            # just do nothing
+            return rt
 
         try:
-            attrs = schema.attributes_from_dict(attrs)
+            add_attrs = schema.attributes_from_dict(add_attrs)
         except resource_type.InvalidResourceAttributeName as e:
             abort(400, e)
 
         # TODO(sileht): Add a default field on an attribute
         # to be able to fill non-nullable column on sql side.
         # And obviousy remove this limitation
-        for attr in attrs:
+        for attr in add_attrs:
             if attr.required:
                 abort(400, ValueError("Adding required attributes is not yet "
                                       "possible."))
 
         try:
             return pecan.request.indexer.update_resource_type(
-                self._name, add_attributes=attrs)
+                self._name, add_attributes=add_attrs,
+                del_attributes=del_attrs)
         except indexer.NoSuchResourceType as e:
                 abort(400, e)
 
