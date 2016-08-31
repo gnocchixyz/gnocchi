@@ -144,7 +144,9 @@ class FakeRadosModule(object):
                 current = b""
             if len(current) < offset:
                 current += b'\x00' * (offset - len(current))
-            self.kvs[key] = current[:offset] + value
+            self.kvs[key] = (
+                current[:offset] + value + current[offset + len(value):]
+            )
 
         def stat(self, key):
             self._validate_key(key)
