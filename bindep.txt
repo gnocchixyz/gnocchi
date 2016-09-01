@@ -1,0 +1,6 @@
+libpq-dev [platform:dpkg]
+postgresql [platform:dpkg]
+mysql-client [platform:dpkg]
+mysql-server [platform:dpkg]
+build-essential [platform:dpkg]
+libffi-dev [platform:dpkg]
