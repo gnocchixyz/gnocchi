@@ -175,7 +175,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             #         by another process
             # ENOTEMPTY: ok, someone pushed measure in the meantime,
             #            we'll delete the measures and directory later
-            if e.errno != errno.ENOENT and e.errno != errno.ENOTEMPTY:
+            # EEXIST: some systems use this instead of ENOTEMPTY
+            if e.errno not in (errno.ENOENT, errno.ENOTEMPTY, errno.EEXIST):
                 raise
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
