@@ -300,12 +300,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             xattrs = self.ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
         except rados.ObjectNotFound:
             raise storage.MetricDoesNotExist(metric)
-        keys = []
+        keys = set()
         for xattr, value in xattrs:
             meta = xattr.split('_')
             if (aggregation == meta[3] and granularity == float(meta[4]) and
                     self._version_check(xattr, version)):
-                keys.append(meta[2])
+                keys.add(meta[2])
         return keys
 
     def _get_unaggregated_timeserie(self, metric):

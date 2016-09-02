@@ -221,11 +221,11 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             if e.errno == errno.ENOENT:
                 raise storage.MetricDoesNotExist(metric)
             raise
-        keys = []
+        keys = set()
         for f in files:
             meta = f.split("_")
             if meta[1] == str(granularity) and self._version_check(f, version):
-                keys.append(meta[0])
+                keys.add(meta[0])
         return keys
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,

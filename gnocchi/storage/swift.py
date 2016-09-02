@@ -251,13 +251,13 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
-        keys = []
+        keys = set()
         for f in files:
             try:
                 meta = f['name'].split('_')
                 if (aggregation == meta[1] and granularity == float(meta[2])
                         and self._version_check(f['name'], version)):
-                    keys.append(meta[0])
+                    keys.add(meta[0])
             except (ValueError, IndexError):
                 # Might be "none", or any other file. Be resilient.
                 continue
