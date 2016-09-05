@@ -107,8 +107,9 @@ def load_app(conf, appname=None, indexer=None, storage=None,
     APPCONFIGS[configkey] = config
 
     LOG.info("WSGI config used: %s" % cfg_path)
-    return deploy.loadapp("config:" + cfg_path, name=appname,
-                          global_conf={'configkey': configkey})
+    app = deploy.loadapp("config:" + cfg_path, name=appname,
+                         global_conf={'configkey': configkey})
+    return cors.CORS(app, conf=conf)
 
 
 def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
@@ -129,8 +130,7 @@ def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
 def app_factory(global_config, **local_conf):
     global APPCONFIGS
     appconfig = APPCONFIGS.get(global_config.get('configkey'))
-    app = _setup_app(root=local_conf.get('root'), **appconfig)
-    return cors.CORS(app, conf=appconfig['conf'])
+    return _setup_app(root=local_conf.get('root'), **appconfig)
 
 
 def build_wsgi_app():
