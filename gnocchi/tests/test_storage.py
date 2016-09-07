@@ -214,6 +214,16 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2015, 1, 1, 12), 300.0, 69),
         ], self.storage.get_measures(self.metric))
 
+        self.assertEqual({"1244160000.0"},
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 86400.0))
+        self.assertEqual({"1412640000.0"},
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 3600.0))
+        self.assertEqual({"1419120000.0"},
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 300.0))
+
     def test_updated_measures(self):
         self.storage.add_measures(self.metric, [
             storage.Measure(datetime.datetime(2014, 1, 1, 12, 0, 1), 69),
