@@ -567,7 +567,7 @@ tests:
           host: compute3
           display_name: myvm2
           metrics:
-              cpu.util:
+              disk.util:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
