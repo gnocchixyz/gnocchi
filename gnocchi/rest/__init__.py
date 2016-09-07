@@ -790,6 +790,8 @@ class ResourceTypesController(rest.RestController):
             rt = schema.resource_type_from_dict(**body)
         except resource_type.InvalidResourceAttributeName as e:
             abort(400, e)
+        except resource_type.InvalidResourceAttributeValue as e:
+            abort(400, e)
 
         enforce("create resource type", body)
         try:

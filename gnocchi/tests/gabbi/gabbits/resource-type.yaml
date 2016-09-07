@@ -58,6 +58,36 @@ tests:
           # - "Invalid input: not a valid value for dictionary value @ data[u'attributes'][u'foo'][u'type']"
           - "Invalid input:"
 
+    - name: post resource type bad min_length value
+      POST: $LAST_URL
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+          attributes:
+              name:
+                  type: string
+                  required: true
+                  max_length: 2
+                  min_length: 5
+      status: 400
+
+    - name: post resource type bad min value
+      POST: $LAST_URL
+      request_headers:
+          x-roles: admin
+          content-type: application/json
+      data:
+          name: my_custom_resource
+          attributes:
+              int:
+                  type: number
+                  required: false
+                  max: 3
+                  min: 8
+      status: 400
+
 # Create a type
 
     - name: post resource type
