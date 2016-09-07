@@ -179,7 +179,7 @@ class ResourceClassMapper(object):
                 and inn_e.orig.pgcode == '25P02')
 
     @retry_on_deadlock
-    def unmap_and_delete_tables(self, resource_type, connection):
+    def unmap_and_delete_tables(self, resource_type, facade):
         if resource_type.state != "deleting":
             raise RuntimeError("unmap_and_delete_tables must be called in "
                                "state deleting")
@@ -190,15 +190,15 @@ class ResourceClassMapper(object):
         tables = [Base.metadata.tables[klass.__tablename__]
                   for klass in mappers.values()]
 
-        if connection is not None:
-            # NOTE(sileht): Base.metadata.drop_all doesn't
-            # issue CASCADE stuffs correctly at least on postgresql
-            # We drop foreign keys manually to not lock the destination
-            # table for too long during drop table.
-            # It's safe to not use a transaction since
-            # the resource_type table is already cleaned and commited
-            # so this code cannot be triggerred anymore for this
-            # resource_type
+        # NOTE(sileht): Base.metadata.drop_all doesn't
+        # issue CASCADE stuffs correctly at least on postgresql
+        # We drop foreign keys manually to not lock the destination
+        # table for too long during drop table.
+        # It's safe to not use a transaction since
+        # the resource_type table is already cleaned and commited
+        # so this code cannot be triggerred anymore for this
+        # resource_type
+        with facade.writer_connection() as connection:
             try:
                 for table in tables:
                     for fk in table.foreign_key_constraints:
@@ -219,15 +219,15 @@ class ResourceClassMapper(object):
                     raise exception.RetryRequest(e)
                 raise
 
-            # NOTE(sileht): If something goes wrong here, we are currently
-            # fucked, that why we expose the state to the superuser.
-            # TODO(sileht): The idea is to make the delete resource_type more
-            # like a cleanup method, I mean we should don't fail if the
-            # constraint have already been dropped or the table have already
-            # been deleted. So, when the superuser have fixed it's backend
-            # issue, it can rerun 'DELETE ../resource_type/foobar' even the
-            # state is already error and if we are sure all underlying
-            # resources have been cleaned we really deleted the resource_type.
+        # NOTE(sileht): If something goes wrong here, we are currently
+        # fucked, that why we expose the state to the superuser.
+        # TODO(sileht): The idea is to make the delete resource_type more
+        # like a cleanup method, I mean we should don't fail if the
+        # constraint have already been dropped or the table have already
+        # been deleted. So, when the superuser have fixed it's backend
+        # issue, it can rerun 'DELETE ../resource_type/foobar' even the
+        # state is already error and if we are sure all underlying
+        # resources have been cleaned we really deleted the resource_type.
 
         # TODO(sileht): Remove this resource on other workers
         # by using expiration on cache ?
@@ -464,9 +464,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         rt = self._mark_as_deleting_resource_type(name)
 
         try:
-            with self.facade.writer_connection() as connection:
-                self._RESOURCE_TYPE_MANAGER.unmap_and_delete_tables(
-                    rt, connection)
+            self._RESOURCE_TYPE_MANAGER.unmap_and_delete_tables(
+                rt, self.facade)
         except Exception:
             # NOTE(sileht): We fail the DDL, we have no way to automatically
             # recover, just set a particular state
