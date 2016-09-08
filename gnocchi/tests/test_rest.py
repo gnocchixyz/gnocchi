@@ -24,6 +24,8 @@ import uuid
 
 from keystonemiddleware import fixture as ksm_fixture
 import mock
+from oslo_config import cfg
+from oslo_middleware import cors
 from oslo_utils import timeutils
 import six
 from stevedore import extension
@@ -52,6 +54,8 @@ class TestingApp(webtest.TestApp):
     VALID_TOKEN_2 = str(uuid.uuid4())
     USER_ID_2 = str(uuid.uuid4())
     PROJECT_ID_2 = str(uuid.uuid4())
+
+    INVALID_TOKEN = str(uuid.uuid4())
 
     def __init__(self, *args, **kwargs):
         self.auth = kwargs.pop('auth')
@@ -83,8 +87,30 @@ class TestingApp(webtest.TestApp):
         finally:
             self.token = old_token
 
+    @contextlib.contextmanager
+    def use_invalid_token(self):
+        if not self.auth:
+            raise testcase.TestSkipped("No auth enabled")
+        old_token = self.token
+        self.token = self.INVALID_TOKEN
+        try:
+            yield
+        finally:
+            self.token = old_token
+
+    @contextlib.contextmanager
+    def use_no_token(self):
+        # We don't skip for no self.auth to ensure
+        # some test returns the same thing with auth or not
+        old_token = self.token
+        self.token = None
+        try:
+            yield
+        finally:
+            self.token = old_token
+
     def do_request(self, req, *args, **kwargs):
-        if self.auth:
+        if self.auth and self.token is not None:
             req.headers['X-Auth-Token'] = self.token
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
         metrics = self.storage.list_metric_with_measures_to_process(
@@ -105,6 +131,13 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         self.conf.set_override('paste_config',
                                self.path_get('etc/gnocchi/api-paste.ini'),
                                group="api")
+
+        # NOTE(sileht): This is not concurrency safe, but only this tests file
+        # deal with cors, so we are fine. set_override don't work because
+        # cors group doesn't yet exists, and we the CORS middleware is created
+        # it register the option and directly copy value of all configurations
+        # options making impossible to override them properly...
+        cfg.set_defaults(cors.CORS_OPTS, allowed_origin="http://foobar.com")
 
         self.auth_token_fixture = self.useFixture(
             ksm_fixture.AuthTokenFixture())
@@ -147,6 +180,33 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
 
 class RootTest(RestTest):
+
+    def _do_test_cors(self):
+        resp = self.app.options(
+            "/v1/status",
+            headers={'Origin': 'http://notallowed.com',
+                     'Access-Control-Request-Method': 'GET'},
+            status=200)
+        headers = dict(resp.headers)
+        self.assertNotIn("Access-Control-Allow-Origin", headers)
+        self.assertNotIn("Access-Control-Allow-Methods", headers)
+        resp = self.app.options(
+            "/v1/status",
+            headers={'origin': 'http://foobar.com',
+                     'Access-Control-Request-Method': 'GET'},
+            status=200)
+        headers = dict(resp.headers)
+        self.assertIn("Access-Control-Allow-Origin", headers)
+        self.assertIn("Access-Control-Allow-Methods", headers)
+
+    def test_cors_invalid_token(self):
+        with self.app.use_invalid_token():
+            self._do_test_cors()
+
+    def test_cors_no_token(self):
+        with self.app.use_no_token():
+            self._do_test_cors()
+
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
             self.app.post(
