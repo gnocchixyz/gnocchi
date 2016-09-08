@@ -1080,7 +1080,11 @@ class QueryTransformer(object):
 
                 if converter:
                     try:
-                        value = converter(value)
+                        if isinstance(value, list):
+                            # we got a list for in_ operator
+                            value = [converter(v) for v in value]
+                        else:
+                            value = converter(value)
                     except Exception:
                         raise indexer.QueryValueError(value, field_name)
 
