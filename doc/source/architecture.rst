@@ -59,37 +59,29 @@ How to plan for Gnocchi’s storage
 Gnocchi uses a custom file format based on its library *Carbonara*. In Gnocchi,
 a time series is a collection of points, where a point is a given measure, or
 sample, in the lifespan of a time series. The storage format is compressed
-using various techniques, therefore the computing of a time series' size can
-be estimated based on its worst case scenario with the following formula::
+using various techniques, therefore the computing of a time series' size can be
+estimated based on its **worst** case scenario with the following formula::
 
-    number of points × 9 bytes = size in bytes
+    number of points × 8 bytes = size in bytes
 
 The number of points you want to keep is usually determined by the following
 formula::
 
-    number of points = timespan ÷ granularity
+    number of points = timespan ÷ granularity
 
 For example, if you want to keep a year of data with a one minute resolution::
 
-    number of points = (365 days × 24 hours × 60 minutes) ÷ 1 minute
-    number of points = 525 600
+    number of points = (365 days × 24 hours × 60 minutes) ÷ 1 minute
+    number of points = 525 600
 
 Then::
 
-    size in bytes = 525 600 × 9 = 4 730 400 bytes = 4 620 KiB
+    size in bytes = 525 600 × 8 = 4 204 800 bytes = 4 106 KiB
 
 This is just for a single aggregated time series. If your archive policy uses
 the 8 default aggregation methods (mean, min, max, sum, std, median, count,
 95pct) with the same "one year, one minute aggregations" resolution, the space
-used will go up to a maximum of 8 × 4.5 MiB = 36 MiB.
-
-.. note::
-
-   The Ceph driver does not utilize compression as the Swift and File drivers
-   do in favour of more efficient write support. Therefore, each point is
-   always 9B in Ceph where as the Swift and File backends may have a smaller
-   storage footprint but higher I/O requirements. It also requires some
-   additional formatting which may add to disk size.
+used will go up to a maximum of 8 × 4.1 MiB = 32.8 MiB.
 
 
 How to set the archive policy and granularity

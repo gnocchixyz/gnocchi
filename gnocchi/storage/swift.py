@@ -18,7 +18,6 @@ import contextlib
 import datetime
 import uuid
 
-import lz4
 from oslo_config import cfg
 from oslo_log import log
 import six
@@ -195,7 +194,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             self._container_name(metric),
             self._object_name(timestamp_key, aggregation, granularity,
                               version),
-            lz4.dumps(data))
+            data)
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
                                 granularity, version=3):
@@ -239,7 +238,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                     raise
                 raise storage.AggregationDoesNotExist(metric, aggregation)
             raise
-        return lz4.loads(contents)
+        return contents
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=None):
