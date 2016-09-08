@@ -98,6 +98,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     def _get_unaggregated_timeserie_and_unserialize(self, metric):
+        """Retrieve unaggregated timeserie for a metric and unserialize it.
+
+        Returns a gnocchi.carbonara.BoundTimeSerie object. If the data cannot
+        be retrieved, returns None.
+
+        """
         with timeutils.StopWatch() as sw:
             raw_measures = (
                 self._get_unaggregated_timeserie(
@@ -121,7 +127,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     @staticmethod
     def _store_metric_measures(metric, timestamp_key, aggregation,
-                               granularity, data, offset=0, version=3):
+                               granularity, data, offset=None, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -195,12 +201,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             raise storage.GranularityDoesNotExist(metric, granularity)
 
         if from_timestamp:
-            from_timestamp = carbonara.AggregatedTimeSerie.get_split_key(
-                from_timestamp, granularity)
+            from_timestamp = str(
+                carbonara.SplitKey.from_timestamp_and_sampling(
+                    from_timestamp, granularity))
 
         if to_timestamp:
-            to_timestamp = carbonara.AggregatedTimeSerie.get_split_key(
-                to_timestamp, granularity)
+            to_timestamp = str(
+                carbonara.SplitKey.from_timestamp_and_sampling(
+                    to_timestamp, granularity))
 
         timeseries = filter(
             lambda x: x is not None,
@@ -218,21 +226,44 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             timeseries=timeseries,
             max_size=points)
 
-    def _get_measures_to_update(self, metric, agg, apolicy, timeserie):
-        return self._get_measures_timeserie(metric, agg, apolicy.granularity,
-                                            timeserie.first, timeserie.last)
+    def _store_timeserie_split(self, metric, key, split,
+                               aggregation, archive_policy_def,
+                               oldest_mutable_timestamp):
+        # NOTE(jd) We write the full split only if the driver works that way
+        # (self.WRITE_FULL) or if the oldest_mutable_timestamp is out of range.
+        write_full = self.WRITE_FULL or oldest_mutable_timestamp >= next(key)
+        key_as_str = str(key)
+        if write_full:
+            offset = None
+            try:
+                existing = self._get_measures_and_unserialize(
+                    metric, key_as_str, aggregation,
+                    archive_policy_def.granularity)
+            except storage.AggregationDoesNotExist:
+                pass
+            else:
+                if existing is not None:
+                    # FIXME(jd) not update but rather concat ts + split
+                    existing.update(split)
+                    split = existing
+        else:
+            offset = split.offset_from_timestamp(key)
+        return self._store_metric_measures(
+            metric, key_as_str, aggregation, archive_policy_def.granularity,
+            split.serialize(key, write_full), offset=offset)
 
     def _add_measures(self, aggregation, archive_policy_def,
-                      metric, timeserie):
-        ts = self._get_measures_to_update(metric, aggregation,
-                                          archive_policy_def, timeserie)
+                      metric, timeserie,
+                      oldest_mutable_timestamp):
+        ts = carbonara.AggregatedTimeSerie(
+            archive_policy_def.granularity,
+            aggregation,
+            max_size=archive_policy_def.points)
         ts.update(timeserie)
         for key, split in ts.split():
-            self._store_metric_measures(metric, key, aggregation,
-                                        archive_policy_def.granularity,
-                                        split.serialize(key, self.WRITE_FULL),
-                                        offset=(0 if self.WRITE_FULL else
-                                                split.offset_from_split()))
+            self._store_timeserie_split(
+                metric, key, split, aggregation, archive_policy_def,
+                oldest_mutable_timestamp)
 
         if ts.last and archive_policy_def.timespan:
             oldest_point_to_keep = ts.last - datetime.timedelta(
@@ -270,8 +301,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric_measures_before(self, metric, aggregation_method,
                                        granularity, timestamp):
         """Delete measures for a metric before a timestamp."""
-        ts = carbonara.AggregatedTimeSerie.get_split_key(
-            timestamp, granularity)
+        ts = str(carbonara.SplitKey.from_timestamp_and_sampling(
+            timestamp, granularity))
         for key in self._list_split_keys_for_metric(
                 metric, aggregation_method, granularity):
             # NOTE(jd) Only delete if the key is strictly inferior to
@@ -327,12 +358,26 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         sampling=d.granularity,
                         aggregation_method=agg_method,
                         timeseries=timeseries, max_size=d.points)
+                    try:
+                        unaggregated = self._get_unaggregated_timeserie_and_unserialize(  # noqa
+                            metric)
+                    except (storage.MetricDoesNotExist, CorruptionError) as e:
+                        # NOTE(jd) This case is not really possible – you can't
+                        # have archives with splits and no unaggregated
+                        # timeserie…
+                        LOG.error(
+                            "Unable to find unaggregated timeserie for "
+                            "metric %s, unable to upgrade data: %s",
+                            metric.id, e)
+                        break
+                    oldest_mutable_timestamp = (
+                        unaggregated.first_block_timestamp()
+                    )
                     for key, split in ts.split():
-                        self._store_metric_measures(
-                            metric, key, ts.aggregation_method,
-                            ts.sampling, split.serialize(key, self.WRITE_FULL),
-                            offset=(0 if self.WRITE_FULL else
-                                    split.offset_from_split()))
+                        self._store_timeserie_split(
+                            metric, key, split,
+                            ts.aggregation_method,
+                            d, oldest_mutable_timestamp)
                     for key in all_keys:
                         self._delete_metric_measures(
                             metric, key, agg_method,
@@ -423,8 +468,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 self._add_measures,
                                 ((aggregation, d, metric,
                                   carbonara.TimeSerie(bound_timeserie.ts[
-                                      carbonara.TimeSerie.round_timestamp(
-                                          tstamp, d.granularity * 10e8):]))
+                                      carbonara.round_timestamp(
+                                          tstamp, d.granularity * 10e8):]),
+                                  bound_timeserie.first_block_timestamp())
                                  for aggregation in agg_methods
                                  for d in metric.archive_policy.definition))
 

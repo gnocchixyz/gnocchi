@@ -235,7 +235,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             metric, aggregation, timestamp_key, granularity, version))
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=0, version=3):
+                               granularity, data, offset=None, version=3):
         self._atomic_file_store(
             self._build_metric_path_for_split(metric, aggregation,
                                               timestamp_key, granularity,

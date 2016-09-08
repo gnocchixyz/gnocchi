@@ -141,7 +141,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual(3661, len(self.storage.get_measures(m)))
 
-    @mock.patch('gnocchi.carbonara.AggregatedTimeSerie.POINTS_PER_SPLIT', 48)
+    @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
         m, m_sql = self._create_metric('medium')
         measures = [
@@ -181,7 +181,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.trigger_processing([str(m.id)])
         for __, args, __ in c.mock_calls:
             self.assertEqual(
-                args[3].first, carbonara.TimeSerie.round_timestamp(
+                args[3].first, carbonara.round_timestamp(
                     new_point, args[1].granularity * 10e8))
 
     def test_delete_old_measures(self):

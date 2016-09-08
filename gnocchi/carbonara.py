@@ -77,6 +77,11 @@ class UnknownAggregationMethod(Exception):
             "Unknown aggregation method `%s'" % agg)
 
 
+def round_timestamp(ts, freq):
+    return pandas.Timestamp(
+        (pandas.Timestamp(ts).value // freq) * freq)
+
+
 class TimeSerie(object):
     """A representation of series of a timestamp with a value.
 
@@ -149,11 +154,6 @@ class TimeSerie(object):
     def _serialize_time_period(value):
         if value:
             return value.nanos / 10e8
-
-    @staticmethod
-    def round_timestamp(ts, freq):
-        return pandas.Timestamp(
-            (pandas.Timestamp(ts).value // freq) * freq)
 
     @staticmethod
     def _to_offset(value):
@@ -265,8 +265,8 @@ class BoundTimeSerie(TimeSerie):
 
     def first_block_timestamp(self):
         """Return the timestamp of the first block."""
-        rounded = self.round_timestamp(self.ts.index[-1],
-                                       self.block_size.delta.value)
+        rounded = round_timestamp(self.ts.index[-1],
+                                  self.block_size.delta.value)
 
         return rounded - (self.block_size * self.back_window)
 
@@ -279,11 +279,66 @@ class BoundTimeSerie(TimeSerie):
             self.ts = self.ts[self.first_block_timestamp():]
 
 
+class SplitKey(pandas.Timestamp):
+    """A class representing a split key.
+
+    A split key is basically a timestamp that can be used to split
+    `AggregatedTimeSerie` objects in multiple parts. Each part will contain
+    `SplitKey.POINTS_PER_SPLIT` points. The split key for a given granularity
+    are regularly spaced.
+    """
+
+    POINTS_PER_SPLIT = 3600
+
+    @classmethod
+    def _init(cls, value, sampling):
+        # NOTE(jd) This should be __init__ but it does not work, because of…
+        # Pandas, Cython, whatever.
+        self = cls(value)
+        self._carbonara_sampling = sampling
+        return self
+
+    @classmethod
+    def from_timestamp_and_sampling(cls, timestamp, sampling):
+        return cls._init(
+            round_timestamp(
+                timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8),
+            sampling)
+
+    def __next__(self):
+        """Get the split key of the next split.
+
+        :return: A `SplitKey` object.
+        """
+        return self._init(
+            self + datetime.timedelta(
+                seconds=(self.POINTS_PER_SPLIT * self._carbonara_sampling)),
+            self._carbonara_sampling)
+
+    next = __next__
+
+    def __iter__(self):
+        return self
+
+    def __str__(self):
+        return str(float(self))
+
+    def __float__(self):
+        ts = self.to_datetime()
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=iso8601.iso8601.UTC)
+        return utils.datetime_to_unix(ts)
+
+    def __repr__(self):
+        return "<%s: %s / %fs>" % (self.__class__.__name__,
+                                   pandas.Timestamp.__repr__(self),
+                                   self._carbonara_sampling)
+
+
 class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
 
-    POINTS_PER_SPLIT = 3600
     SERIAL_LEN = 9
 
     def __init__(self, sampling, aggregation_method,
@@ -320,28 +375,11 @@ class AggregatedTimeSerie(TimeSerie):
                    ts=pandas.Series(values, timestamps),
                    max_size=max_size)
 
-    @classmethod
-    def get_split_key_datetime(cls, timestamp, sampling):
-        return cls.round_timestamp(
-            timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8)
-
-    @staticmethod
-    def _split_key_to_string(timestamp):
-        ts = timestamp.to_datetime()
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=iso8601.iso8601.UTC)
-        return str(utils.datetime_to_unix(ts))
-
-    @classmethod
-    def get_split_key(cls, timestamp, sampling):
-        return cls._split_key_to_string(
-            cls.get_split_key_datetime(timestamp, sampling))
-
     def split(self):
         groupby = self.ts.groupby(functools.partial(
-            self.get_split_key_datetime, sampling=self.sampling))
+            SplitKey.from_timestamp_and_sampling, sampling=self.sampling))
         for group, ts in groupby:
-            yield (self._split_key_to_string(group),
+            yield (SplitKey._init(group, self.sampling),
                    AggregatedTimeSerie(self.sampling, self.aggregation_method,
                                        ts))
 
@@ -387,7 +425,16 @@ class AggregatedTimeSerie(TimeSerie):
         y = pandas.to_datetime(y, unit='s')
         return cls.from_data(sampling, agg_method, y, x)
 
+    def get_split_key(self):
+        return SplitKey.from_timestamp_and_sampling(
+            self.first, self.sampling)
+
     def serialize(self, start=None, padded=True):
+        """Serialize an aggregated timeserie.
+
+        :param start: timestamp to start serialization
+        :param padded: pad the beginning of the serialization with zeroes
+        """
         # NOTE(gordc): this binary serializes series based on the split time.
         # the format is 1B True/False flag which denotes whether subsequent 8B
         # is a real float or zero padding. every 9B represents one second from
@@ -397,9 +444,13 @@ class AggregatedTimeSerie(TimeSerie):
         if not self.ts.index.is_monotonic:
             self.ts = self.ts.sort_index()
         offset_div = self.sampling * 10e8
-        start = ((float(start) * 10e8 if start else
-                  float(self.get_split_key(self.first, self.sampling)) * 10e8)
-                 if padded else self.first.value)
+        if padded:
+            if start is None:
+                start = pandas.Timestamp(start).value
+            else:
+                start = self.get_split_key().value
+        else:
+            start = self.first.value
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
         e_offset = int((self.last.value - start) // (self.sampling * 10e8)) + 1
@@ -411,9 +462,9 @@ class AggregatedTimeSerie(TimeSerie):
             serial[loc * 2 + 1] = float(v)
         return struct.pack('<' + '?d' * e_offset, *serial)
 
-    def offset_from_split(self):
-        split = float(self.get_split_key(self.first, self.sampling)) * 10e8
-        return int((self.first.value - split) // (self.sampling * 10e8)
+    def offset_from_timestamp(self, timestamp):
+        return int((self.first.value - pandas.Timestamp(timestamp).value)
+                   // (self.sampling * 10e8)
                    * self.SERIAL_LEN)
 
     def _truncate(self, quick=False):
@@ -427,7 +478,7 @@ class AggregatedTimeSerie(TimeSerie):
         # Group by the sampling, and then apply the aggregation method on
         # the points after `after'
         groupedby = self.ts[after:].groupby(
-            functools.partial(self.round_timestamp,
+            functools.partial(round_timestamp,
                               freq=self.sampling * 10e8))
         agg_func = getattr(groupedby, self.aggregation_method_func_name)
         if self.aggregation_method_func_name == 'quantile':
@@ -449,7 +500,7 @@ class AggregatedTimeSerie(TimeSerie):
         if from_timestamp is None:
             from_ = None
         else:
-            from_ = self.round_timestamp(from_timestamp, self.sampling * 10e8)
+            from_ = round_timestamp(from_timestamp, self.sampling * 10e8)
         points = self[from_:to_timestamp]
         try:
             # Do not include stop timestamp
@@ -493,7 +544,7 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def benchmark(cls):
         """Run a speed benchmark!"""
-        points = cls.POINTS_PER_SPLIT
+        points = SplitKey.POINTS_PER_SPLIT
         sampling = 5
         compress_times = 50
 
@@ -523,8 +574,9 @@ class AggregatedTimeSerie(TimeSerie):
                                  for i in six.moves.range(points)])
             ts = cls(ts=pts, sampling=sampling, aggregation_method='mean')
             t0 = time.time()
+            key = ts.get_split_key()
             for i in six.moves.range(compress_times):
-                s = ts.serialize()
+                s = ts.serialize(key)
             t1 = time.time()
             print(title)
             print(" Bytes per point: %.2f" % (len(s) / float(points)))
