@@ -22,3 +22,37 @@ tests:
       data:
         =:
           id: "cd9eef"
+
+    - name: post generic resource
+      POST: /v1/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          id: faef212f-0bf4-4030-a461-2186fef79be0
+          started_at: "2014-01-03T02:02:02.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: post generic resource twice
+      POST: /v1/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          id: df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e
+          started_at: "2014-01-03T02:02:02.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: search in_
+      POST: /v1/search/resource/generic
+      request_headers:
+        content-type: application/json
+      data:
+        in:
+          id:
+            - faef212f-0bf4-4030-a461-2186fef79be0
+            - df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e
+      response_json_paths:
+        $.`len`: 2
