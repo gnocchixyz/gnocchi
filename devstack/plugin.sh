@@ -264,9 +264,9 @@ function configure_gnocchi {
         iniset $GNOCCHI_CONF storage driver swift
         iniset $GNOCCHI_CONF storage swift_user gnocchi_swift
         iniset $GNOCCHI_CONF storage swift_key $SERVICE_PASSWORD
-        iniset $GNOCCHI_CONF storage swift_tenant_name "gnocchi_swift"
-        iniset $GNOCCHI_CONF storage swift_auth_version 2
-        iniset $GNOCCHI_CONF storage swift_authurl $KEYSTONE_SERVICE_URI/v2.0/
+        iniset $GNOCCHI_CONF storage swift_project_name "gnocchi_swift"
+        iniset $GNOCCHI_CONF storage swift_auth_version 3
+        iniset $GNOCCHI_CONF storage swift_authurl $KEYSTONE_SERVICE_URI_V3
     elif [[ "$GNOCCHI_STORAGE_BACKEND" = 'file' ]] ; then
         iniset $GNOCCHI_CONF storage driver file
         iniset $GNOCCHI_CONF storage file_basepath $GNOCCHI_DATA_DIR/
