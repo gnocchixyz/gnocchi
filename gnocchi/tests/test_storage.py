@@ -181,7 +181,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.trigger_processing([str(m.id)])
         for __, args, __ in c.mock_calls:
             self.assertEqual(
-                args[3].first, carbonara.round_timestamp(
+                list(args[3])[0][0], carbonara.round_timestamp(
                     new_point, args[1].granularity * 10e8))
 
     def test_delete_old_measures(self):
