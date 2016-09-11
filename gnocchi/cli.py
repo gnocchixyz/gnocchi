@@ -110,7 +110,7 @@ class MetricProcessBase(cotyledon.Service):
 
     @staticmethod
     def close_services():
-        raise NotImplementedError
+        pass
 
     @staticmethod
     def _run_job():
@@ -246,7 +246,6 @@ class MetricScheduler(MetricProcessBase):
             self.periodic.wait()
         self._coord.leave_group(self.GROUP_ID)
         self._coord.stop()
-        self.queue.close()
 
 
 class MetricJanitor(MetricProcessBase):
@@ -287,9 +286,6 @@ class MetricProcessor(MetricProcessBase):
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
 
-    def close_services(self):
-        self.queue.close()
-
 
 class MetricdServiceManager(cotyledon.ServiceManager):
     def __init__(self, conf):
@@ -302,6 +298,10 @@ class MetricdServiceManager(cotyledon.ServiceManager):
                  workers=conf.metricd.workers)
         self.add(MetricReporting, args=(self.conf,))
         self.add(MetricJanitor, args=(self.conf,))
+
+    def run(self):
+        super(MetricdServiceManager, self).run()
+        self.queue.close()
 
 
 def metricd():
