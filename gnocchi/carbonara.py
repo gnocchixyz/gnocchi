@@ -184,6 +184,11 @@ class TimeSerie(object):
         return msgpack.dumps(self.to_dict())
 
     def group_serie(self, granularity, start=None):
+        # NOTE(jd) Our whole serialization system is based on Epoch, and we
+        # store unsigned integer, so we can't store anything before Epoch.
+        # Sorry!
+        if self.ts.index[0].value < 0:
+            raise BeforeEpochError(self.ts.index[0])
         return self.ts[start:].groupby(functools.partial(
             round_timestamp, freq=granularity * 10e8))
 
@@ -545,19 +550,6 @@ class AggregatedTimeSerie(TimeSerie):
             self.ts = (self.ts[-self.max_size:] if quick
                        else self.ts.dropna()[-self.max_size:])
 
-    def _resample(self, after):
-        # Group by the sampling, and then apply the aggregation method on
-        # the points after `after'
-        groupedby = self.ts[after:].groupby(
-            functools.partial(round_timestamp,
-                              freq=self.sampling * 10e8))
-        aggregated = self._resample_grouped(groupedby,
-                                            self.aggregation_method_func_name,
-                                            self.q)
-        # Now combine the result with the rest of the point – everything
-        # that is before `after'
-        self.ts = aggregated.combine_first(self.ts[:after][:-1])
-
     @staticmethod
     def _resample_grouped(grouped_serie, agg_name, q=None):
         agg_func = getattr(grouped_serie, agg_name)
@@ -592,37 +584,6 @@ class AggregatedTimeSerie(TimeSerie):
         resampling. Be careful on what you merge.
         """
         self.ts = self.ts.combine_first(ts.ts)
-
-    def update(self, ts):
-        # TODO(gordc): remove this since it's not used
-        if ts.ts.empty:
-            return
-        ts.ts = self.clean_ts(ts.ts)
-        index = ts.ts.index
-        first_timestamp = index[0]
-        last_timestamp = index[-1]
-
-        # NOTE(jd) Our whole serialization system is based on Epoch, and we
-        # store unsigned integer, so we can't store anything before Epoch.
-        # Sorry!
-        if first_timestamp.value < 0:
-            raise BeforeEpochError(first_timestamp)
-
-        # Build a new time serie excluding all data points in the range of the
-        # timeserie passed as argument
-        new_ts = self.ts.drop(self.ts[first_timestamp:last_timestamp].index)
-
-        # Build a new timeserie where we replaced the timestamp range covered
-        # by the timeserie passed as argument
-        self.ts = ts.ts.combine_first(new_ts)
-
-        # Resample starting from the first timestamp we received
-        # TODO(jd) So this only works correctly because we expect that we are
-        # not going to replace a range in the middle of our timeserie. So we re
-        # resample EVERYTHING FROM first timestamp. We should rather resample
-        # from first timestamp AND TO LAST TIMESTAMP!
-        self._resample(first_timestamp)
-        self._truncate()
 
     @classmethod
     def benchmark(cls):
