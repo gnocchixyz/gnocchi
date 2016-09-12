@@ -170,8 +170,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _list_object_names_to_process(self, prefix=""):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", prefix, -1)
-            self.ioctx.operate_read_op(
-                op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)
+            try:
+                self.ioctx.operate_read_op(
+                    op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)
+            except rados.ObjectNotFound:
+                # API have still written nothing
+                return ()
             # NOTE(sileht): after reading the libradospy, I'm
             # not sure that ret will have the correct value
             # get_omap_vals transforms the C int to python int
