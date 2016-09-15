@@ -61,21 +61,20 @@ class TestCarbonaraMigration(tests_base.TestCase):
                                                        ts.serialize())
 
             for d, agg in itertools.product(
-                    self.metric.archive_policy.definition,
-                    ['mean', 'max']):
-                ts = carbonara.AggregatedTimeSerie(
-                    sampling=d.granularity, aggregation_method=agg,
-                    max_size=d.points)
+                    self.metric.archive_policy.definition, ['mean', 'max']):
 
                 # NOTE: there is a split at 2016-07-18 on granularity 300
-                ts.update(carbonara.TimeSerie.from_data(
+                ts = carbonara.TimeSerie.from_data(
                     [datetime.datetime(2016, 7, 17, 23, 59, 0),
                      datetime.datetime(2016, 7, 17, 23, 59, 4),
                      datetime.datetime(2016, 7, 17, 23, 59, 9),
                      datetime.datetime(2016, 7, 18, 0, 0, 0),
                      datetime.datetime(2016, 7, 18, 0, 0, 4),
                      datetime.datetime(2016, 7, 18, 0, 0, 9)],
-                    [4, 5, 6, 7, 8, 9]))
+                    [4, 5, 6, 7, 8, 9])
+                grouped = ts.group_serie(d.granularity)
+                ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, d.granularity, agg, max_size=d.points)
 
                 for key, split in ts.split():
                     self.storage._store_metric_measures(
@@ -189,21 +188,20 @@ class TestCarbonaraMigration(tests_base.TestCase):
                                                        ts.serialize())
 
             for d, agg in itertools.product(
-                    self.metric2.archive_policy.definition,
-                    ['mean', 'max']):
-                ts = carbonara.AggregatedTimeSerie(
-                    sampling=d.granularity, aggregation_method=agg,
-                    max_size=d.points)
+                    self.metric2.archive_policy.definition, ['mean', 'max']):
 
                 # NOTE: there is a split at 2016-07-18 on granularity 300
-                ts.update(carbonara.TimeSerie.from_data(
+                ts = carbonara.TimeSerie.from_data(
                     [datetime.datetime(2016, 7, 17, 23, 59, 0),
                      datetime.datetime(2016, 7, 17, 23, 59, 4),
                      datetime.datetime(2016, 7, 17, 23, 59, 9),
                      datetime.datetime(2016, 7, 18, 0, 0, 0),
                      datetime.datetime(2016, 7, 18, 0, 0, 4),
                      datetime.datetime(2016, 7, 18, 0, 0, 9)],
-                    [4, 5, 6, 7, 8, 9]))
+                    [4, 5, 6, 7, 8, 9])
+                grouped = ts.group_serie(d.granularity)
+                ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, d.granularity, agg, max_size=d.points)
 
                 for key, split in ts.split():
                     self.storage._store_metric_measures(
