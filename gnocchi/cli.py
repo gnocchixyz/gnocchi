@@ -18,7 +18,6 @@ import threading
 import time
 import uuid
 
-from concurrent import futures
 import cotyledon
 from futurist import periodics
 import msgpack
@@ -195,9 +194,7 @@ class MetricScheduler(MetricProcessBase):
             def run_watchers():
                 self._coord.run_watchers()
 
-            self.periodic = periodics.PeriodicWorker.create(
-                [], executor_factory=lambda:
-                futures.ThreadPoolExecutor(max_workers=10))
+            self.periodic = periodics.PeriodicWorker.create([])
             self.periodic.add(run_watchers)
             t = threading.Thread(target=self.periodic.start)
             t.daemon = True
