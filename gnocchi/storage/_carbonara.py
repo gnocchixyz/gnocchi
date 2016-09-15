@@ -485,6 +485,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # get back later to it if needed.
             if lock.acquire(blocking=sync):
                 try:
+                    locksw = timeutils.StopWatch().start()
                     LOG.debug("Processing measures for %s" % metric)
                     with self._process_measure_for_metric(metric) as measures:
                         # NOTE(mnaser): The metric could have been handled by
@@ -575,7 +576,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
                         self._store_unaggregated_timeserie(metric,
                                                            ts.serialize())
+
+                    LOG.debug("Metric %s locked during %.2f seconds" %
+                              (metric.id, locksw.elapsed()))
                 except Exception:
+                    LOG.debug("Metric %s locked during %.2f seconds" %
+                              (metric.id, locksw.elapsed()))
                     if sync:
                         raise
                     LOG.error("Error processing new measures", exc_info=True)
