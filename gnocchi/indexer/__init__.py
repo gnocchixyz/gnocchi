@@ -363,6 +363,11 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+    def delete_resources(resource_type='generic',
+                         attribute_filter=None):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
     def delete_metric(id):
         raise exceptions.NotImplementedError
 

@@ -292,14 +292,29 @@ And to retrieve its modification history:
 
 {{ scenarios['get-patched-instance-history']['doc'] }}
 
-It possible to delete a resource altogether:
+It is possible to delete a resource altogether:
 
 {{ scenarios['delete-resource-generic']['doc'] }}
 
+It is also possible to delete a batch of resources based on attribute values, and
+returns a number of deleted resources.
+
+To delete resources based on ids:
+
+{{ scenarios['delete-resources-by-ids']['doc'] }}
+
+or delete resources based on time:
+
+{{ scenarios['delete-resources-by-time']['doc']}}
+
 .. IMPORTANT::
 
-   When a resource is deleted, all its associated metrics are deleted at the
-   same time.
+  When a resource is deleted, all its associated metrics are deleted at the
+  same time.
+
+  When a batch of resources are deleted, an attribute filter is required to
+  avoid deletion of the entire database.
+
 
 All resources can be listed, either by using the `generic` type that will list
 all types of resources, or by filtering on their resource type:

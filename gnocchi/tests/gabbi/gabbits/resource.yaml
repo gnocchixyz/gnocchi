@@ -826,3 +826,308 @@ tests:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 404
+
+# Delete a batch of resources by attributes filter
+
+    - name: create resource one
+      desc: before test batch delete, create some resources
+      POST: /v1/resource/generic
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-aaaa-4d67-9985-02511241e7d1
+          started_at: "2014-01-03T02:02:02.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource two
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-bbbb-4d67-9985-02511241e7d1
+          started_at: "2014-01-03T02:02:02.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource three
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-cccc-4d67-9985-02511241e7d1
+          started_at: "2014-08-04T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource four
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-dddd-4d67-9985-02511241e7d1
+          started_at: "2014-08-04T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource five
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-eeee-4d67-9985-02511241e7d1
+          started_at: "2015-08-14T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource six
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          id: f93450f2-ffff-4d67-9985-02511241e7d1
+          started_at: "2015-08-14T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: get resource one
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-aaaa-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: get resource two
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-bbbb-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: get resource three
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-cccc-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: get resource four
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-dddd-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: get resource five
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-eeee-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: get resource six
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/f93450f2-ffff-4d67-9985-02511241e7d1
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 200
+
+    - name: delete random data structure
+      desc: delete a empty list test
+      DELETE: /v1/resource/generic
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          resource_ids:
+              []
+          attrs:
+              test
+      status: 400
+
+    - name: delete something empty
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data: ""
+      status: 400
+
+    - name: delete something empty a
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+             id: []
+      status: 200
+      response_json_paths:
+        $.deleted: 0
+
+    - name: delete something empty b
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in: {}
+      status: 400
+
+    - name: delete something empty c
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+              and: []
+      status: 400
+
+    - name: delete something empty d
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+              and:
+                  - or: []
+                  - id:
+                      =: ""
+      status: 400
+
+    - name: delete something empty e
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          and: []
+      status: 400
+
+    - name: delete something empty f
+      desc: use  empty filter for delete
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          and:
+              - in:
+                  id: []
+              - started_at: ""
+      status: 400
+
+    - name: delete batch of resources filter by started_at
+      desc: delete the created resources
+      DELETE: /v1/resource/generic
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          eq:
+            started_at: "2014-08-04"
+      status: 200
+      response_json_paths:
+        $.deleted: 2
+
+    - name: delete batch of resources filter by mutliple ids
+      desc: delete the created resources
+      DELETE: /v1/resource/generic
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+            id:
+              - f93450f2-aaaa-4d67-9985-02511241e7d1
+              - f93450f2-bbbb-4d67-9985-02511241e7d1
+      status: 200
+      response_json_paths:
+        $.deleted: 2
+
+    - name: delete both existent and non-existent data
+      desc: delete exits and non-exist data
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+            id:
+              - f93450f2-eeee-4d67-9985-02511241e7d1
+              - f93450f2-ffff-4d67-9985-02511241e7d1
+              - f93450f2-yyyy-4d67-9985-02511241e7d1
+              - f93450f2-xxxx-4d67-9985-02511241e7d1
+      status: 200
+      response_json_paths:
+        $.deleted: 2
+
+    - name: delete multiple non-existent resources
+      desc: delete a batch of non-existent resources
+      DELETE: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          in:
+            id:
+              - f93450f2-zzzz-4d67-9985-02511241e7d1
+              - f93450f2-kkkk-4d67-9985-02511241e7d1
+      status: 200
+      response_json_paths:
+        $.deleted: 0

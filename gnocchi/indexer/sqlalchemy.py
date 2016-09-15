@@ -867,6 +867,37 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.NoSuchResource(resource_id)
 
     @retry_on_deadlock
+    def delete_resources(self, resource_type='generic',
+                         attribute_filter=None):
+        if not attribute_filter:
+            raise ValueError("attribute_filter must be set")
+
+        with self.facade.writer() as session:
+            target_cls = self._resource_type_to_mappers(
+                session, resource_type)["resource"]
+
+            q = session.query(target_cls.id)
+
+            engine = session.connection()
+            try:
+                f = QueryTransformer.build_filter(engine.dialect.name,
+                                                  target_cls,
+                                                  attribute_filter)
+            except indexer.QueryAttributeError as e:
+                # NOTE(jd) The QueryAttributeError does not know about
+                # resource_type, so convert it
+                raise indexer.ResourceAttributeError(resource_type,
+                                                     e.attribute)
+
+            q = q.filter(f)
+
+            session.query(Metric).filter(
+                Metric.resource_id.in_(q)
+            ).update({"status": "delete"},
+                     synchronize_session=False)
+            return q.delete(synchronize_session=False)
+
+    @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         with self.facade.independent_reader() as session:
             resource_cls = self._resource_type_to_mappers(

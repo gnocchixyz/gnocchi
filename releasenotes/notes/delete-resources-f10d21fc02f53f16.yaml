@@ -1,0 +1,3 @@
+---
+feature:
+  - A new REST API call is provided to delete multiple resources at once using a search filter.
