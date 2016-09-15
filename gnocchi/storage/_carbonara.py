@@ -254,13 +254,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             data, offset=offset)
 
     def _add_measures(self, aggregation, archive_policy_def,
-                      metric, timeserie,
+                      metric, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
-        ts = timeserie.aggregate(
-            archive_policy_def.granularity,
-            aggregation,
-            archive_policy_def.points)
+        ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
+            grouped_serie, archive_policy_def.granularity,
+            aggregation, max_size=archive_policy_def.points)
 
         # Don't do anything if the timeserie is empty
         if not ts:
@@ -505,16 +504,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             # affected by new measures for specific granularity
                             tstamp = max(bound_timeserie.first, measures[0][0])
                             computed_points['number'] = len(bound_timeserie)
-                            self._map_in_thread(
-                                self._add_measures,
-                                ((aggregation, d, metric,
-                                  carbonara.TimeSerie(bound_timeserie.ts[
-                                      carbonara.round_timestamp(
-                                          tstamp, d.granularity * 10e8):]),
-                                  current_first_block_timestamp,
-                                  bound_timeserie.first_block_timestamp())
-                                 for aggregation in agg_methods
-                                 for d in metric.archive_policy.definition))
+                            for d in metric.archive_policy.definition:
+                                ts = bound_timeserie.group_serie(
+                                    d.granularity, carbonara.round_timestamp(
+                                        tstamp, d.granularity * 10e8))
+                                self._map_in_thread(
+                                    self._add_measures,
+                                    ((aggregation, d, metric, ts,
+                                      current_first_block_timestamp,
+                                      bound_timeserie.first_block_timestamp())
+                                     for aggregation in agg_methods))
 
                         with timeutils.StopWatch() as sw:
                             ts.set_values(
