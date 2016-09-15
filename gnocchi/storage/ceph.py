@@ -310,14 +310,25 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 keys.add(meta[2])
         return keys
 
-    def _get_unaggregated_timeserie(self, metric):
+    @staticmethod
+    def _build_unaggregated_timeserie_path(metric, version):
+        return (('gnocchi_%s_none' % metric.id)
+                + ("_v%s" % version if version else ""))
+
+    def _get_unaggregated_timeserie(self, metric, version=3):
         try:
-            return self._get_object_content("gnocchi_%s_none" % metric.id)
+            return self._get_object_content(
+                self._build_unaggregated_timeserie_path(metric, version))
         except rados.ObjectNotFound:
             raise storage.MetricDoesNotExist(metric)
 
-    def _store_unaggregated_timeserie(self, metric, data):
-        self.ioctx.write_full("gnocchi_%s_none" % metric.id, data)
+    def _store_unaggregated_timeserie(self, metric, data, version=3):
+        self.ioctx.write_full(
+            self._build_unaggregated_timeserie_path(metric, version), data)
+
+    def _delete_unaggregated_timeserie(self, metric, version=3):
+        self.ioctx.aio_remove(
+            self._build_unaggregated_timeserie_path(metric, version))
 
     def _get_object_content(self, name):
         offset = 0

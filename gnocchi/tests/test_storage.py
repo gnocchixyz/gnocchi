@@ -68,7 +68,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.unserialize',
                         side_effect=ValueError("boom!")):
-            with mock.patch('gnocchi.carbonara.TimeSerie.unserialize',
+            with mock.patch('gnocchi.carbonara.BoundTimeSerie.unserialize',
                             side_effect=ValueError("boom!")):
                 self.trigger_processing()
 

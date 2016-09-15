@@ -270,22 +270,31 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 continue
         return keys
 
-    def _get_unaggregated_timeserie(self, metric):
+    @staticmethod
+    def _build_unaggregated_timeserie_path(version):
+        return 'none' + ("_v%s" % version if version else "")
+
+    def _get_unaggregated_timeserie(self, metric, version=3):
         try:
             headers, contents = self.swift.get_object(
-                self._container_name(metric), "none")
+                self._container_name(metric),
+                self._build_unaggregated_timeserie_path(version))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
         return contents
 
-    def _store_unaggregated_timeserie(self, metric, data):
-        self.swift.put_object(self._container_name(metric), "none", data)
+    def _store_unaggregated_timeserie(self, metric, data, version=3):
+        self.swift.put_object(self._container_name(metric),
+                              self._build_unaggregated_timeserie_path(version),
+                              data)
 
-    def _delete_unaggregated_timeserie(self, metric):
+    def _delete_unaggregated_timeserie(self, metric, version=3):
         try:
-            self.swift.delete_object(self._container_name(metric), "none")
+            self.swift.delete_object(
+                self._container_name(metric),
+                self._build_unaggregated_timeserie_path(version))
         except swclient.ClientException as e:
             if e.http_status != 404:
                 raise

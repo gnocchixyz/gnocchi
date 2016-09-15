@@ -30,7 +30,7 @@ from gnocchi import carbonara
 class TestBoundTimeSerie(base.BaseTestCase):
     def test_benchmark(self):
         self.useFixture(fixtures.Timeout(120, gentle=True))
-        carbonara.AggregatedTimeSerie.benchmark()
+        carbonara.BoundTimeSerie.benchmark()
 
     @staticmethod
     def test_base():
@@ -114,6 +114,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime.datetime(2014, 1, 1, 12, 0, 4),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])
+
+    def test_benchmark(self):
+        self.useFixture(fixtures.Timeout(120, gentle=True))
+        carbonara.AggregatedTimeSerie.benchmark()
 
     def test_fetch_basic(self):
         ts = carbonara.AggregatedTimeSerie.from_data(
@@ -261,16 +265,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(2, len(ts))
         self.assertEqual(70, ts[datetime.datetime(2014, 1, 1, 12, 1, 0)])
         self.assertEqual(1, ts[datetime.datetime(2014, 1, 1, 12, 2, 0)])
-
-    def test_to_dict_from_dict(self):
-        ts = carbonara.TimeSerie.from_data(
-            [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 1, 4),
-             datetime.datetime(2014, 1, 1, 12, 1, 9),
-             datetime.datetime(2014, 1, 1, 12, 2, 12)],
-            [3, 5, 7, 1])
-        ts2 = carbonara.TimeSerie.from_dict(ts.to_dict())
-        self.assertEqual(ts, ts2)
 
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
