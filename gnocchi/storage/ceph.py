@@ -134,6 +134,22 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         for xattr in xattrs:
             self.ioctx.rm_xattr(self.MEASURE_PREFIX, xattr)
 
+    def _check_for_metric_upgrade(self, metric):
+        lock = self._lock(metric.id)
+        with lock:
+            container = "gnocchi_%s_container" % metric.id
+            try:
+                xattrs = tuple(k for k, v in self.ioctx.get_xattrs(container))
+            except rados.ObjectNotFound:
+                pass
+            else:
+                with rados.WriteOpCtx() as op:
+                    self.ioctx.set_omap(op, xattrs, tuple([b""] * len(xattrs)))
+                    self.ioctx.operate_write_op(op, container)
+                for xattr in xattrs:
+                    self.ioctx.rm_xattr(container, xattr)
+        super(CephStorage, self)._check_for_metric_upgrade(metric)
+
     def _store_new_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
         # many objects (2min for 20000 objects in 50osds cluster),
@@ -201,7 +217,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         object_names = self._list_object_names_to_process(object_prefix)
-        # Now clean objects and xattrs
+        # Now clean objects and omap
         with rados.WriteOpCtx() as op:
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
@@ -224,7 +240,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
         yield measures
 
-        # Now clean objects and xattrs
+        # Now clean objects and omap
         with rados.WriteOpCtx() as op:
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
@@ -264,23 +280,31 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.write_full(name, data)
         else:
             self.ioctx.write(name, data, offset=offset)
-        self.ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, b"")
+        with rados.WriteOpCtx() as op:
+            self.ioctx.set_omap(op, (name,), (b"",))
+            self.ioctx.operate_write_op(op, "gnocchi_%s_container" % metric.id)
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
                                 granularity, version=3):
         name = self._get_object_name(metric, timestamp_key,
                                      aggregation, granularity, version)
-        self.ioctx.rm_xattr("gnocchi_%s_container" % metric.id, name)
+        with rados.WriteOpCtx() as op:
+            self.ioctx.remove_omap_keys(op, (name,))
+            self.ioctx.operate_write_op(op, "gnocchi_%s_container" % metric.id)
         self.ioctx.aio_remove(name)
 
     def _delete_metric(self, metric):
-        try:
-            xattrs = self.ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
-        except rados.ObjectNotFound:
-            pass
-        else:
-            for xattr, _ in xattrs:
-                self.ioctx.aio_remove(xattr)
+        with rados.ReadOpCtx() as op:
+            omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
+            try:
+                self.ioctx.operate_read_op(
+                    op, "gnocchi_%s_container" % metric.id)
+            except rados.ObjectNotFound:
+                return
+            if ret == errno.ENOENT:
+                return
+            for name, _ in omaps:
+                self.ioctx.aio_remove(name)
         for name in ('container', 'none'):
             self.ioctx.aio_remove("gnocchi_%s_%s" % (metric.id, name))
 
@@ -298,17 +322,22 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=None):
-        try:
-            xattrs = self.ioctx.get_xattrs("gnocchi_%s_container" % metric.id)
-        except rados.ObjectNotFound:
-            raise storage.MetricDoesNotExist(metric)
-        keys = set()
-        for xattr, value in xattrs:
-            meta = xattr.split('_')
-            if (aggregation == meta[3] and granularity == float(meta[4]) and
-                    self._version_check(xattr, version)):
-                keys.add(meta[2])
-        return keys
+        with rados.ReadOpCtx() as op:
+            omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
+            try:
+                self.ioctx.operate_read_op(
+                    op, "gnocchi_%s_container" % metric.id)
+            except rados.ObjectNotFound:
+                raise storage.MetricDoesNotExist(metric)
+            if ret == errno.ENOENT:
+                raise storage.MetricDoesNotExist(metric)
+            keys = set()
+            for name, value in omaps:
+                meta = name.split('_')
+                if (aggregation == meta[3] and granularity == float(meta[4])
+                        and self._version_check(name, version)):
+                    keys.add(meta[2])
+            return keys
 
     @staticmethod
     def _build_unaggregated_timeserie_path(metric, version):
