@@ -34,6 +34,7 @@ from testtools import testcase
 import webtest
 
 from gnocchi import archive_policy
+from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
@@ -1878,3 +1879,73 @@ class GenericResourceTest(RestTest):
             "Invalid input: extra keys not allowed @ data["
             + repr(u'wrongoperator') + "]",
             result.text)
+
+
+class QueryStringSearchAttrFilterTest(tests_base.TestCase):
+    def _do_test(self, expr, expected):
+        req = rest.QueryStringSearchAttrFilter.parse(expr)
+        self.assertEqual(expected, req)
+
+    def test_search_query_builder(self):
+        self._do_test('foo=7EED6CC3-EDC8-48C9-8EF6-8A36B9ACC91C',
+                      {"=": {"foo": "7EED6CC3-EDC8-48C9-8EF6-8A36B9ACC91C"}})
+        self._do_test('foo=7EED6CC3EDC848C98EF68A36B9ACC91C',
+                      {"=": {"foo": "7EED6CC3EDC848C98EF68A36B9ACC91C"}})
+        self._do_test('foo=bar', {"=": {"foo": "bar"}})
+        self._do_test('foo!=1', {"!=": {"foo": 1.0}})
+        self._do_test('foo=True', {"=": {"foo": True}})
+        self._do_test('foo=null', {"=": {"foo": None}})
+        self._do_test('foo="null"', {"=": {"foo": "null"}})
+        self._do_test('foo in ["null", "foo"]',
+                      {"in": {"foo": ["null", "foo"]}})
+        self._do_test(u'foo="quote" and bar≠1',
+                      {"and": [{u"≠": {"bar": 1}},
+                               {"=": {"foo": "quote"}}]})
+        self._do_test('foo="quote" or bar like "%%foo"',
+                      {"or": [{"like": {"bar": "%%foo"}},
+                              {"=": {"foo": "quote"}}]})
+
+        self._do_test('not (foo="quote" or bar like "%%foo" or foo="what!" '
+                      'or bar="who?")',
+                      {"not": {"or": [
+                          {"=": {"bar": "who?"}},
+                          {"=": {"foo": "what!"}},
+                          {"like": {"bar": "%%foo"}},
+                          {"=": {"foo": "quote"}},
+                      ]}})
+
+        self._do_test('(foo="quote" or bar like "%%foo" or not foo="what!" '
+                      'or bar="who?") and cat="meme"',
+                      {"and": [
+                          {"=": {"cat": "meme"}},
+                          {"or": [
+                              {"=": {"bar": "who?"}},
+                              {"not": {"=": {"foo": "what!"}}},
+                              {"like": {"bar": "%%foo"}},
+                              {"=": {"foo": "quote"}},
+                          ]}
+                      ]})
+
+        self._do_test('foo="quote" or bar like "%%foo" or foo="what!" '
+                      'or bar="who?" and cat="meme"',
+                      {"or": [
+                          {"and": [
+                              {"=": {"cat": "meme"}},
+                              {"=": {"bar": "who?"}},
+                          ]},
+                          {"=": {"foo": "what!"}},
+                          {"like": {"bar": "%%foo"}},
+                          {"=": {"foo": "quote"}},
+                      ]})
+
+        self._do_test('foo="quote" or bar like "%%foo" and foo="what!" '
+                      'or bar="who?" or cat="meme"',
+                      {"or": [
+                          {"=": {"cat": "meme"}},
+                          {"=": {"bar": "who?"}},
+                          {"and": [
+                              {"=": {"foo": "what!"}},
+                              {"like": {"bar": "%%foo"}},
+                          ]},
+                          {"=": {"foo": "quote"}},
+                      ]})
