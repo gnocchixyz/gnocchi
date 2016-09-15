@@ -7,7 +7,7 @@ features:
     time serie, reducing the data space usage by at least 50 %.
 upgrade:
   - gnocchi-upgrade must be run before running the new version of
-    gnocchi-metric and the HTTP REST API in order to upgrade from version 2 of
+    gnocchi-metricd and the HTTP REST API in order to upgrade from version 2 of
     the Carbonara storage engine to version 3. It will read all metrics and
     convert them to new version 3 serialization format (compressing the data),
     which might take some time.
