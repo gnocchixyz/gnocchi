@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import multiprocessing
 
 import iso8601
 from oslo_utils import timeutils
@@ -115,3 +116,11 @@ def datetime_to_unix(timestamp):
 def dt_to_unix_ns(*args):
     return int(datetime_to_unix(datetime.datetime(
         *args, tzinfo=iso8601.iso8601.UTC)) * int(10e8))
+
+
+def get_default_workers():
+    try:
+        default_workers = multiprocessing.cpu_count() or 1
+    except NotImplementedError:
+        default_workers = 1
+    return default_workers
