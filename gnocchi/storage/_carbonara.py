@@ -367,6 +367,21 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _check_for_metric_upgrade(self, metric):
         lock = self._lock(metric.id)
         with lock:
+            try:
+                unaggregated = self._get_unaggregated_timeserie_and_unserialize(  # noqa
+                    metric)
+            except (storage.MetricDoesNotExist, CorruptionError) as e:
+                # NOTE(jd) This case is not really possible – you can't
+                # have archives with splits and no unaggregated
+                # timeserie…
+                LOG.error(
+                    "Unable to find unaggregated timeserie for "
+                    "metric %s, unable to upgrade data: %s",
+                    metric.id, e)
+                return
+            oldest_mutable_timestamp = (
+                unaggregated.first_block_timestamp()
+            )
             for agg_method, d in itertools.product(
                     metric.archive_policy.aggregation_methods,
                     metric.archive_policy.definition):
@@ -393,21 +408,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         sampling=d.granularity,
                         aggregation_method=agg_method,
                         timeseries=timeseries, max_size=d.points)
-                    try:
-                        unaggregated = self._get_unaggregated_timeserie_and_unserialize(  # noqa
-                            metric)
-                    except (storage.MetricDoesNotExist, CorruptionError) as e:
-                        # NOTE(jd) This case is not really possible – you can't
-                        # have archives with splits and no unaggregated
-                        # timeserie…
-                        LOG.error(
-                            "Unable to find unaggregated timeserie for "
-                            "metric %s, unable to upgrade data: %s",
-                            metric.id, e)
-                        break
-                    oldest_mutable_timestamp = (
-                        unaggregated.first_block_timestamp()
-                    )
                     for key, split in ts.split():
                         self._store_timeserie_split(
                             metric, key, split,
