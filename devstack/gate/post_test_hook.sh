@@ -43,8 +43,7 @@ export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value
 
 curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: application/json"
 
-# NOTE(sileht): gabbi tests needs assert on some Ceilometer resource types
-sudo gnocchi-upgrade --create-legacy-resource-types
+sudo gnocchi-upgrade
 
 # Just ensure tools still works
 gnocchi metric create
