@@ -142,6 +142,7 @@ class MetricScheduler(MetricProcessBase):
     GROUP_ID = "gnocchi-scheduler"
     SYNC_RATE = 30
     TASKS_PER_WORKER = 16
+    BLOCK_SIZE = 4
 
     def _enable_coordination(self, conf):
         self._coord = coordination.get_coordinator(
@@ -232,8 +233,9 @@ class MetricScheduler(MetricProcessBase):
                     LOG.warning('Metric processing lagging scheduling rate. '
                                 'It is recommended to increase the number of '
                                 'workers or to lengthen processing interval.')
-            for m_id in metrics:
-                self.queue.put(m_id)
+            metrics = list(metrics)
+            for i in six.moves.range(0, len(metrics), self.BLOCK_SIZE):
+                self.queue.put(metrics[i:i + self.BLOCK_SIZE])
             self.previously_scheduled_metrics = metrics
             LOG.debug("%d metrics scheduled for processing.", len(metrics))
         except Exception:
@@ -265,23 +267,16 @@ class MetricJanitor(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     name = "processing"
-    BLOCK_SIZE = 4
 
     def __init__(self, worker_id, conf, queue):
-        super(MetricProcessor, self).__init__(worker_id, conf, 1)
+        super(MetricProcessor, self).__init__(worker_id, conf, 0)
         self.queue = queue
 
     def _run_job(self):
         try:
             metrics = []
-            while len(metrics) < self.BLOCK_SIZE:
-                try:
-                    metrics.append(self.queue.get(block=False))
-                except six.moves.queue.Empty:
-                    # queue might be emptied by other workers, continue on.
-                    break
-            if metrics:
-                self.store.process_background_tasks(self.index, metrics)
+            metrics = self.queue.get(block=True)
+            self.store.process_background_tasks(self.index, metrics)
         except Exception:
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
