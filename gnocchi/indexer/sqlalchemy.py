@@ -233,15 +233,11 @@ class ResourceClassMapper(object):
                     raise exception.RetryRequest(e)
                 raise
 
-        # NOTE(sileht): If something goes wrong here, we are currently
-        # fucked, that why we expose the state to the superuser.
-        # TODO(sileht): The idea is to make the delete resource_type more
-        # like a cleanup method, I mean we should don't fail if the
-        # constraint have already been dropped or the table have already
-        # been deleted. So, when the superuser have fixed it's backend
-        # issue, it can rerun 'DELETE ../resource_type/foobar' even the
-        # state is already error and if we are sure all underlying
-        # resources have been cleaned we really deleted the resource_type.
+            # NOTE(sileht): If something goes wrong here, we are currently
+            # fucked, that why we expose the state to the superuser.
+            # But we allow him to delete a resource type in error state
+            # in case of he cleanup the mess manually and want gnocchi to
+            # control and finish the cleanup.
 
         # TODO(sileht): Remove this resource on other workers
         # by using expiration on cache ?
@@ -491,9 +487,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         try:
             with self.facade.writer() as session:
                 rt = self._get_resource_type(session, name)
-                if rt.state != "active":
+                if rt.state not in ["active", "deletion_error",
+                                    "creation_error", "updating_error"]:
                     raise indexer.UnexpectedResourceTypeState(
-                        name, "active", rt.state)
+                        name,
+                        "active/deletion_error/creation_error/updating_error",
+                        rt.state)
                 session.delete(rt)
 
                 # FIXME(sileht): Why do I need to flush here !!!
