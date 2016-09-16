@@ -28,15 +28,15 @@ OPTS = [
                default='file',
                help='Storage driver to use'),
     cfg.IntOpt('metric_processing_delay',
-               default=10,
+               default=60,
                help="How many seconds to wait between "
                "scheduling new metrics to process"),
     cfg.IntOpt('metric_reporting_delay',
-               default=60,
+               default=120,
                help="How many seconds to wait between "
                "metric ingestion reporting"),
     cfg.IntOpt('metric_cleanup_delay',
-               default=60,
+               default=300,
                help="How many seconds to wait between "
                "cleaning of expired data"),
 ]

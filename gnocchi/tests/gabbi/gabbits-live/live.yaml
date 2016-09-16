@@ -678,11 +678,11 @@ tests:
           content-type: application/json
       status: 400
 
-    - name: delete single archive policy cleanup.
+    - name: delete single archive policy cleanup
       url: /v1/archive_policy/gabbilive
       method: DELETE
       poll:
-          count: 60
+          count: 360
           delay: 1
       status: 204
 
