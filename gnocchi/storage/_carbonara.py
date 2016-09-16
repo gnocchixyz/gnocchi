@@ -18,6 +18,7 @@ import collections
 import datetime
 import itertools
 import operator
+import struct
 import uuid
 
 from concurrent import futures
@@ -25,9 +26,10 @@ import iso8601
 import msgpack
 from oslo_config import cfg
 from oslo_log import log
-from oslo_serialization import msgpackutils
 from oslo_utils import timeutils
+import pandas
 import six
+import six.moves
 from tooz import coordination
 
 from gnocchi import carbonara
@@ -329,8 +331,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     oldest_mutable_timestamp)
 
     def add_measures(self, metric, measures):
-        self._store_new_measures(metric, msgpackutils.dumps(
-            list(map(tuple, measures))))
+        measures = list(measures)
+        data = struct.pack(
+            "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
+            *list(
+                itertools.chain(
+                    # NOTE(jd) int(10e8) to avoid rounding errors
+                    *((int(utils.datetime_to_unix(timestamp) * int(10e8)),
+                       value)
+                      for timestamp, value in measures))))
+        self._store_new_measures(metric, data)
 
     @staticmethod
     def _store_new_measures(metric, data):
@@ -359,9 +369,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 aggregation, granularity, version=3):
         raise NotImplementedError
 
-    @staticmethod
-    def _unserialize_measures(data):
-        return msgpackutils.loads(data)
+    _MEASURE_SERIAL_FORMAT = "Qd"
+    _MEASURE_SERIAL_LEN = struct.calcsize(_MEASURE_SERIAL_FORMAT)
+
+    def _unserialize_measures(self, data):
+        nb_measures = len(data) // self._MEASURE_SERIAL_LEN
+        measures = struct.unpack(
+            "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
+        return six.moves.zip(
+            pandas.to_datetime(measures[::2], unit='ns'),
+            itertools.islice(measures, 1, len(measures), 2))
 
     def measures_report(self, details=True):
         metrics, measures, full_details = self._build_report(details)

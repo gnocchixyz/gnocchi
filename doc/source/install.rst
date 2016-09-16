@@ -91,12 +91,17 @@ Upgrading
 In order to upgrade from a previous version of Gnocchi, you need to make sure
 that your indexer and storage are properly upgraded. Run the following:
 
-1. Stop the old version of Gnocchi API server and metric daemon
+1. Stop the old version of Gnocchi API server and `gnocchi-statsd` daemon
 
-2. Install the new version of Gnocchi
+2. Make sure that the processing backlog is empty (`gnocchi status`)
 
-2. Run `gnocchi-upgrade`
+3. Stop the old version of `gnocchi-metricd` daemon
+
+4. Install the new version of Gnocchi
+
+5. Run `gnocchi-upgrade`
    This can take several hours depending on the size of your index and
    storage.
 
-3. Start the new Gnocchi API server and metric daemon
+6. Start the new Gnocchi API server, `gnocchi-metricd`
+   and `gnocchi-statsd` daemons
