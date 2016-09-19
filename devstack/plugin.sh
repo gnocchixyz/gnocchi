@@ -40,7 +40,7 @@ GITREPO["python-gnocchiclient"]=${GNOCCHICLIENT_REPO:-${GIT_BASE}/openstack/pyth
 
 if [ -z "$GNOCCHI_DEPLOY" ]; then
     # Default
-    GNOCCHI_DEPLOY=werkzeug
+    GNOCCHI_DEPLOY=simple
 
     # Fallback to common wsgi devstack configuration
     if [ "$ENABLE_HTTPD_MOD_WSGI_SERVICES" == "True" ]; then

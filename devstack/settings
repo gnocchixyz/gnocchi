@@ -15,7 +15,7 @@ GNOCCHI_COORDINATOR_URL=${GNOCCHI_COORDINATOR_URL:-redis://localhost:6379}
 
 # GNOCCHI_DEPLOY defines how Gnocchi is deployed, allowed values:
 # - mod_wsgi : Run Gnocchi under Apache HTTPd mod_wsgi
-# - werkzeug : Run gnocchi-api
+# - simple : Run gnocchi-api
 # - uwsgi : Run Gnocchi under uwsgi
 # - <empty>: Fallback to GNOCCHI_USE_MOD_WSGI or ENABLE_HTTPD_MOD_WSGI_SERVICES
 GNOCCHI_DEPLOY=${GNOCCHI_DEPLOY}
