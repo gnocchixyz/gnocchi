@@ -525,14 +525,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 len(agg_methods)
                                 * len(metric.archive_policy.definition)
                             )
-                            speed = ((number_of_operations
-                                     * computed_points['number']) / elapsed)
+
+                            if elapsed > 0:
+                                perf = " (%d points/s, %d measures/s)" % (
+                                    ((number_of_operations
+                                      * computed_points['number']) / elapsed),
+                                    ((number_of_operations
+                                      * len(measures)) / elapsed)
+                                )
+                            else:
+                                perf = ""
                             LOG.debug(
                                 "Computed new metric %s with %d new measures "
-                                "in %.2f seconds (%d points/s, %d measures/s)"
-                                % (metric.id, len(measures), elapsed, speed,
-                                   (number_of_operations * len(measures))
-                                   / elapsed))
+                                "in %.2f seconds%s"
+                                % (metric.id, len(measures), elapsed, perf))
 
                         self._store_unaggregated_timeserie(metric,
                                                            ts.serialize())
