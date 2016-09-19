@@ -127,7 +127,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         except rados.ObjectNotFound:
             return
         with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, xattrs, xattrs)
+            self.ioctx.set_omap(op, xattrs, tuple([b""]*len(xattrs)))
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
 
@@ -150,7 +150,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         self.ioctx.write_full(name, data)
 
         with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, (name,), ("",))
+            self.ioctx.set_omap(op, (name,), (b"",))
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
 
@@ -254,7 +254,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         if self._object_exists(name):
             raise storage.MetricAlreadyExists(metric)
         else:
-            self.ioctx.write_full(name, "metric created")
+            self.ioctx.write_full(name, b"metric created")
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data, offset=None, version=3):
@@ -264,7 +264,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.write_full(name, data)
         else:
             self.ioctx.write(name, data, offset=offset)
-        self.ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, "")
+        self.ioctx.set_xattr("gnocchi_%s_container" % metric.id, name, b"")
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
                                 granularity, version=3):
