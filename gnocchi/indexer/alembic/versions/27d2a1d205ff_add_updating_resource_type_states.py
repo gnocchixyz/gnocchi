@@ -38,17 +38,19 @@ resource_type = sa.sql.table(
     'resource_type',
     sa.sql.column('updated_at', sqlalchemy_base.PreciseTimestamp()))
 
+state_enum = sa.Enum("active", "creating",
+                     "creation_error", "deleting",
+                     "deletion_error", "updating",
+                     "updating_error",
+                     name="resource_type_state_enum")
+
 
 def upgrade():
 
     op.alter_column('resource_type', 'state',
-                    type_=sa.Enum("active", "creating",
-                                  "creation_error", "deleting",
-                                  "deletion_error", "updating",
-                                  "updating_error",
-                                  name="resource_type_state_enum"),
+                    type_=state_enum,
                     nullable=False,
-                    server_default="creating")
+                    server_default=None)
 
     # NOTE(sileht): postgresql have a builtin ENUM type, so
     # just altering the column won't works.
@@ -59,10 +61,23 @@ def upgrade():
     # we split the 'ALTER TYPE' operation into several steps.
     bind = op.get_bind()
     if bind and bind.engine.name == "postgresql":
-        op.execute("ALTER TYPE resource_type_state_enum ADD VALUE 'updating';")
-        op.execute("ALTER TYPE resource_type_state_enum ADD VALUE "
-                   "'updating_error';")
+        op.execute("ALTER TYPE resource_type_state_enum RENAME TO \
+                    old_resource_type_state_enum")
+        op.execute("CREATE TYPE resource_type_state_enum AS ENUM \
+                       ('active', 'creating', 'creation_error', \
+                        'deleting', 'deletion_error', 'updating', \
+                        'updating_error')")
+        op.execute("ALTER TABLE resource_type ALTER COLUMN state TYPE \
+                   resource_type_state_enum USING \
+                   state::text::resource_type_state_enum")
+        op.execute("DROP TYPE old_resource_type_state_enum")
 
+    # NOTE(sileht): we can't alter type with server_default set on
+    # postgresql...
+    op.alter_column('resource_type', 'state',
+                    type_=state_enum,
+                    nullable=False,
+                    server_default="creating")
     op.add_column("resource_type",
                   sa.Column("updated_at",
                             sqlalchemy_base.PreciseTimestamp(),
