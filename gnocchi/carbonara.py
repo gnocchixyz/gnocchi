@@ -29,7 +29,6 @@ import time
 
 import iso8601
 import lz4
-import msgpack
 import pandas
 import six
 
@@ -133,29 +132,6 @@ class TimeSerie(object):
             return timestamps, v
         return (), ()
 
-    @classmethod
-    def from_dict(cls, d):
-        """Build a time series from a dict.
-
-        The dict format must be datetime as key and values as values.
-
-        :param d: The dict.
-        :returns: A TimeSerie object
-        """
-        return cls.from_data(
-            *cls._timestamps_and_values_from_dict(d['values']))
-
-    def to_dict(self):
-        return {
-            'values': dict((timestamp.value, float(v))
-                           for timestamp, v in six.iteritems(self.ts.dropna()))
-        }
-
-    @staticmethod
-    def _serialize_time_period(value):
-        if value:
-            return value.nanos / 10e8
-
     @staticmethod
     def _to_offset(value):
         if isinstance(value, numbers.Real):
@@ -175,13 +151,6 @@ class TimeSerie(object):
             return self.ts.index[-1]
         except IndexError:
             return
-
-    @classmethod
-    def unserialize(cls, data):
-        return cls.from_dict(msgpack.loads(data, encoding='utf-8'))
-
-    def serialize(self):
-        return msgpack.dumps(self.to_dict())
 
     def group_serie(self, granularity, start=None):
         # NOTE(jd) Our whole serialization system is based on Epoch, and we
@@ -251,27 +220,94 @@ class BoundTimeSerie(TimeSerie):
             before_truncate_callback(self)
         self._truncate()
 
+    _SERIALIZATION_TIMESTAMP_VALUE_LEN = struct.calcsize("<Qd")
+
     @classmethod
-    def from_dict(cls, d):
-        """Build a time series from a dict.
+    def unserialize(cls, data, block_size, back_window):
+        uncompressed = lz4.loads(data)
+        nb_points = (
+            len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
+        )
+        deserial = struct.unpack("<" + "Q" * nb_points + "d" * nb_points,
+                                 uncompressed)
+        start = deserial[0]
+        timestamps = [start]
+        for delta in itertools.islice(deserial, 1, nb_points):
+            ts = start + delta
+            timestamps.append(ts)
+            start = ts
+        return cls.from_data(
+            pandas.to_datetime(timestamps, unit='ns'),
+            deserial[nb_points:],
+            block_size=block_size,
+            back_window=back_window)
 
-        The dict format must be datetime as key and values as values.
+    def serialize(self):
+        # NOTE(jd) Use a double delta encoding for timestamps
+        timestamps = [self.first.value]
+        start = self.first.value
+        for i in self.ts.index[1:]:
+            v = i.value
+            timestamps.append(v - start)
+            start = v
+        values = self.ts.values.tolist()
+        return lz4.dumps(struct.pack(
+            '<' + 'Q' * len(timestamps) + 'd' * len(values),
+            *(timestamps + values)))
 
-        :param d: The dict.
-        :returns: A TimeSerie object
-        """
-        timestamps, values = cls._timestamps_and_values_from_dict(d['values'])
-        return cls.from_data(timestamps, values,
-                             block_size=d.get('block_size'),
-                             back_window=d.get('back_window'))
+    @classmethod
+    def benchmark(cls):
+        """Run a speed benchmark!"""
+        points = SplitKey.POINTS_PER_SPLIT
+        serialize_times = 50
 
-    def to_dict(self):
-        basic = super(BoundTimeSerie, self).to_dict()
-        basic.update({
-            'block_size': self._serialize_time_period(self.block_size),
-            'back_window': self.back_window,
-        })
-        return basic
+        now = datetime.datetime(2015, 4, 3, 23, 11)
+
+        print(cls.__name__)
+        print("=" * len(cls.__name__))
+
+        for title, values in [
+                ("Simple continuous range", six.moves.range(points)),
+                ("All 0", [float(0)] * points),
+                ("All 1", [float(1)] * points),
+                ("0 and 1", [0, 1] * (points // 2)),
+                ("1 and 0 random",
+                 [random.randint(0, 1)
+                  for x in six.moves.range(points)]),
+                ("Small number random pos/neg",
+                 [random.randint(-100000, 10000)
+                  for x in six.moves.range(points)]),
+                ("Small number random pos",
+                 [random.randint(0, 20000) for x in six.moves.range(points)]),
+                ("Small number random neg",
+                 [random.randint(-20000, 0) for x in six.moves.range(points)]),
+                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("random ", [random.random()
+                             for x in six.moves.range(points)]),
+        ]:
+            print(title)
+            pts = pandas.Series(values,
+                                [now + datetime.timedelta(
+                                    seconds=i * random.randint(1, 10),
+                                    microseconds=random.randint(1, 999999))
+                                 for i in six.moves.range(points)])
+            ts = cls(ts=pts)
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                s = ts.serialize()
+            t1 = time.time()
+            print("  Serialization speed: %.2f MB/s"
+                  % (((points * 2 * 8)
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+            print("   Bytes per point: %.2f" % (len(s) / float(points)))
+
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                cls.unserialize(s, 1, 1)
+            t1 = time.time()
+            print("  Unserialization speed: %.2f MB/s"
+                  % (((points * 2 * 8)
+                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
     def first_block_timestamp(self):
         """Return the timestamp of the first block."""
@@ -594,6 +630,9 @@ class AggregatedTimeSerie(TimeSerie):
 
         now = datetime.datetime(2015, 4, 3, 23, 11)
 
+        print(cls.__name__)
+        print("=" * len(cls.__name__))
+
         for title, values in [
                 ("Simple continuous range", six.moves.range(points)),
                 ("All 0", [float(0)] * points),
@@ -754,4 +793,9 @@ class AggregatedTimeSerie(TimeSerie):
 
 
 if __name__ == '__main__':
-    AggregatedTimeSerie.benchmark()
+    import sys
+    args = sys.argv[1:]
+    if not args or "--boundtimeserie" in args:
+        BoundTimeSerie.benchmark()
+    if not args or "--aggregatedtimeserie" in args:
+        AggregatedTimeSerie.benchmark()
