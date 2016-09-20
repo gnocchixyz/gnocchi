@@ -236,7 +236,7 @@ class MetricScheduler(MetricProcessBase):
             metrics = list(metrics)
             for i in six.moves.range(0, len(metrics), self.BLOCK_SIZE):
                 self.queue.put(metrics[i:i + self.BLOCK_SIZE])
-            self.previously_scheduled_metrics = metrics
+            self.previously_scheduled_metrics = set(metrics)
             LOG.debug("%d metrics scheduled for processing.", len(metrics))
         except Exception:
             LOG.error("Unexpected error scheduling metrics for processing",
