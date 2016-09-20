@@ -209,7 +209,7 @@ class ResourceClassMapper(object):
         # We drop foreign keys manually to not lock the destination
         # table for too long during drop table.
         # It's safe to not use a transaction since
-        # the resource_type table is already cleaned and commited
+        # the resource_type table is already cleaned and committed
         # so this code cannot be triggerred anymore for this
         # resource_type
         with facade.writer_connection() as connection:
