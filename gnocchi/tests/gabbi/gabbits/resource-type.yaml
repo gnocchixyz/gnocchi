@@ -113,6 +113,10 @@ tests:
                   required: false
                   min: -2
                   max: 3
+              intnomin:
+                  type: number
+                  required: false
+                  max: 3
               float:
                   type: number
                   required: false
@@ -142,6 +146,11 @@ tests:
                   type: number
                   required: False
                   min: -2
+                  max: 3
+              intnomin:
+                  type: number
+                  required: False
+                  min:
                   max: 3
               float:
                   type: number
@@ -188,6 +197,11 @@ tests:
                   type: number
                   required: False
                   min: -2
+                  max: 3
+              intnomin:
+                  type: number
+                  required: False
+                  min:
                   max: 3
               float:
                   type: number
@@ -353,6 +367,11 @@ tests:
                   required: False
                   min: -2
                   max: 3
+              intnomin:
+                  type: number
+                  required: False
+                  min:
+                  max: 3
               float:
                   type: number
                   required: false
@@ -384,6 +403,11 @@ tests:
                   type: number
                   required: False
                   min: -2
+                  max: 3
+              intnomin:
+                  type: number
+                  required: False
+                  min:
                   max: 3
               float:
                   type: number
@@ -433,6 +457,11 @@ tests:
                   type: number
                   required: False
                   min: -2
+                  max: 3
+              intnomin:
+                  type: number
+                  required: False
+                  min:
                   max: 3
               float:
                   type: number

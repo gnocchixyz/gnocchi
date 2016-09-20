@@ -127,7 +127,7 @@ class NumberSchema(CommonAttributeSchema):
 
     def __init__(self, min, max, *args, **kwargs):
         super(NumberSchema, self).__init__(*args, **kwargs)
-        if max is not None and min > max:
+        if max is not None and min is not None and min > max:
             raise InvalidResourceAttributeValue(min, max)
 
         self.min = min
