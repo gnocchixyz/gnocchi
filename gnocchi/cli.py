@@ -271,8 +271,12 @@ class MetricProcessor(MetricProcessBase):
 
     def _run_job(self):
         try:
-            metrics = []
-            metrics = self.queue.get(block=True)
+            try:
+                metrics = self.queue.get(block=True, timeout=10)
+            except six.moves.queue.Empty:
+                # NOTE(sileht): Allow the process to exit gracefully every
+                # 10 seconds
+                return
             self.store.process_background_tasks(self.index, metrics)
         except Exception:
             LOG.error("Unexpected error during measures processing",
