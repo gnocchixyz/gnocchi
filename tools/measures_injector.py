@@ -13,7 +13,6 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
 import random
 
 from concurrent import futures
@@ -45,8 +44,7 @@ def injector():
     def todo(metric):
         for _ in six.moves.range(conf.batch_of_measures):
             measures = [
-                storage.Measure(utils.to_timestamp(datetime.datetime.now()),
-                                random.random())
+                storage.Measure(utils.utcnow(), random.random())
                 for __ in six.moves.range(conf.measures_per_batch)]
             s.add_measures(metric, measures)
 
