@@ -141,8 +141,8 @@ class TestCarbonaraMigration(tests_base.TestCase):
                 self.storage.get_measures, self.metric, aggregation='max')
 
         self.storage.add_measures(self.metric, [
-            storage.Measure(utils.datetime_utc(2016, 7, 18), 69),
-            storage.Measure(utils.datetime_utc(2016, 7, 18, 1, 1), 64),
+            storage.Measure(utils.dt_to_unix_ns(2016, 7, 18), 69),
+            storage.Measure(utils.dt_to_unix_ns(2016, 7, 18, 1, 1), 64),
         ])
 
         with mock.patch.object(self.index, 'list_metrics') as f:

@@ -334,12 +334,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         measures = list(measures)
         data = struct.pack(
             "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
-            *list(
-                itertools.chain(
-                    # NOTE(jd) int(10e8) to avoid rounding errors
-                    *((int(utils.datetime_to_unix(timestamp) * int(10e8)),
-                       value)
-                      for timestamp, value in measures))))
+            *list(itertools.chain.from_iterable(measures)))
         self._store_new_measures(metric, data)
 
     @staticmethod

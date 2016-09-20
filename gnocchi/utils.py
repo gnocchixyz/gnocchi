@@ -110,3 +110,8 @@ unix_universal_start = datetime_utc(1970, 1, 1)
 
 def datetime_to_unix(timestamp):
     return (timestamp - unix_universal_start).total_seconds()
+
+
+def dt_to_unix_ns(*args):
+    return int(datetime_to_unix(datetime.datetime(
+        *args, tzinfo=iso8601.iso8601.UTC)) * int(10e8))

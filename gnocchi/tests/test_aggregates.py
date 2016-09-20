@@ -60,8 +60,9 @@ class TestAggregates(tests_base.TestCase):
             uuid.uuid4(), self.archive_policies['medium'])
         start_time = utils.datetime_utc(2014, 1, 1, 12)
         incr = datetime.timedelta(seconds=spacing)
-        measures = [storage.Measure(start_time + incr * n, val)
-                    for n, val in enumerate(data)]
+        measures = [storage.Measure(int(
+            utils.datetime_to_unix(start_time + incr * n) * int(10e8)), val)
+            for n, val in enumerate(data)]
         self.index.create_metric(metric.id,
                                  str(uuid.uuid4()), str(uuid.uuid4()),
                                  'medium')

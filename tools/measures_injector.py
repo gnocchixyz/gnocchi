@@ -44,7 +44,8 @@ def injector():
     def todo(metric):
         for _ in six.moves.range(conf.batch_of_measures):
             measures = [
-                storage.Measure(utils.utcnow(), random.random())
+                storage.Measure(int(utils.datetime_to_unix(
+                    utils.utcnow()) * int(10e8)), random.random())
                 for __ in six.moves.range(conf.measures_per_batch)]
             s.add_measures(metric, measures)
 
