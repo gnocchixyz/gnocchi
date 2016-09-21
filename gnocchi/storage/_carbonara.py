@@ -537,6 +537,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             # granularity. the following takes only the points
                             # affected by new measures for specific granularity
                             tstamp = max(bound_timeserie.first, measures[0][0])
+                            new_first_block_timestamp = (
+                                bound_timeserie.first_block_timestamp())
                             computed_points['number'] = len(bound_timeserie)
                             for d in metric.archive_policy.definition:
                                 ts = bound_timeserie.group_serie(
@@ -546,7 +548,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                     self._add_measures,
                                     ((aggregation, d, metric, ts,
                                       current_first_block_timestamp,
-                                      bound_timeserie.first_block_timestamp())
+                                      new_first_block_timestamp)
                                      for aggregation in agg_methods))
 
                         with timeutils.StopWatch() as sw:
