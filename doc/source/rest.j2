@@ -449,12 +449,17 @@ is also available in the filtering queries.
 Searching for values in metrics
 ===============================
 
-It's possible to search for values in metrics. For example, this will look for
+It is possible to search for values in metrics. For example, this will look for
 all values that are greater than or equal to 50 if we add 23 to them and that
 are not equal to 55. You have to specify the list of metrics to look into by
 using the `metric_id` query parameter several times.
 
 {{ scenarios['search-value-in-metric']['doc'] }}
+
+And it is possible to search for values in metrics by using one or multiple
+granularities:
+
+{{ scenarios['search-value-in-metrics-by-granularity']['doc'] }}
 
 You can specify a time range to look for by specifying the `start` and/or
 `stop` query parameter, and the aggregation method to use by specifying the

@@ -16,7 +16,12 @@ tests:
       data:
         name: high
         definition:
-          - granularity: 1 second
+            - granularity: 1 second
+              timespan: 1 hour
+            - granularity: 2 second
+              timespan: 1 hour
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/high
       status: 201
 
     - name: create metric
@@ -24,11 +29,110 @@ tests:
       request_headers:
         content-type: application/json
       data:
-        archive_policy_name: "high"
+        archive_policy_name: high
       status: 201
 
+    - name: post measures
+      desc: for later use
+      POST: /v1/batch/metrics/measures
+      request_headers:
+        content-type: application/json
+      data:
+        $RESPONSE['$.id']:
+            - timestamp: "2014-10-06T14:34:12"
+              value: 12
+            - timestamp: "2014-10-06T14:34:14"
+              value: 12
+            - timestamp: "2014-10-06T14:34:16"
+              value: 12
+            - timestamp: "2014-10-06T14:34:18"
+              value: 12
+            - timestamp: "2014-10-06T14:34:20"
+              value: 12
+            - timestamp: "2014-10-06T14:34:22"
+              value: 12
+            - timestamp: "2014-10-06T14:34:24"
+              value: 12
+            - timestamp: "2014-10-06T14:34:26"
+              value: 12
+            - timestamp: "2014-10-06T14:34:28"
+              value: 12
+            - timestamp: "2014-10-06T14:34:30"
+              value: 12
+            - timestamp: "2014-10-06T14:34:32"
+              value: 12
+            - timestamp: "2014-10-06T14:34:34"
+              value: 12
+      status: 202
+
+    - name: get metric id for search one
+      GET: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy.name: high
+
+    - name: search with one correct granularity
+      POST: /v1/search/metric?metric_id=$RESPONSE['$[0].id']&granularity=1s
+      request_headers:
+        content-type: application/json
+      data:
+          "=": 12
+      status: 200
+
+    - name: get metric id for search two
+      GET: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy.name: high
+
+    - name: search with multiple correct granularities
+      POST: /v1/search/metric?metric_id=$RESPONSE['$[0].id']&granularity=1second&granularity=2s
+      request_headers:
+        content-type: application/json
+      data:
+          "=": 12
+      status: 200
+
+    - name: get metric id for search three
+      GET: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy.name: high
+
+    - name: search with correct and incorrect granularities
+      POST: /v1/search/metric?metric_id=$RESPONSE['$[0].id']&granularity=1s&granularity=300
+      request_headers:
+        content-type: application/json
+      data:
+          "=": 12
+      status: 400
+      response_strings:
+          - Granularity '300.0' for metric $RESPONSE['$[0].id'] does not exist
+
+    - name: get metric id for search four
+      GET: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy.name: high
+
+    - name: search with incorrect granularity
+      POST: /v1/search/metric?metric_id=$RESPONSE['$[0].id']&granularity=300
+      request_headers:
+        content-type: application/json
+      data:
+          "=": 12
+      status: 400
+      response_strings:
+          - Granularity '300.0' for metric $RESPONSE['$[0].id'] does not exist
+
+    - name: get metric id for search five
+      GET: /v1/metric
+      status: 200
+      response_json_paths:
+          $[0].archive_policy.name: high
+
     - name: search measure with wrong start
-      POST: /v1/search/metric?metric_id=$RESPONSE['$.id']&start=foobar
+      POST: /v1/search/metric?metric_id=$RESPONSE['$[0].id']&start=foobar
       request_headers:
         content-type: application/json
       data:

@@ -645,18 +645,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                  for timestamp, g, value in values
                  if predicate(value)]}
 
-    # TODO(jd) Add granularity parameter here and in the REST API
-    # rather than fetching all granularities
     def search_value(self, metrics, query, from_timestamp=None,
-                     to_timestamp=None, aggregation='mean'):
+                     to_timestamp=None, aggregation='mean',
+                     granularity=[]):
         predicate = storage.MeasureQuery(query)
+
         results = self._map_in_thread(
             self._find_measure,
             [(metric, aggregation,
-              ap.granularity, predicate,
+              gran, predicate,
               from_timestamp, to_timestamp)
              for metric in metrics
-             for ap in metric.archive_policy.definition])
+             for gran in granularity or
+             (defin.granularity
+              for defin in metric.archive_policy.definition)])
         result = collections.defaultdict(list)
         for r in results:
             for metric, metric_result in six.iteritems(r):
