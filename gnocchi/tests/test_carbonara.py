@@ -20,8 +20,6 @@ import math
 import fixtures
 from oslo_utils import timeutils
 from oslotest import base
-# TODO(jd) We shouldn't use pandas here
-import pandas
 import six
 
 from gnocchi import carbonara
@@ -362,14 +360,30 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             aggregation='mean', needed_percent_of_overlap=80.0)
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 3.0),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 3.0),
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
-            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 4.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 3.0),
-            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 5.0),
-            (pandas.Timestamp('2014-01-01 12:07:00'), 60.0, 10.0),
-            (pandas.Timestamp('2014-01-01 12:09:00'), 60.0, 2.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 1, 0
+            ), 60.0, 3.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 2, 0
+            ), 60.0, 3.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 3, 0
+            ), 60.0, 4.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 4, 0
+            ), 60.0, 4.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 5, 0
+            ), 60.0, 3.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 6, 0
+            ), 60.0, 5.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 7, 0
+            ), 60.0, 10.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 9, 0
+            ), 60.0, 2.0),
         ], output)
 
     def test_aggregated_different_archive_overlap_edge_missing1(self):
@@ -406,10 +420,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             tsc1['return'], tsc2['return']], aggregation='sum')
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 33.0),
-            (pandas.Timestamp('2014-01-01 12:04:00'), 60.0, 5.0),
-            (pandas.Timestamp('2014-01-01 12:05:00'), 60.0, 18.0),
-            (pandas.Timestamp('2014-01-01 12:06:00'), 60.0, 19.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 3, 0
+            ), 60.0, 33.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 4, 0
+            ), 60.0, 5.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 5, 0
+            ), 60.0, 18.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 6, 0
+            ), 60.0, 19.0),
         ], output)
 
     def test_aggregated_different_archive_overlap_edge_missing2(self):
@@ -432,7 +454,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         output = carbonara.AggregatedTimeSerie.aggregated(
             [tsc1['return'], tsc2['return']], aggregation='mean')
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:03:00'), 60.0, 4.0),
+            (datetime.datetime(
+                2014, 1, 1, 12, 3, 0
+            ), 60.0, 4.0),
         ], output)
 
     def test_fetch(self):
@@ -498,10 +522,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         result = ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
         reference = [
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             1.0, 3.9),
-            (pandas.Timestamp('2014-01-01 12:00:02'),
-             1.0, 4)
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 0
+            ), 1.0, 3.9),
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 2
+            ), 1.0, 4)
         ]
 
         self.assertEqual(len(reference), len(result))
@@ -518,10 +544,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         result = ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))
         reference = [
-            (pandas.Timestamp('2014-01-01 12:00:00'),
-             1.0, 3.9),
-            (pandas.Timestamp('2014-01-01 12:00:02'),
-             1.0, 99.4)
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 0
+            ), 1.0, 3.9),
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 2
+            ), 1.0, 99.4)
         ]
 
         self.assertEqual(len(reference), len(result))
@@ -572,10 +600,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:01:00'),
-             60.0, 2.1213203435596424),
-            (pandas.Timestamp('2014-01-01 12:02:00'),
-             60.0, 9.8994949366116654),
+            (datetime.datetime(
+                2014, 1, 1, 12, 1, 0
+            ), 60.0, 2.1213203435596424),
+            (datetime.datetime(
+                2014, 1, 1, 12, 2, 0
+            ), 60.0, 9.8994949366116654),
         ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
@@ -583,10 +613,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:01:00'),
-             60.0, 2.1213203435596424),
-            (pandas.Timestamp('2014-01-01 12:02:00'),
-             60.0, 59.304300012730948),
+            (datetime.datetime(
+                2014, 1, 1, 12, 1, 0
+            ), 60.0, 2.1213203435596424),
+            (datetime.datetime(
+                2014, 1, 1, 12, 2, 0
+            ), 60.0, 59.304300012730948),
         ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_fetch_agg_max(self):
@@ -602,9 +634,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'), 60.0, 3),
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 7),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 15),
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 0
+            ), 60.0, 3),
+            (datetime.datetime(
+                2014, 1, 1, 12, 1, 0
+            ), 60.0, 7),
+            (datetime.datetime(
+                2014, 1, 1, 12, 2, 0
+            ), 60.0, 15),
         ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
@@ -612,9 +650,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (pandas.Timestamp('2014-01-01 12:00:00'), 60.0, 3),
-            (pandas.Timestamp('2014-01-01 12:01:00'), 60.0, 7),
-            (pandas.Timestamp('2014-01-01 12:02:00'), 60.0, 110),
+            (datetime.datetime(
+                2014, 1, 1, 12, 0, 0
+            ), 60.0, 3),
+            (datetime.datetime(
+                2014, 1, 1, 12, 1, 0
+            ), 60.0, 7),
+            (datetime.datetime(
+                2014, 1, 1, 12, 2, 0
+            ), 60.0, 110),
         ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
     def test_serialize(self):
@@ -672,9 +716,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
-                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
-                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 2.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 1
+                ), 1.0, 1.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 2
+                ), 1.0, 3.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 3
+                ), 1.0, 2.5),
             ],
             ts['return'].fetch())
 
@@ -713,9 +763,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
-                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
-                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 2.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 1
+                ), 1.0, 1.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 2
+                ), 1.0, 3.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 3
+                ), 1.0, 2.5),
             ],
             ts['return'].fetch())
 
@@ -727,9 +783,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
-                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
-                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 2.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 1
+                ), 1.0, 1.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 2
+                ), 1.0, 3.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 3
+                ), 1.0, 2.5),
             ],
             ts['return'].fetch())
 
@@ -742,9 +804,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (pandas.Timestamp('2014-01-01 12:00:01'), 1.0, 1.5),
-                (pandas.Timestamp('2014-01-01 12:00:02'), 1.0, 3.5),
-                (pandas.Timestamp('2014-01-01 12:00:03'), 1.0, 3.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 1
+                ), 1.0, 1.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 2
+                ), 1.0, 3.5),
+                (datetime.datetime(
+                    2014, 1, 1, 12, 0, 3
+                ), 1.0, 3.5),
             ],
             ts['return'].fetch())
 
@@ -873,8 +941,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [tsc1['return'], tsc2['return']], aggregation="sum")
 
         self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 21, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 22, 15
+            ), 1.0, 11.0),
         ], output)
 
         dtfrom = datetime.datetime(2015, 12, 3, 13, 17, 0)
@@ -886,12 +958,24 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             aggregation="sum", needed_percent_of_overlap=0)
 
         self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
-            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 19, 15
+            ), 1.0, 1.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 20, 15
+            ), 1.0, 1.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 21, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 22, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 23, 15
+            ), 1.0, 10.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 24, 15
+            ), 1.0, 10.0),
         ], output)
 
         # By default we require 100% of point that overlap
@@ -911,10 +995,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             aggregation="sum",
             needed_percent_of_overlap=50.0)
         self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:19:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:20:15'), 1.0, 1.0),
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 19, 15
+            ), 1.0, 1.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 20, 15
+            ), 1.0, 1.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 21, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 22, 15
+            ), 1.0, 11.0),
         ], output)
 
         output = carbonara.AggregatedTimeSerie.aggregated(
@@ -922,10 +1014,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             aggregation="sum",
             needed_percent_of_overlap=50.0)
         self.assertEqual([
-            (pandas.Timestamp('2015-12-03 13:21:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:22:15'), 1.0, 11.0),
-            (pandas.Timestamp('2015-12-03 13:23:15'), 1.0, 10.0),
-            (pandas.Timestamp('2015-12-03 13:24:15'), 1.0, 10.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 21, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 22, 15
+            ), 1.0, 11.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 23, 15
+            ), 1.0, 10.0),
+            (datetime.datetime(
+                2015, 12, 3, 13, 24, 15
+            ), 1.0, 10.0),
         ], output)
 
     def test_split_key(self):
