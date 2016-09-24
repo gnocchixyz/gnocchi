@@ -426,7 +426,7 @@ function start_gnocchi {
     elif [ "$GNOCCHI_DEPLOY" == "uwsgi" ]; then
         run_process gnocchi-api "$GNOCCHI_BIN_DIR/uwsgi $GNOCCHI_UWSGI_FILE"
     else
-        run_process gnocchi-api "$GNOCCHI_BIN_DIR/gnocchi-api -d -v --config-file $GNOCCHI_CONF"
+        run_process gnocchi-api "$GNOCCHI_BIN_DIR/gnocchi-api --port $GNOCCHI_SERVICE_PORT"
     fi
     # only die on API if it was actually intended to be turned on
     if is_service_enabled gnocchi-api; then
