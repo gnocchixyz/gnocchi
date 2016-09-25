@@ -202,6 +202,58 @@
 
     {"and": [{">=": [{"+": 23}, 50]}, {"!=": 55}]}
 
+- name: create-metric-a
+  request: |
+    POST /v1/metric HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "archive_policy_name": "short"
+    }
+
+- name: post-measures-for-granularity-search
+  request: |
+    POST /v1/metric/{{ scenarios['create-metric-a']['response'].json['id'] }}/measures HTTP/1.1
+    Content-Type: application/json
+
+    [
+      {
+        "timestamp": "2014-10-06T14:34:12",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:14",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:16",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:18",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:20",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:22",
+        "value": 12
+      },
+      {
+        "timestamp": "2014-10-06T14:34:24",
+        "value": 12
+      }
+    ]
+
+- name: search-value-in-metrics-by-granularity
+  request: |
+    POST /v1/search/metric?metric_id={{ scenarios['create-metric-a']['response'].json['id'] }}&granularity=1second&granularity=1800s HTTP/1.1
+    Content-Type: application/json
+
+    {"=": 12}
+
 - name: get-measures
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures HTTP/1.1
 
