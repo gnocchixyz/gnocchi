@@ -968,7 +968,7 @@ tests:
       status: 200
 
     - name: delete random data structure
-      desc: delete a empty list test
+      desc: delete an empty list test
       DELETE: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -1082,7 +1082,7 @@ tests:
       response_json_paths:
         $.deleted: 2
 
-    - name: delete batch of resources filter by mutliple ids
+    - name: delete batch of resources filter by multiple ids
       desc: delete the created resources
       DELETE: /v1/resource/generic
       request_headers:
