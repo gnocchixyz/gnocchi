@@ -441,8 +441,7 @@ tests:
       method: POST
       request_headers:
           content-type: plain/text
-      data:
-          archive_policy_name: cookies
+      data: '{"archive_policy_name": "cookies"}'
       status: 415
 
 

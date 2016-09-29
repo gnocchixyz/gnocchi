@@ -115,8 +115,7 @@ tests:
       POST: /v1/metric
       request_headers:
           content-type: plain/text
-      data:
-          archive_policy_name: cookies
+      data: '{"archive_policy_name": "cookies"}'
       status: 415
 
     - name: create valid metric
