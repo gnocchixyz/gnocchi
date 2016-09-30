@@ -1246,10 +1246,9 @@ class SearchMetricController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
-             granularity=[]):
-
+             granularity=None):
         granularity = [Timespan(g)
-                       for g in arg_to_list(granularity)]
+                       for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
             ids=arg_to_list(metric_id))
 

@@ -647,7 +647,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def search_value(self, metrics, query, from_timestamp=None,
                      to_timestamp=None, aggregation='mean',
-                     granularity=[]):
+                     granularity=None):
+        granularity = granularity or []
         predicate = storage.MeasureQuery(query)
 
         results = self._map_in_thread(
