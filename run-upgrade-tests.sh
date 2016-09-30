@@ -73,16 +73,18 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-# NOTE(sileht): temporary fix a gnocchi 2.2 bug
-# https://review.openstack.org/#/c/369011/
-patch -p2 -d $VIRTUAL_ENV/lib/python*/site-packages/gnocchi < 7bcd2a25.diff
+old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
+if [ "${old_version:0:5}" == "2.2.0" ]; then
+    # NOTE(sileht): temporary fix a gnocchi 2.2.0 bug
+    # https://review.openstack.org/#/c/369011/
+    patch -p2 -d $VIRTUAL_ENV/lib/python*/site-packages/gnocchi < 7bcd2a25.diff
+fi
 
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 inject_data $GNOCCHI_DATA
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
-old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
 new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
 pip install -q -U .[${GNOCCHI_VARIANT}]
