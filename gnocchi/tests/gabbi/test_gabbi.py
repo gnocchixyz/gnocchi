@@ -18,10 +18,12 @@
 import os
 
 from gabbi import driver
+import wsgi_intercept
 
 from gnocchi.tests.gabbi import fixtures
 
 
+wsgi_intercept.STRICT_RESPONSE_HEADERS = True
 TESTS_DIR = 'gabbits'
 
 
