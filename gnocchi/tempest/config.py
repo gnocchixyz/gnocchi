@@ -13,15 +13,10 @@
 
 from oslo_config import cfg
 
-
-service_available_group = cfg.OptGroup(name="service_available",
-                                       title="Available OpenStack Services")
-
-service_available_opts = [
-    cfg.BoolOpt("gnocchi",
-                default=True,
-                help="Whether or not Gnocchi is expected to be available"),
-]
+service_option = cfg.BoolOpt('gnocchi',
+                             default=True,
+                             help="Whether or not Gnocchi is expected to be"
+                                  "available")
 
 metric_group = cfg.OptGroup(name='metric',
                             title='Metric Service Options')

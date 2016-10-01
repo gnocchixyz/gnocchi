@@ -16,7 +16,6 @@ from __future__ import absolute_import
 
 import os
 
-from tempest import config
 from tempest.test_discover import plugins
 
 import gnocchi
@@ -32,14 +31,12 @@ class GnocchiTempestPlugin(plugins.TempestPlugin):
         return full_test_dir, base_path
 
     def register_opts(self, conf):
-        config.register_opt_group(conf,
-                                  tempest_config.service_available_group,
-                                  tempest_config.service_available_opts)
-        config.register_opt_group(conf,
-                                  tempest_config.metric_group,
-                                  tempest_config.metric_opts)
+        conf.register_opt(tempest_config.service_option,
+                          group='service_available')
+        conf.register_group(tempest_config.metric_group)
+        conf.register_opts(tempest_config.metric_opts, group='metric')
 
     def get_opt_lists(self):
         return [(tempest_config.metric_group.name,
                  tempest_config.metric_opts),
-                ('service_available', tempest_config.service_available_opts)]
+                ('service_available', [tempest_config.service_option])]
