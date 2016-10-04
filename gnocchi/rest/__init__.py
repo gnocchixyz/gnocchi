@@ -21,6 +21,7 @@ import jsonpatch
 from oslo_utils import strutils
 import pecan
 from pecan import rest
+import pyparsing
 import six
 from six.moves.urllib import parse as urllib_parse
 from stevedore import extension
@@ -1105,6 +1106,90 @@ class ResourcesByTypeController(rest.RestController):
         return ResourcesController(resource_type), remainder
 
 
+class InvalidQueryStringSearchAttrFilter(Exception):
+    def __init__(self, reason):
+        super(InvalidQueryStringSearchAttrFilter, self).__init__(
+            "Invalid filter: %s" % reason)
+
+
+class QueryStringSearchAttrFilter(object):
+    uninary_operators = ("not", )
+    binary_operator = (u">=", u"<=", u"!=", u">", u"<", u"=", u"==", u"eq",
+                       u"ne", u"lt", u"gt", u"ge", u"le", u"in", u"like", u"≠",
+                       u"≥", u"≤", u"like" "in")
+    multiple_operators = (u"and", u"or", u"∧", u"∨")
+
+    operator = pyparsing.Regex(u"|".join(binary_operator))
+    null = pyparsing.Regex("None|none|null").setParseAction(
+        pyparsing.replaceWith(None))
+    boolean = "False|True|false|true"
+    boolean = pyparsing.Regex(boolean).setParseAction(
+        lambda t: t[0].lower() == "true")
+    hex_string = lambda n: pyparsing.Word(pyparsing.hexnums, exact=n)
+    uuid_string = pyparsing.Combine(
+        hex_string(8) + (pyparsing.Optional("-") + hex_string(4)) * 3 +
+        pyparsing.Optional("-") + hex_string(12))
+    number = r"[+-]?\d+(:?\.\d*)?(:?[eE][+-]?\d+)?"
+    number = pyparsing.Regex(number).setParseAction(lambda t: float(t[0]))
+    identifier = pyparsing.Word(pyparsing.alphas, pyparsing.alphanums + "_")
+    quoted_string = pyparsing.QuotedString('"') | pyparsing.QuotedString("'")
+    comparison_term = pyparsing.Forward()
+    in_list = pyparsing.Group(
+        pyparsing.Suppress('[') +
+        pyparsing.Optional(pyparsing.delimitedList(comparison_term)) +
+        pyparsing.Suppress(']'))("list")
+    comparison_term << (null | boolean | uuid_string | identifier | number |
+                        quoted_string | in_list)
+    condition = pyparsing.Group(comparison_term + operator + comparison_term)
+
+    expr = pyparsing.operatorPrecedence(condition, [
+        ("not", 1, pyparsing.opAssoc.RIGHT, ),
+        ("and", 2, pyparsing.opAssoc.LEFT, ),
+        ("∧", 2, pyparsing.opAssoc.LEFT, ),
+        ("or", 2, pyparsing.opAssoc.LEFT, ),
+        ("∨", 2, pyparsing.opAssoc.LEFT, ),
+    ])
+
+    @classmethod
+    def _parsed_query2dict(cls, parsed_query):
+        result = None
+        while parsed_query:
+            part = parsed_query.pop()
+            if part in cls.binary_operator:
+                result = {part: {parsed_query.pop(): result}}
+
+            elif part in cls.multiple_operators:
+                if result.get(part):
+                    result[part].append(
+                        cls._parsed_query2dict(parsed_query.pop()))
+                else:
+                    result = {part: [result]}
+
+            elif part in cls.uninary_operators:
+                result = {part: result}
+            elif isinstance(part, pyparsing.ParseResults):
+                kind = part.getName()
+                if kind == "list":
+                    res = part.asList()
+                else:
+                    res = cls._parsed_query2dict(part)
+                if result is None:
+                    result = res
+                elif isinstance(result, dict):
+                    list(result.values())[0].append(res)
+            else:
+                result = part
+        return result
+
+    @classmethod
+    def parse(cls, query):
+        try:
+            parsed_query = cls.expr.parseString(query, parseAll=True)[0]
+        except pyparsing.ParseException as e:
+            raise InvalidQueryStringSearchAttrFilter(six.text_type(e))
+        return cls._parsed_query2dict(parsed_query)
+
+
 def _ResourceSearchSchema(v):
     """Helper method to indirect the recursivity of the search schema"""
     return SearchResourceTypeController.ResourceSearchSchema(v)
@@ -1139,9 +1224,20 @@ class SearchResourceTypeController(rest.RestController):
         )
     )
 
+    @classmethod
+    def parse_and_validate_qs_filter(cls, query):
+        try:
+            attr_filter = QueryStringSearchAttrFilter.parse(query)
+        except InvalidQueryStringSearchAttrFilter as e:
+            raise abort(400, e)
+        return voluptuous.Schema(cls.ResourceSearchSchema,
+                                 required=True)(attr_filter)
+
     def _search(self, **kwargs):
         if pecan.request.body:
             attr_filter = deserialize_and_validate(self.ResourceSearchSchema)
+        elif kwargs.get("filter"):
+            attr_filter = self.parse_and_validate_qs_filter(kwargs["filter"])
         else:
             attr_filter = None
 

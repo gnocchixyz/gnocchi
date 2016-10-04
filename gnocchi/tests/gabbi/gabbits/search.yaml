@@ -56,3 +56,10 @@ tests:
             - df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e
       response_json_paths:
         $.`len`: 2
+
+    - name: search in_ query string
+      POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
+      request_headers:
+        content-type: application/json
+      response_json_paths:
+        $.`len`: 2
