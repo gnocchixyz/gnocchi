@@ -1,0 +1,4 @@
+---
+other:
+  - Gnocchi now leverages microseconds timestamps available since MySQL 5.6.4,
+    meaning it is now the minimum required version of MySQL.

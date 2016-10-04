@@ -43,7 +43,7 @@ Gnocchi provides these storage drivers:
 Gnocchi provides these indexer drivers:
 
 - `PostgreSQL`_ (recommended)
-- `MySQL`_
+- `MySQL`_ (at least version 5.6.4)
 
 .. _`Swift`: https://launchpad.net/swift
 .. _`Ceph`: http://ceph.com/

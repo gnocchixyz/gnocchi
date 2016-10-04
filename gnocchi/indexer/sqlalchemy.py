@@ -1165,7 +1165,7 @@ class QueryTransformer(object):
             if value is not None:
                 converter = None
 
-                if isinstance(attr.type, base.PreciseTimestamp):
+                if isinstance(attr.type, base.TimestampUTC):
                     converter = utils.to_timestamp
                 elif (isinstance(attr.type, sqlalchemy_utils.UUIDType)
                       and not isinstance(value, uuid.UUID)):
