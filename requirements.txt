@@ -2,7 +2,7 @@ pbr
 numpy
 iso8601
 oslo.config>=2.6.0
-oslo.log>=1.0.0
+oslo.log>=2.3.0
 oslo.policy>=0.3.0
 oslo.serialization>=1.4.0
 oslo.utils>=3.3.0
