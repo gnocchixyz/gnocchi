@@ -145,6 +145,19 @@ tests:
       response_strings:
         - Timestamp must be after Epoch
 
+    - name: get valid metric id for bad timestamp
+      GET: /v1/metric
+      status: 200
+
+    - name: push measurements to metric with bad timestamp
+      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: "1915-100-06T14:33:57"
+            value: 43.1
+      status: 400
+
     - name: get valid metric id again
       GET: /v1/metric
       status: 200

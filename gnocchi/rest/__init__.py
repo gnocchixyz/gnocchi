@@ -18,7 +18,9 @@ import itertools
 import uuid
 
 import jsonpatch
+import numpy as np
 from oslo_utils import strutils
+import pandas as pd
 import pecan
 from pecan import rest
 import pyparsing
@@ -407,20 +409,22 @@ class ArchivePolicyRulesController(rest.RestController):
             abort(400, e)
 
 
-def MeasureSchema(m):
-    # NOTE(sileht): don't use voluptuous for performance reasons
+def MeasuresListSchema(measures):
     try:
-        value = float(m['value'])
+        times = pd.to_datetime([i['timestamp'] for i in measures], utc=True,
+                               unit='ns', box=False)
+        if np.any(times < np.datetime64('1970')):
+            raise ValueError('Timestamp must be after Epoch')
+    except ValueError as e:
+        abort(400, "Invalid input for timestamp: %s" % e)
+
+    try:
+        values = [float(i['value']) for i in measures]
     except Exception:
         abort(400, "Invalid input for a value")
 
-    try:
-        timestamp = Timestamp(m['timestamp'])
-    except Exception as e:
-        abort(400,
-              "Invalid input for timestamp `%s': %s" % (m['timestamp'], e))
-
-    return storage.Measure(timestamp, value)
+    return (storage.Measure(t, v) for t, v in six.moves.zip(
+        times.tolist(), values))
 
 
 class MetricController(rest.RestController):
@@ -450,7 +454,7 @@ class MetricController(rest.RestController):
             abort(400, "Invalid input for measures")
         if params:
             pecan.request.storage.add_measures(
-                self.metric, six.moves.map(MeasureSchema, params))
+                self.metric, MeasuresListSchema(params))
         pecan.response.status = 202
 
     @pecan.expose('json')
@@ -1386,7 +1390,7 @@ class SearchMetricController(rest.RestController):
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
     MeasuresBatchSchema = voluptuous.Schema(
-        {utils.ResourceUUID: {six.text_type: [MeasureSchema]}}
+        {utils.ResourceUUID: {six.text_type: MeasuresListSchema}}
     )
 
     @pecan.expose()
@@ -1430,7 +1434,7 @@ class MetricsMeasuresBatchController(rest.RestController):
     # only the last key will be retain by json python module to
     # build the python dict.
     MeasuresBatchSchema = voluptuous.Schema(
-        {utils.UUID: [MeasureSchema]}
+        {utils.UUID: MeasuresListSchema}
     )
 
     @pecan.expose()
