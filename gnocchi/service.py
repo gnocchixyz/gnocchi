@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import multiprocessing
-
 from oslo_config import cfg
 from oslo_db import options as db_options
 from oslo_log import log
@@ -26,6 +24,7 @@ from six.moves.urllib import parse as urlparse
 
 from gnocchi import archive_policy
 from gnocchi import opts
+from gnocchi import utils
 
 LOG = log.getLogger(__name__)
 
@@ -50,12 +49,7 @@ def prepare_service(args=None, conf=None,
         conf.archive_policy.default_aggregation_methods
     )
 
-    try:
-        default_workers = multiprocessing.cpu_count() or 1
-    except NotImplementedError:
-        default_workers = 1
-
-    conf.set_default("workers", default_workers, group="metricd")
+    conf.set_default("workers", utils.get_default_workers(), group="metricd")
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
