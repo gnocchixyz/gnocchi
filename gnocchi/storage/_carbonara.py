@@ -239,7 +239,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                oldest_mutable_timestamp):
         # NOTE(jd) We write the full split only if the driver works that way
         # (self.WRITE_FULL) or if the oldest_mutable_timestamp is out of range.
-        write_full = self.WRITE_FULL or oldest_mutable_timestamp >= next(key)
+        write_full = self.WRITE_FULL or next(key) < oldest_mutable_timestamp
         key_as_str = str(key)
         if write_full:
             try:
@@ -301,7 +301,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         archive_policy_def.granularity)
                     existing_keys.remove(key)
         else:
-            oldest_key_to_keep = carbonara.SplitKey(0)
+            oldest_key_to_keep = carbonara.SplitKey(0, 0)
 
         # Rewrite all read-only splits just for fun (and compression). This
         # only happens if `previous_oldest_mutable_timestamp' exists, which
@@ -319,8 +319,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         # NOTE(jd) Rewrite it entirely for fun (and later for
                         # compression). For that, we just pass None as split.
                         self._store_timeserie_split(
-                            metric, carbonara.SplitKey.from_key_string(
-                                key, archive_policy_def.granularity),
+                            metric, carbonara.SplitKey(
+                                float(key), archive_policy_def.granularity),
                             None, aggregation, archive_policy_def,
                             oldest_mutable_timestamp)
 
