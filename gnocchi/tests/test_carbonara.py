@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014-2015 eNovance
+# Copyright © 2014-2016 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,6 +20,7 @@ import math
 import fixtures
 from oslo_utils import timeutils
 from oslotest import base
+import pandas
 import six
 
 from gnocchi import carbonara
@@ -1032,21 +1033,36 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(
             datetime.datetime(2014, 10, 7),
             carbonara.SplitKey.from_timestamp_and_sampling(
-                datetime.datetime(2015, 1, 1, 15, 3), 3600))
+                datetime.datetime(2015, 1, 1, 15, 3), 3600).as_datetime())
         self.assertEqual(
             datetime.datetime(2014, 12, 31, 18),
             carbonara.SplitKey.from_timestamp_and_sampling(
-                datetime.datetime(2015, 1, 1, 15, 3), 58))
+                datetime.datetime(2015, 1, 1, 15, 3), 58).as_datetime())
+        self.assertEqual(
+            1420048800.0,
+            float(carbonara.SplitKey.from_timestamp_and_sampling(
+                datetime.datetime(2015, 1, 1, 15, 3), 58)))
+
+        key = carbonara.SplitKey.from_timestamp_and_sampling(
+            datetime.datetime(2015, 1, 1, 15, 3), 3600)
+
+        self.assertGreater(key, pandas.Timestamp(0))
+
+        self.assertGreaterEqual(key, pandas.Timestamp(0))
 
     def test_split_key_next(self):
         self.assertEqual(
             datetime.datetime(2015, 3, 6),
             next(carbonara.SplitKey.from_timestamp_and_sampling(
-                datetime.datetime(2015, 1, 1, 15, 3), 3600)))
+                datetime.datetime(2015, 1, 1, 15, 3), 3600)).as_datetime())
         self.assertEqual(
             datetime.datetime(2015, 8, 3),
             next(next(carbonara.SplitKey.from_timestamp_and_sampling(
-                datetime.datetime(2015, 1, 1, 15, 3), 3600))))
+                datetime.datetime(2015, 1, 1, 15, 3), 3600))).as_datetime())
+        self.assertEqual(
+            113529600000.0,
+            float(next(carbonara.SplitKey.from_timestamp_and_sampling(
+                datetime.datetime(2015, 1, 1, 15, 3), 3600 * 24 * 365))))
 
     def test_split(self):
         sampling = 5
@@ -1064,10 +1080,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                       / carbonara.SplitKey.POINTS_PER_SPLIT),
             len(grouped_points))
         self.assertEqual("0.0",
-                         str(carbonara.SplitKey(grouped_points[0][0])))
+                         str(carbonara.SplitKey(grouped_points[0][0], 0)))
         # 3600 × 5s = 5 hours
         self.assertEqual(datetime.datetime(1970, 1, 1, 5),
-                         grouped_points[1][0])
+                         grouped_points[1][0].as_datetime())
         self.assertEqual(carbonara.SplitKey.POINTS_PER_SPLIT,
                          len(grouped_points[0][1]))
 
