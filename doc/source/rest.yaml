@@ -550,6 +550,20 @@
       }
     }
 
+- name: post-measures-batch-named-create
+  request: |
+    POST /v1/batch/resources/metrics/measures?create_metrics=true HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "{{ scenarios['create-resource-with-new-metrics']['response'].json['id'] }}": {
+        "disk.io.test": [
+            { "timestamp": "2014-10-06T14:34:12", "value": 71 },
+            { "timestamp": "2014-10-06T14:34:20", "value": 81 }
+        ]
+      }
+    }
+
 - name: delete-resource-generic
   request: DELETE /v1/resource/generic/{{ scenarios['create-resource-generic']['response'].json['id'] }} HTTP/1.1
 

@@ -160,3 +160,48 @@ tests:
             - timestamp: "2015-03-06T14:34:12"
               value: 12
       status: 202
+
+    - name: create archive policy rule for auto
+      POST: /v1/archive_policy_rule
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+        name: rule_auto
+        metric_pattern: "auto.*"
+        archive_policy_name: simple
+      status: 201
+
+    - name: push measurements to unknown named metrics and create it
+      POST: /v1/batch/resources/metrics/measures?create_metrics=true
+      request_headers:
+           content-type: application/json
+      data:
+        46c9418d-d63b-4cdd-be89-8f57ffc5952e:
+          auto.test:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+      status: 202
+
+    - name: get created metric to check creation
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.test
+
+    - name: push measurements to unknown named metrics and resource with create_metrics
+      POST: /v1/batch/resources/metrics/measures?create_metrics=true
+      request_headers:
+        content-type: application/json
+        accept: application/json
+      data:
+        aaaaaaaa-d63b-4cdd-be89-111111111111:
+          auto.test:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+      status: 400
+      response_json_paths:
+          $.description.cause: "Unknown resources"
+          $.description.detail:
+            - "aaaaaaaa-d63b-4cdd-be89-111111111111"

@@ -121,6 +121,11 @@ Or using named metrics of resources:
 
 {{ scenarios['post-measures-batch-named']['doc'] }}
 
+If some named metrics specified in the batch request do not exist, Gnocchi can
+try to create them as long as an archive policy rule matches:
+
+{{ scenarios['post-measures-batch-named-create']['doc'] }}
+
 
 Archive Policy
 ==============

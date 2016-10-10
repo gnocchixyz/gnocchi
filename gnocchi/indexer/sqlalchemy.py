@@ -653,6 +653,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if (e.constraint ==
                'fk_metric_ap_name_ap_name'):
                 raise indexer.NoSuchArchivePolicy(archive_policy_name)
+            if e.constraint == 'fk_metric_resource_id_resource_id':
+                raise indexer.NoSuchResource(resource_id)
             raise
         return m
 
