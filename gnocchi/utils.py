@@ -118,6 +118,10 @@ def dt_to_unix_ns(*args):
         *args, tzinfo=iso8601.iso8601.UTC)) * int(10e8))
 
 
+def dt_in_unix_ns(timestamp):
+    return int(datetime_to_unix(timestamp) * int(10e8))
+
+
 def get_default_workers():
     try:
         default_workers = multiprocessing.cpu_count() or 1
