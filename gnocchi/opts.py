@@ -38,9 +38,6 @@ def list_opts():
             cfg.StrOpt('paste_config',
                        default='api-paste.ini',
                        help='Path to API Paste configuration.'),
-            cfg.BoolOpt('pecan_debug',
-                        default=False,
-                        help='Toggle Pecan Debug Middleware.'),
             cfg.IntOpt('max_limit',
                        default=1000,
                        help=('The maximum number of items returned in a '

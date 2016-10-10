@@ -115,7 +115,6 @@ def load_app(conf, appname=None, indexer=None, storage=None,
 def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
     app = pecan.make_app(
         root,
-        debug=conf.api.pecan_debug,
         hooks=(GnocchiHook(storage, indexer, conf),),
         guess_content_type_from_ext=False,
         custom_renderers={'json': OsloJSONRenderer},
