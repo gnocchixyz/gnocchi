@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import itertools
+import numbers
 import uuid
 
 from concurrent import futures
@@ -413,9 +414,14 @@ class ArchivePolicyRulesController(rest.RestController):
 
 
 def MeasuresListSchema(measures):
+    timestamps = [
+        float(i['timestamp']) * 10e8
+        if isinstance(i['timestamp'], numbers.Real)
+        else i['timestamp']
+        for i in measures
+    ]
     try:
-        times = pd.to_datetime([i['timestamp'] for i in measures], utc=True,
-                               unit='ns', box=False)
+        times = pd.to_datetime(timestamps, utc=True, unit='ns', box=False)
         if np.any(times < np.datetime64('1970')):
             raise ValueError('Timestamp must be after Epoch')
     except ValueError as e:
