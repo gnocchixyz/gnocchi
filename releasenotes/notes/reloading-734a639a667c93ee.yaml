@@ -1,0 +1,6 @@
+---
+features:
+  - gnocchi-metricd now uses the cotyledon/oslo.config helper to handle
+    configuration file reloading. You can dynamically change the number
+    of workers by changing the configuration file and sending SIGHUP to the
+    metricd master process.
