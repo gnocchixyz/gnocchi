@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2015 Red Hat
+# Copyright © 2015-2016 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,6 +15,7 @@
 # under the License.
 import datetime
 
+import numpy
 from oslo_serialization import jsonutils
 
 
@@ -26,6 +27,9 @@ def _to_primitive(value, *args, **kwargs):
     # https://review.openstack.org/#/c/166861/
     if isinstance(value, datetime.datetime):
         return value.isoformat()
+    if isinstance(value, numpy.datetime64):
+        # Do not include nanoseconds if null
+        return str(value).rpartition(".000000000")[0] + "+00:00"
     # This mimics what Pecan implements in its default JSON encoder
     if hasattr(value, "jsonify"):
         return _to_primitive(value.jsonify(), *args, **kwargs)
@@ -42,6 +46,7 @@ def to_primitive(*args, **kwargs):
 
 def dumps(obj, *args, **kwargs):
     return jsonutils.dumps(obj, default=to_primitive)
+
 
 # For convenience
 loads = jsonutils.loads

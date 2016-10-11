@@ -1,0 +1,34 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: cookies
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: create metric
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+          archive_policy_name: cookies
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: cookies
+
+    - name: push measurements to metric with relative timestamp
+      POST: /v1/metric/$RESPONSE['$.id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: "-5 minutes"
+            value: 43.1
+      status: 202

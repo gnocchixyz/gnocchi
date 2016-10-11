@@ -16,9 +16,12 @@
 import datetime
 import itertools
 import multiprocessing
+import numbers
 
 import iso8601
+import numpy
 from oslo_utils import timeutils
+import pandas
 from pytimeparse import timeparse
 import six
 import tenacity
@@ -63,22 +66,44 @@ retry = tenacity.retry(
     reraise=True)
 
 
-def to_timestamp(v):
-    if isinstance(v, datetime.datetime):
-        return v
-    try:
-        v = float(v)
-    except (ValueError, TypeError):
-        v = six.text_type(v)
-        try:
-            return timeutils.parse_isotime(v)
-        except ValueError:
+unix_universal_start64 = numpy.datetime64("1970")
+
+
+def to_timestamps(values):
+    timestamps = []
+    for v in values:
+        if isinstance(v, numbers.Real):
+            timestamps.append(float(v) * 10e8)
+        elif isinstance(v, datetime.datetime):
+            timestamps.append(v)
+        else:
             delta = timeparse.timeparse(v)
-            if delta is None:
-                raise ValueError("Unable to parse timestamp %s" % v)
-            return utcnow() + datetime.timedelta(seconds=delta)
-    return datetime.datetime.utcfromtimestamp(v).replace(
-        tzinfo=iso8601.iso8601.UTC)
+            timestamps.append(v
+                              if delta is None
+                              else numpy.datetime64(timeutils.utcnow())
+                              + numpy.timedelta64(delta))
+    try:
+        times = pandas.to_datetime(timestamps, utc=True, box=False)
+    except ValueError:
+        raise ValueError("Unable to convert timestamps")
+
+    if (times < unix_universal_start64).any():
+        raise ValueError('Timestamp must be after Epoch')
+
+    return times
+
+
+def to_timestamp(value):
+    return to_timestamps((value,))[0]
+
+
+def to_datetime(value):
+    return timestamp_to_datetime(to_timestamp(value))
+
+
+def timestamp_to_datetime(v):
+    return datetime.datetime.utcfromtimestamp(
+        v.astype(float) / 10e8).replace(tzinfo=iso8601.iso8601.UTC)
 
 
 def to_timespan(value):

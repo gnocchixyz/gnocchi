@@ -444,10 +444,10 @@ class MetricTest(RestTest):
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
 
-    @mock.patch.object(utils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow')
     def test_get_measure_start_relative(self, utcnow):
         """Make sure the timestamps can be relative to now."""
-        utcnow.return_value = utils.datetime_utc(2014, 1, 1, 10, 23)
+        utcnow.return_value = datetime.datetime(2014, 1, 1, 10, 23)
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "high"})
         metric = json.loads(result.text)
@@ -459,7 +459,7 @@ class MetricTest(RestTest):
             % metric['id'],
             status=200)
         result = json.loads(ret.text)
-        now = utils.utcnow()
+        now = utils.datetime_utc(2014, 1, 1, 10, 23)
         self.assertEqual([
             ['2014-01-01T10:00:00+00:00', 3600.0, 1234.2],
             [(now

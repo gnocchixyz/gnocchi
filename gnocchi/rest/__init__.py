@@ -15,14 +15,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import itertools
-import numbers
 import uuid
 
 from concurrent import futures
 import jsonpatch
-import numpy as np
 from oslo_utils import strutils
-import pandas as pd
 import pecan
 from pecan import rest
 import pyparsing
@@ -175,13 +172,6 @@ def deserialize_and_validate(schema, required=True,
             deserialize(expected_content_types=expected_content_types))
     except voluptuous.Error as e:
         abort(400, "Invalid input: %s" % e)
-
-
-def Timestamp(v):
-    t = utils.to_timestamp(v)
-    if t < utils.unix_universal_start:
-        raise ValueError("Timestamp must be after Epoch")
-    return t
 
 
 def PositiveOrNullInt(value):
@@ -414,16 +404,8 @@ class ArchivePolicyRulesController(rest.RestController):
 
 
 def MeasuresListSchema(measures):
-    timestamps = [
-        float(i['timestamp']) * 10e8
-        if isinstance(i['timestamp'], numbers.Real)
-        else i['timestamp']
-        for i in measures
-    ]
     try:
-        times = pd.to_datetime(timestamps, utc=True, unit='ns', box=False)
-        if np.any(times < np.datetime64('1970')):
-            raise ValueError('Timestamp must be after Epoch')
+        times = utils.to_timestamps((m['timestamp'] for m in measures))
     except ValueError as e:
         abort(400, "Invalid input for timestamp: %s" % e)
 
@@ -482,13 +464,13 @@ class MetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = Timestamp(start)
+                start = utils.to_datetime(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = Timestamp(stop)
+                stop = utils.to_datetime(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -908,8 +890,8 @@ class ResourceTypesController(rest.RestController):
 
 def ResourceSchema(schema):
     base_schema = {
-        voluptuous.Optional('started_at'): Timestamp,
-        voluptuous.Optional('ended_at'): Timestamp,
+        voluptuous.Optional('started_at'): utils.to_datetime,
+        voluptuous.Optional('ended_at'): utils.to_datetime,
         voluptuous.Optional('user_id'): voluptuous.Any(None, six.text_type),
         voluptuous.Optional('project_id'): voluptuous.Any(None, six.text_type),
         voluptuous.Optional('metrics'): MetricsSchema,
@@ -1371,13 +1353,13 @@ class SearchMetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = Timestamp(start)
+                start = utils.to_datetime(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = Timestamp(stop)
+                stop = utils.to_datetime(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1559,13 +1541,13 @@ class AggregationController(rest.RestController):
 
         if start is not None:
             try:
-                start = Timestamp(start)
+                start = utils.to_datetime(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = Timestamp(stop)
+                stop = utils.to_datetime(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
