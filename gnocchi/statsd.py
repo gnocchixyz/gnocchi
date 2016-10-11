@@ -65,14 +65,14 @@ class Stats(object):
                     "Invalid sampling for ms: `%d`, should be none"
                     % sampling)
             self.times[metric_name] = storage.Measure(
-                int(utils.datetime_to_unix(utils.utcnow()) * int(10e8)), value)
+                utils.dt_in_unix_ns(utils.utcnow()), value)
         elif metric_type == "g":
             if sampling is not None:
                 raise ValueError(
                     "Invalid sampling for g: `%d`, should be none"
                     % sampling)
             self.gauges[metric_name] = storage.Measure(
-                int(utils.datetime_to_unix(utils.utcnow()) * int(10e8)), value)
+                utils.dt_in_unix_ns(utils.utcnow()), value)
         elif metric_type == "c":
             sampling = 1 if sampling is None else sampling
             if metric_name in self.counters:
@@ -80,7 +80,7 @@ class Stats(object):
             else:
                 current_value = 0
             self.counters[metric_name] = storage.Measure(
-                int(utils.datetime_to_unix(utils.utcnow()) * int(10e8)),
+                utils.dt_in_unix_ns(utils.utcnow()),
                 current_value + (value * (1 / sampling)))
         # TODO(jd) Support "set" type
         # elif metric_type == "s":
