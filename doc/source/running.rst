@@ -68,7 +68,7 @@ How to backup and restore Gnocchi
 
 In order to be able to recover from an unfortunate event, you need to backup
 both the index and the storage. That means creating a database dump (PostgreSQL
-or MySQL) and doing snapshots or copy of your data storage (Ceph, Swift or your
-file system). The procedure to restore is no more complicated than initial
+or MySQL) and doing snapshots or copy of your data storage (Ceph, S3, Swift or
+your file system). The procedure to restore is no more complicated than initial
 deployment: restore your index and storage backups, reinstall Gnocchi if
 necessary, and restart it.

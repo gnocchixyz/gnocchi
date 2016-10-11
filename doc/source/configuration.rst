@@ -32,6 +32,9 @@ options you want to change and configure:
 | storage.ceph_*      | Configuration options to access Ceph              |
 |                     | if you use the Ceph storage driver.               |
 +---------------------+---------------------------------------------------+
+| storage.s3_*        | Configuration options to access S3                |
+|                     | if you use the S3 storage driver.                 |
++---------------------+---------------------------------------------------+
 
 
 Gnocchi provides these storage drivers:
@@ -39,6 +42,7 @@ Gnocchi provides these storage drivers:
 - File (default)
 - `Swift`_
 - `Ceph`_
+- `S3`_
 
 Gnocchi provides these indexer drivers:
 
@@ -47,6 +51,7 @@ Gnocchi provides these indexer drivers:
 
 .. _`Swift`: https://launchpad.net/swift
 .. _`Ceph`: http://ceph.com/
+.. _`S3`: https://aws.amazon.com/s3/
 .. _`PostgreSQL`: http://postgresql.org
 .. _`MySQL`: http://mysql.com
 

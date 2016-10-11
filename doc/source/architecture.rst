@@ -36,6 +36,7 @@ Gnocchi currently offers different storage drivers:
 
 * File
 * Swift
+* S3
 * Ceph (preferred)
 
 The drivers are based on an intermediate library, named *Carbonara*, which
@@ -49,9 +50,9 @@ than the file driver.
 Depending on the size of your architecture, using the file driver and storing
 your data on a disk might be enough. If you need to scale the number of server
 with the file driver, you can export and share the data via NFS among all
-Gnocchi processes. In any case, it is obvious that Ceph and Swift drivers are
-largely more scalable. Ceph also offers better consistency, and hence is the
-recommended driver.
+Gnocchi processes. In any case, it is obvious that S3, Ceph and Swift drivers
+are largely more scalable. Ceph also offers better consistency, and hence is
+the recommended driver.
 
 How to plan for Gnocchi’s storage
 ---------------------------------

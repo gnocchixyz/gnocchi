@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014-2015 eNovance
+# Copyright © 2014-2016 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -207,6 +207,16 @@ class TestCase(base.BaseTestCase):
         self.conf.set_override('policy_file',
                                self.path_get('etc/gnocchi/policy.json'),
                                group="oslo_policy")
+
+        # NOTE(jd) This allows to test S3 on AWS
+        if not os.getenv("AWS_ACCESS_KEY_ID"):
+            self.conf.set_override('s3_endpoint_url',
+                                   os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
+                                   group="storage")
+            self.conf.set_override('s3_access_key_id', "gnocchi",
+                                   group="storage")
+            self.conf.set_override('s3_secret_access_key', "anythingworks",
+                                   group="storage")
 
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
