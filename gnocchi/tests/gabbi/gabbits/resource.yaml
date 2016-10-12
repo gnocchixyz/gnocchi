@@ -827,7 +827,7 @@ tests:
 # Delete a batch of resources by attributes filter
 
     - name: create resource one
-      desc: before test batch delete, create some resources
+      desc: before test batch delete, create some resources using a float in started_at
       POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -835,7 +835,7 @@ tests:
           content-type: application/json
       data:
           id: f93450f2-aaaa-4d67-9985-02511241e7d1
-          started_at: "2014-01-03T02:02:02.000000"
+          started_at: 1388714522.0
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 201
