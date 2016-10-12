@@ -13,7 +13,6 @@ pytimeparse>=1.1.5
 futures
 jsonpatch
 cotyledon>=1.5.0
-requests
 six
 stevedore
 voluptuous
