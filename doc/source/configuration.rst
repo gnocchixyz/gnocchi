@@ -79,8 +79,8 @@ edit the `api-paste.ini` file to add the Keystone authentication middleware::
 Driver notes
 ============
 
-Carbonara based drivers (file, swift, ceph)
--------------------------------------------
+Carbonara based drivers (file, swift, ceph, s3)
+-----------------------------------------------
 
 To ensure consistency across all *gnocchi-api* and *gnocchi-metricd* workers,
 these drivers need a distributed locking mechanism. This is provided by the
