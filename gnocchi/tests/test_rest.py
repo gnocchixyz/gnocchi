@@ -745,16 +745,6 @@ class ResourceTest(RestTest):
         self.assertIn("Resource %s already exists" % self.attributes['id'],
                       result.text)
 
-    def test_post_unix_timestamp(self):
-        self.attributes['started_at'] = "1400580045.856219"
-        result = self.app.post_json(
-            "/v1/resource/" + self.resource_type,
-            params=self.attributes,
-            status=201)
-        resource = json.loads(result.text)
-        self.assertEqual(u"2014-05-20T10:00:45.856219+00:00",
-                         resource['started_at'])
-
     def test_post_invalid_timestamp(self):
         self.attributes['started_at'] = "2014-01-01 02:02:02"
         self.attributes['ended_at'] = "2013-01-01 02:02:02"
