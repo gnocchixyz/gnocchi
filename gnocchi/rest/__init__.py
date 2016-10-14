@@ -160,8 +160,7 @@ def deserialize(expected_content_types=None):
     if mime_type not in expected_content_types:
         abort(415)
     try:
-        params = json.load(pecan.request.body_file_raw,
-                           encoding=options.get('charset', 'ascii'))
+        params = json.load(pecan.request.body_file_raw)
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
     return params
