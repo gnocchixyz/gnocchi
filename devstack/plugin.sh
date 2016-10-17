@@ -457,7 +457,7 @@ function stop_gnocchi {
         restart_apache_server
     fi
     # Kill the gnocchi screen windows
-    for serv in gnocchi-api; do
+    for serv in gnocchi-api gnocchi-metricd gnocchi-statsd; do
         stop_process $serv
     done
 }
