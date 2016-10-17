@@ -16,6 +16,7 @@
 import datetime
 
 from oslo_serialization import jsonutils
+import ujson
 
 
 _ORIG_TP = jsonutils.to_primitive
@@ -44,5 +45,5 @@ def dumps(obj, *args, **kwargs):
     return jsonutils.dumps(obj, default=to_primitive)
 
 # For convenience
-loads = jsonutils.loads
-load = jsonutils.load
+loads = ujson.loads
+load = ujson.load
