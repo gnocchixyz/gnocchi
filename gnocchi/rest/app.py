@@ -76,7 +76,7 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, appname=None, indexer=None, storage=None,
+def load_app(conf, indexer=None, storage=None,
              not_implemented_middleware=True):
     global APPCONFIGS
 
@@ -102,6 +102,8 @@ def load_app(conf, appname=None, indexer=None, storage=None,
     APPCONFIGS[configkey] = config
 
     LOG.info("WSGI config used: %s", cfg_path)
+    appname = "gnocchi" + ("+" + conf.api.auth_mode
+                           if conf.api.auth_mode else "")
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})
     return cors.CORS(app, conf=conf)

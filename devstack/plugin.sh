@@ -276,12 +276,12 @@ function configure_gnocchi {
     fi
 
     if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
-        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+auth
+        iniset $GNOCCHI_CONF api auth_mode keystone
         if is_service_enabled gnocchi-grafana; then
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
         fi
     else
-        iniset $GNOCCHI_PASTE_CONF pipeline:main pipeline gnocchi+noauth
+        inidelete $GNOCCHI_CONF api auth_mode
     fi
 
     # Configure the indexer database
