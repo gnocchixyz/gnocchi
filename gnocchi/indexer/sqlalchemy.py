@@ -268,6 +268,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return new_url
 
     @staticmethod
+    def _is_rdbms_compatible(connection):
+        dialect = connection.dialect.dialect_description
+        version = connection.dialect.server_version_info
+        return not (dialect.startswith('mysql') and version < (5, 6, 4))
+
+    @staticmethod
     def dress_url(url):
         # If no explicit driver has been set, we default to pymysql
         if url.startswith("mysql://"):
@@ -282,6 +288,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                           "database")
         self.conf = conf
         self.facade = PerInstanceFacade(conf)
+
+        with self.facade.reader_connection() as connection:
+            if not self._is_rdbms_compatible(connection):
+                raise RuntimeError("MySQL minimum required version is "
+                                   "5.6.4")
 
     def disconnect(self):
         self.facade.dispose()
