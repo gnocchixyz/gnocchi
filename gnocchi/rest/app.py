@@ -23,6 +23,7 @@ from oslo_policy import policy
 from paste import deploy
 import pecan
 from pecan import jsonify
+from stevedore import driver
 import webob.exc
 
 from gnocchi import exceptions
@@ -46,12 +47,16 @@ class GnocchiHook(pecan.hooks.PecanHook):
         self.indexer = indexer
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
+        self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
+                                                conf.api.auth_mode,
+                                                invoke_on_load=True).driver
 
     def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
+        state.request.auth_helper = self.auth_helper
 
 
 class NotImplementedMiddleware(object):
@@ -102,8 +107,7 @@ def load_app(conf, indexer=None, storage=None,
     APPCONFIGS[configkey] = config
 
     LOG.info("WSGI config used: %s", cfg_path)
-    appname = "gnocchi" + ("+" + conf.api.auth_mode
-                           if conf.api.auth_mode else "")
+    appname = "gnocchi+" + conf.api.auth_mode
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})
     return cors.CORS(app, conf=conf)

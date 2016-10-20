@@ -155,7 +155,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         if self.auth:
             self.conf.set_override("auth_mode", "keystone", group="api")
         else:
-            self.conf.set_override("auth_mode", None, group="api")
+            self.conf.set_override("auth_mode", "noauth", group="api")
 
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            indexer=self.index,
