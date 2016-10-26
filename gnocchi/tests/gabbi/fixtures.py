@@ -108,8 +108,6 @@ class ConfigFixture(fixture.GabbiFixture):
         index.connect()
         index.upgrade(create_legacy_resource_types=True)
 
-        conf.set_override('pecan_debug', False, 'api')
-
         # Set pagination to a testable value
         conf.set_override('max_limit', 7, 'api')
 
