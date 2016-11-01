@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2014-2015 eNovance
+# Copyright © 2014-2016 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,6 +22,7 @@ from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
 import pecan
+from pecan import jsonify
 import webob.exc
 
 from gnocchi import exceptions
@@ -32,6 +33,10 @@ from gnocchi import storage as gnocchi_storage
 
 
 LOG = log.getLogger(__name__)
+
+
+# Register our encoder by default for everything
+jsonify.jsonify.register(object)(json.to_primitive)
 
 
 class GnocchiHook(pecan.hooks.PecanHook):
@@ -47,16 +52,6 @@ class GnocchiHook(pecan.hooks.PecanHook):
         state.request.indexer = self.indexer
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
-
-
-class OsloJSONRenderer(object):
-    @staticmethod
-    def __init__(*args, **kwargs):
-        pass
-
-    @staticmethod
-    def render(template_path, namespace):
-        return json.dumps(namespace)
 
 
 class NotImplementedMiddleware(object):
@@ -117,7 +112,6 @@ def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
         root,
         hooks=(GnocchiHook(storage, indexer, conf),),
         guess_content_type_from_ext=False,
-        custom_renderers={'json': OsloJSONRenderer},
     )
 
     if not_implemented_middleware:
