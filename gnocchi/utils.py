@@ -70,20 +70,22 @@ unix_universal_start64 = numpy.datetime64("1970")
 
 
 def to_timestamps(values):
-    timestamps = []
-    for v in values:
-        if isinstance(v, numbers.Real):
-            timestamps.append(float(v) * 10e8)
-        elif isinstance(v, datetime.datetime):
-            timestamps.append(v)
-        else:
-            delta = timeparse.timeparse(v)
-            timestamps.append(v
-                              if delta is None
-                              else numpy.datetime64(timeutils.utcnow())
-                              + numpy.timedelta64(delta))
     try:
-        times = pandas.to_datetime(timestamps, utc=True, box=False)
+        values = list(values)
+        if isinstance(values[0], numbers.Real):
+            times = pandas.to_datetime(values, utc=True, box=False,
+                                       unit='s')
+        elif isinstance(values[0], datetime.datetime):
+            times = pandas.to_datetime(values, utc=True, box=False)
+        else:
+            timestamps = []
+            for v in values:
+                delta = timeparse.timeparse(v)
+                timestamps.append(v
+                                  if delta is None
+                                  else numpy.datetime64(timeutils.utcnow())
+                                  + numpy.timedelta64(delta))
+            times = pandas.to_datetime(timestamps, utc=True, box=False)
     except ValueError:
         raise ValueError("Unable to convert timestamps")
 
