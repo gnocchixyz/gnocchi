@@ -448,13 +448,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def upgrade(self, index):
         marker = None
         while True:
-            metrics = index.list_metrics(limit=self.UPGRADE_BATCH_SIZE,
-                                         marker=marker)
-            for m in metrics:
-                self._check_for_metric_upgrade(m)
+            metrics = [(metric,) for metric in
+                       index.list_metrics(limit=self.UPGRADE_BATCH_SIZE,
+                                          marker=marker)]
+            self._map_in_thread(self._check_for_metric_upgrade, metrics)
             if len(metrics) == 0:
                 break
-            marker = metrics[-1].id
+            marker = metrics[-1][0].id
 
     def process_new_measures(self, indexer, metrics_to_process, sync=False):
         metrics = indexer.list_metrics(ids=metrics_to_process)
