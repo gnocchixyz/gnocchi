@@ -19,6 +19,7 @@ import uuid
 
 from concurrent import futures
 import jsonpatch
+from oslo_utils import dictutils
 from oslo_utils import strutils
 import pecan
 from pecan import rest
@@ -62,17 +63,6 @@ def get_user_and_project():
     return (user_id, project_id)
 
 
-# TODO(jd) Move this to oslo.utils as I stole it from Ceilometer
-def recursive_keypairs(d, separator='.'):
-    """Generator that produces sequence of keypairs for nested dictionaries."""
-    for name, value in sorted(six.iteritems(d)):
-        if isinstance(value, dict):
-            for subname, subvalue in recursive_keypairs(value, separator):
-                yield ('%s%s%s' % (name, separator, subname), subvalue)
-        else:
-            yield name, value
-
-
 def enforce(rule, target):
     """Return the user and project the request should be limited to.
 
@@ -93,7 +83,7 @@ def enforce(rule, target):
         target = target.__dict__
 
     # Flatten dict
-    target = dict(recursive_keypairs(target))
+    target = dict(dictutils.flatten_dict_to_keypairs(d=target, separator='.'))
 
     if not pecan.request.policy_enforcer.enforce(rule, target, creds):
         abort(403)
