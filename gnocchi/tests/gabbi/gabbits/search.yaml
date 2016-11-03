@@ -63,3 +63,11 @@ tests:
         content-type: application/json
       response_json_paths:
         $.`len`: 2
+
+    - name: search empty query
+      POST: /v1/search/resource/generic
+      request_headers:
+        content-type: application/json
+      data: {}
+      response_json_paths:
+        $.`len`: 2

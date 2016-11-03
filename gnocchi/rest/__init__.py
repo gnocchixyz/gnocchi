@@ -1224,7 +1224,7 @@ class SearchResourceTypeController(rest.RestController):
 
     ResourceSearchSchema = voluptuous.Schema(
         voluptuous.All(
-            voluptuous.Length(min=1, max=1),
+            voluptuous.Length(min=0, max=1),
             {
                 voluptuous.Any(
                     u"=", u"==", u"eq",
