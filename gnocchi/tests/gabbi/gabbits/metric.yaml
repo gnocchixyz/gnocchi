@@ -202,6 +202,49 @@ tests:
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
 
+    - name: get valid metric id again 5
+      GET: /v1/metric
+
+    - name: push measurements to metric again
+      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: "2015-03-06T14:34:15"
+            value: 16
+          - timestamp: "2015-03-06T14:35:12"
+            value: 9
+          - timestamp: "2015-03-06T14:35:15"
+            value: 11
+      status: 202
+
+    - name: get valid metric id again 6
+      GET: /v1/metric
+
+    - name: get measurements from metric and resample
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true&resample=60&granularity=1
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+
+    - name: get valid metric id again 7
+      GET: /v1/metric
+
+    - name: get measurements from metric and resample no granularity
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?resample=60
+      status: 400
+      response_strings:
+        - A granularity must be specified to resample
+
+    - name: get valid metric id again 8
+      GET: /v1/metric
+
+    - name: get measurements from metric and bad resample
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?resample=abc
+      status: 400
+
     - name: create valid metric two
       POST: /v1/metric
       request_headers:

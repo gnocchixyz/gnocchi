@@ -154,7 +154,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                          else attrs[-1] == 'v%s' % v)
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None):
+                     aggregation='mean', granularity=None, resample=None):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
         if granularity is None:
@@ -164,9 +164,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                   from_timestamp, to_timestamp)
                  for ap in reversed(metric.archive_policy.definition)))
         else:
-            agg_timeseries = [self._get_measures_timeserie(
+            agg_timeseries = self._get_measures_timeserie(
                 metric, aggregation, granularity,
-                from_timestamp, to_timestamp)]
+                from_timestamp, to_timestamp)
+            if resample:
+                agg_timeseries = agg_timeseries.resample(resample)
+            agg_timeseries = [agg_timeseries]
+
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                 for ts in agg_timeseries
                 for timestamp, r, v in ts.fetch(from_timestamp, to_timestamp)]

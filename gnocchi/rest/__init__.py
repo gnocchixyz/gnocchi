@@ -478,7 +478,7 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
-                     granularity=None, refresh=False, **param):
+                     granularity=None, resample=None, refresh=False, **param):
         self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
@@ -502,6 +502,14 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
+        if resample:
+            if not granularity:
+                abort(400, 'A granularity must be specified to resample')
+            try:
+                resample = Timespan(resample)
+            except ValueError as e:
+                abort(400, e)
+
         if strutils.bool_from_string(refresh):
             pecan.request.storage.process_new_measures(
                 pecan.request.indexer, [six.text_type(self.metric.id)], True)
@@ -514,7 +522,8 @@ class MetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
-                    float(granularity) if granularity is not None else None)
+                    float(granularity) if granularity is not None else None,
+                    resample)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
