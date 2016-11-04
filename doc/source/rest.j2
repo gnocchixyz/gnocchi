@@ -520,7 +520,13 @@ requested resource type, and the compute the aggregation:
 
 Similar to retrieving measures for a single metric, the `refresh` parameter
 can be provided to force all POSTed measures to be processed across all
-metrics before computing the result.
+metrics before computing the result. The `resample` parameter may be used as
+well.
+
+.. note::
+
+   Resampling is done prior to any reaggregation if both parameters are
+   specified.
 
 Also aggregation across metrics have different behavior depending
 on if boundary are set ('start' and 'stop') and if 'needed_overlap' is set.

@@ -118,6 +118,16 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 2.0]
 
+    - name: get metric list to get aggregates 5
+      GET: /v1/metric
+
+    - name: get measure aggregates and resample
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&resample=60
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
+          - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+
 # Aggregation by resource and metric_name
 
     - name: post a resource
@@ -196,6 +206,35 @@ tests:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+
+    - name: get measure aggregates by granularity from resources and resample
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&resample=60
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
+          - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+
+    - name: get measure aggregates by granularity from resources and bad resample
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?resample=abc
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+
+    - name: get measure aggregates by granularity from resources and resample no granularity
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?resample=60
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      status: 400
+      response_strings:
+        - A granularity must be specified to resample
 
     - name: get measure aggregates by granularity with timestamps from resources
       POST: /v1/aggregation/resource/generic/metric/agg_meter?start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00

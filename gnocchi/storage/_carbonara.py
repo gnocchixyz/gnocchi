@@ -591,12 +591,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
-                                  reaggregation=None,
-                                  granularity=None,
-                                  needed_overlap=100.0):
+                                  reaggregation=None, resample=None,
+                                  granularity=None, needed_overlap=100.0):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
-            aggregation, reaggregation, granularity, needed_overlap)
+            aggregation, reaggregation, resample, granularity, needed_overlap)
 
         if reaggregation is None:
             reaggregation = aggregation
@@ -620,11 +619,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         else:
             granularities_in_common = [granularity]
 
-        tss = self._map_in_thread(self._get_measures_timeserie,
-                                  [(metric, aggregation, g,
-                                    from_timestamp, to_timestamp)
-                                   for metric in metrics
-                                   for g in granularities_in_common])
+        if resample and granularity:
+            tss = self._map_in_thread(self._get_measures_timeserie,
+                                      [(metric, aggregation, granularity,
+                                        from_timestamp, to_timestamp)
+                                       for metric in metrics])
+            for i, ts in enumerate(tss):
+                tss[i] = ts.resample(resample)
+        else:
+            tss = self._map_in_thread(self._get_measures_timeserie,
+                                      [(metric, aggregation, g,
+                                        from_timestamp, to_timestamp)
+                                       for metric in metrics
+                                       for g in granularities_in_common])
+
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                     for timestamp, r, v

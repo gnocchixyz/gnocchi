@@ -1,0 +1,6 @@
+---
+features:
+  - Add `resample` parameter to support resampling stored time-series to
+    another granularity not necessarily in existing archive policy. If both
+    resampling and reaggregation parameters are specified, resampling will
+    occur prior to reaggregation.
