@@ -112,7 +112,7 @@ def to_timespan(value):
     if value is None:
         raise ValueError("Invalid timespan")
     try:
-        seconds = int(value)
+        seconds = float(value)
     except Exception:
         try:
             seconds = timeparse.timeparse(six.text_type(value))
