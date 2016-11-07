@@ -229,7 +229,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 Bucket=self._bucket_name_measures,
                 Key=f)
             measures.extend(
-                self._unserialize_measures(response['Body'].read()))
+                self._unserialize_measures(f, response['Body'].read()))
 
         yield measures
 
