@@ -1166,7 +1166,7 @@ class QueryTransformer(object):
                 converter = None
 
                 if isinstance(attr.type, base.TimestampUTC):
-                    converter = utils.to_timestamp
+                    converter = utils.to_datetime
                 elif (isinstance(attr.type, sqlalchemy_utils.UUIDType)
                       and not isinstance(value, uuid.UUID)):
                     converter = utils.ResourceUUID
