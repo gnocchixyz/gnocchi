@@ -1,0 +1,5 @@
+---
+features:
+  - "When sending measures in batch for resources, it is now possible to pass
+    `create_metric=true` to the query parameters so missing metrics are created.
+    This only works if an archive policy rule matching those named metrics matches."

@@ -51,8 +51,9 @@ def abort(status_code, detail='', headers=None, comment=None, **kw):
     """Like pecan.abort, but make sure detail is a string."""
     if status_code == 404 and not detail:
         raise RuntimeError("http code 404 must have 'detail' set")
-    return pecan.abort(status_code, six.text_type(detail),
-                       headers, comment, **kw)
+    if isinstance(detail, Exception):
+        detail = six.text_type(detail)
+    return pecan.abort(status_code, detail, headers, comment, **kw)
 
 
 def get_user_and_project():
@@ -1391,8 +1392,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         {utils.ResourceUUID: {six.text_type: MeasuresListSchema}}
     )
 
-    @pecan.expose()
-    def post(self):
+    @pecan.expose('json')
+    def post(self, create_metrics=False):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
 
         known_metrics = []
@@ -1402,8 +1403,35 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             metrics = pecan.request.indexer.list_metrics(
                 names=names, resource_id=resource_id)
 
-            if len(names) != len(metrics):
-                known_names = [m.name for m in metrics]
+            known_names = [m.name for m in metrics]
+            if strutils.bool_from_string(create_metrics):
+                user_id, project_id = get_user_and_project()
+                unknown_resources = set()
+                for name in names:
+                    if name not in known_names:
+                        metric = MetricsController.MetricSchema({
+                            "name": name
+                        })
+                        try:
+                            pecan.request.indexer.create_metric(
+                                uuid.uuid4(),
+                                user_id, project_id,
+                                resource_id=resource_id,
+                                name=metric.get('name'),
+                                unit=metric.get('unit'),
+                                archive_policy_name=metric[
+                                    'archive_policy_name'])
+                        except indexer.NoSuchResource as e:
+                            unknown_resources.add(resource_id)
+                        except indexer.IndexerException as e:
+                            # This catch NoSuchArchivePolicy, which is unlikely
+                            # be still possible
+                            abort(400, e)
+                if unknown_resources:
+                    abort(400, {"cause": "Unknown resources",
+                                "detail": unknown_resources})
+
+            elif len(names) != len(metrics):
                 unknown_metrics.extend(
                     ["%s/%s" % (six.text_type(resource_id), m)
                      for m in names if m not in known_names])
