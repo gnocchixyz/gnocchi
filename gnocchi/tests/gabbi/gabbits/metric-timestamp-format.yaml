@@ -32,3 +32,24 @@ tests:
           - timestamp: "-5 minutes"
             value: 43.1
       status: 202
+
+    - name: create metric 2
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+          archive_policy_name: cookies
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: cookies
+
+    - name: push measurements to metric with mixed timestamps
+      POST: /v1/metric/$RESPONSE['$.id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: 1478012832
+            value: 43.1
+          - timestamp: "-5 minutes"
+            value: 43.1
+      status: 400
