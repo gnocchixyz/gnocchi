@@ -60,14 +60,9 @@ def UUID(value):
         raise ValueError(e)
 
 
-class Retry(Exception):
-    pass
-
-
 # Retry with exponential backoff for up to 1 minute
 retry = tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=0.5, max=60),
-    retry=tenacity.retry_if_exception_type(Retry),
     reraise=True)
 
 
@@ -78,7 +73,7 @@ def _enable_coordination(coord):
         coord.start(start_heart=True)
     except Exception as e:
         LOG.error("Unable to start coordinator: %s", e)
-        raise Retry(e)
+        raise tenacity.TryAgain(e)
 
 
 def get_coordinator_and_start(url):
