@@ -92,15 +92,13 @@ that your indexer and storage are properly upgraded. Run the following:
 
 1. Stop the old version of Gnocchi API server and `gnocchi-statsd` daemon
 
-2. Make sure that the processing backlog is empty (`gnocchi status`)
+2. Stop the old version of `gnocchi-metricd` daemon
 
-3. Stop the old version of `gnocchi-metricd` daemon
+3. Install the new version of Gnocchi
 
-4. Install the new version of Gnocchi
-
-5. Run `gnocchi-upgrade`
+4. Run `gnocchi-upgrade`
    This can take several hours depending on the size of your index and
    storage.
 
-6. Start the new Gnocchi API server, `gnocchi-metricd`
+5. Start the new Gnocchi API server, `gnocchi-metricd`
    and `gnocchi-statsd` daemons

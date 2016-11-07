@@ -26,6 +26,7 @@ import iso8601
 import msgpack
 from oslo_config import cfg
 from oslo_log import log
+from oslo_serialization import msgpackutils
 from oslo_utils import timeutils
 import pandas
 import six
@@ -362,10 +363,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     _MEASURE_SERIAL_FORMAT = "Qd"
     _MEASURE_SERIAL_LEN = struct.calcsize(_MEASURE_SERIAL_FORMAT)
 
-    def _unserialize_measures(self, data):
+    def _unserialize_measures(self, measure_id, data):
         nb_measures = len(data) // self._MEASURE_SERIAL_LEN
-        measures = struct.unpack(
-            "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
+        try:
+            measures = struct.unpack(
+                "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
+        except struct.error:
+            # This either a corruption, either a v2 measures
+            try:
+                return msgpackutils.loads(data)
+            except ValueError:
+                LOG.error(
+                    "Unable to decode measure %s, possible data corruption",
+                    measure_id)
+                raise
         return six.moves.zip(
             pandas.to_datetime(measures[::2], unit='ns'),
             itertools.islice(measures, 1, len(measures), 2))

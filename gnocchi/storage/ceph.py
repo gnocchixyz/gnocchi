@@ -220,7 +220,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         measures = []
         for n in object_names:
             data = self._get_object_content(n)
-            measures.extend(self._unserialize_measures(data))
+            measures.extend(self._unserialize_measures(n, data))
 
         yield measures
 
