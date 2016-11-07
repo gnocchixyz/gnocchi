@@ -101,7 +101,7 @@ def load_app(conf, appname=None, indexer=None, storage=None,
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
 
-    LOG.info("WSGI config used: %s" % cfg_path)
+    LOG.info("WSGI config used: %s", cfg_path)
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})
     return cors.CORS(app, conf=conf)

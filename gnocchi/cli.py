@@ -56,12 +56,12 @@ def upgrade():
     index = indexer.get_driver(conf)
     index.connect()
     if not conf.skip_index:
-        LOG.info("Upgrading indexer %s" % index)
+        LOG.info("Upgrading indexer %s", index)
         index.upgrade(
             create_legacy_resource_types=conf.create_legacy_resource_types)
     if not conf.skip_storage:
         s = storage.get_driver(conf)
-        LOG.info("Upgrading storage %s" % s)
+        LOG.info("Upgrading storage %s", s)
         s.upgrade(index)
 
     if (not conf.skip_archive_policies_creation
