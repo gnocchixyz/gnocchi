@@ -17,15 +17,20 @@ import datetime
 import itertools
 import multiprocessing
 import numbers
+import uuid
 
 import iso8601
 import numpy
+from oslo_log import log
 from oslo_utils import timeutils
 import pandas
 from pytimeparse import timeparse
 import six
 import tenacity
-import uuid
+from tooz import coordination
+
+
+LOG = log.getLogger(__name__)
 
 # uuid5 namespace for id transformation.
 # NOTE(chdent): This UUID must stay the same, forever, across all
@@ -64,6 +69,23 @@ retry = tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=0.5, max=60),
     retry=tenacity.retry_if_exception_type(Retry),
     reraise=True)
+
+
+# TODO(jd) Move this to tooz?
+@retry
+def _enable_coordination(coord):
+    try:
+        coord.start(start_heart=True)
+    except Exception as e:
+        LOG.error("Unable to start coordinator: %s", e)
+        raise Retry(e)
+
+
+def get_coordinator_and_start(url):
+    my_id = str(uuid.uuid4())
+    coord = coordination.get_coordinator(url, my_id)
+    _enable_coordination(coord)
+    return coord, my_id
 
 
 unix_universal_start64 = numpy.datetime64("1970")
