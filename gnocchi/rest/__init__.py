@@ -166,10 +166,7 @@ def deserialize(expected_content_types=None):
         # connection are used. For more detail see:
         # https://bugs.python.org/issue21878
         # https://github.com/Pylons/webob/issues/279
-        if pecan.request.is_body_seekable:
-            params = json.load(pecan.request.body_file_seekable)
-        else:
-            params = json.load(pecan.request.body_file_raw)
+        params = json.load(pecan.request.body_file_seekable)
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
     return params
