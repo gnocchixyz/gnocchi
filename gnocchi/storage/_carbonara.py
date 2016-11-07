@@ -65,24 +65,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def __init__(self, conf):
         super(CarbonaraBasedStorage, self).__init__(conf)
-        self.coord = coordination.get_coordinator(
-            conf.coordination_url,
-            str(uuid.uuid4()).encode('ascii'))
         self.aggregation_workers_number = conf.aggregation_workers_number
         if self.aggregation_workers_number == 1:
             # NOTE(jd) Avoid using futures at all if we don't want any threads.
             self._map_in_thread = self._map_no_thread
         else:
             self._map_in_thread = self._map_in_futures_threads
-        self.start()
-
-    @utils.retry
-    def start(self):
-        try:
-            self.coord.start(start_heart=True)
-        except Exception as e:
-            LOG.error("Unable to start coordinator: %s" % e)
-            raise utils.Retry(e)
+        self.coord, my_id = utils.get_coordinator_and_start(
+            conf.coordination_url)
 
     def stop(self):
         self.coord.stop()

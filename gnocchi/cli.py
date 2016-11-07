@@ -16,7 +16,6 @@
 import multiprocessing
 import threading
 import time
-import uuid
 
 import cotyledon
 from futurist import periodics
@@ -143,16 +142,11 @@ class MetricScheduler(MetricProcessBase):
     TASKS_PER_WORKER = 16
     BLOCK_SIZE = 4
 
-    def _enable_coordination(self, conf):
-        self._coord = coordination.get_coordinator(
-            conf.storage.coordination_url, self._my_id)
-        self._coord.start(start_heart=True)
-
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
             worker_id, conf, conf.storage.metric_processing_delay)
-        self._my_id = str(uuid.uuid4())
-        self._enable_coordination(conf)
+        self._coord, self._my_id = utils.get_coordinator_and_start(
+            conf.storage.coordination_url)
         self.queue = queue
         self.previously_scheduled_metrics = set()
         self.workers = conf.metricd.workers

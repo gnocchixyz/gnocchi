@@ -14,13 +14,19 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import uuid
 
 import iso8601
+
+from oslo_log import log
 from oslo_utils import timeutils
 from pytimeparse import timeparse
 import retrying
 import six
-import uuid
+from tooz import coordination
+
+
+LOG = log.getLogger(__name__)
 
 # uuid5 namespace for id transformation.
 # NOTE(chdent): This UUID must stay the same, forever, across all
@@ -62,6 +68,23 @@ def retry_if_retry_is_raised(exception):
 retry = retrying.retry(wait_exponential_multiplier=500,
                        wait_exponential_max=60000,
                        retry_on_exception=retry_if_retry_is_raised)
+
+
+# TODO(jd) Move this to tooz?
+@retry
+def _enable_coordination(coord):
+    try:
+        coord.start(start_heart=True)
+    except Exception as e:
+        LOG.error("Unable to start coordinator: %s", e)
+        raise Retry(e)
+
+
+def get_coordinator_and_start(url):
+    my_id = str(uuid.uuid4())
+    coord = coordination.get_coordinator(url, my_id)
+    _enable_coordination(coord)
+    return coord, my_id
 
 
 def to_timestamp(v):
