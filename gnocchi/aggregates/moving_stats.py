@@ -16,14 +16,13 @@
 import datetime
 
 import numpy
+from oslo_utils import strutils
+from oslo_utils import timeutils
 import pandas
 import six
 
 from gnocchi import aggregates
-
-from oslo_utils import strutils
-from oslo_utils import timeutils
-from pytimeparse import timeparse
+from gnocchi import utils
 
 
 class MovingAverage(aggregates.CustomAggregator):
@@ -35,7 +34,7 @@ class MovingAverage(aggregates.CustomAggregator):
             msg = 'Moving aggregate must have window specified.'
             raise aggregates.CustomAggFailure(msg)
         try:
-            return float(timeparse.timeparse(six.text_type(window)))
+            return utils.to_timespan(six.text_type(window)).total_seconds()
         except Exception:
             raise aggregates.CustomAggFailure('Invalid value for window')
 

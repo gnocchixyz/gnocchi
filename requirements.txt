@@ -9,7 +9,6 @@ oslo.utils>=3.18.0
 oslo.middleware>=3.11.0
 pandas>=0.17.0
 pecan>=0.9
-pytimeparse>=1.1.5
 futures
 jsonpatch
 cotyledon>=1.5.0

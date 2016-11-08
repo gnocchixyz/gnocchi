@@ -46,14 +46,9 @@ class TestAggregates(tests_base.TestCase):
             self.assertEqual(60.0, result)
 
             window = '60'
-            self.assertRaises(aggregates.CustomAggFailure,
-                              agg_obj.check_window_valid,
-                              window)
-
-            window = None
-            self.assertRaises(aggregates.CustomAggFailure,
-                              agg_obj.check_window_valid,
-                              window)
+            agg_obj = self.custom_agg[agg_method]
+            result = agg_obj.check_window_valid(window)
+            self.assertEqual(60.0, result)
 
     def _test_create_metric_and_data(self, data, spacing):
         metric = storage.Metric(
