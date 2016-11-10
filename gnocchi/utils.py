@@ -63,6 +63,8 @@ def UUID(value):
 # Retry with exponential backoff for up to 1 minute
 retry = tenacity.retry(
     wait=tenacity.wait_exponential(multiplier=0.5, max=60),
+    # Never retry except when explicitly asked by raising TryAgain
+    retry=tenacity.retry_never,
     reraise=True)
 
 
