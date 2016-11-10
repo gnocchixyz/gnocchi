@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
 import six
+import tenacity
 import tooz
 from tooz import coordination
 
@@ -203,7 +204,7 @@ class MetricScheduler(MetricProcessBase):
                 create_group_req.get()
             except coordination.GroupAlreadyExist:
                 pass
-            raise utils.Retry(e)
+            raise tenacity.TryAgain(e)
         except tooz.NotImplemented:
             LOG.warning('Configured coordination driver does not support '
                         'required functionality. Coordination is disabled.')
