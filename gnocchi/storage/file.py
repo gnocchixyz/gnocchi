@@ -194,7 +194,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         for f in files:
             abspath = self._build_measure_path(metric.id, f)
             with open(abspath, "rb") as e:
-                measures.extend(self._unserialize_measures(e.read()))
+                measures.extend(self._unserialize_measures(f, e.read()))
 
         yield measures
 

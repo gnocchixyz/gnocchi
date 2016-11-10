@@ -189,7 +189,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         for f in files:
             headers, data = self.swift.get_object(
                 self.MEASURE_PREFIX, f['name'])
-            measures.extend(self._unserialize_measures(data))
+            measures.extend(self._unserialize_measures(f['name'], data))
 
         yield measures
 
