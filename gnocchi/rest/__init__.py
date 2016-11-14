@@ -1109,7 +1109,7 @@ class QueryStringSearchAttrFilter(object):
     uninary_operators = ("not", )
     binary_operator = (u">=", u"<=", u"!=", u">", u"<", u"=", u"==", u"eq",
                        u"ne", u"lt", u"gt", u"ge", u"le", u"in", u"like", u"≠",
-                       u"≥", u"≤", u"like" "in")
+                       u"≥", u"≤")
     multiple_operators = (u"and", u"or", u"∧", u"∨")
 
     operator = pyparsing.Regex(u"|".join(binary_operator))
@@ -1135,7 +1135,7 @@ class QueryStringSearchAttrFilter(object):
                         quoted_string | in_list)
     condition = pyparsing.Group(comparison_term + operator + comparison_term)
 
-    expr = pyparsing.operatorPrecedence(condition, [
+    expr = pyparsing.infixNotation(condition, [
         ("not", 1, pyparsing.opAssoc.RIGHT, ),
         ("and", 2, pyparsing.opAssoc.LEFT, ),
         ("∧", 2, pyparsing.opAssoc.LEFT, ),
