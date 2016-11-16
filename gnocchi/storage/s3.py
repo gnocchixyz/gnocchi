@@ -21,8 +21,8 @@ import os
 import uuid
 
 from oslo_config import cfg
-import retrying
 import six
+import tenacity
 try:
     import boto3
     import botocore.exceptions
@@ -87,9 +87,11 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     # NOTE(jd) OperationAborted might be raised if we try to create the bucket
     # for the first time at the same time
-    @retrying.retry(stop_max_attempt_number=10,
-                    wait_fixed=500,
-                    retry_on_exception=retry_if_operationaborted)
+    @tenacity.retry(
+        stop=tenacity.stop_after_attempt(10),
+        wait=tenacity.wait_fixed(0.5),
+        retry=tenacity.retry_if_exception(retry_if_operationaborted)
+    )
     def _create_bucket(self, name):
         if self._region_name:
             kwargs = dict(CreateBucketConfiguration={
