@@ -511,6 +511,126 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 4.0)
         ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
 
+    def test_aggregated_some_overlap_with_fill_zero(self):
+        tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
+        tsc2 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
+
+        tsb1.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 9),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 1),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 7),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 3),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc1))
+
+        tsb2.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 13),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 24),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 16),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 12),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc2))
+
+        output = carbonara.AggregatedTimeSerie.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
+
+        self.assertEqual([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 60.0, 1.0),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 60.0, 6.5),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 60.0, 16.5),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 60.0, 2.5),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 60.0, 9.0),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 60.0, 9.5),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 2.5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 1.5),
+        ], output)
+
+    def test_aggregated_some_overlap_with_fill_null(self):
+        tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
+        tsc2 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
+
+        tsb1.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 9),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 1),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 7),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 3),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc1))
+
+        tsb2.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 13),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 24),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 4),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 16),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 12),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc2))
+
+        output = carbonara.AggregatedTimeSerie.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean', fill='null')
+
+        self.assertEqual([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 60.0, 6.0),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 60.0, 2.0),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 60.0, 13.0),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 60.0, 16.5),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 60.0, 2.5),
+            (datetime.datetime(2014, 1, 1, 12, 5, 0), 60.0, 9.0),
+            (datetime.datetime(2014, 1, 1, 12, 6, 0), 60.0, 9.5),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 5.0),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 3.0),
+        ], output)
+
+    def test_aggregate_no_points_with_fill_zero(self):
+        tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
+        tsc2 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
+
+        tsb1.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 9),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 1),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 3),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc1))
+
+        tsb2.set_values([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 6),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 2),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 13),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 24),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 4),
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=tsc2))
+
+        output = carbonara.AggregatedTimeSerie.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
+
+        self.assertEqual([
+            (datetime.datetime(2014, 1, 1, 12, 0, 0), 60.0, 3.0),
+            (datetime.datetime(2014, 1, 1, 12, 1, 0), 60.0, 1.0),
+            (datetime.datetime(2014, 1, 1, 12, 2, 0), 60.0, 6.5),
+            (datetime.datetime(2014, 1, 1, 12, 3, 0), 60.0, 16.5),
+            (datetime.datetime(2014, 1, 1, 12, 4, 0), 60.0, 2.5),
+            (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 2.5),
+            (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 1.5),
+        ], output)
+
     def test_fetch_agg_pct(self):
         ts = {'sampling': 1, 'size': 3600 * 24, 'agg': '90pct'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])

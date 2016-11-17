@@ -59,6 +59,8 @@ tests:
             value: 3.1
           - timestamp: "2015-03-06T14:34:12"
             value: 2
+          - timestamp: "2015-03-06T14:35:12"
+            value: 5
       status: 202
 
     - name: get metric list to get aggregates
@@ -128,6 +130,43 @@ tests:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
 
+    - name: get metric list to push metric 6
+      GET: /v1/metric
+
+    - name: get measure aggregates with fill zero
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=0
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+          - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
+
+    - name: get metric list to push metric 7
+      GET: /v1/metric
+
+    - name: get measure aggregates with fill null
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=null
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+          - ['2015-03-06T14:35:12+00:00', 1.0, 5.0]
+
+    - name: get metric list to push metric 8
+      GET: /v1/metric
+
+    - name: get measure aggregates with fill missing granularity
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&fill=0
+      status: 400
+
+    - name: get metric list to push metric 9
+      GET: /v1/metric
+
+    - name: get measure aggregates with bad fill
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=asdf
+      status: 400
+
+
 # Aggregation by resource and metric_name
 
     - name: post a resource
@@ -180,6 +219,8 @@ tests:
             value: 3.1
           - timestamp: "2015-03-06T14:34:12"
             value: 2
+          - timestamp: "2015-03-06T14:35:12"
+            value: 5
       status: 202
 
     - name: get measure aggregates by granularity from resources with refresh
@@ -263,6 +304,19 @@ tests:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 2.0]
+
+    - name: get measure aggregates from resources with fill zero
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&fill=0
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+          - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
+
 
 # Some negative tests
 

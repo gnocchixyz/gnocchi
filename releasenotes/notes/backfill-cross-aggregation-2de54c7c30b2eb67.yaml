@@ -1,0 +1,6 @@
+---
+features:
+  - Add support to backfill timestamps with missing points in a subset of
+    timeseries when computing aggregation across multiple metrics. User can
+    specify `fill` value with either a float or `null` value. A granularity
+    must be specified in addition to `fill`.
