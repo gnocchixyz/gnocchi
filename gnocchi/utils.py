@@ -24,7 +24,6 @@ import numpy
 from oslo_log import log
 from oslo_utils import timeutils
 import pandas as pd
-from pytimeparse import timeparse
 import six
 import tenacity
 from tooz import coordination
@@ -133,11 +132,9 @@ def to_timespan(value):
         seconds = float(value)
     except Exception:
         try:
-            seconds = timeparse.timeparse(six.text_type(value))
+            seconds = pd.Timedelta(six.text_type(value)).total_seconds()
         except Exception:
             raise ValueError("Unable to parse timespan")
-    if seconds is None:
-        raise ValueError("Unable to parse timespan")
     if seconds <= 0:
         raise ValueError("Timespan must be positive")
     return datetime.timedelta(seconds=seconds)
