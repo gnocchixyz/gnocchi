@@ -205,3 +205,17 @@ tests:
           $.description.cause: "Unknown resources"
           $.description.detail:
             - "aaaaaaaa-d63b-4cdd-be89-111111111111"
+
+    - name: push measurements to named metrics and resource with create_metrics with wrong measure objects
+      POST: /v1/batch/resources/metrics/measures?create_metrics=true
+      request_headers:
+        content-type: application/json
+        accept: application/json
+      data:
+        46c9418d-d63b-4cdd-be89-8f57ffc5952e:
+          auto.test:
+            - [ "2015-03-06T14:33:57", 43.1]
+            - [ "2015-03-06T14:34:12", 12]
+      status: 400
+      response_strings:
+        - "Invalid format for measures"
