@@ -1104,3 +1104,19 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                              sampling=agg.sampling,
                              max_size=agg.max_size,
                              aggregation_method=agg.aggregation_method))
+
+    def test_resample(self):
+        ts = carbonara.TimeSerie.from_data(
+            [datetime.datetime(2014, 1, 1, 12, 0, 0),
+             datetime.datetime(2014, 1, 1, 12, 0, 4),
+             datetime.datetime(2014, 1, 1, 12, 0, 9),
+             datetime.datetime(2014, 1, 1, 12, 0, 11),
+             datetime.datetime(2014, 1, 1, 12, 0, 12)],
+            [3, 5, 6, 2, 4])
+        agg_ts = self._resample(ts, 5, 'mean')
+        self.assertEqual(3, len(agg_ts))
+
+        agg_ts = agg_ts.resample(10)
+        self.assertEqual(2, len(agg_ts))
+        self.assertEqual(5, agg_ts[0])
+        self.assertEqual(3, agg_ts[1])

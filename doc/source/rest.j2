@@ -109,6 +109,15 @@ to retrieve, rather than all the granularities available:
 
 {{ scenarios['get-measures-granularity']['doc'] }}
 
+In addition to granularities defined by the archive policy, measures can be
+resampled to a new granularity.
+
+{{ scenarios['get-measures-resample']['doc'] }}
+
+.. note::
+
+   Depending on the aggregation method and frequency of measures, resampled
+   data may lack accuracy as it is working against previously aggregated data.
 
 Measures batching
 =================

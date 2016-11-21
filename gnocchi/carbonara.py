@@ -422,6 +422,10 @@ class AggregatedTimeSerie(TimeSerie):
         self.aggregation_method = aggregation_method
         self._truncate(quick=True)
 
+    def resample(self, sampling):
+        return AggregatedTimeSerie.from_grouped_serie(
+            self.group_serie(sampling), sampling, self.aggregation_method)
+
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps=None,
                   values=None, max_size=None):
