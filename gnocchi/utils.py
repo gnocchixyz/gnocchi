@@ -23,7 +23,7 @@ import iso8601
 import numpy
 from oslo_log import log
 from oslo_utils import timeutils
-import pandas
+import pandas as pd
 from pytimeparse import timeparse
 import six
 import tenacity
@@ -90,19 +90,12 @@ def to_timestamps(values):
     try:
         values = list(values)
         if isinstance(values[0], numbers.Real):
-            times = pandas.to_datetime(values, utc=True, box=False,
-                                       unit='s')
-        elif isinstance(values[0], datetime.datetime):
-            times = pandas.to_datetime(values, utc=True, box=False)
+            times = pd.to_datetime(values, utc=True, box=False, unit='s')
+        elif (isinstance(values[0], datetime.datetime) or
+              is_valid_timestamp(values[0])):
+            times = pd.to_datetime(values, utc=True, box=False)
         else:
-            timestamps = []
-            for v in values:
-                delta = timeparse.timeparse(v)
-                timestamps.append(v
-                                  if delta is None
-                                  else numpy.datetime64(timeutils.utcnow())
-                                  + numpy.timedelta64(delta))
-            times = pandas.to_datetime(timestamps, utc=True, box=False)
+            times = (utcnow() + pd.to_timedelta(values)).values
     except ValueError:
         raise ValueError("Unable to convert timestamps")
 
@@ -110,6 +103,14 @@ def to_timestamps(values):
         raise ValueError('Timestamp must be after Epoch')
 
     return times
+
+
+def is_valid_timestamp(value):
+    try:
+        pd.to_datetime(value)
+    except Exception:
+        return False
+    return True
 
 
 def to_timestamp(value):
