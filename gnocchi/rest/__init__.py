@@ -404,6 +404,8 @@ class ArchivePolicyRulesController(rest.RestController):
 def MeasuresListSchema(measures):
     try:
         times = utils.to_timestamps((m['timestamp'] for m in measures))
+    except TypeError:
+        abort(400, "Invalid format for measures")
     except ValueError as e:
         abort(400, "Invalid input for timestamp: %s" % e)
 
