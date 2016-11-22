@@ -149,15 +149,7 @@ def deserialize(expected_content_types=None):
     if mime_type not in expected_content_types:
         abort(415)
     try:
-        # NOTE(sileht): We prefer use seekable if possible because it takes
-        # care of Content-Length when you use read()/readlines().
-        # webob and wsgiref people are both well following RFCs, but sometimes
-        # their are case when the application can hang, because read is waiting
-        # for new data even the content-length is reach when keepalive
-        # connection are used. For more detail see:
-        # https://bugs.python.org/issue21878
-        # https://github.com/Pylons/webob/issues/279
-        params = json.load(pecan.request.body_file_seekable)
+        params = json.load(pecan.request.body_file)
     except Exception as e:
         abort(400, "Unable to decode body: " + six.text_type(e))
     return params
