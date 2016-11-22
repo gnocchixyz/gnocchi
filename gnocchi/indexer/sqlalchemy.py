@@ -665,6 +665,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         sorts = sorts or []
         if ids is not None and not ids:
             return []
+        if names is not None and not names:
+            return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status)
