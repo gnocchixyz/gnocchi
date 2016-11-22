@@ -200,11 +200,19 @@ tests:
               value: 43.1
             - timestamp: "2015-03-06T14:34:12"
               value: 12
+        bbbbbbbb-d63b-4cdd-be89-111111111111:
+          auto.test:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+
       status: 400
       response_json_paths:
           $.description.cause: "Unknown resources"
-          $.description.detail:
+          $.description.detail.`sorted`:
             - "aaaaaaaa-d63b-4cdd-be89-111111111111"
+            - "bbbbbbbb-d63b-4cdd-be89-111111111111"
 
     - name: push measurements to named metrics and resource with create_metrics with wrong measure objects
       POST: /v1/batch/resources/metrics/measures?create_metrics=true

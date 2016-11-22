@@ -1390,6 +1390,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
         known_metrics = []
         unknown_metrics = []
+        unknown_resources = set()
         for resource_id in body:
             names = body[resource_id].keys()
             metrics = pecan.request.indexer.list_metrics(
@@ -1398,7 +1399,6 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             known_names = [m.name for m in metrics]
             if strutils.bool_from_string(create_metrics):
                 user_id, project_id = get_user_and_project()
-                unknown_resources = set()
                 for name in names:
                     if name not in known_names:
                         metric = MetricsController.MetricSchema({
@@ -1419,9 +1419,6 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             # This catch NoSuchArchivePolicy, which is unlikely
                             # be still possible
                             abort(400, e)
-                if unknown_resources:
-                    abort(400, {"cause": "Unknown resources",
-                                "detail": unknown_resources})
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(
@@ -1429,6 +1426,10 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                      for m in names if m not in known_names])
 
             known_metrics.extend(metrics)
+
+        if unknown_resources:
+            abort(400, {"cause": "Unknown resources",
+                        "detail": unknown_resources})
 
         if unknown_metrics:
             abort(400, "Unknown metrics: %s" % ", ".join(
