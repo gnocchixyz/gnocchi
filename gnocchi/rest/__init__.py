@@ -1441,9 +1441,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
         storage = pecan.request.storage
         with futures.ThreadPoolExecutor(max_workers=THREADS) as executor:
-            executor.map(lambda x: storage.add_measures(*x),
-                         ((metric, body[metric.resource_id][metric.name])
-                          for metric in known_metrics))
+            list(executor.map(lambda x: storage.add_measures(*x),
+                              ((metric, body[metric.resource_id][metric.name])
+                               for metric in known_metrics)))
 
         pecan.response.status = 202
 
@@ -1474,8 +1474,9 @@ class MetricsMeasuresBatchController(rest.RestController):
 
         storage = pecan.request.storage
         with futures.ThreadPoolExecutor(max_workers=THREADS) as executor:
-            executor.map(lambda x: storage.add_measures(*x),
-                         ((metric, body[metric.id]) for metric in metrics))
+            list(executor.map(lambda x: storage.add_measures(*x),
+                              ((metric, body[metric.id]) for metric in
+                               metrics)))
 
         pecan.response.status = 202
 
