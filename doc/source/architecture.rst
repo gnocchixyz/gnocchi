@@ -77,12 +77,12 @@ For example, if you want to keep a year of data with a one minute resolution::
 
 Then::
 
-    size in bytes = 525 600 × 8 = 4 204 800 bytes = 4 106 KiB
+    size in bytes = 525 600 bytes × 6 = 3 159 600 bytes = 3 085 KiB
 
 This is just for a single aggregated time series. If your archive policy uses
-the 8 default aggregation methods (mean, min, max, sum, std, median, count,
-95pct) with the same "one year, one minute aggregations" resolution, the space
-used will go up to a maximum of 8 × 4.1 MiB = 32.8 MiB.
+the 6 default aggregation methods (mean, min, max, sum, std, count) with the
+same "one year, one minute aggregations" resolution, the space used will go up
+to a maximum of 6 × 4.1 MiB = 24.6 MiB.
 
 
 How to set the archive policy and granularity
@@ -117,7 +117,7 @@ Default archive policies
 
 By default, 3 archive policies are created using the default archive policy
 list (listed in `default_aggregation_methods`, i.e. mean, min, max, sum, std,
-median, count, 95pct):
+count):
 
 - low (maximum estimated size per metric: 5 KiB)
 

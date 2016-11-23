@@ -141,8 +141,7 @@ OPTS = [
         'default_aggregation_methods',
         item_type=types.String(
             choices=ArchivePolicy.VALID_AGGREGATION_METHODS),
-        default=['mean', 'min', 'max', 'sum',
-                 'std', 'median', 'count', '95pct'],
+        default=['mean', 'min', 'max', 'sum', 'std', 'count'],
         help='Default aggregation methods to use in created archive policies'),
 ]
 
