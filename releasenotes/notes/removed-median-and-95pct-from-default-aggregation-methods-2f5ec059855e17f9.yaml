@@ -1,0 +1,5 @@
+---
+other:
+  - The default archive policies list does not contain the 95pct and median
+    aggregation methods by default. These are the least used methods and should
+    make gnocchi-metricd faster by more than 25% in the default scenario.
