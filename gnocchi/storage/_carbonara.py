@@ -477,118 +477,111 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             except coordination.LockAcquireFailed:
                 LOG.debug("Cannot acquire lock for metric %s, postponing "
                           "unprocessed measures deletion" % metric_id)
+
         for metric in metrics:
             lock = self._lock(metric.id)
-            agg_methods = list(metric.archive_policy.aggregation_methods)
             # Do not block if we cannot acquire the lock, that means some other
             # worker is doing the job. We'll just ignore this metric and may
             # get back later to it if needed.
-            if lock.acquire(blocking=sync):
-                try:
-                    locksw = timeutils.StopWatch().start()
-                    LOG.debug("Processing measures for %s" % metric)
-                    with self._process_measure_for_metric(metric) as measures:
-                        # NOTE(mnaser): The metric could have been handled by
-                        #               another worker, ignore if no measures.
-                        if len(measures) == 0:
-                            LOG.debug("Skipping %s (already processed)"
-                                      % metric)
-                            continue
+            if not lock.acquire(blocking=sync):
+                continue
+            try:
+                locksw = timeutils.StopWatch().start()
+                LOG.debug("Processing measures for %s" % metric)
+                with self._process_measure_for_metric(metric) as measures:
+                    self._compute_and_store_timeseries(metric, measures)
+                LOG.debug("Metric %s locked during %.2f seconds" %
+                          (metric.id, locksw.elapsed()))
+            except Exception:
+                LOG.debug("Metric %s locked during %.2f seconds" %
+                          (metric.id, locksw.elapsed()))
+                if sync:
+                    raise
+                LOG.error("Error processing new measures", exc_info=True)
+            finally:
+                lock.release()
 
-                        measures = sorted(measures, key=operator.itemgetter(0))
+    def _compute_and_store_timeseries(self, metric, measures):
+        # NOTE(mnaser): The metric could have been handled by
+        #               another worker, ignore if no measures.
+        if len(measures) == 0:
+            LOG.debug("Skipping %s (already processed)" % metric)
+            return
 
-                        block_size = metric.archive_policy.max_block_size
-                        try:
-                            ts = self._get_unaggregated_timeserie_and_unserialize(  # noqa
-                                metric,
-                                block_size=block_size,
-                                back_window=metric.archive_policy.back_window)
-                        except storage.MetricDoesNotExist:
-                            try:
-                                self._create_metric(metric)
-                            except storage.MetricAlreadyExists:
-                                # Created in the mean time, do not worry
-                                pass
-                            ts = None
-                        except CorruptionError as e:
-                            LOG.error(e)
-                            ts = None
+        measures = sorted(measures, key=operator.itemgetter(0))
 
-                        if ts is None:
-                            # This is the first time we treat measures for this
-                            # metric, or data are corrupted, create a new one
-                            ts = carbonara.BoundTimeSerie(
-                                block_size=block_size,
-                                back_window=metric.archive_policy.back_window)
-                            current_first_block_timestamp = None
-                        else:
-                            current_first_block_timestamp = (
-                                ts.first_block_timestamp()
-                            )
+        agg_methods = list(metric.archive_policy.aggregation_methods)
+        block_size = metric.archive_policy.max_block_size
+        back_window = metric.archive_policy.back_window
+        definition = metric.archive_policy.definition
 
-                        # NOTE(jd) This is Python where you need such
-                        # hack to pass a variable around a closure,
-                        # sorry.
-                        computed_points = {"number": 0}
+        try:
+            ts = self._get_unaggregated_timeserie_and_unserialize(
+                metric, block_size=block_size, back_window=back_window)
+        except storage.MetricDoesNotExist:
+            try:
+                self._create_metric(metric)
+            except storage.MetricAlreadyExists:
+                # Created in the mean time, do not worry
+                pass
+            ts = None
+        except CorruptionError as e:
+            LOG.error(e)
+            ts = None
 
-                        def _map_add_measures(bound_timeserie):
-                            # NOTE (gordc): bound_timeserie is entire set of
-                            # unaggregated measures matching largest
-                            # granularity. the following takes only the points
-                            # affected by new measures for specific granularity
-                            tstamp = max(bound_timeserie.first, measures[0][0])
-                            new_first_block_timestamp = (
-                                bound_timeserie.first_block_timestamp())
-                            computed_points['number'] = len(bound_timeserie)
-                            for d in metric.archive_policy.definition:
-                                ts = bound_timeserie.group_serie(
-                                    d.granularity, carbonara.round_timestamp(
-                                        tstamp, d.granularity * 10e8))
-                                self._map_in_thread(
-                                    self._add_measures,
-                                    ((aggregation, d, metric, ts,
-                                      current_first_block_timestamp,
-                                      new_first_block_timestamp)
-                                     for aggregation in agg_methods))
+        if ts is None:
+            # This is the first time we treat measures for this
+            # metric, or data are corrupted, create a new one
+            ts = carbonara.BoundTimeSerie(block_size=block_size,
+                                          back_window=back_window)
+            current_first_block_timestamp = None
+        else:
+            current_first_block_timestamp = ts.first_block_timestamp()
 
-                        with timeutils.StopWatch() as sw:
-                            ts.set_values(
-                                measures,
-                                before_truncate_callback=_map_add_measures,
-                                ignore_too_old_timestamps=True)
-                            elapsed = sw.elapsed()
-                            number_of_operations = (
-                                len(agg_methods)
-                                * len(metric.archive_policy.definition)
-                            )
+        # NOTE(jd) This is Python where you need such
+        # hack to pass a variable around a closure,
+        # sorry.
+        computed_points = {"number": 0}
 
-                            if elapsed > 0:
-                                perf = " (%d points/s, %d measures/s)" % (
-                                    ((number_of_operations
-                                      * computed_points['number']) / elapsed),
-                                    ((number_of_operations
-                                      * len(measures)) / elapsed)
-                                )
-                            else:
-                                perf = ""
-                            LOG.debug(
-                                "Computed new metric %s with %d new measures "
-                                "in %.2f seconds%s"
-                                % (metric.id, len(measures), elapsed, perf))
+        def _map_add_measures(bound_timeserie):
+            # NOTE (gordc): bound_timeserie is entire set of
+            # unaggregated measures matching largest
+            # granularity. the following takes only the points
+            # affected by new measures for specific granularity
+            tstamp = max(bound_timeserie.first, measures[0][0])
+            new_first_block_timestamp = bound_timeserie.first_block_timestamp()
+            computed_points['number'] = len(bound_timeserie)
+            for d in definition:
+                ts = bound_timeserie.group_serie(
+                    d.granularity, carbonara.round_timestamp(
+                        tstamp, d.granularity * 10e8))
 
-                        self._store_unaggregated_timeserie(metric,
-                                                           ts.serialize())
+                self._map_in_thread(
+                    self._add_measures,
+                    ((aggregation, d, metric, ts,
+                        current_first_block_timestamp,
+                        new_first_block_timestamp)
+                        for aggregation in agg_methods))
 
-                    LOG.debug("Metric %s locked during %.2f seconds" %
-                              (metric.id, locksw.elapsed()))
-                except Exception:
-                    LOG.debug("Metric %s locked during %.2f seconds" %
-                              (metric.id, locksw.elapsed()))
-                    if sync:
-                        raise
-                    LOG.error("Error processing new measures", exc_info=True)
-                finally:
-                    lock.release()
+        with timeutils.StopWatch() as sw:
+            ts.set_values(measures,
+                          before_truncate_callback=_map_add_measures,
+                          ignore_too_old_timestamps=True)
+
+            elapsed = sw.elapsed()
+            number_of_operations = (len(agg_methods) * len(definition))
+            perf = ""
+            if elapsed > 0:
+                perf = " (%d points/s, %d measures/s)" % (
+                    ((number_of_operations * computed_points['number']) /
+                        elapsed),
+                    ((number_of_operations * len(measures)) / elapsed)
+                )
+            LOG.debug("Computed new metric %s with %d new measures "
+                      "in %.2f seconds%s"
+                      % (metric.id, len(measures), elapsed, perf))
+
+        self._store_unaggregated_timeserie(metric, ts.serialize())
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
