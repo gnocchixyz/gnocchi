@@ -159,9 +159,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             full_listing=True)
         return files
 
-    def _pending_measures_to_process_count(self, metric_id):
-        return len(self._list_measure_files_for_metric_id(metric_id))
-
     def _bulk_delete(self, container, objects):
         objects = [quote(('/%s/%s' % (container, obj['name'])).encode('utf-8'))
                    for obj in objects]

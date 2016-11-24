@@ -195,9 +195,6 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
         return files
 
-    def _pending_measures_to_process_count(self, metric_id):
-        return len(self._list_measure_files_for_metric_id(metric_id))
-
     def _bulk_delete(self, bucket, objects):
         # NOTE(jd) The maximum object to delete at once is 1000
         # TODO(jd) Parallelize?

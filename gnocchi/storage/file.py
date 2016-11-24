@@ -141,8 +141,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def _build_report(self, details):
         metric_details = {}
         for metric in os.listdir(self.measure_path):
-            metric_details[metric] = (
-                self._pending_measures_to_process_count(metric))
+            metric_details[metric] = len(
+                self._list_measures_container_for_metric_id(metric))
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
@@ -183,9 +183,6 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measures_container_for_metric_id(metric_id)
         self._delete_measures_files_for_metric_id(metric_id, files)
-
-    def _pending_measures_to_process_count(self, metric_id):
-        return len(self._list_measures_container_for_metric_id(metric_id))
 
     @contextlib.contextmanager
     def _process_measure_for_metric(self, metric):

@@ -203,10 +203,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 return ()
             return (k for k, v in omaps)
 
-    def _pending_measures_to_process_count(self, metric_id):
-        object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-        return len(list(self._list_object_names_to_process(object_prefix)))
-
     def list_metric_with_measures_to_process(self, size, part, full=False):
         names = self._list_object_names_to_process()
         if full:

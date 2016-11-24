@@ -344,10 +344,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def list_metric_with_measures_to_process(size, part, full=False):
         raise NotImplementedError
 
-    @staticmethod
-    def _pending_measures_to_process_count(metric_id):
-        raise NotImplementedError
-
     def delete_metric(self, metric, sync=False):
         with self._lock(metric.id)(blocking=sync):
             # If the metric has never been upgraded, we need to delete this
