@@ -54,8 +54,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
-    def __init__(self, conf):
-        super(S3Storage, self).__init__(conf)
+    def __init__(self, conf, incoming):
+        super(S3Storage, self).__init__(conf, incoming)
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )

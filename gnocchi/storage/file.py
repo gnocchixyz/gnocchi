@@ -36,8 +36,8 @@ OPTS = [
 class FileStorage(_carbonara.CarbonaraBasedStorage):
     WRITE_FULL = True
 
-    def __init__(self, conf):
-        super(FileStorage, self).__init__(conf)
+    def __init__(self, conf, incoming):
+        super(FileStorage, self).__init__(conf, incoming)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
         utils.ensure_paths([self.basepath_tmp])

@@ -17,7 +17,6 @@ import operator
 from oslo_config import cfg
 from oslo_log import log
 from stevedore import driver
-import stevedore.exception
 
 from gnocchi import exceptions
 from gnocchi import indexer
@@ -156,27 +155,20 @@ def get_driver_class(namespace, conf):
 
 def get_driver(conf):
     """Return the configured driver."""
-    d = get_driver_class('gnocchi.storage', conf)(conf.storage)
-    try:
-        d.incoming = get_driver_class(
-            'gnocchi.incoming', conf)(conf.incoming)
-    except stevedore.exception.NoMatches:
-        # Fallback to legacy driver
-        d.incoming = d
-    return d
+    incoming = get_driver_class('gnocchi.incoming', conf)(conf.incoming)
+    return get_driver_class('gnocchi.storage', conf)(conf.storage, incoming)
 
 
 class StorageDriver(object):
-    def __init__(self, conf):
-        self.incoming = None
+    def __init__(self, conf, incoming):
+        self.incoming = incoming
 
     @staticmethod
     def stop():
         pass
 
     def upgrade(self, index):
-        if self.incoming is not self:
-            self.incoming.upgrade(index)
+        self.incoming.upgrade(index)
 
     def process_background_tasks(self, index, metrics, sync=False):
         """Process background tasks for this storage.

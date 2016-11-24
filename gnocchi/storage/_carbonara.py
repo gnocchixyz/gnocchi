@@ -60,8 +60,8 @@ class CorruptionError(ValueError):
 class CarbonaraBasedStorage(storage.StorageDriver):
     UPGRADE_BATCH_SIZE = 1000
 
-    def __init__(self, conf):
-        super(CarbonaraBasedStorage, self).__init__(conf)
+    def __init__(self, conf, incoming):
+        super(CarbonaraBasedStorage, self).__init__(conf, incoming)
         self.aggregation_workers_number = conf.aggregation_workers_number
         if self.aggregation_workers_number == 1:
             # NOTE(jd) Avoid using futures at all if we don't want any threads.
