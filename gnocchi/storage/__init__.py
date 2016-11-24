@@ -155,13 +155,16 @@ def get_driver_class(conf):
 
 def get_driver(conf):
     """Return the configured driver."""
-    return get_driver_class(conf)(conf.storage)
+    d = get_driver_class(conf)(conf.storage)
+    # TODO(sileht): Temporary set incoming driver here
+    # until we split all drivers
+    d.incoming = d
+    return d
 
 
 class StorageDriver(object):
-    @staticmethod
-    def __init__(conf):
-        pass
+    def __init__(self, conf):
+        self.incoming = None
 
     @staticmethod
     def stop():
@@ -218,32 +221,12 @@ class StorageDriver(object):
                 pass
 
     @staticmethod
-    def add_measures(metric, measures):
-        """Add a measure to a metric.
-
-        :param metric: The metric measured.
-        :param measures: The actual measures.
-        """
-        raise exceptions.NotImplementedError
-
-    @staticmethod
     def process_new_measures(indexer, metrics, sync=False):
         """Process added measures in background.
 
         Some drivers might need to have a background task running that process
         the measures sent to metrics. This is used for that.
         """
-
-    @staticmethod
-    def measures_report(details=True):
-        """Return a report of pending to process measures.
-
-        Only useful for drivers that process measurements in background
-
-        :return: {'summary': {'metrics': count, 'measures': count},
-                  'details': {metric_id: pending_measures_count}}
-        """
-        raise exceptions.NotImplementedError
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,

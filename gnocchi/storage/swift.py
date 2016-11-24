@@ -30,6 +30,7 @@ except ImportError:
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi.storage.incoming import _carbonara as incoming_carbonara
 
 LOG = log.getLogger(__name__)
 
@@ -74,7 +75,8 @@ OPTS = [
 ]
 
 
-class SwiftStorage(_carbonara.CarbonaraBasedStorage):
+class SwiftStorage(_carbonara.CarbonaraBasedStorage,
+                   incoming_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
     POST_HEADERS = {'Accept': 'application/json', 'Content-Type': 'text/plain'}
@@ -174,12 +176,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         LOG.debug('# of objects deleted: %s, # of objects skipped: %s',
                   resp['Number Deleted'], resp['Number Not Found'])
 
-    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric_id(metric_id)
         self._bulk_delete(self.MEASURE_PREFIX, files)
 
     @contextlib.contextmanager
-    def _process_measure_for_metric(self, metric):
+    def process_measure_for_metric(self, metric):
         files = self._list_measure_files_for_metric_id(metric.id)
 
         measures = []

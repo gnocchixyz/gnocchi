@@ -47,7 +47,7 @@ def injector():
                 storage.Measure(
                     utils.dt_in_unix_ns(utils.utcnow()), random.random())
                 for __ in six.moves.range(conf.measures_per_batch)]
-            s.add_measures(metric, measures)
+            s.incoming.add_measures(metric, measures)
 
     with futures.ThreadPoolExecutor(max_workers=len(metrics)) as executor:
         # We use 'list' to iterate all threads here to raise the first

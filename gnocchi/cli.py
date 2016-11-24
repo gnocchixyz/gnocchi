@@ -126,7 +126,7 @@ class MetricReporting(MetricProcessBase):
 
     def _run_job(self):
         try:
-            report = self.store.measures_report(details=False)
+            report = self.store.incoming.measures_report(details=False)
             LOG.info("%d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],
@@ -214,8 +214,9 @@ class MetricScheduler(MetricProcessBase):
 
     def _run_job(self):
         try:
-            metrics = set(self.store.list_metric_with_measures_to_process(
-                self.block_size, self.block_index))
+            metrics = set(
+                self.store.incoming.list_metric_with_measures_to_process(
+                    self.block_size, self.block_index))
             if metrics and not self.queue.empty():
                 # NOTE(gordc): drop metrics we previously process to avoid
                 #              handling twice
