@@ -33,9 +33,6 @@ OPTS = [
     cfg.StrOpt('file_basepath',
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
-    cfg.StrOpt('file_basepath_tmp',
-               default='${file_basepath}/tmp',
-               help='Path used to store Gnocchi temporary files.'),
 ]
 
 
@@ -46,7 +43,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
-        self.basepath_tmp = conf.file_basepath_tmp
+        self.basepath_tmp = os.path.join(conf.file_basepath,
+                                         'tmp')
         try:
             os.mkdir(self.basepath)
         except OSError as e:
