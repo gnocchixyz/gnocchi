@@ -11,6 +11,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import copy
 import itertools
 
 from oslo_config import cfg
@@ -24,6 +25,16 @@ import gnocchi.storage.ceph
 import gnocchi.storage.file
 import gnocchi.storage.s3
 import gnocchi.storage.swift
+
+_STORAGE_OPTS = list(itertools.chain(gnocchi.storage.ceph.OPTS,
+                                     gnocchi.storage.file.OPTS,
+                                     gnocchi.storage.swift.OPTS,
+                                     gnocchi.storage.s3.OPTS))
+
+
+_INCOMING_OPTS = copy.deepcopy(_STORAGE_OPTS)
+for opt in _INCOMING_OPTS:
+    opt.default = '${storage.%s}' % opt.name
 
 
 def list_opts():
@@ -43,12 +54,9 @@ def list_opts():
                        help=('The maximum number of items returned in a '
                              'single response from a collection resource')),
         )),
-        ("storage", itertools.chain(gnocchi.storage._carbonara.OPTS,
-                                    gnocchi.storage.OPTS,
-                                    gnocchi.storage.ceph.OPTS,
-                                    gnocchi.storage.file.OPTS,
-                                    gnocchi.storage.swift.OPTS,
-                                    gnocchi.storage.s3.OPTS)),
+        ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS +
+                     gnocchi.storage.OPTS)),
+        ("incoming", _INCOMING_OPTS),
         ("statsd", (
             cfg.StrOpt('host',
                        default='0.0.0.0',

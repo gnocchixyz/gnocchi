@@ -157,11 +157,9 @@ def get_driver_class(namespace, conf):
 def get_driver(conf):
     """Return the configured driver."""
     d = get_driver_class('gnocchi.storage', conf)(conf.storage)
-    # TODO(sileht): Temporary set incoming driver here
-    # until we split all drivers
     try:
         d.incoming = get_driver_class(
-            'gnocchi.storage.incoming', conf)(conf.storage)
+            'gnocchi.incoming', conf)(conf.incoming)
     except stevedore.exception.NoMatches:
         # Fallback to legacy driver
         d.incoming = d
