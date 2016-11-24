@@ -13,26 +13,17 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from collections import defaultdict
-import contextlib
-import datetime
 import logging
 import os
-import uuid
 
 from oslo_config import cfg
-import six
-import tenacity
-try:
-    import boto3
-    import botocore.exceptions
-except ImportError:
-    boto3 = None
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.incoming import _carbonara as incoming_carbonara
-from gnocchi import utils
+from gnocchi.storage.common import s3
+
+boto3 = s3.boto3
+botocore = s3.botocore
 
 LOG = logging.getLogger(__name__)
 
@@ -59,49 +50,15 @@ def retry_if_operationaborted(exception):
             and exception.response['Error'].get('Code') == "OperationAborted")
 
 
-class S3Storage(_carbonara.CarbonaraBasedStorage,
-                incoming_carbonara.CarbonaraBasedStorage):
+class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
     def __init__(self, conf):
         super(S3Storage, self).__init__(conf)
-        if boto3 is None:
-            raise RuntimeError("boto3 unavailable")
-        self.s3 = boto3.client(
-            's3',
-            endpoint_url=conf.s3_endpoint_url,
-            region_name=conf.s3_region_name,
-            aws_access_key_id=conf.s3_access_key_id,
-            aws_secret_access_key=conf.s3_secret_access_key)
-        self._region_name = conf.s3_region_name
-        self._bucket_prefix = conf.s3_bucket_prefix
-        self._bucket_name_measures = (
-            self._bucket_prefix + "-" + self.MEASURE_PREFIX
+        self.s3, self._region_name, self._bucket_prefix = (
+            s3.get_connection(conf)
         )
-        try:
-            self._create_bucket(self._bucket_name_measures)
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error'].get('Code') not in (
-                    "BucketAlreadyExists", "BucketAlreadyOwnedByYou"
-            ):
-                raise
-
-    # NOTE(jd) OperationAborted might be raised if we try to create the bucket
-    # for the first time at the same time
-    @tenacity.retry(
-        stop=tenacity.stop_after_attempt(10),
-        wait=tenacity.wait_fixed(0.5),
-        retry=tenacity.retry_if_exception(retry_if_operationaborted)
-    )
-    def _create_bucket(self, name):
-        if self._region_name:
-            kwargs = dict(CreateBucketConfiguration={
-                "LocationConstraint": self._region_name,
-            })
-        else:
-            kwargs = {}
-        return self.s3.create_bucket(Bucket=name, **kwargs)
 
     def _bucket_name(self, metric):
         return '%s-%s' % (self._bucket_prefix, str(metric.id))
@@ -113,129 +70,12 @@ class S3Storage(_carbonara.CarbonaraBasedStorage,
 
     def _create_metric(self, metric):
         try:
-            self._create_bucket(self._bucket_name(metric))
+            s3.create_bucket(self.s3, self._bucket_name(metric),
+                             self._region_name)
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') != "BucketAlreadyExists":
                 raise
         # raise storage.MetricAlreadyExists(metric)
-
-    def _store_new_measures(self, metric, data):
-        now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
-        self.s3.put_object(
-            Bucket=self._bucket_name_measures,
-            Key=(six.text_type(metric.id)
-                 + "/"
-                 + six.text_type(uuid.uuid4())
-                 + now),
-            Body=data)
-
-    def _build_report(self, details):
-        metric_details = defaultdict(int)
-        response = {}
-        while response.get('IsTruncated', True):
-            if 'NextContinuationToken' in response:
-                kwargs = {
-                    'ContinuationToken': response['NextContinuationToken']
-                }
-            else:
-                kwargs = {}
-            response = self.s3.list_objects_v2(
-                Bucket=self._bucket_name_measures,
-                **kwargs)
-            for c in response.get('Contents', ()):
-                metric, metric_file = c['Key'].split("/", 1)
-                metric_details[metric] += 1
-        return (len(metric_details), sum(metric_details.values()),
-                metric_details if details else None)
-
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        if full:
-            limit = 1000        # 1000 is the default anyway
-        else:
-            limit = size * (part + 1)
-
-        metrics = set()
-        response = {}
-        # Handle pagination
-        while response.get('IsTruncated', True):
-            if 'NextContinuationToken' in response:
-                kwargs = {
-                    'ContinuationToken': response['NextContinuationToken']
-                }
-            else:
-                kwargs = {}
-            response = self.s3.list_objects_v2(
-                Bucket=self._bucket_name_measures,
-                Delimiter="/",
-                MaxKeys=limit,
-                **kwargs)
-            for p in response.get('CommonPrefixes', ()):
-                metrics.add(p['Prefix'].rstrip('/'))
-
-        if full:
-            return metrics
-
-        return metrics[size * part:]
-
-    def _list_measure_files_for_metric_id(self, metric_id):
-        files = set()
-        response = {}
-        while response.get('IsTruncated', True):
-            if 'NextContinuationToken' in response:
-                kwargs = {
-                    'ContinuationToken': response['NextContinuationToken']
-                }
-            else:
-                kwargs = {}
-            response = self.s3.list_objects_v2(
-                Bucket=self._bucket_name_measures,
-                Prefix=six.text_type(metric_id) + "/",
-                **kwargs)
-
-            for c in response.get('Contents', ()):
-                files.add(c['Key'])
-
-        return files
-
-    def _bulk_delete(self, bucket, objects):
-        # NOTE(jd) The maximum object to delete at once is 1000
-        # TODO(jd) Parallelize?
-        deleted = 0
-        for obj_slice in utils.grouper(objects, 1000):
-            d = {
-                'Objects': [{'Key': o} for o in obj_slice],
-                # FIXME(jd) Use Quiet mode, but s3rver does not seem to
-                # support it
-                # 'Quiet': True,
-            }
-            response = self.s3.delete_objects(
-                Bucket=bucket,
-                Delete=d)
-            deleted += len(response['Deleted'])
-        LOG.debug('%s objects deleted, %s objects skipped',
-                  deleted,
-                  len(objects) - deleted)
-
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
-        files = self._list_measure_files_for_metric_id(metric_id)
-        self._bulk_delete(self._bucket_name_measures, files)
-
-    @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        files = self._list_measure_files_for_metric_id(metric.id)
-
-        measures = []
-        for f in files:
-            response = self.s3.get_object(
-                Bucket=self._bucket_name_measures,
-                Key=f)
-            measures.extend(
-                self._unserialize_measures(f, response['Body'].read()))
-
-        yield measures
-
-        # Now clean objects
-        self._bulk_delete(self._bucket_name_measures, files)
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data, offset=0, version=3):
@@ -271,8 +111,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage,
                     # Maybe it never has been created (no measure)
                     return
                 raise
-            self._bulk_delete(bucket, [c['Key']
-                                       for c in response.get('Contents', ())])
+            s3.bulk_delete(self.s3, bucket,
+                           [c['Key'] for c in response.get('Contents', ())])
         try:
             self.s3.delete_bucket(Bucket=bucket)
         except botocore.exceptions.ClientError as e:
