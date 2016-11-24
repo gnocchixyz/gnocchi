@@ -22,6 +22,10 @@ from gnocchi import exceptions
 class StorageDriver(object):
 
     @staticmethod
+    def __init__(conf):
+        pass
+
+    @staticmethod
     def add_measures(metric, measures):
         """Add a measure to a metric.
 

@@ -17,6 +17,7 @@ import operator
 from oslo_config import cfg
 from oslo_log import log
 from stevedore import driver
+import stevedore.exception
 
 from gnocchi import exceptions
 from gnocchi import indexer
@@ -144,21 +145,26 @@ class MetricUnaggregatable(StorageError):
             % (", ".join((str(m.id) for m in metrics)), reason))
 
 
-def get_driver_class(conf):
+def get_driver_class(namespace, conf):
     """Return the storage driver class.
 
     :param conf: The conf to use to determine the driver.
     """
-    return driver.DriverManager('gnocchi.storage',
+    return driver.DriverManager(namespace,
                                 conf.storage.driver).driver
 
 
 def get_driver(conf):
     """Return the configured driver."""
-    d = get_driver_class(conf)(conf.storage)
+    d = get_driver_class('gnocchi.storage', conf)(conf.storage)
     # TODO(sileht): Temporary set incoming driver here
     # until we split all drivers
-    d.incoming = d
+    try:
+        d.incoming = get_driver_class(
+            'gnocchi.storage.incoming', conf)(conf.storage)
+    except stevedore.exception.NoMatches:
+        # Fallback to legacy driver
+        d.incoming = d
     return d
 
 
