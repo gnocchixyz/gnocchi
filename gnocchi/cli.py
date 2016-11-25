@@ -122,7 +122,7 @@ class MetricReporting(MetricProcessBase):
 
     def __init__(self, worker_id, conf):
         super(MetricReporting, self).__init__(
-            worker_id, conf, conf.storage.metric_reporting_delay)
+            worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _run_job(self):
         try:
@@ -146,7 +146,7 @@ class MetricScheduler(MetricProcessBase):
 
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
-            worker_id, conf, conf.storage.metric_processing_delay)
+            worker_id, conf, conf.metricd.metric_processing_delay)
         self._coord, self._my_id = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
         self.queue = queue
@@ -249,7 +249,7 @@ class MetricJanitor(MetricProcessBase):
 
     def __init__(self,  worker_id, conf):
         super(MetricJanitor, self).__init__(
-            worker_id, conf, conf.storage.metric_cleanup_delay)
+            worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
         try:
