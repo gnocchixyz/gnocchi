@@ -24,10 +24,10 @@ receives timestamps and values, and pre-computes aggregations according to
 the defined archive policies.
 
 The *indexer* is responsible for storing the index of all resources, along with
-their types and properties. Gnocchi only knows about resource types from the
-OpenStack project, but also provides a *generic* type so you can create basic
-resources and handle the resource properties yourself. The indexer is also
-responsible for linking resources with metrics.
+their types and properties. Gnocchi not only knows about resource types from
+the OpenStack project, but also provides a *generic* type so you can create
+basic resources and handle the resource properties yourself. The indexer is
+also responsible for linking resources with metrics.
 
 How to choose back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,7 +43,7 @@ The drivers are based on an intermediate library, named *Carbonara*, which
 handles the time series manipulation, since none of these storage technologies
 handle time series natively.
 
-The three *Carbonara* based drivers are working well and are as scalable as
+The four *Carbonara* based drivers are working well and are as scalable as
 their back-end technology permits. Ceph and Swift are inherently more scalable
 than the file driver.
 
