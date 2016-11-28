@@ -6,7 +6,7 @@ oslo.log>=2.3.0
 oslo.policy>=0.3.0
 oslo.serialization>=1.4.0
 oslo.utils>=3.18.0
-oslo.middleware>=3.11.0
+oslo.middleware>=3.22.0
 pandas>=0.17.0
 pecan>=0.9
 futures

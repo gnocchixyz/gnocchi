@@ -1,0 +1,7 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+    - name: healthcheck
+      GET: /healthcheck
+      status: 200
