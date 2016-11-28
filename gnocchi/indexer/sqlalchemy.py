@@ -640,12 +640,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return apr
 
     @retry_on_deadlock
-    def create_metric(self, id, created_by_user_id, created_by_project_id,
-                      archive_policy_name,
+    def create_metric(self, id, creator, archive_policy_name,
                       name=None, unit=None, resource_id=None):
         m = Metric(id=id,
-                   created_by_user_id=created_by_user_id,
-                   created_by_project_id=created_by_project_id,
+                   creator=creator,
                    archive_policy_name=archive_policy_name,
                    name=name,
                    unit=unit,
@@ -711,8 +709,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @retry_on_deadlock
     def create_resource(self, resource_type, id,
-                        created_by_user_id, created_by_project_id,
-                        user_id=None, project_id=None,
+                        creator, user_id=None, project_id=None,
                         started_at=None, ended_at=None, metrics=None,
                         **kwargs):
         if (started_at is not None
@@ -726,8 +723,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             r = resource_cls(
                 id=id,
                 type=resource_type,
-                created_by_user_id=created_by_user_id,
-                created_by_project_id=created_by_project_id,
+                creator=creator,
                 user_id=user_id,
                 project_id=project_id,
                 started_at=started_at,
@@ -830,10 +826,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     update = session.query(Metric).filter(
                         Metric.id == value,
                         Metric.status == 'active',
-                        (Metric.created_by_user_id
-                         == r.created_by_user_id),
-                        (Metric.created_by_project_id
-                         == r.created_by_project_id),
+                        Metric.creator == r.creator,
                     ).update({"resource_id": r.id, "name": name})
                 except exception.DBDuplicateEntry:
                     raise indexer.NamedMetricAlreadyExists(name)
@@ -843,8 +836,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 unit = value.get('unit')
                 ap_name = value['archive_policy_name']
                 m = Metric(id=uuid.uuid4(),
-                           created_by_user_id=r.created_by_user_id,
-                           created_by_project_id=r.created_by_project_id,
+                           creator=r.creator,
                            archive_policy_name=ap_name,
                            name=name,
                            unit=unit,
@@ -1146,8 +1138,8 @@ class QueryTransformer(object):
     def _handle_unary_op(cls, engine, table, op, node):
         return op(cls.build_filter(engine, table, node))
 
-    @staticmethod
-    def _handle_binary_op(engine, table, op, nodes):
+    @classmethod
+    def _handle_binary_op(cls, engine, table, op, nodes):
         try:
             field_name, value = list(nodes.items())[0]
         except Exception:
@@ -1161,6 +1153,23 @@ class QueryTransformer(object):
                 # weird results based on string comparison. It's useless and it
                 # does not work at all with seconds or anything. Just skip it.
                 raise exceptions.NotImplementedError
+        elif field_name == "created_by_user_id":
+            creator = getattr(table, "creator")
+            if op == operator.eq:
+                return creator.like("%s:%%" % value)
+            elif op == operator.ne:
+                return sqlalchemy.not_(creator.like("%s:%%" % value))
+            elif op == cls.binary_operators[u"like"]:
+                return creator.like("%s:%%" % value)
+            raise indexer.QueryValueError(value, field_name)
+        elif field_name == "created_by_project_id":
+            if op == operator.eq:
+                return creator.like("%%:%s" % value)
+            elif op == operator.ne:
+                return sqlalchemy.not_(creator.like("%%:%s" % value))
+            elif op == cls.binary_operators[u"like"]:
+                return creator.like("%%:%s" % value)
+            raise indexer.QueryValueError(value, field_name)
         else:
             try:
                 attr = getattr(table, field_name)

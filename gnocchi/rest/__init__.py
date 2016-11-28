@@ -57,13 +57,6 @@ def abort(status_code, detail='', headers=None, comment=None, **kw):
     return pecan.abort(status_code, detail, headers, comment, **kw)
 
 
-def get_user_and_project():
-    headers = pecan.request.headers
-    user_id = headers.get("X-User-Id")
-    project_id = headers.get("X-Project-Id")
-    return (user_id, project_id)
-
-
 def enforce(rule, target):
     """Return the user and project the request should be limited to.
 
@@ -71,17 +64,13 @@ def enforce(rule, target):
     :param target: The target to enforce on.
 
     """
-    headers = pecan.request.headers
-    user_id, project_id = get_user_and_project()
-    creds = {
-        'roles': headers.get("X-Roles", "").split(","),
-        'user_id': user_id,
-        'project_id': project_id,
-        'domain_id': headers.get("X-Domain-Id", ""),
-    }
+    creds = pecan.request.auth_helper.get_auth_info(pecan.request.headers)
 
     if not isinstance(target, dict):
-        target = target.__dict__
+        if hasattr(target, "jsonify"):
+            target = target.jsonify()
+        else:
+            target = target.__dict__
 
     # Flatten dict
     target = dict(dictutils.flatten_dict_to_keypairs(d=target, separator='.'))
@@ -514,11 +503,11 @@ class MetricsController(rest.RestController):
             else:
                 definition['archive_policy_name'] = ap.name
 
-        user_id, project_id = get_user_and_project()
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
 
         enforce("create metric", {
-            "created_by_user_id": user_id,
-            "created_by_project_id": project_id,
+            "creator": creator,
             "archive_policy_name": archive_policy_name,
             "name": name,
             "unit": definition.get('unit'),
@@ -528,12 +517,13 @@ class MetricsController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
-        user, project = get_user_and_project()
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
         body = deserialize_and_validate(self.MetricSchema)
         try:
             m = pecan.request.indexer.create_metric(
                 uuid.uuid4(),
-                user, project,
+                creator,
                 name=body.get('name'),
                 unit=body.get('unit'),
                 archive_policy_name=body['archive_policy_name'])
@@ -546,25 +536,28 @@ class MetricsController(rest.RestController):
     @staticmethod
     @pecan.expose('json')
     def get_all(**kwargs):
+        # Compat with old user/project API
+        provided_user_id = kwargs.get('user_id')
+        provided_project_id = kwargs.get('project_id')
+        if provided_user_id is None and provided_project_id is None:
+            provided_creator = kwargs.get('creator')
+        else:
+            provided_creator = (
+                (provided_user_id or "")
+                + ":"
+                + (provided_project_id or "")
+            )
         try:
             enforce("list all metric", {})
         except webob.exc.HTTPForbidden:
             enforce("list metric", {})
-            user_id, project_id = get_user_and_project()
-            provided_user_id = kwargs.get('user_id')
-            provided_project_id = kwargs.get('project_id')
-            if ((provided_user_id and user_id != provided_user_id)
-               or (provided_project_id and project_id != provided_project_id)):
-                abort(
-                    403, "Insufficient privileges to filter by user/project")
-        else:
-            user_id = kwargs.get('user_id')
-            project_id = kwargs.get('project_id')
+            creator = pecan.request.auth_helper.get_current_user(
+                pecan.request.headers)
+            if provided_creator and creator != provided_creator:
+                abort(403, "Insufficient privileges to filter by user/project")
         attr_filter = {}
-        if user_id is not None:
-            attr_filter['created_by_user_id'] = user_id
-        if project_id is not None:
-            attr_filter['created_by_project_id'] = project_id
+        if provided_creator is not None:
+            attr_filter['creator'] = provided_creator
         attr_filter.update(get_pagination_options(
             kwargs, METRIC_DEFAULT_PAGINATION))
         try:
@@ -969,12 +962,13 @@ class ResourcesController(rest.RestController):
         }
         target.update(body)
         enforce("create resource", target)
-        user, project = get_user_and_project()
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
         rid = body['id']
         del body['id']
         try:
             resource = pecan.request.indexer.create_resource(
-                self._resource_type, rid, user, project,
+                self._resource_type, rid, creator,
                 **body)
         except (ValueError,
                 indexer.NoSuchMetric,
@@ -996,7 +990,7 @@ class ResourcesController(rest.RestController):
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
-            "list resource", self._resource_type)
+            pecan.request.headers, "list resource", self._resource_type)
 
         try:
             # FIXME(sileht): next API version should returns
@@ -1025,6 +1019,7 @@ class ResourcesController(rest.RestController):
                   delete entire database")
 
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
+            pecan.request.headers,
             "delete resources", self._resource_type)
 
         if policy_filter:
@@ -1197,7 +1192,7 @@ class SearchResourceTypeController(rest.RestController):
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
-            "search resource", self._resource_type)
+            pecan.request.headers, "search resource", self._resource_type)
         if policy_filter:
             if attr_filter:
                 attr_filter = {"and": [
@@ -1352,7 +1347,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
             known_names = [m.name for m in metrics]
             if strutils.bool_from_string(create_metrics):
-                user_id, project_id = get_user_and_project()
+                creator = pecan.request.auth_helper.get_current_user(
+                    pecan.request.headers)
                 already_exists_names = []
                 for name in names:
                     if name not in known_names:
@@ -1362,7 +1358,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                         try:
                             m = pecan.request.indexer.create_metric(
                                 uuid.uuid4(),
-                                user_id, project_id,
+                                creator=creator,
                                 resource_id=resource_id,
                                 name=metric.get('name'),
                                 unit=metric.get('unit'),

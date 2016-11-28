@@ -44,14 +44,12 @@ class Measure(object):
 
 class Metric(object):
     def __init__(self, id, archive_policy,
-                 created_by_user_id=None,
-                 created_by_project_id=None,
+                 creator=None,
                  name=None,
                  resource_id=None):
         self.id = id
         self.archive_policy = archive_policy
-        self.created_by_user_id = created_by_user_id
-        self.created_by_project_id = created_by_project_id
+        self.creator = creator
         self.name = name
         self.resource_id = resource_id
 
@@ -65,8 +63,7 @@ class Metric(object):
         return (isinstance(other, Metric)
                 and self.id == other.id
                 and self.archive_policy == other.archive_policy
-                and self.created_by_user_id == other.created_by_user_id
-                and self.created_by_project_id == other.created_by_project_id
+                and self.creator == other.creator
                 and self.name == other.name
                 and self.resource_id == other.resource_id)
 

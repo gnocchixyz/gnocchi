@@ -49,8 +49,7 @@ class Resource(object):
                 and self.revision == other.revision
                 and self.revision_start == other.revision_start
                 and self.revision_end == other.revision_end
-                and self.created_by_user_id == other.created_by_user_id
-                and self.created_by_project_id == other.created_by_project_id
+                and self.creator == other.creator
                 and self.user_id == other.user_id
                 and self.project_id == other.project_id
                 and self.started_at == other.started_at
@@ -330,7 +329,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def create_metric(id, created_by_user_id, created_by_project_id,
+    def create_metric(id, creator,
                       archive_policy_name, name=None, unit=None,
                       resource_id=None):
         raise exceptions.NotImplementedError
@@ -345,7 +344,8 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def create_resource(resource_type, id, user_id, project_id,
+    def create_resource(resource_type, id, creator,
+                        user_id=None, project_id=None,
                         started_at=None, ended_at=None, metrics=None,
                         **kwargs):
         raise exceptions.NotImplementedError

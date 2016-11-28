@@ -58,9 +58,7 @@ class TestAggregates(tests_base.TestCase):
         measures = [storage.Measure(
             utils.dt_in_unix_ns(start_time + incr * n), val)
             for n, val in enumerate(data)]
-        self.index.create_metric(metric.id,
-                                 str(uuid.uuid4()), str(uuid.uuid4()),
-                                 'medium')
+        self.index.create_metric(metric.id, str(uuid.uuid4()), 'medium')
         self.storage.incoming.add_measures(metric, measures)
         metrics = self.storage.incoming.list_metric_with_measures_to_process(
             None, None, full=True)

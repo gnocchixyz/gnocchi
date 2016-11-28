@@ -59,6 +59,9 @@ tests:
 
     - name: get some measures
       GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
+      request_headers:
+          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
+          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
       poll:
           count: 50
           delay: .1

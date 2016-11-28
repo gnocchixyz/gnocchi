@@ -174,10 +174,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
             name="fk_metric_ap_name_ap_name"),
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
-    created_by_user_id = sqlalchemy.Column(
-        sqlalchemy.String(255))
-    created_by_project_id = sqlalchemy.Column(
-        sqlalchemy.String(255))
+    creator = sqlalchemy.Column(sqlalchemy.String(255))
     resource_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey('resource.id',
@@ -193,8 +190,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
     def jsonify(self):
         d = {
             "id": self.id,
-            "created_by_user_id": self.created_by_user_id,
-            "created_by_project_id": self.created_by_project_id,
+            "creator": self.creator,
             "name": self.name,
             "unit": self.unit,
         }
@@ -207,6 +203,14 @@ class Metric(Base, GnocchiBase, storage.Metric):
             d['archive_policy_name'] = self.archive_policy_name
         else:
             d['archive_policy'] = self.archive_policy
+
+        if self.creator is None:
+            d['created_by_user_id'] = d['created_by_project_id'] = None
+        else:
+            d['created_by_user_id'], _, d['created_by_project_id'] = (
+                self.creator.partition(":")
+            )
+
         return d
 
     def __eq__(self, other):
@@ -217,8 +221,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
         return ((isinstance(other, Metric)
                  and self.id == other.id
                  and self.archive_policy_name == other.archive_policy_name
-                 and self.created_by_user_id == other.created_by_user_id
-                 and self.created_by_project_id == other.created_by_project_id
+                 and self.creator == other.creator
                  and self.name == other.name
                  and self.unit == other.unit
                  and self.resource_id == other.resource_id)
@@ -298,6 +301,14 @@ class ResourceJsonifier(indexer.Resource):
         if 'metrics' not in sqlalchemy.inspect(self).unloaded:
             d['metrics'] = dict((m.name, six.text_type(m.id))
                                 for m in self.metrics)
+
+        if self.creator is None:
+            d['created_by_user_id'] = d['created_by_project_id'] = None
+        else:
+            d['created_by_user_id'], _, d['created_by_project_id'] = (
+                self.creator.partition(":")
+            )
+
         return d
 
 
@@ -318,10 +329,7 @@ class ResourceMixin(ResourceJsonifier):
                                   cls.__tablename__),
             nullable=False)
 
-    created_by_user_id = sqlalchemy.Column(
-        sqlalchemy.String(255))
-    created_by_project_id = sqlalchemy.Column(
-        sqlalchemy.String(255))
+    creator = sqlalchemy.Column(sqlalchemy.String(255))
     started_at = sqlalchemy.Column(TimestampUTC, nullable=False,
                                    default=lambda: utils.utcnow())
     revision_start = sqlalchemy.Column(TimestampUTC, nullable=False,

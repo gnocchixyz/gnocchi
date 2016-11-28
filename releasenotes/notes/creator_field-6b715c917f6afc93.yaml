@@ -1,0 +1,6 @@
+---
+deprecations:
+  - >-
+    The `created_by_user_id` and `created_by_project_id` field are now
+    deprecated and being merged into a unique `creator` field. The old fields
+    are still returned and managed by the API for now.

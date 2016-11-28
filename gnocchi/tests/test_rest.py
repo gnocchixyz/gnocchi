@@ -622,9 +622,13 @@ class ResourceTest(RestTest):
         if self.auth:
             self.resource['created_by_user_id'] = TestingApp.USER_ID
             self.resource['created_by_project_id'] = TestingApp.PROJECT_ID
+            self.resource['creator'] = (
+                TestingApp.USER_ID + ":" + TestingApp.PROJECT_ID
+            )
         else:
             self.resource['created_by_user_id'] = None
             self.resource['created_by_project_id'] = None
+            self.resource['creator'] = None
         self.resource['ended_at'] = None
         self.resource['metrics'] = {}
         if 'user_id' not in self.resource:

@@ -26,7 +26,8 @@ INVALID_NAMES = [
     "revision", "revision_start", "revision_end",
     "started_at", "ended_at",
     "user_id", "project_id",
-    "created_by_user_id", "created_by_project_id", "get_metric"
+    "created_by_user_id", "created_by_project_id", "get_metric",
+    "creator",
 ]
 
 VALID_CHARS = re.compile("[a-zA-Z0-9][a-zA-Z0-9_]*")

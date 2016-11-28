@@ -110,10 +110,16 @@ def list_opts():
                 help='Resource UUID to use to identify statsd in Gnocchi'),
             cfg.StrOpt(
                 'user_id',
+                deprecated_for_removal=True,
                 help='User ID to use to identify statsd in Gnocchi'),
             cfg.StrOpt(
                 'project_id',
+                deprecated_for_removal=True,
                 help='Project ID to use to identify statsd in Gnocchi'),
+            cfg.StrOpt(
+                'creator',
+                default="${statsd.user_id}:${statsd.project_id}",
+                help='Creator value to use to identify statsd in Gnocchi'),
             cfg.StrOpt(
                 'archive_policy_name',
                 help='Archive policy name to use when creating metrics'),

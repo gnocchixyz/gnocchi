@@ -40,7 +40,6 @@ class TestStorageDriver(tests_base.TestCase):
         m = storage.Metric(uuid.uuid4(),
                            self.archive_policies[archive_policy_name])
         m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),
-                                         str(uuid.uuid4()),
                                          archive_policy_name)
         return m, m_sql
 
@@ -249,7 +248,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.create_archive_policy(ap)
         self.metric = storage.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
-                                 str(uuid.uuid4()),
                                  apname)
 
         # First store some points scattered across different splits
@@ -335,7 +333,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.create_archive_policy(ap)
         self.metric = storage.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
-                                 str(uuid.uuid4()),
                                  apname)
 
         # First store some points scattered across different splits
@@ -399,7 +396,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.create_archive_policy(ap)
         self.metric = storage.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
-                                 str(uuid.uuid4()),
                                  apname)
 
         # First store some points scattered across different splits
@@ -810,8 +806,7 @@ class TestStorageDriver(tests_base.TestCase):
         name = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(name, 0, [(3, 5)])
         self.index.create_archive_policy(ap)
-        m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()),
-                                     str(uuid.uuid4()), name)
+        m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()), name)
         m = self.index.list_metrics(ids=[m.id])[0]
         self.storage.incoming.add_measures(m, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 0), 1),

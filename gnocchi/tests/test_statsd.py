@@ -35,10 +35,8 @@ class TestStatsd(tests_base.TestCase):
 
         self.conf.set_override("resource_id",
                                str(uuid.uuid4()), "statsd")
-        self.conf.set_override("user_id",
+        self.conf.set_override("creator",
                                self.STATSD_USER_ID, "statsd")
-        self.conf.set_override("project_id",
-                               self.STATSD_PROJECT_ID, "statsd")
         self.conf.set_override("archive_policy_name",
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
 
