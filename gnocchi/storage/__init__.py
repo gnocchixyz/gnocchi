@@ -207,7 +207,7 @@ class StorageDriver(object):
             except Exception:
                 if sync:
                     raise
-                LOG.error("Unable to expunge metric %s from storage" % m,
+                LOG.error("Unable to expunge metric %s from storage", m,
                           exc_info=True)
                 continue
             try:

@@ -78,7 +78,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                               "omap feature. Install 'cradox' (recommended) "
                               "or upgrade 'python-rados' >= 9.1.0 ")
 
-        LOG.info("Ceph storage backend use '%s' python library" %
+        LOG.info("Ceph storage backend use '%s' python library",
                  RADOS_MODULE_NAME)
 
         # NOTE(sileht): librados handles reconnection itself,

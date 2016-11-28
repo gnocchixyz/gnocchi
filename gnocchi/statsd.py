@@ -47,7 +47,7 @@ class Stats(object):
             LOG.debug("Resource %s already exists"
                       % self.conf.statsd.resource_id)
         else:
-            LOG.info("Created resource %s" % self.conf.statsd.resource_id)
+            LOG.info("Created resource %s", self.conf.statsd.resource_id)
         self.gauges = {}
         self.counters = {}
         self.times = {}
@@ -114,8 +114,8 @@ class Stats(object):
                         resource_id=self.conf.statsd.resource_id)
                 self.storage.add_measures(metric, (measure,))
             except Exception as e:
-                LOG.error("Unable to add measure %s: %s"
-                          % (metric_name, e))
+                LOG.error("Unable to add measure %s: %s",
+                          (metric_name, e))
 
         self.reset()
 
@@ -140,7 +140,7 @@ class StatsdServer(object):
         try:
             messages = [m for m in data.decode().split("\n") if m]
         except Exception as e:
-            LOG.error("Unable to decode datagram: %s" % e)
+            LOG.error("Unable to decode datagram: %s", e)
             return
         for message in messages:
             metric = message.split("|")
@@ -150,7 +150,7 @@ class StatsdServer(object):
             elif len(metric) == 3:
                 metric_name, metric_type, sampling = metric
             else:
-                LOG.error("Invalid number of | in `%s'" % message)
+                LOG.error("Invalid number of | in `%s'", message)
                 continue
             sampling = float(sampling[1:]) if sampling is not None else None
             metric_name, metric_str_val = metric_name.split(':')
@@ -161,7 +161,7 @@ class StatsdServer(object):
                 self.stats.treat_metric(metric_name, metric_type,
                                         value, sampling)
             except Exception as e:
-                LOG.error("Unable to treat metric %s: %s" % (message, str(e)))
+                LOG.error("Unable to treat metric %s: %s", (message, str(e)))
 
 
 def start():
@@ -186,8 +186,8 @@ def start():
     loop.call_later(conf.statsd.flush_delay, _flush)
     transport, protocol = loop.run_until_complete(listen)
 
-    LOG.info("Started on %s:%d" % (conf.statsd.host, conf.statsd.port))
-    LOG.info("Flush delay: %d seconds" % conf.statsd.flush_delay)
+    LOG.info("Started on %s:%d", (conf.statsd.host, conf.statsd.port))
+    LOG.info("Flush delay: %d seconds", conf.statsd.flush_delay)
 
     try:
         loop.run_forever()

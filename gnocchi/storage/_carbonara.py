@@ -175,8 +175,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         except ValueError:
             LOG.error("Data corruption detected for %s "
                       "aggregated `%s' timeserie, granularity `%s' "
-                      "around time `%s', ignoring."
-                      % (metric.id, aggregation, granularity, key))
+                      "around time `%s', ignoring.",
+                      (metric.id, aggregation, granularity, key))
 
     def _get_measures_timeserie(self, metric,
                                 aggregation, granularity,
@@ -422,7 +422,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     # Just try the next metric, this one has no measures
                     break
                 else:
-                    LOG.info("Migrating metric %s to new format" % metric)
+                    LOG.info("Migrating metric %s to new format", metric)
                     timeseries = filter(
                         lambda x: x is not None,
                         self._map_in_thread(
@@ -444,7 +444,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             metric, key, agg_method,
                             d.granularity, version=None)
             self._delete_unaggregated_timeserie(metric, version=None)
-            LOG.info("Migrated metric %s to new format" % metric)
+            LOG.info("Migrated metric %s to new format", metric)
 
     def upgrade(self, index):
         marker = None
@@ -694,7 +694,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         try:
             return self._unserialize_timeserie_v2(data)
         except ValueError:
-            LOG.error("Data corruption detected for %s ignoring." % metric.id)
+            LOG.error("Data corruption detected for %s ignoring.", metric.id)
 
     def _get_measures_and_unserialize_v2(self, metric, key,
                                          aggregation, granularity):
@@ -706,5 +706,5 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         except ValueError:
             LOG.error("Data corruption detected for %s "
                       "aggregated `%s' timeserie, granularity `%s' "
-                      "around time `%s', ignoring."
-                      % (metric.id, aggregation, granularity, key))
+                      "around time `%s', ignoring.",
+                      (metric.id, aggregation, granularity, key))
