@@ -140,7 +140,7 @@ class TestCarbonaraMigration(tests_base.TestCase):
                 storage.AggregationDoesNotExist,
                 self.storage.get_measures, self.metric, aggregation='max')
 
-        self.storage.add_measures(self.metric, [
+        self.storage.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2016, 7, 18), 69),
             storage.Measure(utils.dt_to_unix_ns(2016, 7, 18, 1, 1), 64),
         ])

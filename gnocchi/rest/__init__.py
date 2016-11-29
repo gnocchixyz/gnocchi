@@ -436,7 +436,7 @@ class MetricController(rest.RestController):
         if not isinstance(params, list):
             abort(400, "Invalid input for measures")
         if params:
-            pecan.request.storage.add_measures(
+            pecan.request.storage.incoming.add_measures(
                 self.metric, MeasuresListSchema(params))
         pecan.response.status = 202
 
@@ -1439,7 +1439,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
-        storage = pecan.request.storage
+        storage = pecan.request.storage.incoming
         with futures.ThreadPoolExecutor(max_workers=THREADS) as executor:
             list(executor.map(lambda x: storage.add_measures(*x),
                               ((metric, body[metric.resource_id][metric.name])
@@ -1472,7 +1472,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         for metric in metrics:
             enforce("post measures", metric)
 
-        storage = pecan.request.storage
+        storage = pecan.request.storage.incoming
         with futures.ThreadPoolExecutor(max_workers=THREADS) as executor:
             list(executor.map(lambda x: storage.add_measures(*x),
                               ((metric, body[metric.id]) for metric in
@@ -1671,7 +1671,7 @@ class StatusController(rest.RestController):
     @pecan.expose('json')
     def get(details=True):
         enforce("get status", {})
-        report = pecan.request.storage.measures_report(
+        report = pecan.request.storage.incoming.measures_report(
             strutils.bool_from_string(details))
         report_dict = {"storage": {"summary": report['summary']}}
         if 'details' in report:

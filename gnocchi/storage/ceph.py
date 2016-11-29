@@ -27,6 +27,7 @@ from oslo_utils import importutils
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi.storage.incoming import _carbonara as incoming_carbonara
 
 
 LOG = log.getLogger(__name__)
@@ -57,7 +58,8 @@ OPTS = [
 ]
 
 
-class CephStorage(_carbonara.CarbonaraBasedStorage):
+class CephStorage(_carbonara.CarbonaraBasedStorage,
+                  incoming_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = False
 
@@ -211,7 +213,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             objs_it = itertools.islice(names, size * part, size * (part + 1))
         return set([name.split("_")[1] for name in objs_it])
 
-    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         object_names = self._list_object_names_to_process(object_prefix)
         # Now clean objects and omap
@@ -226,7 +228,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.aio_remove(n)
 
     @contextlib.contextmanager
-    def _process_measure_for_metric(self, metric):
+    def process_measure_for_metric(self, metric):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
         object_names = list(self._list_object_names_to_process(object_prefix))
 

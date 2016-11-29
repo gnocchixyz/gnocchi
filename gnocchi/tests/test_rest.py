@@ -114,7 +114,7 @@ class TestingApp(webtest.TestApp):
         if self.auth and self.token is not None:
             req.headers['X-Auth-Token'] = self.token
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = self.storage.list_metric_with_measures_to_process(
+        metrics = self.storage.incoming.list_metric_with_measures_to_process(
             None, None, full=True)
         self.storage.process_background_tasks(self.indexer, metrics, sync=True)
         return response

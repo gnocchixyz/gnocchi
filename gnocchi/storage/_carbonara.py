@@ -18,7 +18,6 @@ import collections
 import datetime
 import itertools
 import operator
-import struct
 import uuid
 
 from concurrent import futures
@@ -26,9 +25,7 @@ import iso8601
 import msgpack
 from oslo_config import cfg
 from oslo_log import log
-from oslo_serialization import msgpackutils
 from oslo_utils import timeutils
-import pandas
 import six
 import six.moves
 from tooz import coordination
@@ -61,7 +58,6 @@ class CorruptionError(ValueError):
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):
-    MEASURE_PREFIX = "measure"
     UPGRADE_BATCH_SIZE = 1000
 
     def __init__(self, conf):
@@ -325,23 +321,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     metric, key, split, aggregation, archive_policy_def,
                     oldest_mutable_timestamp)
 
-    def add_measures(self, metric, measures):
-        measures = list(measures)
-        data = struct.pack(
-            "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
-            *list(itertools.chain.from_iterable(measures)))
-        self._store_new_measures(metric, data)
-
-    @staticmethod
-    def _store_new_measures(metric, data):
-        raise NotImplementedError
-
     @staticmethod
     def _delete_metric(metric):
-        raise NotImplementedError
-
-    @staticmethod
-    def list_metric_with_measures_to_process(size, part, full=False):
         raise NotImplementedError
 
     def delete_metric(self, metric, sync=False):
@@ -354,34 +335,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric_measures(metric, timestamp_key,
                                 aggregation, granularity, version=3):
         raise NotImplementedError
-
-    _MEASURE_SERIAL_FORMAT = "Qd"
-    _MEASURE_SERIAL_LEN = struct.calcsize(_MEASURE_SERIAL_FORMAT)
-
-    def _unserialize_measures(self, measure_id, data):
-        nb_measures = len(data) // self._MEASURE_SERIAL_LEN
-        try:
-            measures = struct.unpack(
-                "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
-        except struct.error:
-            # This either a corruption, either a v2 measures
-            try:
-                return msgpackutils.loads(data)
-            except ValueError:
-                LOG.error(
-                    "Unable to decode measure %s, possible data corruption",
-                    measure_id)
-                raise
-        return six.moves.zip(
-            pandas.to_datetime(measures[::2], unit='ns'),
-            itertools.islice(measures, 1, len(measures), 2))
-
-    def measures_report(self, details=True):
-        metrics, measures, full_details = self._build_report(details)
-        report = {'summary': {'metrics': metrics, 'measures': measures}}
-        if full_details is not None:
-            report['details'] = full_details
-        return report
 
     def _check_for_metric_upgrade(self, metric):
         lock = self._lock(metric.id)
@@ -457,7 +410,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 break
             marker = metrics[-1][0].id
 
-    def process_new_measures(self, indexer, metrics_to_process, sync=False):
+    def process_new_measures(self, indexer, metrics_to_process,
+                             sync=False):
         metrics = indexer.list_metrics(ids=metrics_to_process)
         # This build the list of deleted metrics, i.e. the metrics we have
         # measures to process for but that are not in the indexer anymore.
@@ -469,7 +423,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # measurement files under its feet is not nice!
             try:
                 with self._lock(metric_id)(blocking=sync):
-                    self._delete_unprocessed_measures_for_metric_id(metric_id)
+                    self.incoming.delete_unprocessed_measures_for_metric_id(
+                        metric_id)
             except coordination.LockAcquireFailed:
                 LOG.debug("Cannot acquire lock for metric %s, postponing "
                           "unprocessed measures deletion" % metric_id)
@@ -484,7 +439,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             try:
                 locksw = timeutils.StopWatch().start()
                 LOG.debug("Processing measures for %s" % metric)
-                with self._process_measure_for_metric(metric) as measures:
+                with self.incoming.process_measure_for_metric(metric) \
+                        as measures:
                     self._compute_and_store_timeseries(metric, measures)
                 LOG.debug("Metric %s locked during %.2f seconds" %
                           (metric.id, locksw.elapsed()))

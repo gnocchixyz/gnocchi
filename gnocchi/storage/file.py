@@ -27,6 +27,7 @@ import six
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi.storage.incoming import _carbonara as incoming_carbonara
 
 
 OPTS = [
@@ -36,7 +37,8 @@ OPTS = [
 ]
 
 
-class FileStorage(_carbonara.CarbonaraBasedStorage):
+class FileStorage(_carbonara.CarbonaraBasedStorage,
+                  incoming_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
@@ -178,12 +180,12 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             if e.errno not in (errno.ENOENT, errno.ENOTEMPTY, errno.EEXIST):
                 raise
 
-    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measures_container_for_metric_id(metric_id)
         self._delete_measures_files_for_metric_id(metric_id, files)
 
     @contextlib.contextmanager
-    def _process_measure_for_metric(self, metric):
+    def process_measure_for_metric(self, metric):
         files = self._list_measures_container_for_metric_id(metric.id)
         measures = []
         for f in files:

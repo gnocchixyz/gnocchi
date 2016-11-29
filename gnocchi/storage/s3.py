@@ -31,6 +31,7 @@ except ImportError:
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi.storage.incoming import _carbonara as incoming_carbonara
 from gnocchi import utils
 
 LOG = logging.getLogger(__name__)
@@ -58,7 +59,8 @@ def retry_if_operationaborted(exception):
             and exception.response['Error'].get('Code') == "OperationAborted")
 
 
-class S3Storage(_carbonara.CarbonaraBasedStorage):
+class S3Storage(_carbonara.CarbonaraBasedStorage,
+                incoming_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
@@ -214,12 +216,12 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                   deleted,
                   len(objects) - deleted)
 
-    def _delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric_id(self, metric_id):
         files = self._list_measure_files_for_metric_id(metric_id)
         self._bulk_delete(self._bucket_name_measures, files)
 
     @contextlib.contextmanager
-    def _process_measure_for_metric(self, metric):
+    def process_measure_for_metric(self, metric):
         files = self._list_measure_files_for_metric_id(metric.id)
 
         measures = []
