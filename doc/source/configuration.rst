@@ -72,8 +72,6 @@ edit the `api-paste.ini` file to add the Keystone authentication middleware::
 
 .. _`Paste Deployment`: http://pythonpaste.org/deploy/
 .. _`OpenStack Keystone`: http://launchpad.net/keystone
-.. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
-.. _`Grafana`: http://grafana.org/
 
 
 Driver notes
