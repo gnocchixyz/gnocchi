@@ -172,7 +172,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             LOG.error("Data corruption detected for %s "
                       "aggregated `%s' timeserie, granularity `%s' "
                       "around time `%s', ignoring.",
-                      (metric.id, aggregation, granularity, key))
+                      metric.id, aggregation, granularity, key)
 
     def _get_measures_timeserie(self, metric,
                                 aggregation, granularity,
@@ -663,4 +663,4 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             LOG.error("Data corruption detected for %s "
                       "aggregated `%s' timeserie, granularity `%s' "
                       "around time `%s', ignoring.",
-                      (metric.id, aggregation, granularity, key))
+                      metric.id, aggregation, granularity, key)

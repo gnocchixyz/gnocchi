@@ -44,8 +44,8 @@ class Stats(object):
                                          self.conf.statsd.user_id,
                                          self.conf.statsd.project_id)
         except indexer.ResourceAlreadyExists:
-            LOG.debug("Resource %s already exists"
-                      % self.conf.statsd.resource_id)
+            LOG.debug("Resource %s already exists",
+                      self.conf.statsd.resource_id)
         else:
             LOG.info("Created resource %s", self.conf.statsd.resource_id)
         self.gauges = {}
@@ -115,7 +115,7 @@ class Stats(object):
                 self.storage.incoming.add_measures(metric, (measure,))
             except Exception as e:
                 LOG.error("Unable to add measure %s: %s",
-                          (metric_name, e))
+                          metric_name, e)
 
         self.reset()
 
@@ -136,7 +136,7 @@ class StatsdServer(object):
         pass
 
     def datagram_received(self, data, addr):
-        LOG.debug("Received data `%r' from %s" % (data, addr))
+        LOG.debug("Received data `%r' from %s", data, addr)
         try:
             messages = [m for m in data.decode().split("\n") if m]
         except Exception as e:
@@ -161,7 +161,7 @@ class StatsdServer(object):
                 self.stats.treat_metric(metric_name, metric_type,
                                         value, sampling)
             except Exception as e:
-                LOG.error("Unable to treat metric %s: %s", (message, str(e)))
+                LOG.error("Unable to treat metric %s: %s", message, str(e))
 
 
 def start():
@@ -186,7 +186,7 @@ def start():
     loop.call_later(conf.statsd.flush_delay, _flush)
     transport, protocol = loop.run_until_complete(listen)
 
-    LOG.info("Started on %s:%d", (conf.statsd.host, conf.statsd.port))
+    LOG.info("Started on %s:%d", conf.statsd.host, conf.statsd.port)
     LOG.info("Flush delay: %d seconds", conf.statsd.flush_delay)
 
     try:
