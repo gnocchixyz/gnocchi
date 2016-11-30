@@ -50,6 +50,7 @@ Key Features
 - Queryable resource indexer
 - Multi-tenant
 - Grafana support
+- Nagios/Icinga support
 - Statsd protocol support
 
 
@@ -67,6 +68,7 @@ Documentation
    rest
    statsd
    grafana
+   nagios
    glossary
    releasenotes/index.rst
 
