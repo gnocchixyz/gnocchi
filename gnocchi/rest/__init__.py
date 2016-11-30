@@ -1406,7 +1406,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             "name": name
                         })
                         try:
-                            pecan.request.indexer.create_metric(
+                            m = pecan.request.indexer.create_metric(
                                 uuid.uuid4(),
                                 user_id, project_id,
                                 resource_id=resource_id,
@@ -1420,6 +1420,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             # This catch NoSuchArchivePolicy, which is unlikely
                             # be still possible
                             abort(400, e)
+                        else:
+                            known_metrics.append(m)
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(

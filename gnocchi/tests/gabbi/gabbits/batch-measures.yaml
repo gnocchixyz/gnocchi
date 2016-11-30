@@ -188,6 +188,12 @@ tests:
     - name: get created metric to check creation
       GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.test
 
+    - name: ensure measure have been posted
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.test/measures?refresh=true&start=2015-03-06T14:34
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+
     - name: push measurements to unknown named metrics and resource with create_metrics
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
