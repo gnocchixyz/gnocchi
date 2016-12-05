@@ -522,8 +522,6 @@ class MetricsController(rest.RestController):
         return MetricController(metrics[0]), remainder
 
     _MetricSchema = voluptuous.Schema({
-        "user_id": six.text_type,
-        "project_id": six.text_type,
         "archive_policy_name": six.text_type,
         "name": six.text_type,
         voluptuous.Optional("unit"):
@@ -559,8 +557,6 @@ class MetricsController(rest.RestController):
         enforce("create metric", {
             "created_by_user_id": user_id,
             "created_by_project_id": project_id,
-            "user_id": definition.get('user_id'),
-            "project_id": definition.get('project_id'),
             "archive_policy_name": archive_policy_name,
             "name": name,
             "unit": definition.get('unit'),
