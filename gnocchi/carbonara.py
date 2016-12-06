@@ -74,6 +74,12 @@ class UnknownAggregationMethod(Exception):
             "Unknown aggregation method `%s'" % agg)
 
 
+class InvalidData(ValueError):
+    """Error raised when data are corrupted."""
+    def __init__(self):
+        super(InvalidData, self).__init__("Unable to unpack, invalid data")
+
+
 def round_timestamp(ts, freq):
     return pandas.Timestamp(
         (pandas.Timestamp(ts).value // freq) * freq)
@@ -225,8 +231,11 @@ class BoundTimeSerie(TimeSerie):
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
-        deserial = struct.unpack("<" + "Q" * nb_points + "d" * nb_points,
-                                 uncompressed)
+        try:
+            deserial = struct.unpack("<" + "Q" * nb_points + "d" * nb_points,
+                                     uncompressed)
+        except struct.error:
+            raise InvalidData
         start = deserial[0]
         timestamps = [start]
         for delta in itertools.islice(deserial, 1, nb_points):
@@ -501,9 +510,12 @@ class AggregatedTimeSerie(TimeSerie):
                 # Compressed format
                 uncompressed = lz4.loads(memoryview(data)[1:].tobytes())
                 nb_points = len(uncompressed) // cls.COMPRESSED_SERIAL_LEN
-                deserial = struct.unpack(
-                    '<' + 'H' * nb_points + 'd' * nb_points,
-                    uncompressed)
+                try:
+                    deserial = struct.unpack(
+                        '<' + 'H' * nb_points + 'd' * nb_points,
+                        uncompressed)
+                except struct.error:
+                    raise InvalidData
                 for delta in itertools.islice(deserial, nb_points):
                     ts = start + (delta * sampling)
                     y.append(ts)
@@ -514,7 +526,10 @@ class AggregatedTimeSerie(TimeSerie):
                 nb_points = len(data) // cls.PADDED_SERIAL_LEN
                 # NOTE(gordc): use '<' for standardized
                 # little-endian byte order
-                deserial = struct.unpack('<' + '?d' * nb_points, data)
+                try:
+                    deserial = struct.unpack('<' + '?d' * nb_points, data)
+                except struct.error:
+                    raise InvalidData()
                 # alternating split into 2 list and drop items with False flag
                 for i, val in itertools.compress(
                         six.moves.zip(six.moves.range(nb_points),

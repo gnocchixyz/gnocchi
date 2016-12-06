@@ -67,9 +67,9 @@ class TestStorageDriver(tests_base.TestCase):
         ])
 
         with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.unserialize',
-                        side_effect=ValueError("boom!")):
+                        side_effect=carbonara.InvalidData()):
             with mock.patch('gnocchi.carbonara.BoundTimeSerie.unserialize',
-                            side_effect=ValueError("boom!")):
+                            side_effect=carbonara.InvalidData()):
                 self.trigger_processing()
 
         m = self.storage.get_measures(self.metric)
@@ -309,6 +309,132 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2016, 1, 10, 16, 18), 60.0, 45),
             (utils.datetime_utc(2016, 1, 10, 17, 12), 60.0, 46),
         ], self.storage.get_measures(self.metric, granularity=60.0))
+
+    def test_rewrite_measures_corruption_missing_file(self):
+        # Create an archive policy that spans on several splits. Each split
+        # being 3600 points, let's go for 36k points so we have 10 splits.
+        apname = str(uuid.uuid4())
+        ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
+        self.index.create_archive_policy(ap)
+        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.index.create_metric(self.metric.id, str(uuid.uuid4()),
+                                 str(uuid.uuid4()),
+                                 apname)
+
+        # First store some points scattered across different splits
+        self.storage.add_measures(self.metric, [
+            storage.Measure(utils.datetime_utc(2016, 1, 1, 12, 0, 1), 69),
+            storage.Measure(utils.datetime_utc(2016, 1, 2, 13, 7, 31), 42),
+            storage.Measure(utils.datetime_utc(2016, 1, 4, 14, 9, 31), 4),
+            storage.Measure(utils.datetime_utc(2016, 1, 6, 15, 12, 45), 44),
+        ])
+        self.trigger_processing()
+
+        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
+        self.assertEqual(splits,
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 60.0))
+
+        if self.storage.WRITE_FULL:
+            assertCompressedIfWriteFull = self.assertTrue
+        else:
+            assertCompressedIfWriteFull = self.assertFalse
+
+        data = self.storage._get_measures(
+            self.metric, '1451520000.0', "mean", 60.0)
+        self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
+        data = self.storage._get_measures(
+            self.metric, '1451736000.0', "mean", 60.0)
+        self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
+        data = self.storage._get_measures(
+            self.metric, '1451952000.0', "mean", 60.0)
+        assertCompressedIfWriteFull(
+            carbonara.AggregatedTimeSerie.is_compressed(data))
+
+        self.assertEqual([
+            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
+        ], self.storage.get_measures(self.metric, granularity=60.0))
+
+        # Test what happens if we delete the latest split and then need to
+        # compress it!
+        self.storage._delete_metric_measures(self.metric,
+                                             '1451952000.0',
+                                             'mean', 60.0)
+
+        # Now store brand new points that should force a rewrite of one of the
+        # split (keep in mind the back window size in one hour here). We move
+        # the BoundTimeSerie processing timeserie far away from its current
+        # range.
+        self.storage.add_measures(self.metric, [
+            storage.Measure(utils.datetime_utc(2016, 1, 10, 16, 18, 45), 45),
+            storage.Measure(utils.datetime_utc(2016, 1, 10, 17, 12, 45), 46),
+        ])
+        self.trigger_processing()
+
+    def test_rewrite_measures_corruption_bad_data(self):
+        # Create an archive policy that spans on several splits. Each split
+        # being 3600 points, let's go for 36k points so we have 10 splits.
+        apname = str(uuid.uuid4())
+        ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
+        self.index.create_archive_policy(ap)
+        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.index.create_metric(self.metric.id, str(uuid.uuid4()),
+                                 str(uuid.uuid4()),
+                                 apname)
+
+        # First store some points scattered across different splits
+        self.storage.add_measures(self.metric, [
+            storage.Measure(utils.datetime_utc(2016, 1, 1, 12, 0, 1), 69),
+            storage.Measure(utils.datetime_utc(2016, 1, 2, 13, 7, 31), 42),
+            storage.Measure(utils.datetime_utc(2016, 1, 4, 14, 9, 31), 4),
+            storage.Measure(utils.datetime_utc(2016, 1, 6, 15, 12, 45), 44),
+        ])
+        self.trigger_processing()
+
+        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
+        self.assertEqual(splits,
+                         self.storage._list_split_keys_for_metric(
+                             self.metric, "mean", 60.0))
+
+        if self.storage.WRITE_FULL:
+            assertCompressedIfWriteFull = self.assertTrue
+        else:
+            assertCompressedIfWriteFull = self.assertFalse
+
+        data = self.storage._get_measures(
+            self.metric, '1451520000.0', "mean", 60.0)
+        self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
+        data = self.storage._get_measures(
+            self.metric, '1451736000.0', "mean", 60.0)
+        self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
+        data = self.storage._get_measures(
+            self.metric, '1451952000.0', "mean", 60.0)
+        assertCompressedIfWriteFull(
+            carbonara.AggregatedTimeSerie.is_compressed(data))
+
+        self.assertEqual([
+            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
+        ], self.storage.get_measures(self.metric, granularity=60.0))
+
+        # Test what happens if we write garbage
+        self.storage._store_metric_measures(
+            self.metric, '1451952000.0', "mean", 60.0, b"oh really?")
+
+        # Now store brand new points that should force a rewrite of one of the
+        # split (keep in mind the back window size in one hour here). We move
+        # the BoundTimeSerie processing timeserie far away from its current
+        # range.
+        self.storage.add_measures(self.metric, [
+            storage.Measure(utils.datetime_utc(2016, 1, 10, 16, 18, 45), 45),
+            storage.Measure(utils.datetime_utc(2016, 1, 10, 17, 12, 45), 46),
+        ])
+        self.trigger_processing()
 
     def test_updated_measures(self):
         self.storage.add_measures(self.metric, [
