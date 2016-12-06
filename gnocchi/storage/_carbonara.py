@@ -168,7 +168,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         try:
             return carbonara.AggregatedTimeSerie.unserialize(
                 data, key, aggregation, granularity)
-        except ValueError:
+        except carbonara.InvalidData:
             LOG.error("Data corruption detected for %s "
                       "aggregated `%s' timeserie, granularity `%s' "
                       "around time `%s', ignoring.",
@@ -245,6 +245,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         split = existing
                     else:
                         split.merge(existing)
+
+        if split is None:
+            # `split' can be none if existing is None and no split was passed
+            # in order to rewrite and compress the data; in that case, it means
+            # the split key is present and listed, but some aggregation method
+            # or granularity is missing. That means data is corrupted, but it
+            # does not mean we have to fail, we can just do nothing and log a
+            # warning.
+            LOG.warning("No data found for metric %s, granularity %f "
+                        "and aggregation method %s (split key %s): "
+                        "possible data corruption",
+                        metric, archive_policy_def.granularity,
+                        aggregation, key)
+            return
 
         offset, data = split.serialize(key, compressed=write_full)
 
