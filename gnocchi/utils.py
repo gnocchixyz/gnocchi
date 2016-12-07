@@ -14,9 +14,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import errno
 import itertools
 import multiprocessing
 import numbers
+import os
 import uuid
 
 import iso8601
@@ -182,3 +184,12 @@ def grouper(iterable, n):
         if not chunk:
             return
         yield chunk
+
+
+def ensure_paths(paths):
+    for p in paths:
+        try:
+            os.makedirs(p)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
