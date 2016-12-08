@@ -26,6 +26,10 @@ class StorageDriver(object):
         pass
 
     @staticmethod
+    def upgrade(indexer):
+        pass
+
+    @staticmethod
     def add_measures(metric, measures):
         """Add a measure to a metric.
 
