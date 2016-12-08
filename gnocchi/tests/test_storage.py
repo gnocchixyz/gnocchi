@@ -569,7 +569,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=utils.to_timestamp('2014-01-01 12:10:00'))
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 0))
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
             (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 22.25),
@@ -578,7 +578,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            to_timestamp=utils.to_timestamp('2014-01-01 12:05:00'))
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 5, 0))
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 22.25),
@@ -588,8 +588,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            to_timestamp=utils.to_timestamp('2014-01-01 12:10:10'),
-            from_timestamp=utils.to_timestamp('2014-01-01 12:10:10'))
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10),
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10))
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
             (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 22.25),
@@ -598,8 +598,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=utils.to_timestamp('2014-01-01 12:00:00'),
-            to_timestamp=utils.to_timestamp('2014-01-01 12:00:01'))
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 1))
 
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
@@ -609,8 +609,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=utils.to_timestamp('2014-01-01 12:00:00'),
-            to_timestamp=utils.to_timestamp('2014-01-01 12:00:01'),
+            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 1),
             granularity=300.0)
 
         self.assertEqual([
