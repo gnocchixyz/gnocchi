@@ -52,7 +52,7 @@ Key Features
 - Grafana support
 - Nagios/Icinga support
 - Statsd protocol support
-
+- Collectd plugin support
 
 Documentation
 -------------
@@ -69,6 +69,7 @@ Documentation
    statsd
    grafana
    nagios
+   collectd
    glossary
    releasenotes/index.rst
 
