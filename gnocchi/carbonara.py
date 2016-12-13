@@ -782,7 +782,7 @@ class AggregatedTimeSerie(TimeSerie):
                       "timeseries. "
                       "right_boundary_ts=%(right_boundary_ts)s, "
                       "left_boundary_ts=%(left_boundary_ts)s, "
-                      "groups=%(groups)s" % {
+                      "groups=%(groups)s", {
                           'right_boundary_ts': right_boundary_ts,
                           'left_boundary_ts': left_boundary_ts,
                           'groups': list(grouped)

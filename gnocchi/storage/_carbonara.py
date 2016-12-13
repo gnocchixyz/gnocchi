@@ -102,8 +102,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             )
             LOG.debug(
                 "Retrieve unaggregated measures "
-                "for %s in %.2fs"
-                % (metric.id, sw.elapsed()))
+                "for %s in %.2fs",
+                metric.id, sw.elapsed())
         try:
             return carbonara.BoundTimeSerie.unserialize(
                 raw_measures, block_size, back_window)
@@ -365,8 +365,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     metric.archive_policy.aggregation_methods,
                     metric.archive_policy.definition):
                 LOG.debug(
-                    "Checking if the metric %s needs migration for %s"
-                    % (metric, agg_method))
+                    "Checking if the metric %s needs migration for %s",
+                    metric, agg_method)
 
                 try:
                     all_keys = self._list_split_keys_for_metric(
@@ -427,7 +427,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         metric_id)
             except coordination.LockAcquireFailed:
                 LOG.debug("Cannot acquire lock for metric %s, postponing "
-                          "unprocessed measures deletion" % metric_id)
+                          "unprocessed measures deletion", metric_id)
 
         for metric in metrics:
             lock = self._lock(metric.id)
@@ -438,15 +438,15 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 continue
             try:
                 locksw = timeutils.StopWatch().start()
-                LOG.debug("Processing measures for %s" % metric)
+                LOG.debug("Processing measures for %s", metric)
                 with self.incoming.process_measure_for_metric(metric) \
                         as measures:
                     self._compute_and_store_timeseries(metric, measures)
-                LOG.debug("Metric %s locked during %.2f seconds" %
-                          (metric.id, locksw.elapsed()))
+                LOG.debug("Metric %s locked during %.2f seconds",
+                          metric.id, locksw.elapsed())
             except Exception:
-                LOG.debug("Metric %s locked during %.2f seconds" %
-                          (metric.id, locksw.elapsed()))
+                LOG.debug("Metric %s locked during %.2f seconds",
+                          metric.id, locksw.elapsed())
                 if sync:
                     raise
                 LOG.error("Error processing new measures", exc_info=True)
@@ -457,7 +457,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         # NOTE(mnaser): The metric could have been handled by
         #               another worker, ignore if no measures.
         if len(measures) == 0:
-            LOG.debug("Skipping %s (already processed)" % metric)
+            LOG.debug("Skipping %s (already processed)", metric)
             return
 
         measures = sorted(measures, key=operator.itemgetter(0))
@@ -530,8 +530,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     ((number_of_operations * len(measures)) / elapsed)
                 )
             LOG.debug("Computed new metric %s with %d new measures "
-                      "in %.2f seconds%s"
-                      % (metric.id, len(measures), elapsed, perf))
+                      "in %.2f seconds%s",
+                      metric.id, len(measures), elapsed, perf)
 
         self._store_unaggregated_timeserie(metric, ts.serialize())
 
