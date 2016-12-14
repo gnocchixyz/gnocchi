@@ -486,7 +486,7 @@ class MetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
-                    float(granularity) if granularity is not None else None,
+                    Timespan(granularity) if granularity is not None else None,
                     resample)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
@@ -1599,9 +1599,9 @@ class AggregationController(rest.RestController):
             return []
         if granularity is not None:
             try:
-                granularity = float(granularity)
+                granularity = Timespan(granularity)
             except ValueError as e:
-                abort(400, "granularity must be a float: %s" % e)
+                abort(400, e)
 
         if resample:
             if not granularity:
