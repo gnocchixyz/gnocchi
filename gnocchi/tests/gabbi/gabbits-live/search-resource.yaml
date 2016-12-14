@@ -1,0 +1,274 @@
+#
+# Tests to confirm resources are searchable. Run against a live setup.
+# URL: http://gnocchi.xyz/rest.html#searching-for-resources
+#
+# Instance-ResourceID-1: a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
+# Instance-ResourceID-2: 7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
+# Instance-ResourceID-3: c442a47c-eb33-46ce-9665-f3aa0bef54e7
+#
+# UserID-1: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
+# UserID-2: 81d82ef3-4deb-499d-9270-9aeb5a3ec5fe
+#
+# ProjectID-1: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
+# ProjectID-2: 40eba01c-b348-49b8-803f-67123251a00a
+#
+# ImageID-1: 7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+# ImageID-2: b01f2588-89dc-46b2-897b-fffae1e10975
+#
+
+defaults:
+    request_headers:
+        x-auth-token: $ENVIRON['GNOCCHI_SERVICE_TOKEN']
+
+tests:
+    #
+    # Setup resource types if don't exist
+    #
+
+    - name: create new resource type 'instance'
+      POST: /v1/resource_type
+      status: 201
+      request_headers:
+          content-type: application/json
+      data:
+          name: instance
+          attributes:
+              display_name:
+                  type: string
+                  required: True
+              flavor_id:
+                  type: string
+                  required: True
+              host:
+                  type: string
+                  required: True
+              image_ref:
+                  type: string
+                  required: False
+              server_group:
+                  type: string
+                  required: False
+
+    - name: create new resource type 'image'
+      POST: /v1/resource_type
+      status: 201
+      request_headers:
+          content-type: application/json
+      data:
+          name: image
+          attributes:
+              name:
+                  type: string
+                  required: True
+              disk_format:
+                  type: string
+                  required: True
+              container_format:
+                  type: string
+                  required: True
+
+    #
+    # Setup test resources
+    #
+    - name: helper. create instance resource-1
+      POST: /v1/resource/instance
+      request_headers:
+          content-type: application/json
+      data:
+          display_name: vm-gabbi-1
+          id: a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
+          user_id: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
+          flavor_id: "1"
+          image_ref: 7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+          host: compute-0-gabbi.localdomain
+          project_id: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
+      status: 201
+
+    - name: helper. create instance resource-2
+      POST: /v1/resource/instance
+      request_headers:
+          content-type: application/json
+      data:
+          display_name: vm-gabbi-2
+          id: 7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
+          user_id: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
+          flavor_id: "2"
+          image_ref: b01f2588-89dc-46b2-897b-fffae1e10975
+          host: compute-1-gabbi.localdomain
+          project_id: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
+      status: 201
+
+    - name: helper. create instance resource-3
+      POST: /v1/resource/instance
+      request_headers:
+          content-type: application/json
+      data:
+          display_name: vm-gabbi-3
+          id: c442a47c-eb33-46ce-9665-f3aa0bef54e7
+          user_id: 81d82ef3-4deb-499d-9270-9aeb5a3ec5fe
+          flavor_id: "2"
+          image_ref: b01f2588-89dc-46b2-897b-fffae1e10975
+          host: compute-1-gabbi.localdomain
+          project_id: 40eba01c-b348-49b8-803f-67123251a00a
+      status: 201
+
+    - name: helper. create image resource-1
+      POST: /v1/resource/image
+      request_headers:
+          content-type: application/json
+      data:
+          id: 7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+          container_format: bare
+          disk_format: qcow2
+          name: gabbi-image-1
+          user_id: 81d82ef3-4deb-499d-9270-9aeb5a3ec5fe
+          project_id: 40eba01c-b348-49b8-803f-67123251a00a
+      status: 201
+
+    #
+    # Actual tests
+    #
+
+    - name: search for all resources with a specific user_id
+      desc: search through all resource types
+      POST: /v1/search/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          =:
+              user_id: 81d82ef3-4deb-499d-9270-9aeb5a3ec5fe
+      status: 200
+      response_json_paths:
+          $.`len`: 2
+      response_json_paths:
+          $.[0].type: instance
+          $.[1].type: image
+          $.[0].id: c442a47c-eb33-46ce-9665-f3aa0bef54e7
+          $.[1].id: 7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+
+    - name: search for all resources of instance type create by specific user_id
+      desc: all instances created by a specified user
+      POST: /v1/search/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          and:
+              - =:
+                  type: instance
+              - =:
+                  user_id: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
+      status: 200
+      response_json_paths:
+          $.`len`: 2
+      response_strings:
+          - '"id": "a64ca14f-bc7c-45b0-aa85-42cd2179e1e2"'
+          - '"id": "7ccccfa0-92ce-4225-80ca-3ac9cb122d6a"'
+      response_json_paths:
+          $.[0].id: a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
+          $.[1].id: 7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
+          $.[0].type: instance
+          $.[1].type: instance
+          $.[0].metrics.`len`: 0
+          $.[1].metrics.`len`: 0
+
+    - name: search for all resources with a specific project_id
+      desc: search for all resources in a specific project
+      POST: /v1/search/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          =:
+              project_id: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
+      status: 200
+      response_json_paths:
+          $.`len`: 2
+
+    - name: search for intances on a specific compute using "like" keyword
+      desc: search for vms hosted on a specific compute node
+      POST: /v1/search/resource/instance
+      request_headers:
+          content-type: application/json
+      data:
+          like:
+              host: 'compute-1-gabbi%'
+      response_json_paths:
+          $.`len`: 2
+      response_strings:
+          - '"project_id": "40eba01c-b348-49b8-803f-67123251a00a"'
+          - '"project_id": "c9a5f184-c0d0-4daa-83c3-af6fdc0879e6"'
+          - '"user_id": "33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07"'
+          - '"user_id": "81d82ef3-4deb-499d-9270-9aeb5a3ec5fe"'
+          - '"display_name": "vm-gabbi-2"'
+          - '"display_name": "vm-gabbi-3"'
+
+    - name: search for instances using complex search with "like" keyword and user_id
+      desc: search for vms of specified user hosted on a specific compute node
+      POST: /v1/search/resource/instance
+      request_headers:
+          content-type: application/json
+      data:
+          and:
+            - like:
+                  host: 'compute-%-gabbi%'
+            - =:
+                  user_id: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
+      response_json_paths:
+          $.`len`: 2
+      response_strings:
+          - '"display_name": "vm-gabbi-1"'
+          - '"display_name": "vm-gabbi-2"'
+          - '"project_id": "c9a5f184-c0d0-4daa-83c3-af6fdc0879e6"'
+
+    - name: search for resources of instance or image type with specific user_id
+      desc: search for all image or instance resources created by a specific user
+      POST: /v1/search/resource/generic
+      request_headers:
+          content-type: application/json
+      data:
+          and:
+              - =:
+                  user_id: 81d82ef3-4deb-499d-9270-9aeb5a3ec5fe
+
+              - or:
+                  - =:
+                      type: instance
+
+                  - =:
+                      type: image
+      status: 200
+      response_json_paths:
+          $.`len`: 2
+      response_strings:
+          - '"type": "image"'
+          - '"type": "instance"'
+          - '"id": "7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d"'
+          - '"id": "c442a47c-eb33-46ce-9665-f3aa0bef54e7"'
+
+    #
+    # Tear down resources
+    #
+
+    - name: helper. delete instance resource-1
+      DELETE: /v1/resource/instance/a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
+      status: 204
+
+    - name: helper. delete instance resource-2
+      DELETE: /v1/resource/instance/7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
+      status: 204
+
+    - name: helper. delete instance resource-3
+      DELETE: /v1/resource/instance/c442a47c-eb33-46ce-9665-f3aa0bef54e7
+      status: 204
+
+    - name: helper. delete image resource
+      DELETE: /v1/resource/image/7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+      status: 204
+
+    - name: helper. delete resource-type instance
+      DELETE: /v1/resource_type/instance
+      status: 204
+
+    - name: helper. delete resource-type image
+      DELETE: /v1/resource_type/image
+      status: 204
+
