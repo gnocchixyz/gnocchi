@@ -1,0 +1,9 @@
+---
+upgrade:
+  - >-
+    The `auth_type` option has a new default value set to "basic". This mode
+    does not do any segregation and uses the standard HTTP `Authorization`
+    header for authentication. The old "noauth" authentication mechanism based
+    on the Keystone headers (`X-User-Id`, `X-Creator-Id` and `X-Roles`) and the
+    Keystone segregation rules, which was the default up to Gnocchi 3.0, is
+    still available.

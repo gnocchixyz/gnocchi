@@ -32,7 +32,7 @@ _RUN = False
 
 def _setup_test_app():
     t = test_rest.RestTest()
-    t.auth = True
+    t.auth_mode = "basic"
     t.setUpClass()
     t.setUp()
     return t.app

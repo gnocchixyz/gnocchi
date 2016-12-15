@@ -85,7 +85,7 @@ def list_opts():
                                "rest", "api-paste.ini")),
                        help='Path to API Paste configuration.'),
             cfg.StrOpt('auth_mode',
-                       default="noauth",
+                       default="basic",
                        choices=extension.ExtensionManager(
                            "gnocchi.rest.auth_helper").names(),
                        help='Authentication mode to use.'),

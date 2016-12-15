@@ -91,6 +91,9 @@ pip install -q -U .[${GNOCCHI_VARIANT}]
 
 
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+# Gnocchi 3.1 uses basic auth by default
+export OS_AUTH_TYPE=gnocchi-basic
+export GNOCCHI_USER=$GNOCCHI_USER_ID
 dump_data $GNOCCHI_DATA/new
 
 echo "* Checking output difference between Gnocchi $old_version and $new_version"
