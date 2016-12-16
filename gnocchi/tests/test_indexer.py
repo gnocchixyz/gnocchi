@@ -162,6 +162,28 @@ class TestIndexerDriver(tests_base.TestCase):
         m2 = self.index.list_metrics(id=r1)
         self.assertEqual([m], m2)
 
+    def test_create_named_metric_duplicate(self):
+        m1 = uuid.uuid4()
+        r1 = uuid.uuid4()
+        name = "foobar"
+        user = str(uuid.uuid4())
+        project = str(uuid.uuid4())
+        self.index.create_resource('generic', r1, user, project)
+        m = self.index.create_metric(m1, user, project, "low",
+                                     name=name,
+                                     resource_id=r1)
+        self.assertEqual(m1, m.id)
+        self.assertEqual(m.created_by_user_id, user)
+        self.assertEqual(m.created_by_project_id, project)
+        self.assertEqual(name, m.name)
+        self.assertEqual(r1, m.resource_id)
+        m2 = self.index.list_metrics(id=m1)
+        self.assertEqual([m], m2)
+
+        self.assertRaises(indexer.NamedMetricAlreadyExists,
+                          self.index.create_metric, m1, user, project, "low",
+                          name=name, resource_id=r1)
+
     def test_expunge_metric(self):
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
