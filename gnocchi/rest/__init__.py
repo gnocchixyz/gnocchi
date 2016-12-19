@@ -1159,7 +1159,12 @@ class SearchResourceTypeController(rest.RestController):
                     u"!=", u"≠", u"ne",
                     u"in",
                     u"like",
-                ): voluptuous.All(voluptuous.Length(min=1, max=1), dict),
+                ): voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    voluptuous.Any(
+                        {"id": voluptuous.Any(
+                            utils.ResourceUUID, [utils.ResourceUUID]),
+                         voluptuous.Extra: voluptuous.Extra})),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",

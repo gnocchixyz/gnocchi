@@ -767,16 +767,6 @@ class TestIndexerDriver(tests_base.TestCase):
         else:
             self.fail("Some resources were not found")
 
-    def test_list_resource_weird_uuid(self):
-        r = self.index.list_resources(
-            'generic', attribute_filter={"=": {"id": "f00bar"}})
-        self.assertEqual(0, len(r))
-        self.assertRaises(
-            indexer.QueryValueError,
-            self.index.list_resources,
-            'generic',
-            attribute_filter={"=": {"id": "f00bar" * 50}})
-
     def test_list_resource_attribute_type_numeric(self):
         """Test that we can pass an integer to filter on a string type."""
         mgr = self.index.get_resource_type_schema()
