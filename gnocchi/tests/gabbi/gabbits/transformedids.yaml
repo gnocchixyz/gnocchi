@@ -30,6 +30,34 @@ tests:
       status: 201
 # Check transformed uuids across the URL hierarchy
 
+    - name: post new resource non uuid for duplication test
+      POST: /v1/resource/generic
+      data:
+          id: generic zero
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 201
+      response_json_paths:
+          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      response_headers:
+          # is a UUID
+          location: /v1/resource/generic/[a-f0-9-]{36}/
+
+    - name: post new resource non uuid duplication
+      POST: /v1/resource/generic
+      data:
+          id: generic zero
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 409
+
     - name: post new resource non uuid
       POST: /v1/resource/generic
       data:
