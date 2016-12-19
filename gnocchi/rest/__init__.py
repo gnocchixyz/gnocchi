@@ -1400,6 +1400,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             known_names = [m.name for m in metrics]
             if strutils.bool_from_string(create_metrics):
                 user_id, project_id = get_user_and_project()
+                already_exists_names = []
                 for name in names:
                     if name not in known_names:
                         metric = MetricsController.MetricSchema({
@@ -1414,7 +1415,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 unit=metric.get('unit'),
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
-                        except indexer.NoSuchResource as e:
+                        except indexer.NamedMetricAlreadyExists as e:
+                            already_exists_names.append(e.metric)
+                        except indexer.NoSuchResource:
                             unknown_resources.add(resource_id)
                         except indexer.IndexerException as e:
                             # This catch NoSuchArchivePolicy, which is unlikely
@@ -1422,6 +1425,15 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             abort(400, e)
                         else:
                             known_metrics.append(m)
+
+                if already_exists_names:
+                    # Add metrics created in the meantime
+                    known_names.extend(already_exists_names)
+                    known_metrics.extend(
+                        pecan.request.indexer.list_metrics(
+                            names=already_exists_names,
+                            resource_id=resource_id)
+                    )
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(

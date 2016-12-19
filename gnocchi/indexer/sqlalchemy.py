@@ -649,6 +649,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         try:
             with self.facade.writer() as session:
                 session.add(m)
+        except exception.DBDuplicateEntry:
+            raise indexer.NamedMetricAlreadyExists(name)
         except exception.DBReferenceError as e:
             if (e.constraint ==
                'fk_metric_ap_name_ap_name'):
