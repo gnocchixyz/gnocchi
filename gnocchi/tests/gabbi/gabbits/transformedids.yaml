@@ -66,8 +66,26 @@ tests:
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 400
       response_strings:
-        - "Invalid input: not a valid value for dictionary value @ data["
-        - "'id']  "
+        - "'/' is not supported in resource id"
+
+
+    - name: post new resource non uuid again different user
+      POST: /v1/resource/generic
+      request_headers:
+        x-user-id: 0fbb231484614b1a80131fc22f6afc9b
+        x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      data:
+          id: generic zero
+          metrics:
+              cpu.util:
+                  archive_policy_name: medium
+      status: 201
+      response_json_paths:
+          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9b
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      response_headers:
+          # is a UUID
+          location: /v1/resource/generic/[a-f0-9-]{36}/
 
     - name: post new resource non uuid
       POST: /v1/resource/generic
@@ -151,7 +169,7 @@ tests:
                   archive_policy_name: medium
       status: 400
       response_strings:
-          - not a valid value for
+        - transformable resource id >255 max allowed characters for dictionary value
 
     - name: post long non uuid resource id
       POST: $LAST_URL

@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import functools
 import itertools
 import uuid
 
@@ -848,8 +849,10 @@ class ResourceController(rest.RestController):
 
     def __init__(self, resource_type, id):
         self._resource_type = resource_type
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
         try:
-            self.id = utils.ResourceUUID(id)
+            self.id = utils.ResourceUUID(id, creator)
         except ValueError:
             abort(404, indexer.NoSuchResource(id))
         self.metric = NamedMetricController(str(self.id), self._resource_type)
@@ -929,8 +932,15 @@ def schema_for(resource_type):
     return ResourceSchema(resource_type.schema)
 
 
-def ResourceID(value):
-    return (six.text_type(value), utils.ResourceUUID(value))
+def ResourceUUID(value, creator):
+    try:
+        return utils.ResourceUUID(value, creator)
+    except ValueError as e:
+        raise voluptuous.Invalid(e)
+
+
+def ResourceID(value, creator):
+    return (six.text_type(value), ResourceUUID(value, creator))
 
 
 class ResourcesController(rest.RestController):
@@ -946,7 +956,9 @@ class ResourcesController(rest.RestController):
         # NOTE(sileht): we need to copy the dict because when change it
         # and we don't want that next patch call have the "id"
         schema = dict(schema_for(self._resource_type))
-        schema["id"] = ResourceID
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
+        schema["id"] = functools.partial(ResourceID, creator=creator)
 
         body = deserialize_and_validate(schema)
         body["original_resource_id"], body["id"] = body["id"]
@@ -956,8 +968,6 @@ class ResourcesController(rest.RestController):
         }
         target.update(body)
         enforce("create resource", target)
-        creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
         rid = body['id']
         del body['id']
         try:
@@ -1003,8 +1013,7 @@ class ResourcesController(rest.RestController):
     def delete(self, **kwargs):
         # NOTE(sileht): Don't allow empty filter, this is going to delete
         # the entire database.
-        attr_filter = deserialize_and_validate(
-            SearchResourceTypeController.ResourceSearchSchema)
+        attr_filter = deserialize_and_validate(ResourceSearchSchema)
 
         # the voluptuous checks everything, but it is better to
         # have this here.
@@ -1129,16 +1138,16 @@ class QueryStringSearchAttrFilter(object):
         return cls._parsed_query2dict(parsed_query)
 
 
-def _ResourceSearchSchema(v):
-    """Helper method to indirect the recursivity of the search schema"""
-    return SearchResourceTypeController.ResourceSearchSchema(v)
+def ResourceSearchSchema(v):
+    return _ResourceSearchSchema()(v)
 
 
-class SearchResourceTypeController(rest.RestController):
-    def __init__(self, resource_type):
-        self._resource_type = resource_type
+def _ResourceSearchSchema():
+    user = pecan.request.auth_helper.get_current_user(
+        pecan.request.headers)
+    _ResourceUUID = functools.partial(ResourceUUID, creator=user)
 
-    ResourceSearchSchema = voluptuous.Schema(
+    return voluptuous.Schema(
         voluptuous.All(
             voluptuous.Length(min=0, max=1),
             {
@@ -1155,31 +1164,36 @@ class SearchResourceTypeController(rest.RestController):
                     voluptuous.Length(min=1, max=1),
                     voluptuous.Any(
                         {"id": voluptuous.Any(
-                            utils.ResourceUUID, [utils.ResourceUUID]),
+                            [_ResourceUUID], _ResourceUUID),
                          voluptuous.Extra: voluptuous.Extra})),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",
                     u"not",
                 ): voluptuous.All(
-                    [_ResourceSearchSchema], voluptuous.Length(min=1)
+                    [ResourceSearchSchema], voluptuous.Length(min=1)
                 )
             }
         )
     )
 
-    @classmethod
-    def parse_and_validate_qs_filter(cls, query):
+
+class SearchResourceTypeController(rest.RestController):
+    def __init__(self, resource_type):
+        self._resource_type = resource_type
+
+    @staticmethod
+    def parse_and_validate_qs_filter(query):
         try:
             attr_filter = QueryStringSearchAttrFilter.parse(query)
         except InvalidQueryStringSearchAttrFilter as e:
             raise abort(400, e)
-        return voluptuous.Schema(cls.ResourceSearchSchema,
+        return voluptuous.Schema(ResourceSearchSchema,
                                  required=True)(attr_filter)
 
     def _search(self, **kwargs):
         if pecan.request.body:
-            attr_filter = deserialize_and_validate(self.ResourceSearchSchema)
+            attr_filter = deserialize_and_validate(ResourceSearchSchema)
         elif kwargs.get("filter"):
             attr_filter = self.parse_and_validate_qs_filter(kwargs["filter"])
         else:
@@ -1328,13 +1342,16 @@ class SearchMetricController(rest.RestController):
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
-    MeasuresBatchSchema = voluptuous.Schema(
-        {ResourceID: {six.text_type: MeasuresListSchema}}
-    )
-
     @pecan.expose('json')
     def post(self, create_metrics=False):
-        body = deserialize_and_validate(self.MeasuresBatchSchema)
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request.headers)
+        MeasuresBatchSchema = voluptuous.Schema(
+            {functools.partial(ResourceID, creator=creator):
+             {six.text_type: MeasuresListSchema}}
+        )
+
+        body = deserialize_and_validate(MeasuresBatchSchema)
 
         known_metrics = []
         unknown_metrics = []
@@ -1349,8 +1366,6 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
             known_names = [m.name for m in metrics]
             if strutils.bool_from_string(create_metrics):
-                creator = pecan.request.auth_helper.get_current_user(
-                    pecan.request.headers)
                 already_exists_names = []
                 for name in names:
                     if name not in known_names:

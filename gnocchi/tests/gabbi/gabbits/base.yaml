@@ -134,13 +134,13 @@ tests:
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
   status: 201
   response_headers:
-    location: $SCHEME://$NETLOC/v1/resource/generic/8d835270-2834-5e55-a693-fd0cf91cba3d
+    location: $SCHEME://$NETLOC/v1/resource/generic/2d869568-70d4-5ed6-9891-7d7a3bbf572d
   response_json_paths:
     type: generic
     started_at: "2014-01-03T02:02:02+00:00"
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
     created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
-    id: 8d835270-2834-5e55-a693-fd0cf91cba3d
+    id: 2d869568-70d4-5ed6-9891-7d7a3bbf572d
     original_resource_id: 1.2.3.4
 
 - name: get status denied

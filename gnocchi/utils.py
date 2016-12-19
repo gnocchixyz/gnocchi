@@ -39,23 +39,24 @@ LOG = log.getLogger(__name__)
 RESOURCE_ID_NAMESPACE = uuid.UUID('0a7a15ff-aa13-4ac2-897c-9bdf30ce175b')
 
 
-def ResourceUUID(value):
+def ResourceUUID(value, creator):
     if isinstance(value, uuid.UUID):
         return value
     if '/' in value:
         raise ValueError("'/' is not supported in resource id")
     try:
-        try:
-            return uuid.UUID(value)
-        except ValueError:
-            if len(value) <= 255:
-                if six.PY2:
-                    value = value.encode('utf-8')
-                return uuid.uuid5(RESOURCE_ID_NAMESPACE, value)
-            raise ValueError(
-                'transformable resource id >255 max allowed characters')
-    except Exception as e:
-        raise ValueError(e)
+        return uuid.UUID(value)
+    except ValueError:
+        if len(value) <= 255:
+            # value/creator must be str (unicode) in Python 3 and str (bytes)
+            # in Python 2. It's not logical, I know.
+            if six.PY2:
+                value = value.encode('utf-8')
+                creator = creator.encode('utf-8')
+            return uuid.uuid5(RESOURCE_ID_NAMESPACE,
+                              value + "\x00" + creator)
+        raise ValueError(
+            'transformable resource id >255 max allowed characters')
 
 
 def UUID(value):
