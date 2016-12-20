@@ -59,7 +59,6 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def __init__(self):
         self.conf = None
-        self.db_url = None
         self.tmp_dir = None
 
     def start_fixture(self):
