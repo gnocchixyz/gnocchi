@@ -713,7 +713,8 @@ class AggregatedTimeSerie(TimeSerie):
 
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
-                   to_timestamp=None, needed_percent_of_overlap=100.0):
+                   to_timestamp=None, needed_percent_of_overlap=100.0,
+                   fill=None):
 
         index = ['timestamp', 'granularity']
         columns = ['timestamp', 'granularity', 'value']
@@ -737,57 +738,65 @@ class AggregatedTimeSerie(TimeSerie):
             set(ts.sampling for ts in timeseries)
         )
 
-        grouped = pandas.concat(dataframes).groupby(level=index)
         left_boundary_ts = None
         right_boundary_ts = None
-        maybe_next_timestamp_is_left_boundary = False
+        if fill is not None:
+            fill_df = pandas.concat(dataframes, axis=1)
+            if fill != 'null':
+                fill_df = fill_df.fillna(fill)
+            single_df = pandas.concat([series for __, series in
+                                       fill_df.iteritems()]).to_frame()
+            grouped = single_df.groupby(level=index)
+        else:
+            grouped = pandas.concat(dataframes).groupby(level=index)
+            maybe_next_timestamp_is_left_boundary = False
 
-        left_holes = 0
-        right_holes = 0
-        holes = 0
-        for (timestamp, __), group in grouped:
-            if group.count()['value'] != number_of_distinct_datasource:
-                maybe_next_timestamp_is_left_boundary = True
-                if left_boundary_ts is not None:
-                    right_holes += 1
+            left_holes = 0
+            right_holes = 0
+            holes = 0
+            for (timestamp, __), group in grouped:
+                if group.count()['value'] != number_of_distinct_datasource:
+                    maybe_next_timestamp_is_left_boundary = True
+                    if left_boundary_ts is not None:
+                        right_holes += 1
+                    else:
+                        left_holes += 1
+                elif maybe_next_timestamp_is_left_boundary:
+                    left_boundary_ts = timestamp
+                    maybe_next_timestamp_is_left_boundary = False
                 else:
-                    left_holes += 1
-            elif maybe_next_timestamp_is_left_boundary:
-                left_boundary_ts = timestamp
-                maybe_next_timestamp_is_left_boundary = False
-            else:
-                right_boundary_ts = timestamp
+                    right_boundary_ts = timestamp
+                    holes += right_holes
+                    right_holes = 0
+
+            if to_timestamp is not None:
+                holes += left_holes
+            if from_timestamp is not None:
                 holes += right_holes
-                right_holes = 0
 
-        if to_timestamp is not None:
-            holes += left_holes
-        if from_timestamp is not None:
-            holes += right_holes
-
-        if to_timestamp is not None or from_timestamp is not None:
-            maximum = len(grouped)
-            percent_of_overlap = (float(maximum - holes) * 100.0 /
-                                  float(maximum))
-            if percent_of_overlap < needed_percent_of_overlap:
-                raise UnAggregableTimeseries(
-                    'Less than %f%% of datapoints overlap in this '
-                    'timespan (%.2f%%)' % (needed_percent_of_overlap,
-                                           percent_of_overlap))
-        if (needed_percent_of_overlap > 0 and
-                (right_boundary_ts == left_boundary_ts or
-                 (right_boundary_ts is None
-                  and maybe_next_timestamp_is_left_boundary))):
-            LOG.debug("We didn't find points that overlap in those "
-                      "timeseries. "
-                      "right_boundary_ts=%(right_boundary_ts)s, "
-                      "left_boundary_ts=%(left_boundary_ts)s, "
-                      "groups=%(groups)s", {
-                          'right_boundary_ts': right_boundary_ts,
-                          'left_boundary_ts': left_boundary_ts,
-                          'groups': list(grouped)
-                      })
-            raise UnAggregableTimeseries('No overlap')
+            if to_timestamp is not None or from_timestamp is not None:
+                maximum = len(grouped)
+                percent_of_overlap = (float(maximum - holes) * 100.0 /
+                                      float(maximum))
+                if percent_of_overlap < needed_percent_of_overlap:
+                    raise UnAggregableTimeseries(
+                        'Less than %f%% of datapoints overlap in this '
+                        'timespan (%.2f%%)' % (needed_percent_of_overlap,
+                                               percent_of_overlap))
+            if (needed_percent_of_overlap > 0 and
+                    (right_boundary_ts == left_boundary_ts or
+                     (right_boundary_ts is None
+                      and maybe_next_timestamp_is_left_boundary))):
+                LOG.debug("We didn't find points that overlap in those "
+                          "timeseries. "
+                          "right_boundary_ts=%(right_boundary_ts)s, "
+                          "left_boundary_ts=%(left_boundary_ts)s, "
+                          "groups=%(groups)s", {
+                              'right_boundary_ts': right_boundary_ts,
+                              'left_boundary_ts': left_boundary_ts,
+                              'groups': list(grouped)
+                          })
+                raise UnAggregableTimeseries('No overlap')
 
         # NOTE(sileht): this call the aggregation method on already
         # aggregated values, for some kind of aggregation this can

@@ -538,7 +538,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
                                   reaggregation=None, resample=None,
-                                  granularity=None, needed_overlap=100.0):
+                                  granularity=None, needed_overlap=100.0,
+                                  fill=None):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
             aggregation, reaggregation, resample, granularity, needed_overlap)
@@ -584,7 +585,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     for timestamp, r, v
                     in carbonara.AggregatedTimeSerie.aggregated(
                         tss, reaggregation, from_timestamp, to_timestamp,
-                        needed_overlap)]
+                        needed_overlap, fill)]
         except carbonara.UnAggregableTimeseries as e:
             raise storage.MetricUnaggregatable(metrics, e.reason)
 

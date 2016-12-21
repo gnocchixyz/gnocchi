@@ -257,8 +257,8 @@ class StorageDriver(object):
     def get_cross_metric_measures(metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
                                   reaggregation=None, resample=None,
-                                  granularity=None,
-                                  needed_overlap=None):
+                                  granularity=None, needed_overlap=None,
+                                  fill=None):
         """Get aggregated measures of multiple entities.
 
         :param entities: The entities measured to aggregate.
@@ -269,6 +269,7 @@ class StorageDriver(object):
         :param reaggregation: The type of aggregation to compute
                               on the retrieved measures.
         :param resample: The granularity to resample to.
+        :param fill: The value to use to fill in missing data in series.
         """
         for metric in metrics:
             if aggregation not in metric.archive_policy.aggregation_methods:

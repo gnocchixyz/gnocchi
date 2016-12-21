@@ -1504,7 +1504,7 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
-             groupby=None, refresh=False, resample=None):
+             groupby=None, fill=None, refresh=False, resample=None):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1528,7 +1528,7 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
-                granularity, needed_overlap, refresh, resample)
+                granularity, needed_overlap, fill, refresh, resample)
 
         def groupper(r):
             return tuple((attr, r[attr]) for attr in groupby)
@@ -1542,7 +1542,7 @@ class AggregationResourceController(rest.RestController):
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation, reaggregation,
-                    granularity, needed_overlap, refresh, resample)
+                    granularity, needed_overlap, fill, refresh, resample)
             })
 
         return results
@@ -1572,7 +1572,7 @@ class AggregationController(rest.RestController):
                                             aggregation='mean',
                                             reaggregation=None,
                                             granularity=None,
-                                            needed_overlap=100.0,
+                                            needed_overlap=100.0, fill=None,
                                             refresh=False, resample=None):
         try:
             needed_overlap = float(needed_overlap)
@@ -1619,6 +1619,15 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 abort(400, e)
 
+        if fill is not None:
+            if granularity is None:
+                abort(400, "Unable to fill without a granularity")
+            try:
+                fill = float(fill)
+            except ValueError as e:
+                if fill != 'null':
+                    abort(400, "fill must be a float or \'null\': %s" % e)
+
         try:
             if strutils.bool_from_string(refresh):
                 pecan.request.storage.process_new_measures(
@@ -1633,7 +1642,7 @@ class AggregationController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_cross_metric_measures(
                     metrics, start, stop, aggregation,
-                    reaggregation, resample, granularity, needed_overlap)
+                    reaggregation, resample, granularity, needed_overlap, fill)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -1648,7 +1657,8 @@ class AggregationController(rest.RestController):
     @pecan.expose('json')
     def get_metric(self, metric=None, start=None, stop=None,
                    aggregation='mean', reaggregation=None, granularity=None,
-                   needed_overlap=100.0, refresh=False, resample=None):
+                   needed_overlap=100.0, fill=None,
+                   refresh=False, resample=None):
         # Check RBAC policy
         metric_ids = arg_to_list(metric)
         metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
@@ -1660,7 +1670,7 @@ class AggregationController(rest.RestController):
                 missing_metric_ids.pop()))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
-            granularity, needed_overlap, refresh, resample)
+            granularity, needed_overlap, fill, refresh, resample)
 
 
 class CapabilityController(rest.RestController):

@@ -533,16 +533,29 @@ well.
    Resampling is done prior to any reaggregation if both parameters are
    specified.
 
-Also aggregation across metrics have different behavior depending
-on if boundary are set ('start' and 'stop') and if 'needed_overlap' is set.
+Also, aggregation across metrics have different behavior depending
+on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
+is set.
 
 If boundaries are not set, Gnocchi makes the aggregation only with points
-at timestamp present in all timeseries.
+at timestamp present in all timeseries. When boundaries are set, Gnocchi
+expects that we have certain percent of timestamps common between timeseries,
+this percent is controlled by needed_overlap (defaulted with 100%). If this
+percent is not reached an error is returned.
 
-But when boundaries are set, Gnocchi expects that we have certain
-percent of timestamps common between timeseries, this percent is controlled
-by needed_overlap (defaulted with 100%). If this percent is not reached an
-error is returned.
+The ability to fill in points missing from a subset of timeseries is supported
+by specifying a `fill` value. Valid fill values include any valid float or
+`null` which will compute aggregation with only the points that exist. The
+`fill` parameter will not backfill timestamps which contain no points in any
+of the timeseries. Only timestamps which have datapoints in at least one of
+the timeseries is returned.
+
+.. note::
+
+   A granularity must be specified when using the `fill` parameter.
+
+{{ scenarios['get-across-metrics-measures-by-metric-ids-fill']['doc'] }}
+
 
 Capabilities
 ============
