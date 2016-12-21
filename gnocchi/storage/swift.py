@@ -13,24 +13,16 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from collections import defaultdict
-import contextlib
-import datetime
-import uuid
 
 from oslo_config import cfg
 from oslo_log import log
-import six
-from six.moves.urllib.parse import quote
-try:
-    from swiftclient import client as swclient
-    from swiftclient import utils as swift_utils
-except ImportError:
-    swclient = None
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.incoming import _carbonara as incoming_carbonara
+from gnocchi.storage.common import swift
+
+swclient = swift.swclient
+swift_utils = swift.swift_utils
 
 LOG = log.getLogger(__name__)
 
@@ -75,29 +67,14 @@ OPTS = [
 ]
 
 
-class SwiftStorage(_carbonara.CarbonaraBasedStorage,
-                   incoming_carbonara.CarbonaraBasedStorage):
+class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
-    POST_HEADERS = {'Accept': 'application/json', 'Content-Type': 'text/plain'}
 
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
-        if swclient is None:
-            raise RuntimeError("python-swiftclient unavailable")
-        self.swift = swclient.Connection(
-            auth_version=conf.swift_auth_version,
-            authurl=conf.swift_authurl,
-            preauthtoken=conf.swift_preauthtoken,
-            user=conf.swift_user,
-            key=conf.swift_key,
-            tenant_name=conf.swift_project_name,
-            timeout=conf.swift_timeout,
-            os_options={'endpoint_type': conf.swift_endpoint_type,
-                        'user_domain_name': conf.swift_user_domain_name},
-            retries=0)
+        self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
-        self.swift.put_container(self.MEASURE_PREFIX)
 
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
@@ -116,84 +93,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage,
         # means the metric was already created!
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
-
-    def _store_new_measures(self, metric, data):
-        now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
-        self.swift.put_object(
-            self.MEASURE_PREFIX,
-            six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
-            data)
-
-    def _build_report(self, details):
-        metric_details = defaultdict(int)
-        if details:
-            headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                      full_listing=True)
-            metrics = set()
-            for f in files:
-                metric, metric_files = f['name'].split("/", 1)
-                metric_details[metric] += 1
-                metrics.add(metric)
-            nb_metrics = len(metrics)
-        else:
-            headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                      delimiter='/',
-                                                      full_listing=True)
-            nb_metrics = len(files)
-        measures = int(headers.get('x-container-object-count'))
-        return nb_metrics, measures, metric_details if details else None
-
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        limit = None
-        if not full:
-            limit = size * (part + 1)
-        headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                  delimiter='/',
-                                                  full_listing=full,
-                                                  limit=limit)
-        if not full:
-            files = files[size * part:]
-        return set(f['subdir'][:-1] for f in files if 'subdir' in f)
-
-    def _list_measure_files_for_metric_id(self, metric_id):
-        headers, files = self.swift.get_container(
-            self.MEASURE_PREFIX, path=six.text_type(metric_id),
-            full_listing=True)
-        return files
-
-    def _bulk_delete(self, container, objects):
-        objects = [quote(('/%s/%s' % (container, obj['name'])).encode('utf-8'))
-                   for obj in objects]
-        resp = {}
-        headers, body = self.swift.post_account(
-            headers=self.POST_HEADERS, query_string='bulk-delete',
-            data=b''.join(obj.encode('utf-8') + b'\n' for obj in objects),
-            response_dict=resp)
-        if resp['status'] != 200:
-            raise storage.StorageError(
-                "Unable to bulk-delete, is bulk-delete enabled in Swift?")
-        resp = swift_utils.parse_api_response(headers, body)
-        LOG.debug('# of objects deleted: %s, # of objects skipped: %s',
-                  resp['Number Deleted'], resp['Number Not Found'])
-
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
-        files = self._list_measure_files_for_metric_id(metric_id)
-        self._bulk_delete(self.MEASURE_PREFIX, files)
-
-    @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        files = self._list_measure_files_for_metric_id(metric.id)
-
-        measures = []
-        for f in files:
-            headers, data = self.swift.get_object(
-                self.MEASURE_PREFIX, f['name'])
-            measures.extend(self._unserialize_measures(f['name'], data))
-
-        yield measures
-
-        # Now clean objects
-        self._bulk_delete(self.MEASURE_PREFIX, files)
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data, offset=None, version=3):
@@ -221,7 +120,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage,
                 # Maybe it never has been created (no measure)
                 raise
         else:
-            self._bulk_delete(container, files)
+            swift.bulk_delete(self.swift, container, files)
             try:
                 self.swift.delete_container(container)
             except swclient.ClientException as e:
