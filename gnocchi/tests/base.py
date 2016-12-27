@@ -179,12 +179,50 @@ class TestCase(base.BaseTestCase):
     ARCHIVE_POLICIES = {
         'no_granularity_match': archive_policy.ArchivePolicy(
             "no_granularity_match",
-            0,
-            [
+            0, [
                 # 2 second resolution for a day
                 archive_policy.ArchivePolicyItem(
                     granularity=2, points=3600 * 24),
-                ],
+            ],
+        ),
+        'low': archive_policy.ArchivePolicy(
+            "low", 0, [
+                # 5 minutes resolution for an hour
+                archive_policy.ArchivePolicyItem(
+                    granularity=300, points=12),
+                # 1 hour resolution for a day
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=24),
+                # 1 day resolution for a month
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600 * 24, points=30),
+            ],
+        ),
+        'medium': archive_policy.ArchivePolicy(
+            "medium", 0, [
+                # 1 minute resolution for an day
+                archive_policy.ArchivePolicyItem(
+                    granularity=60, points=60 * 24),
+                # 1 hour resolution for a week
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=7 * 24),
+                # 1 day resolution for a year
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600 * 24, points=365),
+            ],
+        ),
+        'high': archive_policy.ArchivePolicy(
+            "high", 0, [
+                # 1 second resolution for an hour
+                archive_policy.ArchivePolicyItem(
+                    granularity=1, points=3600),
+                # 1 minute resolution for a week
+                archive_policy.ArchivePolicyItem(
+                    granularity=60, points=60 * 24 * 7),
+                # 1 hour resolution for a year
+                archive_policy.ArchivePolicyItem(
+                    granularity=3600, points=365 * 24),
+            ],
         ),
     }
 
@@ -238,7 +276,6 @@ class TestCase(base.BaseTestCase):
         self.coord.stop()
 
         self.archive_policies = self.ARCHIVE_POLICIES.copy()
-        self.archive_policies.update(archive_policy.DEFAULT_ARCHIVE_POLICIES)
         for name, ap in six.iteritems(self.archive_policies):
             # Create basic archive policies
             try:

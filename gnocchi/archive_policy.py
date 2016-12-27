@@ -211,22 +211,19 @@ class ArchivePolicyItem(dict):
 DEFAULT_ARCHIVE_POLICIES = {
     'low': ArchivePolicy(
         "low", 0, [
-            # 5 minutes resolution for an hour
-            ArchivePolicyItem(granularity=300, points=12),
-            # 1 hour resolution for a day
-            ArchivePolicyItem(granularity=3600, points=24),
-            # 1 day resolution for a month
-            ArchivePolicyItem(granularity=3600 * 24, points=30),
+            # 5 minutes resolution for 30 days
+            ArchivePolicyItem(granularity=300,
+                              timespan=30 * 24 * 60 * 60),
         ],
     ),
     'medium': ArchivePolicy(
         "medium", 0, [
-            # 1 minute resolution for an day
-            ArchivePolicyItem(granularity=60, points=60 * 24),
-            # 1 hour resolution for a week
-            ArchivePolicyItem(granularity=3600, points=7 * 24),
-            # 1 day resolution for a year
-            ArchivePolicyItem(granularity=3600 * 24, points=365),
+            # 1 minute resolution for 7 days
+            ArchivePolicyItem(granularity=60,
+                              timespan=7 * 24 * 60 * 60),
+            # 1 hour resolution for 365 days
+            ArchivePolicyItem(granularity=3600,
+                              timespan=365 * 24 * 60 * 60),
         ],
     ),
     'high': ArchivePolicy(
