@@ -24,8 +24,6 @@ import uuid
 
 from keystonemiddleware import fixture as ksm_fixture
 import mock
-from oslo_config import cfg
-from oslo_middleware import cors
 from oslo_utils import timeutils
 import six
 from stevedore import extension
@@ -133,13 +131,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
                                self.path_get('etc/gnocchi/api-paste.ini'),
                                group="api")
 
-        # NOTE(sileht): This is not concurrency safe, but only this tests file
-        # deal with cors, so we are fine. set_override don't work because
-        # cors group doesn't yet exists, and we the CORS middleware is created
-        # it register the option and directly copy value of all configurations
-        # options making impossible to override them properly...
-        cfg.set_defaults(cors.CORS_OPTS, allowed_origin="http://foobar.com")
-
         self.auth_token_fixture = self.useFixture(
             ksm_fixture.AuthTokenFixture())
         self.auth_token_fixture.add_token_data(
@@ -181,33 +172,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
 
 class RootTest(RestTest):
-
-    def _do_test_cors(self):
-        resp = self.app.options(
-            "/v1/status",
-            headers={'Origin': 'http://notallowed.com',
-                     'Access-Control-Request-Method': 'GET'},
-            status=200)
-        headers = dict(resp.headers)
-        self.assertNotIn("Access-Control-Allow-Origin", headers)
-        self.assertNotIn("Access-Control-Allow-Methods", headers)
-        resp = self.app.options(
-            "/v1/status",
-            headers={'origin': 'http://foobar.com',
-                     'Access-Control-Request-Method': 'GET'},
-            status=200)
-        headers = dict(resp.headers)
-        self.assertIn("Access-Control-Allow-Origin", headers)
-        self.assertIn("Access-Control-Allow-Methods", headers)
-
-    def test_cors_invalid_token(self):
-        with self.app.use_invalid_token():
-            self._do_test_cors()
-
-    def test_cors_no_token(self):
-        with self.app.use_no_token():
-            self._do_test_cors()
-
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
             self.app.post(

@@ -23,6 +23,8 @@ from unittest import case
 import warnings
 
 from gabbi import fixture
+from oslo_config import cfg
+from oslo_middleware import cors
 import sqlalchemy_utils
 
 from gnocchi import indexer
@@ -78,6 +80,13 @@ class ConfigFixture(fixture.GabbiFixture):
         conf.set_override('paste_config',
                           os.path.abspath('etc/gnocchi/api-paste.ini'),
                           'api')
+
+        # NOTE(sileht): This is not concurrency safe, but only this tests file
+        # deal with cors, so we are fine. set_override don't work because cors
+        # group doesn't yet exists, and we the CORS middleware is created it
+        # register the option and directly copy value of all configurations
+        # options making impossible to override them properly...
+        cfg.set_defaults(cors.CORS_OPTS, allowed_origin="http://foobar.com")
 
         self.conf = conf
         self.tmp_dir = data_tmp_dir

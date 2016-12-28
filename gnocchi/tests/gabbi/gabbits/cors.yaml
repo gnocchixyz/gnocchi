@@ -1,0 +1,21 @@
+fixtures:
+    - ConfigFixture
+
+tests:
+  - name: get CORS headers for non-allowed
+    OPTIONS: /v1/status
+    request_headers:
+      Origin: http://notallowed.com
+      Access-Control-Request-Method: GET
+    response_forbidden_headers:
+      - Access-Control-Allow-Origin
+      - Access-Control-Allow-Methods
+
+  - name: get CORS headers for allowed
+    OPTIONS: /v1/status
+    request_headers:
+      Origin: http://foobar.com
+      Access-Control-Request-Method: GET
+    response_headers:
+      Access-Control-Allow-Origin: http://foobar.com
+      Access-Control-Allow-Methods: GET
