@@ -127,9 +127,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
     def setUp(self):
         super(RestTest, self).setUp()
-        self.conf.set_override('paste_config',
-                               self.path_get('etc/gnocchi/api-paste.ini'),
-                               group="api")
 
         self.auth_token_fixture = self.useFixture(
             ksm_fixture.AuthTokenFixture())

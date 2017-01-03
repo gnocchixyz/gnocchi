@@ -77,10 +77,6 @@ class ConfigFixture(fixture.GabbiFixture):
         conf = service.prepare_service([],
                                        default_config_files=dcf)
 
-        conf.set_override('paste_config',
-                          os.path.abspath('etc/gnocchi/api-paste.ini'),
-                          'api')
-
         # NOTE(sileht): This is not concurrency safe, but only this tests file
         # deal with cors, so we are fine. set_override don't work because cors
         # group doesn't yet exists, and we the CORS middleware is created it
