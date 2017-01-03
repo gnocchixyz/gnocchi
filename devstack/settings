@@ -6,7 +6,7 @@ enable_service gnocchi-statsd
 GNOCCHI_DIR=$DEST/gnocchi
 GNOCCHI_CONF_DIR=/etc/gnocchi
 GNOCCHI_CONF=$GNOCCHI_CONF_DIR/gnocchi.conf
-GNOCCHI_PASTE_CONF=$GNOCCHI_CONF_DIR/api-paste.ini
+GNOCCHI_PASTE_CONF=$GNOCCHI_DIR/gnocchi/rest/api-paste.ini
 GNOCCHI_LOG_DIR=/var/log/gnocchi
 GNOCCHI_AUTH_CACHE_DIR=${GNOCCHI_AUTH_CACHE_DIR:-/var/cache/gnocchi}
 GNOCCHI_WSGI_DIR=${GNOCCHI_WSGI_DIR:-/var/www/gnocchi}
