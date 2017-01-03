@@ -472,12 +472,12 @@ if is_service_enabled gnocchi-api; then
         configure_keystone_for_gnocchi
     elif [[ "$1" == "stack" && "$2" == "post-config" ]]; then
         echo_summary "Configuring Gnocchi"
-        configure_gnocchi
-        create_gnocchi_accounts
         if _is_ceph_enabled && [[ "$GNOCCHI_STORAGE_BACKEND" = 'ceph' ]] ; then
             echo_summary "Configuring Gnocchi for Ceph"
             configure_ceph_gnocchi
         fi
+        configure_gnocchi
+        create_gnocchi_accounts
     elif [[ "$1" == "stack" && "$2" == "extra" ]]; then
         echo_summary "Initializing Gnocchi"
         init_gnocchi
