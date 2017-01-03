@@ -1,4 +1,4 @@
-# Copyright (c) 2016 Red Hat, Inc.
+# Copyright (c) 2016-2017 Red Hat, Inc.
 # Copyright (c) 2015 eNovance
 # Copyright (c) 2013 Mirantis Inc.
 #
@@ -14,6 +14,7 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
 from oslo_config import cfg
 from oslo_db import options as db_options
@@ -37,7 +38,10 @@ def prepare_service(args=None, conf=None,
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
     log.register_options(conf)
     db_options.set_defaults(conf)
-    policy_opts.set_defaults(conf)
+    policy_opts.set_defaults(conf, policy_file=os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "rest", "policy.json")))
 
     # Register our own Gnocchi options
     for group, options in opts.list_opts():

@@ -188,25 +188,11 @@ class TestCase(base.BaseTestCase):
         ),
     }
 
-    @staticmethod
-    def path_get(project_file=None):
-        root = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                            '..',
-                                            '..',
-                                            )
-                               )
-        if project_file:
-            return os.path.join(root, project_file)
-        return root
-
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
         self.conf = service.prepare_service([],
                                             default_config_files=[])
-        self.conf.set_override('policy_file',
-                               self.path_get('etc/gnocchi/policy.json'),
-                               group="oslo_policy")
 
         # NOTE(jd) This allows to test S3 on AWS
         if not os.getenv("AWS_ACCESS_KEY_ID"):
