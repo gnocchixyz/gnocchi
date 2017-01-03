@@ -1,0 +1,5 @@
+---
+features:
+  - A healthcheck endpoint is provided by default at /healthcheck. It leverages
+    oslo_middleware healthcheck middleware. It allows to retrieve information
+    about the health of the API service.
