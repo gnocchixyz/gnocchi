@@ -1,0 +1,5 @@
+---
+other:
+  - The default archive policies "low" and "medium" are now storing less data
+    than they used to be. They are only using respectively 1 and 2 definition
+    of archiving policy, which speeds up by 66% and 33% their computing speed.

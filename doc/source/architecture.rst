@@ -85,14 +85,14 @@ same "one year, one minute aggregations" resolution, the space used will go up
 to a maximum of 6 × 4.1 MiB = 24.6 MiB.
 
 
-How to set the archive policy and granularity
----------------------------------------------
+How to define archive policies
+------------------------------
 
-In Gnocchi, the archive policy is expressed in number of points. If your
-archive policy defines a policy of 10 points with a granularity of 1 second,
-the time series archive will keep up to 10 seconds, each representing an
-aggregation over 1 second. This means the time series will at maximum retain 10
-seconds of data (sometimes a bit more) between the more recent point and the
+In Gnocchi, the archive policy definitions are expressed in number of points.
+If your archive policy defines a policy of 10 points with a granularity of 1
+second, the time series archive will keep up to 10 seconds, each representing
+an aggregation over 1 second. This means the time series will at maximum retain
+10 seconds of data (sometimes a bit more) between the more recent point and the
 oldest point. That does not mean it will be 10 consecutive seconds: there might
 be a gap if data is fed irregularly.
 
@@ -112,6 +112,12 @@ This would represent 6125 points × 9 = 54 KiB per aggregation method. If
 you use the 8 standard aggregation method, your metric will take up to 8 × 54
 KiB = 432 KiB of disk space.
 
+Be aware that the more definitions you set in an archive policy, the more CPU
+it will consume. Therefore, creating an archive policy with 2 definitons (e.g.
+1 second granularity for 1 day and 1 minute granularity for 1 month) will
+consume twice CPU than just one definition (e.g. just 1 second granularity for
+1 day).
+
 Default archive policies
 ------------------------
 
@@ -119,19 +125,16 @@ By default, 3 archive policies are created using the default archive policy
 list (listed in `default_aggregation_methods`, i.e. mean, min, max, sum, std,
 count):
 
-- low (maximum estimated size per metric: 5 KiB)
+- low (maximum estimated size per metric: 406 MiB)
 
-  * 5 minutes granularity over 1 hour
-  * 1 hour granularity over 1 day
-  * 1 day granularity over 1 month
+  * 5 minutes granularity over 30 days
 
-- medium (maximum estimated size per metric: 139 KiB)
+- medium (maximum estimated size per metric: 887 KiB)
 
-  * 1 minute granularity over 1 day
-  * 1 hour granularity over 1 week
-  * 1 day granularity over 1 year
+  * 1 minute granularity over 7 days
+  * 1 hour granularity over 365 days
 
-- high (maximum estimated size per metric: 1 578 KiB)
+- high (maximum estimated size per metric: 1 057 KiB)
 
   * 1 second granularity over 1 hour
   * 1 minute granularity over 1 week
