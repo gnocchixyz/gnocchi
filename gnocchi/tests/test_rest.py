@@ -152,9 +152,12 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
             project_id=TestingApp.PROJECT_ID_2,
             role_list=["member"])
 
+        if self.auth:
+            self.conf.set_override("auth_mode", "keystone", group="api")
+        else:
+            self.conf.set_override("auth_mode", None, group="api")
+
         self.app = TestingApp(app.load_app(conf=self.conf,
-                                           appname="gnocchi+auth"
-                                           if self.auth else "gnocchi+noauth",
                                            indexer=self.index,
                                            storage=self.storage,
                                            not_implemented_middleware=False),

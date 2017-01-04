@@ -68,6 +68,8 @@ def list_opts():
                                os.path.dirname(__file__),
                                "rest", "api-paste.ini")),
                        help='Path to API Paste configuration.'),
+            cfg.StrOpt('auth_mode',
+                       help='Authentication mode to use.'),
             cfg.IntOpt('max_limit',
                        default=1000,
                        help=('The maximum number of items returned in a '
