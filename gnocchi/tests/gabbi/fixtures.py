@@ -112,7 +112,7 @@ class ConfigFixture(fixture.GabbiFixture):
         # Set pagination to a testable value
         conf.set_override('max_limit', 7, 'api')
         # Those tests do not use any auth
-        conf.set_override("auth_mode", None, 'api')
+        conf.set_override("auth_mode", "noauth", 'api')
 
         self.index = index
 

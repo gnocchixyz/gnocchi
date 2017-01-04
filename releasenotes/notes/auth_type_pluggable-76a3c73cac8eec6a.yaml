@@ -1,0 +1,5 @@
+---
+features:
+  - >-
+    The REST API authentication mechanism is now pluggable. You can write your
+    own plugin to specify how segregation and policy should be enforced.

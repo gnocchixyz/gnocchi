@@ -90,44 +90,6 @@ def enforce(rule, target):
         abort(403)
 
 
-def _get_list_resource_policy_filter(rule, resource_type, user, project):
-    try:
-        # Check if the policy allows the user to list any resource
-        enforce(rule, {
-            "resource_type": resource_type,
-        })
-    except webob.exc.HTTPForbidden:
-        policy_filter = []
-        try:
-            # Check if the policy allows the user to list resources linked
-            # to their project
-            enforce(rule, {
-                "resource_type": resource_type,
-                "project_id": project,
-            })
-        except webob.exc.HTTPForbidden:
-            pass
-        else:
-            policy_filter.append({"=": {"project_id": project}})
-        try:
-            # Check if the policy allows the user to list resources linked
-            # to their created_by_project
-            enforce(rule, {
-                "resource_type": resource_type,
-                "created_by_project_id": project,
-            })
-        except webob.exc.HTTPForbidden:
-            pass
-        else:
-            policy_filter.append({"=": {"created_by_project_id": project}})
-
-        if not policy_filter:
-            # We need to have at least one policy filter in place
-            abort(403, "Insufficient privileges")
-
-        return {"or": policy_filter}
-
-
 def set_resp_location_hdr(location):
     location = '%s%s' % (pecan.request.script_name, location)
     # NOTE(sileht): according the pep-3333 the headers must be
@@ -1035,9 +997,8 @@ class ResourcesController(rest.RestController):
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
-        user, project = get_user_and_project()
-        policy_filter = _get_list_resource_policy_filter(
-            "list resource", self._resource_type, user, project)
+        policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
+            "list resource", self._resource_type)
 
         try:
             # FIXME(sileht): next API version should returns
@@ -1065,9 +1026,8 @@ class ResourcesController(rest.RestController):
             abort(400, "caution: the query can not be empty, or it will \
                   delete entire database")
 
-        user, project = get_user_and_project()
-        policy_filter = _get_list_resource_policy_filter(
-            "delete resources", self._resource_type, user, project)
+        policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
+            "delete resources", self._resource_type)
 
         if policy_filter:
             attr_filter = {"and": [policy_filter, attr_filter]}
@@ -1238,9 +1198,8 @@ class SearchResourceTypeController(rest.RestController):
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
-        user, project = get_user_and_project()
-        policy_filter = _get_list_resource_policy_filter(
-            "search resource", self._resource_type, user, project)
+        policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
+            "search resource", self._resource_type)
         if policy_filter:
             if attr_filter:
                 attr_filter = {"and": [
