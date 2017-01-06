@@ -1120,6 +1120,29 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual("indexer_test", r.type)
         self.assertEqual("col1_value", r.col1)
 
+        # Update the resource type
+        add_attrs = mgr.resource_type_from_dict("indexer_test", {
+            "col2": {"type": "number", "required": False,
+                     "max": 100, "min": 0}
+        }, "creating").attributes
+        self.index.update_resource_type("indexer_test",
+                                        add_attributes=add_attrs)
+
+        # Check the new attribute
+        r = self.index.get_resource("indexer_test", rid)
+        self.assertIsNone(r.col2)
+
+        self.index.update_resource("indexer_test", rid, col2=10)
+
+        rl = self.index.list_resources('indexer_test',
+                                       {"=": {"id": rid}},
+                                       history=True,
+                                       sorts=['revision_start:asc',
+                                              'started_at:asc'])
+        self.assertEqual(2, len(rl))
+        self.assertIsNone(rl[0].col2)
+        self.assertEqual(10, rl[1].col2)
+
         # Deletion
         self.assertRaises(indexer.ResourceTypeInUse,
                           self.index.delete_resource_type,
