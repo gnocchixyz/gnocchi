@@ -20,19 +20,37 @@ import sqlalchemy_utils
 from gnocchi import resource_type
 
 
-class StringSchema(resource_type.StringSchema):
+class SchemaMixin(object):
+    def for_filling(self, dialect):
+        # NOTE(sileht): This must be used only for patching resource type
+        # to fill all row with a default value and then switch back the
+        # server_default to None
+        if self.fill is None:
+            return None
+
+        # NOTE(sileht): server_default must be converted in sql element
+        return sqlalchemy.literal(self.fill)
+
+
+class StringSchema(resource_type.StringSchema, SchemaMixin):
     @property
     def satype(self):
         return sqlalchemy.String(self.max_length)
 
 
-class UUIDSchema(resource_type.UUIDSchema):
+class UUIDSchema(resource_type.UUIDSchema, SchemaMixin):
     satype = sqlalchemy_utils.UUIDType()
 
+    def for_filling(self, dialect):
+        if self.fill is None:
+            return False  # Don't set any server_default
+        return sqlalchemy.literal(
+            self.satype.process_bind_param(self.fill, dialect))
 
-class NumberSchema(resource_type.NumberSchema):
+
+class NumberSchema(resource_type.NumberSchema, SchemaMixin):
     satype = sqlalchemy.Float(53)
 
 
-class BoolSchema(resource_type.BoolSchema):
+class BoolSchema(resource_type.BoolSchema, SchemaMixin):
     satype = sqlalchemy.Boolean

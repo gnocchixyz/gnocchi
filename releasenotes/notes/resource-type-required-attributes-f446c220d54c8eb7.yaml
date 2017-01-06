@@ -1,0 +1,6 @@
+---
+features:
+  - When updating a resource attribute, it's now possible to pass the option
+    'fill' for each attribute to fill existing resources.
+  - required=True is now supported when updating resource type. This requires
+    the option 'fill' to be set.

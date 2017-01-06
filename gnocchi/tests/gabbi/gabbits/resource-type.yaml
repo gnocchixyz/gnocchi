@@ -348,6 +348,47 @@ tests:
             required: False
             min_length: 0
             max_length: 255
+        - op: add
+          path: /attributes/newfilled
+          value:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+            options:
+              fill: "filled"
+        - op: add
+          path: /attributes/newbool
+          value:
+            type: bool
+            required: True
+            options:
+              fill: True
+        - op: add
+          path: /attributes/newint
+          value:
+            type: number
+            required: True
+            min: 0
+            max: 255
+            options:
+              fill: 15
+        - op: add
+          path: /attributes/newstring
+          value:
+            type: string
+            required: True
+            min_length: 0
+            max_length: 255
+            options:
+              fill: "foobar"
+        - op: add
+          path: /attributes/newuuid
+          value:
+            type: uuid
+            required: True
+            options:
+              fill: "00000000-0000-0000-0000-000000000000"
         - op: remove
           path: /attributes/foobar
       status: 200
@@ -385,6 +426,62 @@ tests:
                   required: False
                   min_length: 0
                   max_length: 255
+              newfilled:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              newstring:
+                  type: string
+                  required: True
+                  min_length: 0
+                  max_length: 255
+              newbool:
+                  type: bool
+                  required: True
+              newint:
+                  type: number
+                  required: True
+                  min: 0
+                  max: 255
+              newuuid:
+                  type: uuid
+                  required: True
+
+    - name: post a new resource attribute with missing fill
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/missing
+          value:
+            type: bool
+            required: True
+            options: {}
+      status: 400
+      response_strings:
+        - "Invalid input: Option 'fill' of resource attribute missing is invalid: must not be empty if required=True"
+
+    - name: post a new resource attribute with incorrect fill
+      url: /v1/resource_type/my_custom_resource
+      method: patch
+      request_headers:
+          x-roles: admin
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/incorrect
+          value:
+            type: number
+            required: True
+            options:
+              fill: "a-string"
+      status: 400
+      response_strings:
+        - "Invalid input: Option 'fill' of resource attribute incorrect is invalid: expected Real"
 
     - name: get the new custom resource type
       url: /v1/resource_type/my_custom_resource
@@ -422,6 +519,65 @@ tests:
                   required: False
                   min_length: 0
                   max_length: 255
+              newfilled:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              newstring:
+                  type: string
+                  required: True
+                  min_length: 0
+                  max_length: 255
+              newbool:
+                  type: bool
+                  required: True
+              newint:
+                  type: number
+                  required: True
+                  min: 0
+                  max: 255
+              newuuid:
+                  type: uuid
+                  required: True
+
+    - name: control new attributes of existing resource
+      GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
+      request_headers:
+          content-type: application/json
+      status: 200
+      response_json_paths:
+          $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $.name: foo
+          $.newstuff: null
+          $.newfilled: "filled"
+          $.newbool: true
+          $.newint: 15
+          $.newstring: foobar
+          $.newuuid: "00000000-0000-0000-0000-000000000000"
+
+    - name: control new attributes of existing resource history
+      GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
+      request_headers:
+          content-type: application/json
+      response_json_paths:
+          $.`len`: 2
+          $[0].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $[0].name: bar
+          $[0].newstuff: null
+          $[0].newfilled: "filled"
+          $[0].newbool: true
+          $[0].newint: 15
+          $[0].newstring: foobar
+          $[0].newuuid: "00000000-0000-0000-0000-000000000000"
+          $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
+          $[1].name: foo
+          $[1].newstuff: null
+          $[1].newfilled: "filled"
+          $[1].newbool: true
+          $[1].newint: 15
+          $[1].newstring: foobar
+          $[1].newuuid: "00000000-0000-0000-0000-000000000000"
 
 # Invalid patch
 
@@ -476,6 +632,27 @@ tests:
                   required: False
                   min_length: 0
                   max_length: 255
+              newfilled:
+                  type: string
+                  required: False
+                  min_length: 0
+                  max_length: 255
+              newstring:
+                  type: string
+                  required: True
+                  min_length: 0
+                  max_length: 255
+              newbool:
+                  type: bool
+                  required: True
+              newint:
+                  type: number
+                  required: True
+                  min: 0
+                  max: 255
+              newuuid:
+                  type: uuid
+                  required: True
 
     - name: delete/add the same resource attribute
       url: /v1/resource_type/my_custom_resource
