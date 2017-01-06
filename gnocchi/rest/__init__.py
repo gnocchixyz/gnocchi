@@ -778,8 +778,8 @@ class ResourceTypeController(rest.RestController):
 
         try:
             add_attrs = schema.attributes_from_dict(add_attrs)
-        except resource_type.InvalidResourceAttributeName as e:
-            abort(400, e)
+        except resource_type.InvalidResourceAttribute as e:
+            abort(400, "Invalid input: %s" % e)
 
         # TODO(sileht): Add a default field on an attribute
         # to be able to fill non-nullable column on sql side.
@@ -824,10 +824,8 @@ class ResourceTypesController(rest.RestController):
 
         try:
             rt = schema.resource_type_from_dict(**body)
-        except resource_type.InvalidResourceAttributeName as e:
-            abort(400, e)
-        except resource_type.InvalidResourceAttributeValue as e:
-            abort(400, e)
+        except resource_type.InvalidResourceAttribute as e:
+            abort(400, "Invalid input: %s" % e)
 
         enforce("create resource type", body)
         try:
