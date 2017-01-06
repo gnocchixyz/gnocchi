@@ -390,6 +390,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                              del_attributes=None):
         if not add_attributes and not del_attributes:
             return
+        add_attributes = add_attributes or []
+        del_attributes = del_attributes or []
+
         self._set_resource_type_state(name, "updating", "active")
 
         try:
@@ -399,16 +402,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 with self.facade.writer_connection() as connection:
                     ctx = migration.MigrationContext.configure(connection)
                     op = operations.Operations(ctx)
-                    with op.batch_alter_table(rt.tablename) as batch_op:
-                        for attr in del_attributes:
-                            batch_op.drop_column(attr)
-                        for attr in add_attributes:
-                            # TODO(sileht): When attr.required is True, we have
-                            # to pass a default. rest layer current protect us,
-                            # requied = True is not yet allowed
-                            batch_op.add_column(sqlalchemy.Column(
-                                attr.name, attr.satype,
-                                nullable=not attr.required))
+                    for table in [rt.tablename, '%s_history' % rt.tablename]:
+                        with op.batch_alter_table(table) as batch_op:
+                            for attr in del_attributes:
+                                batch_op.drop_column(attr)
+                            for attr in add_attributes:
+                                # TODO(sileht): When attr.required is True, we
+                                # have to pass a default. rest layer current
+                                # protect us, requied = True is not yet allowed
+                                batch_op.add_column(sqlalchemy.Column(
+                                    attr.name, attr.satype,
+                                    nullable=not attr.required))
 
                 rt.state = "active"
                 rt.updated_at = utils.utcnow()
