@@ -1332,7 +1332,7 @@ class SearchMetricController(rest.RestController):
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
     MeasuresBatchSchema = voluptuous.Schema(
-        {utils.ResourceUUID: {six.text_type: MeasuresListSchema}}
+        {ResourceID: {six.text_type: MeasuresListSchema}}
     )
 
     @pecan.expose('json')
@@ -1341,9 +1341,12 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
         known_metrics = []
         unknown_metrics = []
-        unknown_resources = set()
-        for resource_id in body:
-            names = body[resource_id].keys()
+        unknown_resources = []
+        body_by_rid = {}
+        for original_resource_id, resource_id in body:
+            body_by_rid[resource_id] = body[(original_resource_id,
+                                             resource_id)]
+            names = body[(original_resource_id, resource_id)].keys()
             metrics = pecan.request.indexer.list_metrics(
                 names=names, resource_id=resource_id)
 
@@ -1369,7 +1372,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                         except indexer.NamedMetricAlreadyExists as e:
                             already_exists_names.append(e.metric)
                         except indexer.NoSuchResource:
-                            unknown_resources.add(resource_id)
+                            unknown_resources.append({
+                                'resource_id': six.text_type(resource_id),
+                                'original_resource_id': original_resource_id})
                         except indexer.IndexerException as e:
                             # This catch NoSuchArchivePolicy, which is unlikely
                             # be still possible
@@ -1407,7 +1412,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         storage = pecan.request.storage.incoming
         with futures.ThreadPoolExecutor(max_workers=THREADS) as executor:
             list(executor.map(lambda x: storage.add_measures(*x),
-                              ((metric, body[metric.resource_id][metric.name])
+                              ((metric,
+                                body_by_rid[metric.resource_id][metric.name])
                                for metric in known_metrics)))
 
         pecan.response.status = 202
