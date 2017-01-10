@@ -97,17 +97,6 @@ class TestingApp(webtest.TestApp):
         finally:
             self.token = old_token
 
-    @contextlib.contextmanager
-    def use_no_token(self):
-        # We don't skip for no self.auth to ensure
-        # some test returns the same thing with auth or not
-        old_token = self.token
-        self.token = None
-        try:
-            yield
-        finally:
-            self.token = old_token
-
     def do_request(self, req, *args, **kwargs):
         if self.auth and self.token is not None:
             req.headers['X-Auth-Token'] = self.token
