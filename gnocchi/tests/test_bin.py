@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2017 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,17 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import os
+import subprocess
+
+from oslotest import base
 
 
-def prehook(cmd, args=None):
-    if args is None:
-        args = ['--output-file', 'etc/gnocchi/gnocchi.conf']
-    try:
-        from oslo_config import generator
-        generator.main(
-            ['--config-file',
-             '%s/gnocchi-config-generator.conf' % os.path.dirname(__file__)]
-            + args)
-    except Exception as e:
-        print("Unable to build sample configuration file: %s" % e)
+class BinTestCase(base.BaseTestCase):
+    def test_gnocchi_config_generator_run(self):
+        subp = subprocess.Popen(['gnocchi-config-generator'])
+        self.assertEqual(0, subp.wait())

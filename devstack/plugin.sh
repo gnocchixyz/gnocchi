@@ -228,10 +228,6 @@ function configure_gnocchi {
     # Configure logging
     iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
 
-    # Install the configuration files
-    cp $GNOCCHI_DIR/etc/gnocchi/* $GNOCCHI_CONF_DIR
-
-
     # Set up logging
     if [ "$SYSLOG" != "False" ]; then
         iniset $GNOCCHI_CONF DEFAULT use_syslog "True"

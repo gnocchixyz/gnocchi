@@ -1,5 +1,5 @@
 # Copyright (c) 2013 Mirantis Inc.
-# Copyright (c) 2015-2016 Red Hat
+# Copyright (c) 2015-2017 Red Hat
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import multiprocessing
+import sys
 import threading
 import time
 
@@ -30,6 +31,7 @@ import tooz
 from tooz import coordination
 
 from gnocchi import archive_policy
+from gnocchi import genconfig
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import statsd as statsd_service
@@ -38,6 +40,10 @@ from gnocchi import utils
 
 
 LOG = log.getLogger(__name__)
+
+
+def config_generator():
+    return genconfig.prehook(None, sys.argv[1:])
 
 
 def upgrade():
