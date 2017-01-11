@@ -488,6 +488,8 @@ class MetricsController(rest.RestController):
         archive_policy_name = definition.get('archive_policy_name')
 
         name = definition.get('name')
+        if name and '/' in name:
+            abort(400, "'/' is not supported in metric name")
         if archive_policy_name is None:
             try:
                 ap = pecan.request.indexer.get_archive_policy_for_metric(name)

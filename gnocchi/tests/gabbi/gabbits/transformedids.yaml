@@ -58,6 +58,17 @@ tests:
                   archive_policy_name: medium
       status: 409
 
+    - name: post new resource with invalid uuid
+      POST: /v1/resource/generic
+      data:
+          id: 'id-with-/'
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 400
+      response_strings:
+        - "Invalid input: not a valid value for dictionary value @ data["
+        - "'id']  "
+
     - name: post new resource non uuid
       POST: /v1/resource/generic
       data:

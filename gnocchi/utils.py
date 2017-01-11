@@ -40,6 +40,8 @@ RESOURCE_ID_NAMESPACE = uuid.UUID('0a7a15ff-aa13-4ac2-897c-9bdf30ce175b')
 
 
 def ResourceUUID(value):
+    if '/' in value:
+        raise ValueError("'/' is not supported in resource id")
     try:
         try:
             return uuid.UUID(value)

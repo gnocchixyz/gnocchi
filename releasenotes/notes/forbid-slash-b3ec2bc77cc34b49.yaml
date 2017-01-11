@@ -1,0 +1,7 @@
+---
+fixes:
+  - \'/\' in resource id and metric name have been accepted by mistake, because
+    they can be POSTed but not GETed/PATCHed/DELETEd. Now this char is forbidden
+    in resource id and metric name, REST api will return 400 if it presents.
+    Metric name and resource id already present with a \'/\' have their \'/\' replaced
+    by \'_\'.

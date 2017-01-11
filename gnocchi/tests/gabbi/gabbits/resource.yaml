@@ -189,6 +189,20 @@ tests:
           - "Invalid input: required key not provided @ data["
           - "'display_name']"
 
+    - name: post instance with invalid metric name
+      POST: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          metrics:
+              "disk/iops":
+                  archive_policy_name: medium
+      status: 400
+      response_strings:
+          - "'/' is not supported in metric name"
+
     - name: post instance resource
       POST: $LAST_URL
       request_headers:
@@ -362,6 +376,20 @@ tests:
       status: 200
       response_json_paths:
           $.metrics.'disk.io.rate': $RESPONSE["$.metrics.'disk.io.rate'"]
+
+    - name: patch instance with invalid metric name
+      PATCH: $LAST_URL
+      request_headers:
+          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          content-type: application/json
+      data:
+          metrics:
+              "disk/iops":
+                  archive_policy_name: medium
+      status: 400
+      response_strings:
+          - "'/' is not supported in metric name"
 
 # Failure modes for history
 
