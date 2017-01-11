@@ -125,7 +125,7 @@ By default, 3 archive policies are created using the default archive policy
 list (listed in `default_aggregation_methods`, i.e. mean, min, max, sum, std,
 count):
 
-- low (maximum estimated size per metric: 406 MiB)
+- low (maximum estimated size per metric: 406 KiB)
 
   * 5 minutes granularity over 30 days
 
