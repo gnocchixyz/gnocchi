@@ -19,7 +19,7 @@ dump_data(){
     dir="$1"
     mkdir -p $dir
     echo "* Dumping measures aggregations to $dir"
-    for resource_id in $RESOURCE_IDS; do
+    for resource_id in ${RESOURCE_IDS[@]}; do
         for agg in min max mean sum ; do
             gnocchi measures show --aggregation $agg --resource-id $resource_id metric > $dir/${agg}.txt
         done
@@ -30,14 +30,14 @@ inject_data() {
     echo "* Injecting measures in Gnocchi"
     # TODO(sileht): Generate better data that ensure we have enought split that cover all
     # situation
-    for resource_id in $RESOURCE_IDS; do
+    for resource_id in ${RESOURCE_IDS[@]}; do
         gnocchi resource create generic --attribute id:$resource_id -n metric:high >/dev/null
     done
 
     {
         echo -n '{'
         resource_sep=""
-        for resource_id in $RESOURCE_IDS; do
+        for resource_id in ${RESOURCE_IDS[@]}; do
             echo -n "$resource_sep \"$resource_id\": { \"metric\": [ "
             measures_sep=""
             for i in $(seq 0 10 288000); do
