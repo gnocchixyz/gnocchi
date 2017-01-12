@@ -83,12 +83,6 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-if [ "${old_version:0:5}" == "2.2.0" ]; then
-    # NOTE(sileht): temporary fix a gnocchi 2.2.0 bug
-    # https://review.openstack.org/#/c/369011/
-    patch -p2 -d $VIRTUAL_ENV/lib/python*/site-packages/gnocchi < 7bcd2a25.diff
-fi
-
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 inject_data $GNOCCHI_DATA
