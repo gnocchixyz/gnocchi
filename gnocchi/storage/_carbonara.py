@@ -321,6 +321,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             if previous_oldest_mutable_key != oldest_mutable_key:
                 for key in existing_keys:
                     if previous_oldest_mutable_key <= key < oldest_mutable_key:
+                        LOG.debug(
+                            "Compressing previous split %s (%s) for metric %s",
+                            key, aggregation, metric)
                         # NOTE(jd) Rewrite it entirely for fun (and later for
                         # compression). For that, we just pass None as split.
                         self._store_timeserie_split(
@@ -331,6 +334,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         for key, split in ts.split():
             if key >= oldest_key_to_keep:
+                LOG.debug(
+                    "Storing split %s (%s) for metric %s",
+                    key, aggregation, metric)
                 self._store_timeserie_split(
                     metric, key, split, aggregation, archive_policy_def,
                     oldest_mutable_timestamp)
@@ -340,6 +346,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     def delete_metric(self, metric, sync=False):
+        LOG.debug("Deleting metric %s", metric)
         with self._lock(metric.id)(blocking=sync):
             # If the metric has never been upgraded, we need to delete this
             # here too
