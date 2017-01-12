@@ -121,21 +121,41 @@ consume twice CPU than just one definition (e.g. just 1 second granularity for
 Default archive policies
 ------------------------
 
-By default, 3 archive policies are created using the default archive policy
-list (listed in `default_aggregation_methods`, i.e. mean, min, max, sum, std,
-count):
+By default, 3 archive policies are created when calling `gnocchi-upgrade`:
+*low*, *medium* and *high*. The name both describes the storage space and CPU
+usage needs. They use `default_aggregation_methods` which is by default set to
+*mean*, *min*, *max*, *sum*, *std*, *count*.
 
-- low (maximum estimated size per metric: 406 KiB)
+A fourth archive policy named `bool` is also provided by default and is
+designed to store only boolean values (i.e. 0 and 1). It only stores one data
+point for each second (using the `last` aggregation method), with a one year
+retention period. The maximum optimistic storage size is estimated based on the
+assumption that no other value than 0 and 1 are sent as measures. If other
+values are sent, the maximum pessimistic storage size is taken into account.
+
+- low
 
   * 5 minutes granularity over 30 days
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 406 KiB
 
-- medium (maximum estimated size per metric: 887 KiB)
+- medium
 
   * 1 minute granularity over 7 days
   * 1 hour granularity over 365 days
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 887 KiB
 
-- high (maximum estimated size per metric: 1 057 KiB)
+- high
 
   * 1 second granularity over 1 hour
   * 1 minute granularity over 1 week
   * 1 hour granularity over 1 year
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 1 057 KiB
+
+- bool
+  * 1 second granularity over 1 year
+  * aggregation methods used: *last*
+  * maximum optimistic size per metric: 1 539 KiB
+  * maximum pessimistic size per metric: 277 172 KiB

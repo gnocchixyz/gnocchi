@@ -1,0 +1,5 @@
+---
+features:
+  - >-
+    A new archive policy named *bool* is provided by default. It provides a
+    cheap and easy way to store boolean measures (0 and 1).
