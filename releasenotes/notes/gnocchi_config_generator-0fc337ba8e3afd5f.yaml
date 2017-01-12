@@ -1,0 +1,5 @@
+---
+features:
+  - >-
+    The `gnocchi-config-generator` program can now generates a default
+    configuration file, usable as a template for custom tweaking.

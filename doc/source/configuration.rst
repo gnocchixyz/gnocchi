@@ -10,7 +10,7 @@ easily created by running:
 
 ::
 
-    oslo-config-generator --config-file=/etc/gnocchi/gnocchi-config-generator.conf --output-file=/etc/gnocchi/gnocchi.conf
+    gnocchi-config-generator > /etc/gnocchi/gnocchi.conf
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
