@@ -230,7 +230,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                oldest_mutable_timestamp):
         # NOTE(jd) We write the full split only if the driver works that way
         # (self.WRITE_FULL) or if the oldest_mutable_timestamp is out of range.
-        write_full = self.WRITE_FULL or next(key) < oldest_mutable_timestamp
+        write_full = self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
         key_as_str = str(key)
         if write_full:
             try:
