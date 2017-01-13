@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-export OS_AUTH_PLUGIN=gnocchi-noauth
+export OS_AUTH_TYPE=gnocchi-noauth
 export GNOCCHI_ENDPOINT=http://localhost:8041
 export GNOCCHI_USER_ID=99aae-4dc2-4fbc-b5b8-9688c470d9cc
 export GNOCCHI_PROJECT_ID=c8d27445-48af-457c-8e0d-1de7103eae1f
