@@ -13,12 +13,13 @@
 # under the License.
 import copy
 import itertools
+import operator
 import os
+import pkg_resources
 import uuid
 
 from oslo_config import cfg
 from oslo_middleware import cors
-from stevedore import extension
 
 import gnocchi.archive_policy
 import gnocchi.indexer
@@ -86,8 +87,9 @@ def list_opts():
                        help='Path to API Paste configuration.'),
             cfg.StrOpt('auth_mode',
                        default="basic",
-                       choices=extension.ExtensionManager(
-                           "gnocchi.rest.auth_helper").names(),
+                       choices=list(map(operator.attrgetter("name"),
+                                    pkg_resources.iter_entry_points(
+                                        "gnocchi.rest.auth_helper"))),
                        help='Authentication mode to use.'),
             cfg.IntOpt('max_limit',
                        default=1000,
