@@ -39,6 +39,7 @@ depends_on = None
 def upgrade():
     bind = op.get_bind()
     if bind and bind.engine.name == "mysql":
+        op.execute("SET time_zone = '+00:00'")
         # NOTE(jd) So that crappy engine that is MySQL does not have "ALTER
         # TABLE … USING …". We need to copy everything and convert…
         for table_name, column_name in (("resource", "started_at"),
