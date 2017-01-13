@@ -67,11 +67,21 @@ install extra variants using, for example::
 Ceph requirements
 -----------------
 
-Gnocchi leverages omap API of librados, but this is available in python binding
-only since python-rados >= 9.1.0. To handle this, Gnocchi uses 'cradox' python
-library which has exactly the same API but works with Ceph >= 0.80.0.
+The ceph driver need to have a ceph user and a pool already created. They can
+be created for example with:
 
-If Ceph and python-rados are >= 9.1.0, cradox python library becomes optional
+::
+
+    ceph osd pool create metrics 8 8
+    ceph auth get-or-create client.gnocchi mon "allow r" osd "allow rwx pool=metrics"
+
+
+Gnocchi leverages some librados features (omap, async, operation context)
+available in python binding only since python-rados >= 10.1.0. To handle this,
+Gnocchi uses 'cradox' python library which has exactly the same API but works
+with Ceph >= 0.80.0.
+
+If Ceph and python-rados are >= 10.1.0, cradox python library becomes optional
 but is still recommended.
 
 
