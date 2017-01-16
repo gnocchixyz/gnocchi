@@ -5,19 +5,18 @@
 Authentication
 ==============
 
-By default, no authentication is configured in Gnocchi. You need to provides
-these headers in your HTTP requests:
+By default, the authentication is configured to the "basic" mode. You need to
+provide an `Authorization' header in your HTTP requests with a valid username
+(the password is not used). The "admin" password is granted all privileges,
+whereas any other username is recognize as having standard permissions.
 
-* X-User-Id
-* X-Project-Id
+You can customize permissions by specifying a different `policy_file` than the
+default one.
 
-The `X-Roles` header can also be provided in order to match role based ACL
-specified in `policy.json`, as `X-Domain-Id` to match domain based ACL.
-
-If you enable the OpenStack Keystone middleware, you only need to authenticate
-against Keystone and provide `X-Auth-Token` header with a valid token for each
-request sent to Gnocchi. The headers mentioned above will be filled
-automatically based on your Keystone authorizations.
+If you set the `api.auth_mode` value to `keystone`, the OpenStack Keystone
+middleware will be enabled for authentication. It is then needed to
+authenticate against Keystone and provide a `X-Auth-Token` header with a valid
+token for each request sent to Gnocchi's API.
 
 Metrics
 =======
