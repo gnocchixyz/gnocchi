@@ -28,6 +28,7 @@ import struct
 import time
 
 import lz4
+import numpy
 import pandas
 import six
 
@@ -129,7 +130,8 @@ class TimeSerie(object):
 
     @staticmethod
     def _timestamps_and_values_from_dict(values):
-        timestamps = pandas.to_datetime(list(values.keys()), unit='ns')
+        timestamps = numpy.array(list(values.keys()), dtype='datetime64[ns]')
+        timestamps = pandas.to_datetime(timestamps)
         v = list(values.values())
         if v:
             return timestamps, v
@@ -239,11 +241,12 @@ class BoundTimeSerie(TimeSerie):
         start = deserial[0]
         timestamps = [start]
         for delta in itertools.islice(deserial, 1, nb_points):
-            ts = start + delta
-            timestamps.append(ts)
-            start = ts
+            start += delta
+            timestamps.append(start)
+        timestamps = numpy.array(timestamps, dtype='datetime64[ns]')
+
         return cls.from_data(
-            pandas.to_datetime(timestamps, unit='ns'),
+            pandas.to_datetime(timestamps),
             deserial[nb_points:],
             block_size=block_size,
             back_window=back_window)
@@ -508,6 +511,7 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def unserialize(cls, data, start, agg_method, sampling):
         x, y = [], []
+
         start = float(start)
         if data:
             if cls.is_compressed(data):
@@ -542,7 +546,9 @@ class AggregatedTimeSerie(TimeSerie):
                     x.append(val)
                     y.append(start + (i * sampling))
 
-            y = pandas.to_datetime(y, unit='s')
+            y = numpy.array(y, dtype='float64') * 10e8
+            y = numpy.array(y, dtype='datetime64[ns]')
+            y = pandas.to_datetime(y)
         return cls.from_data(sampling, agg_method, y, x)
 
     def get_split_key(self, timestamp=None):
