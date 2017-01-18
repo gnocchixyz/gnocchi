@@ -38,6 +38,7 @@ depends_on = None
 resource_type_table = sa.Table(
     'resource_type',
     sa.MetaData(),
+    sa.Column('name', sa.String(255), nullable=False),
     sa.Column('tablename', sa.String(35), nullable=False)
 )
 
@@ -79,27 +80,20 @@ def upgrade():
     connection = op.get_bind()
 
     resource_type_tables = {}
-    resource_type_tablenames = [
-        rt.tablename
+    resource_type_tablenames = dict(
+        (rt.name, rt.tablename)
         for rt in connection.execute(resource_type_table.select())
         if rt.tablename != "generic"
-    ]
+    )
 
     op.drop_constraint("fk_metric_resource_id_resource_id", "metric",
                        type_="foreignkey")
-    for table in resource_type_tablenames:
+    for name, table in resource_type_tablenames.items():
         op.drop_constraint("fk_%s_id_resource_id" % table, table,
                            type_="foreignkey")
 
-        resource_type_tables[table] = sa.Table(
+        resource_type_tables[name] = sa.Table(
             table,
-            sa.MetaData(),
-            sa.Column('id',
-                      sqlalchemy_utils.types.uuid.UUIDType(),
-                      nullable=False),
-        )
-        resource_type_tables["%s_history" % table] = sa.Table(
-            "%s_history" % table,
             sa.MetaData(),
             sa.Column('id',
                       sqlalchemy_utils.types.uuid.UUIDType(),
@@ -138,18 +132,11 @@ def upgrade():
 
         if resource.type != "generic":
             rtable = resource_type_tables[resource.type]
-            htable = resource_type_tables["%s_history" % resource.type]
 
             # resource table (type)
             connection.execute(
                 rtable.update().where(
                     rtable.c.id == resource.id
-                ).values(id=new_id)
-            )
-            # resource history table (type)
-            connection.execute(
-                htable.update().where(
-                    htable.c.id == resource.id
                 ).values(id=new_id)
             )
 
@@ -162,7 +149,7 @@ def upgrade():
             )
         )
 
-    for table in resource_type_tablenames:
+    for (name, table) in resource_type_tablenames.items():
         op.create_foreign_key("fk_%s_id_resource_id" % table,
                               table, "resource",
                               ("id",), ("id",),
