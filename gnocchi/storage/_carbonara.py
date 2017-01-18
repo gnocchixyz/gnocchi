@@ -657,7 +657,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _unserialize_timeserie_v2(data):
         return carbonara.TimeSerie.from_data(
             *carbonara.TimeSerie._timestamps_and_values_from_dict(
-                msgpack.loads(data, encoding='utf-8')['values']))
+                msgpack.loads(data, encoding='utf-8')['values']),
+            clean=True)
 
     def _get_unaggregated_timeserie_and_unserialize_v2(self, metric):
         """Unserialization method for unaggregated v2 timeseries."""
