@@ -317,6 +317,30 @@ class MetricdServiceManager(cotyledon.ServiceManager):
         self.queue.close()
 
 
+def metricd_tester(conf):
+    # NOTE(sileht): This method is designed to be profiled, we
+    # want to avoid issues with profiler and os.fork(), that
+    # why we don't use the MetricdServiceManager.
+    index = indexer.get_driver(conf)
+    index.connect()
+    s = storage.get_driver(conf)
+    metrics = s.incoming.list_metric_with_measures_to_process(
+        conf.stop_after_processing_metrics, 0)
+    s.process_new_measures(index, metrics, True)
+
+
 def metricd():
-    conf = service.prepare_service()
-    MetricdServiceManager(conf).run()
+    conf = cfg.ConfigOpts()
+    conf.register_cli_opts([
+        cfg.IntOpt("stop-after-processing-metrics",
+                   default=0,
+                   min=0,
+                   help="Number of metrics to process without workers, "
+                   "for testing purpose"),
+    ])
+    conf = service.prepare_service(conf=conf)
+
+    if conf.stop_after_processing_metrics:
+        metricd_tester(conf)
+    else:
+        MetricdServiceManager(conf).run()
