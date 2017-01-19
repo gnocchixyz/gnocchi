@@ -756,6 +756,18 @@ class AggregatedTimeSerie(TimeSerie):
             t1 = time.time()
             print("  split() speed: %.8f s" % ((t1 - t0) / serialize_times))
 
+            # NOTE(sileht): propose a new series with half overload timestamps
+            pts = ts.ts.copy(deep=True)
+            tsbis = cls(ts=pts, sampling=sampling, aggregation_method='mean')
+            tsbis.ts.reindex(tsbis.ts.index -
+                             datetime.timedelta(seconds=sampling * points / 2))
+
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                ts.merge(tsbis)
+            t1 = time.time()
+            print("  merge() speed: %.8f s" % ((t1 - t0) / serialize_times))
+
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
                    to_timestamp=None, needed_percent_of_overlap=100.0,
