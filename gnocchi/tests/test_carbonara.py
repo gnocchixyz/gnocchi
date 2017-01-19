@@ -114,7 +114,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [3, 5, 6])
 
     def test_benchmark(self):
-        self.useFixture(fixtures.Timeout(120, gentle=True))
+        self.useFixture(fixtures.Timeout(240, gentle=True))
         carbonara.AggregatedTimeSerie.benchmark()
 
     def test_fetch_basic(self):

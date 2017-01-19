@@ -681,7 +681,7 @@ class AggregatedTimeSerie(TimeSerie):
         """Run a speed benchmark!"""
         points = SplitKey.POINTS_PER_SPLIT
         sampling = 5
-        serialize_times = 50
+        resample = 35
 
         now = datetime.datetime(2015, 4, 3, 23, 11)
 
@@ -708,6 +708,7 @@ class AggregatedTimeSerie(TimeSerie):
                              for x in six.moves.range(points)]),
         ]:
             print(title)
+            serialize_times = 50
             pts = pandas.Series(values,
                                 [now + datetime.timedelta(seconds=i*sampling)
                                  for i in six.moves.range(points)])
@@ -765,6 +766,17 @@ class AggregatedTimeSerie(TimeSerie):
                 ts.merge(tsbis)
             t1 = time.time()
             print("  merge() speed: %.8f s" % ((t1 - t0) / serialize_times))
+
+            for agg in ['mean', 'sum', 'max', 'min', 'std', 'median', 'first',
+                        'last', 'count', '5pct', '90pct']:
+                serialize_times = 3 if agg.endswith('pct') else 10
+                ts = cls(ts=pts, sampling=sampling, aggregation_method=agg)
+                t0 = time.time()
+                for i in six.moves.range(serialize_times):
+                    ts.resample(resample)
+                t1 = time.time()
+                print("  resample(%s) speed: %.8f s" % (agg, (t1 - t0) /
+                                                        serialize_times))
 
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
