@@ -67,8 +67,8 @@ class TestBoundTimeSerie(base.BaseTestCase):
     def test_block_size_unordered(self):
         ts = carbonara.BoundTimeSerie.from_data(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 9),
-             datetime.datetime(2014, 1, 1, 12, 0, 5)],
+             datetime.datetime(2014, 1, 1, 12, 0, 5),
+             datetime.datetime(2014, 1, 1, 12, 0, 9)],
             [10, 5, 23],
             block_size='5s')
         self.assertEqual(2, len(ts))
@@ -79,9 +79,8 @@ class TestBoundTimeSerie(base.BaseTestCase):
     def test_duplicate_timestamps(self):
         ts = carbonara.BoundTimeSerie.from_data(
             [datetime.datetime(2014, 1, 1, 12, 0, 0),
-             datetime.datetime(2014, 1, 1, 12, 0, 9),
              datetime.datetime(2014, 1, 1, 12, 0, 9)],
-            [10, 5, 23])
+            [10, 23])
         self.assertEqual(2, len(ts))
         self.assertEqual(10.0, ts[0])
         self.assertEqual(23.0, ts[1])

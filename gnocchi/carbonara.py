@@ -95,7 +95,7 @@ class TimeSerie(object):
     def __init__(self, ts=None):
         if ts is None:
             ts = pandas.Series()
-        self.ts = self.clean_ts(ts)
+        self.ts = ts
 
     @staticmethod
     def clean_ts(ts):
@@ -106,8 +106,12 @@ class TimeSerie(object):
         return ts
 
     @classmethod
-    def from_data(cls, timestamps=None, values=None):
-        return cls(pandas.Series(values, timestamps))
+    def from_data(cls, timestamps=None, values=None, clean=False):
+        ts = pandas.Series(values, timestamps)
+        if clean:
+            # For format v2
+            ts = cls.clean_ts(ts)
+        return cls(ts)
 
     @classmethod
     def from_tuples(cls, timestamps_values):
@@ -293,6 +297,7 @@ class BoundTimeSerie(TimeSerie):
                                     seconds=i * random.randint(1, 10),
                                     microseconds=random.randint(1, 999999))
                                  for i in six.moves.range(points)])
+            pts = pts.sort_index()
             ts = cls(ts=pts)
             t0 = time.time()
             for i in six.moves.range(serialize_times):
@@ -409,8 +414,7 @@ class AggregatedTimeSerie(TimeSerie):
     PADDED_SERIAL_LEN = struct.calcsize("<?d")
     COMPRESSED_SERIAL_LEN = struct.calcsize("<Hd")
 
-    def __init__(self, sampling, aggregation_method,
-                 ts=None, max_size=None):
+    def __init__(self, sampling, aggregation_method, ts=None, max_size=None):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -692,6 +696,7 @@ class AggregatedTimeSerie(TimeSerie):
             pts = pandas.Series(values,
                                 [now + datetime.timedelta(seconds=i*sampling)
                                  for i in six.moves.range(points)])
+            pts = pts.sort_index()
             ts = cls(ts=pts, sampling=sampling, aggregation_method='mean')
             t0 = time.time()
             key = ts.get_split_key()
