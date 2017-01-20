@@ -194,7 +194,7 @@ tests:
         $:
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
 
-    - name: push measurements to unknown named metrics and resource with create_metrics
+    - name: push measurements to unknown named metrics and resource with create_metrics with uuid resource id
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
         content-type: application/json
@@ -216,9 +216,31 @@ tests:
       status: 400
       response_json_paths:
           $.description.cause: "Unknown resources"
-          $.description.detail.`sorted`:
-            - "aaaaaaaa-d63b-4cdd-be89-111111111111"
-            - "bbbbbbbb-d63b-4cdd-be89-111111111111"
+          $.description.detail[/original_resource_id]:
+            - original_resource_id: "aaaaaaaa-d63b-4cdd-be89-111111111111"
+              resource_id: "aaaaaaaa-d63b-4cdd-be89-111111111111"
+            - original_resource_id: "bbbbbbbb-d63b-4cdd-be89-111111111111"
+              resource_id: "bbbbbbbb-d63b-4cdd-be89-111111111111"
+
+    - name: push measurements to unknown named metrics and resource with create_metrics with non uuid resource id
+      POST: /v1/batch/resources/metrics/measures?create_metrics=true
+      request_headers:
+        content-type: application/json
+        accept: application/json
+      data:
+        foobar:
+          auto.test:
+            - timestamp: "2015-03-06T14:33:57"
+              value: 43.1
+            - timestamp: "2015-03-06T14:34:12"
+              value: 12
+
+      status: 400
+      response_json_paths:
+          $.description.cause: "Unknown resources"
+          $.description.detail:
+            - resource_id: "301dbf9a-4fce-52b6-9010-4484c469dcec"
+              original_resource_id: "foobar"
 
     - name: push measurements to named metrics and resource with create_metrics with wrong measure objects
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
