@@ -739,6 +739,12 @@ class AggregatedTimeSerie(TimeSerie):
                   % (((points * 2 * 8)
                       / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
+            t0 = time.time()
+            for i in six.moves.range(serialize_times):
+                list(ts.split())
+            t1 = time.time()
+            print("  split() speed: %.8f s" % ((t1 - t0) / serialize_times))
+
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
                    to_timestamp=None, needed_percent_of_overlap=100.0,
