@@ -43,6 +43,9 @@ COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
                       'mysql_engine': "InnoDB"}
 
 
+timestamp_default = sqlalchemy.text("'1000-01-01 00:00:00.000000'")
+
+
 class PreciseTimestamp(types.TypeDecorator):
     """Represents a timestamp precise to the microsecond.
 
@@ -284,6 +287,7 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
                                    # MySQL is not a Timestamp, so it would
                                    # not store a timestamp but a date as an
                                    # integer.
+                                   server_default=timestamp_default,
                                    default=lambda: utils.utcnow())
 
     def to_baseclass(self):
@@ -331,8 +335,10 @@ class ResourceMixin(ResourceJsonifier):
 
     creator = sqlalchemy.Column(sqlalchemy.String(255))
     started_at = sqlalchemy.Column(TimestampUTC, nullable=False,
+                                   server_default=timestamp_default,
                                    default=lambda: utils.utcnow())
     revision_start = sqlalchemy.Column(TimestampUTC, nullable=False,
+                                       server_default=timestamp_default,
                                        default=lambda: utils.utcnow())
     ended_at = sqlalchemy.Column(TimestampUTC)
     user_id = sqlalchemy.Column(sqlalchemy.String(255))
@@ -374,6 +380,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                name="fk_rh_id_resource_id"),
                            nullable=False)
     revision_end = sqlalchemy.Column(TimestampUTC, nullable=False,
+                                     server_default=timestamp_default,
                                      default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
         Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
