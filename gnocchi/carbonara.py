@@ -589,11 +589,10 @@ class AggregatedTimeSerie(TimeSerie):
         # initialize list to store alternating delimiter, float entries
         if compressed:
             # NOTE(jd) Use a double delta encoding for timestamps
-            timestamps = []
-            for i in self.ts.index:
-                v = i.value
-                timestamps.append(int((v - start) // offset_div))
-                start = v
+            timestamps = numpy.insert(
+                numpy.diff(self.ts.index) // offset_div,
+                0, int((self.first.value - start) // offset_div))
+            timestamps = list(numpy.array(timestamps, dtype='int'))
             values = self.ts.values.tolist()
             return None, b"c" + lz4.dumps(struct.pack(
                 '<' + 'H' * len(timestamps) + 'd' * len(values),
@@ -608,14 +607,21 @@ class AggregatedTimeSerie(TimeSerie):
         # series runs until and initialize list to store alternating
         # delimiter, float entries
         first = self.first.value  # NOTE(jd) needed because faster
-        e_offset = int(
-            (self.last.value - first) // offset_div) + 1
-        serial = [False] * e_offset * 2
-        for i, v in self.ts.iteritems():
-            # overwrite zero padding with real points and set flag True
-            loc = int((i.value - first) // offset_div) * 2
-            serial[loc] = True
-            serial[loc + 1] = v
+        e_offset = int((self.last.value - first) // offset_div) + 1
+
+        # Fill everything with zero
+        serial = numpy.zeros(e_offset * 2, dtype='float64')
+
+        # Get location of ones
+        locs = (numpy.cumsum(numpy.diff(self.ts.index)) // offset_div) * 2
+        locs = numpy.insert(locs, 0, 0)
+        locs = numpy.array(locs, dtype='int')
+
+        # extract values
+        serial[locs] = numpy.ones(len(self.ts), dtype='float64')
+        serial[locs + 1] = numpy.array(self.ts.values.tolist(),
+                                       dtype='float64')
+
         offset = int((first - start) // offset_div) * self.PADDED_SERIAL_LEN
         return offset, struct.pack('<' + '?d' * e_offset, *serial)
 
