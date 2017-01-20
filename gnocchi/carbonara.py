@@ -28,6 +28,7 @@ import time
 
 import lz4
 import numpy
+import numpy.lib.recfunctions
 import pandas
 import six
 
@@ -255,11 +256,11 @@ class BoundTimeSerie(TimeSerie):
         # NOTE(jd) Use a double delta encoding for timestamps
         timestamps = numpy.insert(numpy.diff(self.ts.index),
                                   0, self.first.value)
-        timestamps = list(numpy.array(timestamps, dtype='int'))
-        values = self.ts.values.tolist()
-        return lz4.dumps(struct.pack(
-            '<' + 'Q' * len(timestamps) + 'd' * len(values),
-            *(timestamps + values)))
+        timestamps = numpy.array(timestamps, dtype='uint64')
+        values = numpy.array(self.ts.values, dtype='float64')
+        payload = (timestamps.astype('<Q').tostring() +
+                   values.astype('<d').tostring())
+        return lz4.dumps(payload)
 
     @classmethod
     def benchmark(cls):
@@ -586,11 +587,11 @@ class AggregatedTimeSerie(TimeSerie):
             timestamps = numpy.insert(
                 numpy.diff(self.ts.index) // offset_div,
                 0, int((self.first.value - start) // offset_div))
-            timestamps = list(numpy.array(timestamps, dtype='int'))
-            values = self.ts.values.tolist()
-            return None, b"c" + lz4.dumps(struct.pack(
-                '<' + 'H' * len(timestamps) + 'd' * len(values),
-                *(timestamps + values)))
+            timestamps = numpy.array(timestamps, dtype='uint16')
+            values = numpy.array(self.ts.values, dtype='float64')
+            payload = (timestamps.astype('<H').tostring() +
+                       values.astype('<d').tostring())
+            return None, b"c" + lz4.dumps(payload)
         # NOTE(gordc): this binary serializes series based on the split
         # time. the format is 1B True/False flag which denotes whether
         # subsequent 8B is a real float or zero padding. every 9B
@@ -603,21 +604,25 @@ class AggregatedTimeSerie(TimeSerie):
         first = self.first.value  # NOTE(jd) needed because faster
         e_offset = int((self.last.value - first) // offset_div) + 1
 
-        # Fill everything with zero
-        serial = numpy.zeros(e_offset * 2, dtype='float64')
-
-        # Get location of ones
-        locs = (numpy.cumsum(numpy.diff(self.ts.index)) // offset_div) * 2
+        locs = (numpy.cumsum(numpy.diff(self.ts.index)) // offset_div)
         locs = numpy.insert(locs, 0, 0)
         locs = numpy.array(locs, dtype='int')
 
-        # extract values
-        serial[locs] = numpy.ones(len(self.ts), dtype='float64')
-        serial[locs + 1] = numpy.array(self.ts.values.tolist(),
-                                       dtype='float64')
+        # Fill everything with zero
+        serial_dtype = [('b', 'bool'), ('v', 'float64')]
+        serial = numpy.zeros((e_offset,), dtype=serial_dtype)
 
+        # Create a structured array with two dimensions
+        values = numpy.array(self.ts.values, dtype='float64')
+        ones = numpy.ones_like(values, dtype='bool')
+        values = numpy.core.records.fromarrays(
+            (ones, values), names='b, v', formats='?, f8')
+
+        serial[locs] = values
+
+        payload = serial.astype([('b', '<?'), ('v', '<d')]).tostring()
         offset = int((first - start) // offset_div) * self.PADDED_SERIAL_LEN
-        return offset, struct.pack('<' + '?d' * e_offset, *serial)
+        return offset, payload
 
     def _truncate(self, quick=False):
         """Truncate the timeserie."""
