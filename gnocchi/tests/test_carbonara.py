@@ -114,7 +114,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [3, 5, 6])
 
     def test_benchmark(self):
-        self.useFixture(fixtures.Timeout(240, gentle=True))
+        self.useFixture(fixtures.Timeout(120, gentle=True))
         carbonara.AggregatedTimeSerie.benchmark()
 
     def test_fetch_basic(self):
@@ -205,6 +205,47 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(1, len(ts))
         self.assertEqual(5.9000000000000004,
                          ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+
+    def _do_test_aggregation(self, name, v1, v2):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 6),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 5),
+             (datetime.datetime(2014, 1, 1, 12, 1, 4), 8),
+             (datetime.datetime(2014, 1, 1, 12, 1, 6), 9)])
+        ts = self._resample(ts, 60, name)
+
+        self.assertEqual(2, len(ts))
+        self.assertEqual(v1, ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+        self.assertEqual(v2, ts[datetime.datetime(2014, 1, 1, 12, 1, 0)])
+
+    def test_aggregation_first(self):
+        self._do_test_aggregation('first', 3, 8)
+
+    def test_aggregation_last(self):
+        self._do_test_aggregation('last', 5, 9)
+
+    def test_aggregation_count(self):
+        self._do_test_aggregation('count', 3, 2)
+
+    def test_aggregation_sum(self):
+        self._do_test_aggregation('sum', 14, 17)
+
+    def test_aggregation_mean(self):
+        self._do_test_aggregation('mean', 4.666666666666667, 8.5)
+
+    def test_aggregation_median(self):
+        self._do_test_aggregation('median', 5.0, 8.5)
+
+    def test_aggregation_min(self):
+        self._do_test_aggregation('min', 3, 8)
+
+    def test_aggregation_max(self):
+        self._do_test_aggregation('max', 6, 9)
+
+    def test_aggregation_std(self):
+        self._do_test_aggregation('std', 1.5275252316519465,
+                                  0.70710678118654757)
 
     def test_different_length_in_timestamps_and_data(self):
         self.assertRaises(ValueError,
