@@ -28,7 +28,7 @@ from gnocchi import carbonara
 
 class TestBoundTimeSerie(base.BaseTestCase):
     def test_benchmark(self):
-        self.useFixture(fixtures.Timeout(120, gentle=True))
+        self.useFixture(fixtures.Timeout(300, gentle=True))
         carbonara.BoundTimeSerie.benchmark()
 
     @staticmethod
