@@ -1163,6 +1163,7 @@ class QueryTransformer(object):
                 return creator.like("%s:%%" % value)
             raise indexer.QueryValueError(value, field_name)
         elif field_name == "created_by_project_id":
+            creator = getattr(table, "creator")
             if op == operator.eq:
                 return creator.like("%%:%s" % value)
             elif op == operator.ne:

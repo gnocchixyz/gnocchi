@@ -57,6 +57,17 @@ tests:
       response_json_paths:
         $.`len`: 2
 
+    - name: search like created_by_project_id
+      POST: /v1/search/resource/generic
+      request_headers:
+        content-type: application/json
+      data:
+        eq:
+          created_by_project_id:
+            - f3d41b770cc14f0bb94a1d5be9c0e3ea
+      response_json_paths:
+        $.`len`: 0
+
     - name: search in_ query string
       POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
       request_headers:
