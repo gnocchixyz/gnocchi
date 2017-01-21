@@ -140,7 +140,7 @@ def to_timespan(value):
         seconds = float(value)
     except Exception:
         try:
-            seconds = pd.Timedelta(six.text_type(value)).total_seconds()
+            seconds = pd.to_timedelta(value).total_seconds()
         except Exception:
             raise ValueError("Unable to parse timespan")
     if seconds <= 0:
