@@ -351,20 +351,23 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     def _check_for_metric_upgrade(self, metric):
+        # FIXME(gordc): this is only required for v2.x to v3.x storage upgrade.
+        # we should make storage version easily detectable rather than
+        # checking each metric individually
         lock = self._lock(metric.id)
         with lock:
             try:
                 old_unaggregated = self._get_unaggregated_timeserie_and_unserialize_v2(  # noqa
                     metric)
             except (storage.MetricDoesNotExist, CorruptionError) as e:
-                # NOTE(jd) This case is not really possible – you can't
-                # have archives with splits and no unaggregated
-                # timeserie…
-                LOG.error(
-                    "Unable to find unaggregated timeserie for "
-                    "metric %s, unable to upgrade data: %s",
+                # This case can happen if v3.0 to v3.x or if no measures
+                # pushed. skip the rest of upgrade on metric.
+                LOG.debug(
+                    "Unable to find v2 unaggregated timeserie for "
+                    "metric %s, no data to upgrade: %s",
                     metric.id, e)
                 return
+
             unaggregated = carbonara.BoundTimeSerie(
                 ts=old_unaggregated.ts,
                 block_size=metric.archive_policy.max_block_size,
