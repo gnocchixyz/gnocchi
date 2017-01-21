@@ -156,13 +156,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertRaises(carbonara.BeforeEpochError,
                           ts.group_serie, 60)
 
-    def test_bad_percentile(self):
-        for bad_percentile in ('0pct', '100pct', '-1pct', '123pct'):
-            self.assertRaises(carbonara.UnknownAggregationMethod,
-                              carbonara.AggregatedTimeSerie,
-                              sampling='1Min',
-                              aggregation_method=bad_percentile)
-
     @staticmethod
     def _resample(ts, sampling, agg, max_size=None):
         grouped = ts.group_serie(sampling)
