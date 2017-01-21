@@ -30,6 +30,7 @@ import lz4
 import numpy
 import numpy.lib.recfunctions
 import pandas
+from scipy import ndimage
 import six
 
 # NOTE(sileht): pandas relies on time.strptime()
@@ -84,6 +85,85 @@ class InvalidData(ValueError):
 def round_timestamp(ts, freq):
     return pandas.Timestamp(
         (pandas.Timestamp(ts).value // freq) * freq)
+
+
+class GroupedTimeSeries(object):
+    def __init__(self, ts, granularity):
+        # NOTE(sileht): The whole class assumes ts is ordered and don't have
+        # duplicate timestamps, it uses numpy.unique that sorted list, but
+        # we always assume the orderd to be the same as the input.
+        freq = granularity * 10e8
+        self._ts = ts
+        self.indexes = (numpy.array(ts.index, 'float') // freq) * freq
+        self.tstamps, self.counts = numpy.unique(self.indexes,
+                                                 return_counts=True)
+
+    def mean(self):
+        return self._scipy_aggregate(ndimage.mean)
+
+    def sum(self):
+        return self._scipy_aggregate(ndimage.sum)
+
+    def min(self):
+        return self._scipy_aggregate(ndimage.minimum)
+
+    def max(self):
+        return self._scipy_aggregate(ndimage.maximum)
+
+    def median(self):
+        return self._scipy_aggregate(ndimage.median)
+
+    def std(self):
+        # NOTE(sileht): ndimage.standard_deviation is really more performant
+        # but it use ddof=0, to get the same result as pandas we have to use
+        # ddof=1. If one day scipy allow to pass ddof, this should be changed.
+        return self._scipy_aggregate(ndimage.labeled_comprehension,
+                                     remove_unique=True,
+                                     func=functools.partial(numpy.std, ddof=1),
+                                     out_dtype='float64',
+                                     default=None)
+
+    def _count(self):
+        timestamps = numpy.array(self.tstamps, 'datetime64[ns]')
+        return (self.counts, timestamps)
+
+    def count(self):
+        return pandas.Series(*self._count())
+
+    def last(self):
+        counts, timestamps = self._count()
+        cumcounts = numpy.cumsum(counts) - 1
+        values = self._ts.values[cumcounts]
+        return pandas.Series(values, pandas.to_datetime(timestamps))
+
+    def first(self):
+        counts, timestamps = self._count()
+        counts = numpy.insert(counts[:-1], 0, 0)
+        cumcounts = numpy.cumsum(counts)
+        values = self._ts.values[cumcounts]
+        return pandas.Series(values, pandas.to_datetime(timestamps))
+
+    def quantile(self, q):
+        return self._scipy_aggregate(ndimage.labeled_comprehension,
+                                     func=functools.partial(
+                                         numpy.percentile,
+                                         q=q,
+                                     ),
+                                     out_dtype='float64',
+                                     default=None)
+
+    def _scipy_aggregate(self, method, remove_unique=False, *args, **kwargs):
+        if remove_unique:
+            locs = numpy.argwhere(self.counts > 1).T[0]
+
+        values = method(self._ts.values, self.indexes, self.tstamps,
+                        *args, **kwargs)
+        timestamps = numpy.array(self.tstamps, 'datetime64[ns]')
+
+        if remove_unique:
+            timestamps = timestamps[locs]
+            values = values[locs]
+        return pandas.Series(values, pandas.to_datetime(timestamps))
 
 
 class TimeSerie(object):
@@ -161,14 +241,14 @@ class TimeSerie(object):
         except IndexError:
             return
 
-    def group_serie(self, granularity, start=None):
+    def group_serie(self, granularity, start=0):
         # NOTE(jd) Our whole serialization system is based on Epoch, and we
         # store unsigned integer, so we can't store anything before Epoch.
         # Sorry!
         if self.ts.index[0].value < 0:
             raise BeforeEpochError(self.ts.index[0])
-        return self.ts[start:].groupby(functools.partial(
-            round_timestamp, freq=granularity * 10e8))
+
+        return GroupedTimeSeries(self.ts[start:], granularity)
 
 
 class BoundTimeSerie(TimeSerie):
@@ -450,10 +530,10 @@ class AggregatedTimeSerie(TimeSerie):
         q = None
         m = AggregatedTimeSerie._AGG_METHOD_PCT_RE.match(aggregation_method)
         if m:
-            q = float(m.group(1)) / 100
+            q = float(m.group(1))
             aggregation_method_func_name = 'quantile'
         else:
-            if not hasattr(pandas.core.groupby.SeriesGroupBy,
+            if not hasattr(GroupedTimeSeries,
                            aggregation_method):
                 raise UnknownAggregationMethod(aggregation_method)
             aggregation_method_func_name = aggregation_method
@@ -494,7 +574,7 @@ class AggregatedTimeSerie(TimeSerie):
         agg_name, q = cls._get_agg_method(aggregation_method)
         return cls(sampling, aggregation_method,
                    ts=cls._resample_grouped(grouped_serie, agg_name,
-                                            q).dropna(),
+                                            q),
                    max_size=max_size)
 
     def __eq__(self, other):
