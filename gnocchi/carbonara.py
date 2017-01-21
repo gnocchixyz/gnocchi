@@ -257,10 +257,9 @@ class BoundTimeSerie(TimeSerie):
         # NOTE(jd) Use a double delta encoding for timestamps
         timestamps = numpy.insert(numpy.diff(self.ts.index),
                                   0, self.first.value)
-        timestamps = numpy.array(timestamps, dtype='uint64')
-        values = numpy.array(self.ts.values, dtype='float64')
-        payload = (timestamps.astype('<Q').tostring() +
-                   values.astype('<d').tostring())
+        timestamps = numpy.array(timestamps, dtype='<Q')
+        values = numpy.array(self.ts.values, dtype='<d')
+        payload = (timestamps.tobytes() + values.tobytes())
         return lz4.dumps(payload)
 
     @classmethod
@@ -599,10 +598,9 @@ class AggregatedTimeSerie(TimeSerie):
             timestamps = numpy.insert(
                 numpy.diff(self.ts.index) // offset_div,
                 0, int((self.first.value - start) // offset_div))
-            timestamps = numpy.array(timestamps, dtype='uint16')
-            values = numpy.array(self.ts.values, dtype='float64')
-            payload = (timestamps.astype('<H').tostring() +
-                       values.astype('<d').tostring())
+            timestamps = numpy.array(timestamps, dtype='<H')
+            values = numpy.array(self.ts.values, dtype='<d')
+            payload = (timestamps.tobytes() + values.tobytes())
             return None, b"c" + lz4.dumps(payload)
         # NOTE(gordc): this binary serializes series based on the split
         # time. the format is 1B True/False flag which denotes whether
@@ -621,18 +619,18 @@ class AggregatedTimeSerie(TimeSerie):
         locs = numpy.array(locs, dtype='int')
 
         # Fill everything with zero
-        serial_dtype = [('b', 'bool'), ('v', 'float64')]
+        serial_dtype = [('b', '<?'), ('v', '<d')]
         serial = numpy.zeros((e_offset,), dtype=serial_dtype)
 
         # Create a structured array with two dimensions
-        values = numpy.array(self.ts.values, dtype='float64')
-        ones = numpy.ones_like(values, dtype='bool')
+        values = numpy.array(self.ts.values, dtype='<d')
+        ones = numpy.ones_like(values, dtype='<?')
         values = numpy.core.records.fromarrays(
-            (ones, values), names='b, v', formats='?, f8')
+            (ones, values), names='b, v', formats='<?, <d')
 
         serial[locs] = values
 
-        payload = serial.astype([('b', '<?'), ('v', '<d')]).tostring()
+        payload = serial.tobytes()
         offset = int((first - start) // offset_div) * self.PADDED_SERIAL_LEN
         return offset, payload
 
