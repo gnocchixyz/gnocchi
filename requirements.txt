@@ -7,7 +7,7 @@ oslo.policy>=0.3.0
 oslo.serialization>=1.4.0
 oslo.utils>=3.18.0
 oslo.middleware>=3.22.0
-pandas>=0.17.0
+pandas>=0.18.0
 scipy>=0.18.1  # BSD
 pecan>=0.9
 futures
