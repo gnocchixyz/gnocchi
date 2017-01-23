@@ -1,0 +1,6 @@
+---
+features:
+  - The storage of new measures that ought to be processed by *metricd* can now
+    be stored using different storage drivers. By default, the driver used is
+    still the regular storage driver configured. See the `[incoming]` section
+    in the configuration file.
