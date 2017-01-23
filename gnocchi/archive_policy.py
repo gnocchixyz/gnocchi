@@ -209,6 +209,14 @@ class ArchivePolicyItem(dict):
 
 
 DEFAULT_ARCHIVE_POLICIES = {
+    'bool': ArchivePolicy(
+        "bool", 3600, [
+            # 1 second resolution for 365 days
+            ArchivePolicyItem(granularity=1,
+                              timespan=365 * 24 * 60 * 60),
+        ],
+        aggregation_methods=("last",),
+    ),
     'low': ArchivePolicy(
         "low", 0, [
             # 5 minutes resolution for 30 days
