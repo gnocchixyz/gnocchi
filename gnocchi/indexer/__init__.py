@@ -162,7 +162,7 @@ class ResourceAttributeError(IndexerException, AttributeError):
     """Error raised when an attribute does not exist for a resource type."""
     def __init__(self, resource, attribute):
         super(ResourceAttributeError, self).__init__(
-            "Resource %s has no %s attribute" % (resource, attribute))
+            "Resource type %s has no %s attribute" % (resource, attribute))
         self.resource = resource,
         self.attribute = attribute
 
