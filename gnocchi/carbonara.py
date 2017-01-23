@@ -504,10 +504,6 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
         super(AggregatedTimeSerie, self).__init__(ts)
-
-        self.aggregation_method_func_name, self.q = self._get_agg_method(
-            aggregation_method)
-
         self.sampling = self._to_offset(sampling).nanos / 10e8
         self.max_size = max_size
         self.aggregation_method = aggregation_method
@@ -533,8 +529,7 @@ class AggregatedTimeSerie(TimeSerie):
             q = float(m.group(1))
             aggregation_method_func_name = 'quantile'
         else:
-            if not hasattr(GroupedTimeSeries,
-                           aggregation_method):
+            if not hasattr(GroupedTimeSeries, aggregation_method):
                 raise UnknownAggregationMethod(aggregation_method)
             aggregation_method_func_name = aggregation_method
         return aggregation_method_func_name, q
