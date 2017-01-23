@@ -1394,7 +1394,7 @@ class ResourceTest(RestTest):
             "/v1/search/resource/" + self.resource_type,
             params={"=": {"foobar": "baz"}},
             status=400)
-        self.assertIn("Resource " + self.resource_type
+        self.assertIn("Resource type " + self.resource_type
                       + " has no foobar attribute",
                       result.text)
 
