@@ -1128,6 +1128,14 @@ class QueryTransformer(object):
         u"∧": sqlalchemy.and_,
     }
 
+    converters = (
+        (base.TimestampUTC, utils.to_datetime),
+        (sqlalchemy_utils.UUIDType, utils.ResourceUUID),
+        (types.String, six.text_type),
+        (types.Integer, int),
+        (types.Numeric, float),
+    )
+
     @classmethod
     def _handle_multiple_op(cls, engine, table, op, nodes):
         return op(*[
@@ -1184,28 +1192,17 @@ class QueryTransformer(object):
 
             # Convert value to the right type
             if value is not None:
-                converter = None
-
-                if isinstance(attr.type, base.TimestampUTC):
-                    converter = utils.to_datetime
-                elif isinstance(attr.type, sqlalchemy_utils.UUIDType):
-                    converter = utils.ResourceUUID
-                elif isinstance(attr.type, types.String):
-                    converter = six.text_type
-                elif isinstance(attr.type, types.Integer):
-                    converter = int
-                elif isinstance(attr.type, types.Numeric):
-                    converter = float
-
-                if converter:
-                    try:
-                        if isinstance(value, list):
-                            # we got a list for in_ operator
-                            value = [converter(v) for v in value]
-                        else:
-                            value = converter(value)
-                    except Exception:
-                        raise indexer.QueryValueError(value, field_name)
+                for klass, converter in cls.converters:
+                    if isinstance(attr.type, klass):
+                        try:
+                            if isinstance(value, list):
+                                # we got a list for in_ operator
+                                value = [converter(v) for v in value]
+                            else:
+                                value = converter(value)
+                        except Exception:
+                            raise indexer.QueryValueError(value, field_name)
+                        break
 
         return op(attr, value)
 
