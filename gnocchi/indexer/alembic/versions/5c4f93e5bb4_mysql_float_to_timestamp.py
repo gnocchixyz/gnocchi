@@ -36,40 +36,33 @@ branch_labels = None
 depends_on = None
 
 
-timestamp_default = '1000-01-01 00:00:00.000000'
-
-
 def upgrade():
     bind = op.get_bind()
-
-    if bind.engine.name == "mysql":
+    if bind and bind.engine.name == "mysql":
         op.execute("SET time_zone = '+00:00'")
+        # NOTE(jd) So that crappy engine that is MySQL does not have "ALTER
+        # TABLE … USING …". We need to copy everything and convert…
+        for table_name, column_name in (("resource", "started_at"),
+                                        ("resource", "ended_at"),
+                                        ("resource", "revision_start"),
+                                        ("resource_history", "started_at"),
+                                        ("resource_history", "ended_at"),
+                                        ("resource_history", "revision_start"),
+                                        ("resource_history", "revision_end"),
+                                        ("resource_type", "updated_at")):
 
-    # NOTE(jd) So that crappy engine that is MySQL does not have "ALTER
-    # TABLE … USING …". We need to copy everything and convert…
-    for table_name, column_name in (("resource", "started_at"),
-                                    ("resource", "ended_at"),
-                                    ("resource", "revision_start"),
-                                    ("resource_history", "started_at"),
-                                    ("resource_history", "ended_at"),
-                                    ("resource_history", "revision_start"),
-                                    ("resource_history", "revision_end"),
-                                    ("resource_type", "updated_at")):
+            nullable = column_name == "ended_at"
 
-        nullable = column_name == "ended_at"
-        server_default = None if nullable else timestamp_default
-
-        if bind.engine.name == "mysql":
+            existing_type = sa.types.DECIMAL(
+                precision=20, scale=6, asdecimal=True)
             existing_col = sa.Column(
                 column_name,
-                sa.types.DECIMAL(precision=20, scale=6, asdecimal=True),
+                existing_type,
                 nullable=nullable)
             temp_col = sa.Column(
                 column_name + "_ts",
                 sqlalchemy_base.TimestampUTC(),
-                nullable=nullable,
-                server_default=server_default,
-            )
+                nullable=True)
             op.add_column(table_name, temp_col)
             t = sa.sql.table(table_name, existing_col, temp_col)
             op.execute(t.update().values(
@@ -77,16 +70,8 @@ def upgrade():
             op.drop_column(table_name, column_name)
             op.alter_column(table_name,
                             column_name + "_ts",
-                            existing_type=sqlalchemy_base.TimestampUTC(),
+                            nullable=nullable,
+                            type_=sqlalchemy_base.TimestampUTC(),
                             existing_nullable=nullable,
-                            existing_server_default=server_default,
-                            server_default=server_default,
+                            existing_type=existing_type,
                             new_column_name=column_name)
-        else:
-            op.alter_column(
-                table_name,
-                column_name,
-                existing_type=sqlalchemy_base.TimestampUTC(),
-                existing_nullable=nullable,
-                existing_server_default=None,
-                server_default=None if nullable else timestamp_default)
