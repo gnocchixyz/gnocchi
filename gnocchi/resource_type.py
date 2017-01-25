@@ -55,24 +55,63 @@ class InvalidResourceAttributeValue(InvalidResourceAttribute):
         self.max = max
 
 
+class InvalidResourceAttributeOption(InvalidResourceAttribute):
+    """Error raised when the resource attribute name is invalid."""
+    def __init__(self, name, option, reason):
+        super(InvalidResourceAttributeOption, self).__init__(
+            "Option '%s' of resource attribute %s is invalid: %s" %
+            (option, str(name), str(reason)))
+        self.name = name
+        self.option = option
+        self.reason = reason
+
+
+# NOTE(sileht): This is to store the behavior of some operations:
+#  * fill, to set a default value to all existing resource type
+#
+# in the future for example, we can allow to change the length of
+# a string attribute, if the new one is shorter, we can add a option
+# to define the behavior like:
+#  * resize = trunc or reject
+OperationOptions = {
+    voluptuous.Optional('fill'): object
+}
+
+
 class CommonAttributeSchema(object):
     meta_schema_ext = {}
     schema_ext = None
 
-    def __init__(self, type, name, required):
+    def __init__(self, type, name, required, options=None):
         if (len(name) > 63 or name in INVALID_NAMES
                 or not VALID_CHARS.match(name)):
             raise InvalidResourceAttributeName(name)
 
         self.name = name
         self.required = required
+        self.fill = None
+
+        # options is set only when we update a resource type
+        if options is not None:
+            fill = options.get("fill")
+            if fill is None and required:
+                raise InvalidResourceAttributeOption(
+                    name, "fill", "must not be empty if required=True")
+            elif fill is not None:
+                # Ensure fill have the correct attribute type
+                try:
+                    self.fill = voluptuous.Schema(self.schema_ext)(fill)
+                except voluptuous.Error as e:
+                    raise InvalidResourceAttributeOption(name, "fill", e)
 
     @classmethod
-    def meta_schema(cls):
+    def meta_schema(cls, for_update=False):
         d = {
             voluptuous.Required('type'): cls.typename,
             voluptuous.Required('required', default=True): bool
         }
+        if for_update:
+            d[voluptuous.Required('options', default={})] = OperationOptions
         if callable(cls.meta_schema_ext):
             d.update(cls.meta_schema_ext())
         else:
@@ -94,12 +133,12 @@ class StringSchema(CommonAttributeSchema):
     typename = "string"
 
     def __init__(self, min_length, max_length, *args, **kwargs):
-        super(StringSchema, self).__init__(*args, **kwargs)
         if min_length > max_length:
             raise InvalidResourceAttributeValue(min_length, max_length)
 
         self.min_length = min_length
         self.max_length = max_length
+        super(StringSchema, self).__init__(*args, **kwargs)
 
     meta_schema_ext = {
         voluptuous.Required('min_length', default=0):
@@ -131,12 +170,11 @@ class NumberSchema(CommonAttributeSchema):
     typename = "number"
 
     def __init__(self, min, max, *args, **kwargs):
-        super(NumberSchema, self).__init__(*args, **kwargs)
         if max is not None and min is not None and min > max:
             raise InvalidResourceAttributeValue(min, max)
-
         self.min = min
         self.max = max
+        super(NumberSchema, self).__init__(*args, **kwargs)
 
     meta_schema_ext = {
         voluptuous.Required('min', default=None): voluptuous.Any(
@@ -182,8 +220,20 @@ class ResourceTypeSchemaManager(stevedore.ExtensionManager):
             }
         })
 
+        type_schemas = tuple([ext.plugin.meta_schema(for_update=True)
+                              for ext in self.extensions])
+        self._schema_for_update = voluptuous.Schema({
+            "name": six.text_type,
+            voluptuous.Required("attributes", default={}): {
+                six.text_type: voluptuous.Any(*tuple(type_schemas))
+            }
+        })
+
     def __call__(self, definition):
         return self._schema(definition)
+
+    def for_update(self, definition):
+        return self._schema_for_update(definition)
 
     def attributes_from_dict(self, attributes):
         return ResourceTypeAttributes(

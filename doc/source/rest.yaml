@@ -456,6 +456,11 @@
             "value": {"type": "bool", "required": false}
          },
          {
+            "op": "add",
+            "path": "/attributes/required-stuff",
+            "value": {"type": "bool", "required": true, "options": {"fill": true}}
+         },
+         {
             "op": "remove",
             "path": "/attributes/prefix"
          }

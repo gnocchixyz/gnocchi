@@ -397,6 +397,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
         try:
             with self.facade.independent_writer() as session:
+                engine = session.connection()
                 rt = self._get_resource_type(session, name)
 
                 with self.facade.writer_connection() as connection:
@@ -407,12 +408,22 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                             for attr in del_attributes:
                                 batch_op.drop_column(attr)
                             for attr in add_attributes:
-                                # TODO(sileht): When attr.required is True, we
-                                # have to pass a default. rest layer current
-                                # protect us, requied = True is not yet allowed
+                                server_default = attr.for_filling(
+                                    engine.dialect)
                                 batch_op.add_column(sqlalchemy.Column(
                                     attr.name, attr.satype,
-                                    nullable=not attr.required))
+                                    nullable=not attr.required,
+                                    server_default=server_default))
+
+                                # We have all rows filled now, we can remove
+                                # the server_default
+                                if server_default is not None:
+                                    batch_op.alter_column(
+                                        column_name=attr.name,
+                                        existing_type=attr.satype,
+                                        existing_server_default=server_default,
+                                        existing_nullable=not attr.required,
+                                        server_default=None)
 
                 rt.state = "active"
                 rt.updated_at = utils.utcnow()

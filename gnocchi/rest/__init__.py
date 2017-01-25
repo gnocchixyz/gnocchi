@@ -755,7 +755,7 @@ class ResourceTypeController(rest.RestController):
         # Validate that the whole new resource_type is valid
         schema = pecan.request.indexer.get_resource_type_schema()
         try:
-            rt_json_next = voluptuous.Schema(schema, required=True)(
+            rt_json_next = voluptuous.Schema(schema.for_update, required=True)(
                 rt_json_next)
         except voluptuous.Error as e:
             abort(400, "Invalid input: %s" % e)
@@ -775,14 +775,6 @@ class ResourceTypeController(rest.RestController):
             add_attrs = schema.attributes_from_dict(add_attrs)
         except resource_type.InvalidResourceAttribute as e:
             abort(400, "Invalid input: %s" % e)
-
-        # TODO(sileht): Add a default field on an attribute
-        # to be able to fill non-nullable column on sql side.
-        # And obviousy remove this limitation
-        for attr in add_attrs:
-            if attr.required:
-                abort(400, ValueError("Adding required attributes is not yet "
-                                      "possible."))
 
         try:
             return pecan.request.indexer.update_resource_type(
