@@ -8,6 +8,7 @@ export GNOCCHI_PROJECT_ID=c8d27445-48af-457c-8e0d-1de7103eae1f
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 GDATE=$((which gdate >/dev/null && echo gdate) || echo date)
+GSED=$((which gsed >/dev/null && echo gsed) || echo sed)
 
 old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
 [ "${old_version:0:1}" == "3" ] && have_resource_type_post=1
@@ -110,8 +111,8 @@ RESOURCE_IDS=(
 dump_data $GNOCCHI_DATA/new
 
 # NOTE(sileht): change the output of the old gnocchi to compare with the new without '/'
-sed -i -e "s,5a301761/dddd/46e2/8900/8b4f6fe6675a,5a301761_dddd_46e2_8900_8b4f6fe6675a,g" \
-    -e "s,19235bb9-35ca-5f55-b7db-165cfb033c86,fe1bdabf-d94c-5b3a-af1e-06bdff53f228,g" $GNOCCHI_DATA/old/resources.list
+$GSED -i -e "s,5a301761/dddd/46e2/8900/8b4f6fe6675a,5a301761_dddd_46e2_8900_8b4f6fe6675a,g" \
+      -e "s,19235bb9-35ca-5f55-b7db-165cfb033c86,fe1bdabf-d94c-5b3a-af1e-06bdff53f228,g" $GNOCCHI_DATA/old/resources.list
 
 echo "* Checking output difference between Gnocchi $old_version and $new_version"
 diff -uNr $GNOCCHI_DATA/old $GNOCCHI_DATA/new
