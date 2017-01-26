@@ -288,8 +288,7 @@ tests:
 #
     - name: create archive policy
       desc: for later use
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -300,76 +299,69 @@ tests:
       status: 201
 
     - name: create metric with name1
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           name: "dummy1"
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name2
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           name: "dummy2"
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name3
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           name: "dummy3"
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name4
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           name: "dummy4"
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name5
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           name: "dummy5"
           archive_policy_name: dummy_policy
       status: 201
 
     - name: list all default order
-      url: /v1/metric
-      method: get
+      GET: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
 
     - name: list first two metrics default order
-      url: /v1/metric?limit=2
-      method: get
+      GET: /v1/metric?limit=2
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -380,16 +372,14 @@ tests:
           $[1].name: $RESPONSE['$[1].name']
 
     - name: list all default order again
-      url: /v1/metric
-      method: get
+      GET: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
 
     - name: list next three metrics default order
-      url: /v1/metric?limit=4&marker=$RESPONSE['$[1].id']
-      method: get
+      GET: /v1/metric?limit=4&marker=$RESPONSE['$[1].id']
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -401,8 +391,7 @@ tests:
           $[2].name: $RESPONSE['$[4].name']
 
     - name: list first two metrics order by user without direction
-      url: /v1/metric?limit=2&sort=name
-      method: get
+      GET: /v1/metric?limit=2&sort=name
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -414,8 +403,7 @@ tests:
           $[1].name: dummy2
 
     - name: list first two metrics order by user
-      url: /v1/metric?limit=2&sort=name:asc
-      method: get
+      GET: /v1/metric?limit=2&sort=name:asc
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -426,8 +414,7 @@ tests:
           $[1].name: dummy2
 
     - name: list next third metrics order by user
-      url: /v1/metric?limit=4&sort=name:asc&marker=$RESPONSE['$[1].id']
-      method: get
+      GET: /v1/metric?limit=4&sort=name:asc&marker=$RESPONSE['$[1].id']
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -443,41 +430,37 @@ tests:
 #
 
     - name: create metric with name6
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name7
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name8
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      method: post
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: default metric limit
-      url: /v1/metric
-      method: get
+      GET: /v1/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -490,8 +473,7 @@ tests:
 #
 
     - name: metric invalid sort_key
-      url: /v1/metric?sort=invalid:asc
-      method: get
+      GET: /v1/metric?sort=invalid:asc
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -499,8 +481,7 @@ tests:
       status: 400
 
     - name: metric invalid sort_dir
-      url: /v1/metric?sort=id:invalid
-      method: get
+      GET: /v1/metric?sort=id:invalid
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -508,8 +489,7 @@ tests:
       status: 400
 
     - name: metric invalid marker
-      url: /v1/metric?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
-      method: get
+      GET: /v1/metric?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -517,8 +497,7 @@ tests:
       status: 400
 
     - name: metric invalid negative limit
-      url: /v1/metric?limit=-2
-      method: get
+      GET: /v1/metric?limit=-2
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -526,8 +505,7 @@ tests:
       status: 400
 
     - name: metric invalid limit
-      url: /v1/metric?limit=invalid
-      method: get
+      GET: /v1/metric?limit=invalid
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea

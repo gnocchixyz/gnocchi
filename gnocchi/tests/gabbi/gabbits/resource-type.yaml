@@ -25,8 +25,7 @@ tests:
       status: 403
 
     - name: post resource type with existing name
-      url: /v1/resource_type
-      method: post
+      POST: /v1/resource_type
       request_headers:
           x-roles: admin
           content-type: application/json
@@ -335,8 +334,7 @@ tests:
 # CRUD resource type attributes
 
     - name: post a new resource attribute
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -449,8 +447,7 @@ tests:
                   required: True
 
     - name: post a new resource attribute with missing fill
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -466,8 +463,7 @@ tests:
         - "Invalid input: Option 'fill' of resource attribute missing is invalid: must not be empty if required=True"
 
     - name: post a new resource attribute with incorrect fill
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -484,7 +480,7 @@ tests:
         - "Invalid input: Option 'fill' of resource attribute incorrect is invalid: expected Real"
 
     - name: get the new custom resource type
-      url: /v1/resource_type/my_custom_resource
+      GET: /v1/resource_type/my_custom_resource
       response_json_paths:
           $.name: my_custom_resource
           $.attributes:
@@ -582,8 +578,7 @@ tests:
 # Invalid patch
 
     - name: add/delete the same resource attribute
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -655,8 +650,7 @@ tests:
                   required: True
 
     - name: delete/add the same resource attribute
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -675,8 +669,7 @@ tests:
        - "can't remove non-existent object 'what'"
 
     - name: patch a resource attribute replace
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -694,8 +687,7 @@ tests:
        - "'op']"
 
     - name: patch a resource attribute type not exist
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
@@ -710,8 +702,7 @@ tests:
       status: 400
 
     - name: patch a resource attribute type unknown
-      url: /v1/resource_type/my_custom_resource
-      method: patch
+      PATCH: /v1/resource_type/my_custom_resource
       request_headers:
           x-roles: admin
           content-type: application/json-patch+json
