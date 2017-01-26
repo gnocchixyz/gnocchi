@@ -44,7 +44,8 @@ class CustomStrSubWrapper(cfg.ConfigOpts.StrSubWrapper):
 cfg.ConfigOpts.StrSubWrapper = CustomStrSubWrapper
 
 
-_STORAGE_OPTS = list(itertools.chain(gnocchi.storage.ceph.OPTS,
+_STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
+                                     gnocchi.storage.ceph.OPTS,
                                      gnocchi.storage.file.OPTS,
                                      gnocchi.storage.swift.OPTS,
                                      gnocchi.storage.s3.OPTS))
@@ -96,8 +97,7 @@ def list_opts():
                        help=('The maximum number of items returned in a '
                              'single response from a collection resource')),
         )),
-        ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS +
-                     gnocchi.storage.OPTS)),
+        ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS)),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
             cfg.StrOpt('host',
