@@ -499,7 +499,8 @@ tests:
           location: $SCHEME://$NETLOC/v1/resource_type/myresource
 
     - name: add an attribute
-      url: /v1/resource/myresource
+      url: /v1/resource_type/myresource
+      method: PATCH
       request_headers:
           content-type: application/json-patch+json
       data:
@@ -507,15 +508,24 @@ tests:
           path: "/attributes/awesome-stuff"
           value: {"type": "bool", "required": false}
       status: 200
+      response_json_paths:
+          $.name: myresource
+          $.attributes."awesome-stuff".type: bool
+          $.attributes.[*].`len`: 2
 
     - name: remove an attribute
-      url: /v1/resource/myresource
+      url: /v1/resource_type/myresource
+      method: PATCH
       request_headers:
           content-type: application/json-patch+json
       data:
         - op: "remove"
           path: "/attributes/awesome-stuff"
       status: 200
+      response_json_paths:
+          $.name: myresource
+          $.attributes.display_name.type: string
+          $.attributes.[*].`len`: 1
 
     - name: myresource resource bad accept
       desc: Expect 406 on bad accept type
@@ -662,10 +672,12 @@ tests:
 
     - name: typo of search
       url: /v1/search/notexists
+      method: POST
       status: 404
 
     - name: typo of search in resource
       url: /v1/search/resource/foobar
+      method: POST
       status: 404
 
     - name: search with invalid uuid
