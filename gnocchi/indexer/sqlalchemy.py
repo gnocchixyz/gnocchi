@@ -1061,9 +1061,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                    e, sqlalchemy.exc.ProgrammingError)
                                or not isinstance(
                                    e.orig, pymysql.err.ProgrammingError)
-                               or (e.orig.args[0] not in
-                                   [pymysql.constants.ER.NO_SUCH_TABLE,
-                                    pymysql.constants.ER.TABLE_DEF_CHANGED])):
+                               or (e.orig.args[0]
+                                   != pymysql.constants.ER.NO_SUCH_TABLE)):
                                 raise
 
             return all_resources
