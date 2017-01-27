@@ -42,8 +42,11 @@ inject_data() {
         gnocchi resource create generic --attribute id:$resource_id -n metric:high > /dev/null
     done
 
-    gnocchi resource-type create ext > /dev/null
-    gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
+    if [ "$have_resource_type_post" ]
+    then
+        gnocchi resource-type create ext > /dev/null
+        gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
+    fi
 
     {
         measures_sep=""
