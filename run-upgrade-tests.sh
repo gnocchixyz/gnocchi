@@ -46,17 +46,16 @@ inject_data() {
     gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
 
     {
+        measures_sep=""
+        MEASURES=$(for i in $(seq 0 10 288000); do
+                       now=$($GDATE --iso-8601=s -d "-${i}minute") ; value=$((RANDOM % 13 + 52))
+                       echo -n "$measures_sep {\"timestamp\": \"$now\", \"value\": $value }"
+                       measures_sep=","
+                   done)
         echo -n '{'
         resource_sep=""
         for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
-            echo -n "$resource_sep \"$resource_id\": { \"metric\": [ "
-            measures_sep=""
-            for i in $(seq 0 10 288000); do
-                now=$($GDATE --iso-8601=s -d "-${i}minute") ; value=$((RANDOM % 13 + 52))
-                echo -n "$measures_sep {\"timestamp\": \"$now\", \"value\": $value }"
-                measures_sep=","
-            done
-            echo -n "] }"
+            echo -n "$resource_sep \"$resource_id\": { \"metric\": [ $MEASURES ] }"
             resource_sep=","
         done
         echo -n '}'
