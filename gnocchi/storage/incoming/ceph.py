@@ -105,9 +105,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 metric_details[metric] += 1
         return len(metrics), count, metric_details if details else None
 
-    def _list_object_names_to_process(self, prefix=""):
+    def _list_object_names_to_process(self, prefix="", limit=-1):
         with rados.ReadOpCtx() as op:
-            omaps, ret = self.ioctx.get_omap_vals(op, "", prefix, -1)
+            omaps, ret = self.ioctx.get_omap_vals(op, "", prefix, limit)
             try:
                 self.ioctx.operate_read_op(
                     op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)
@@ -125,7 +125,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             return (k for k, v in omaps)
 
     def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process()
+        names = self._list_object_names_to_process(limit=-1 if full else
+                                                   size * (part + 1))
         if full:
             objs_it = names
         else:
