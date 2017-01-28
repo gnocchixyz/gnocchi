@@ -242,9 +242,6 @@ function configure_gnocchi {
         iniset $GNOCCHI_CONF storage coordination_url "$GNOCCHI_COORDINATOR_URL"
     fi
 
-    # Configure auth token middleware
-    configure_auth_token_middleware $GNOCCHI_CONF gnocchi $GNOCCHI_AUTH_CACHE_DIR
-
     if is_service_enabled gnocchi-statsd ; then
         iniset $GNOCCHI_CONF statsd resource_id $GNOCCHI_STATSD_RESOURCE_ID
         iniset $GNOCCHI_CONF statsd project_id $GNOCCHI_STATSD_PROJECT_ID
@@ -272,6 +269,8 @@ function configure_gnocchi {
     fi
 
     if [ "$GNOCCHI_USE_KEYSTONE" == "True" ] ; then
+        # Configure auth token middleware
+        configure_auth_token_middleware $GNOCCHI_CONF gnocchi $GNOCCHI_AUTH_CACHE_DIR
         iniset $GNOCCHI_CONF api auth_mode keystone
         if is_service_enabled gnocchi-grafana; then
             iniset $GNOCCHI_CONF cors allowed_origin ${GRAFANA_URL}
@@ -431,14 +430,6 @@ function start_gnocchi {
         if ! timeout $SERVICE_TIMEOUT sh -c "while ! curl -v --max-time 5 --noproxy '*' -s $(gnocchi_service_url)/v1/resource/generic ; do sleep 1; done"; then
             die $LINENO "gnocchi-api did not start"
         fi
-    fi
-
-    # Create a default policy
-    if [ "$GNOCCHI_USE_KEYSTONE" == "False" ]; then
-        export OS_AUTH_TYPE=gnocchi-noauth
-        export GNOCCHI_USER_ID=`uuidgen`
-        export GNOCCHI_PROJECT_ID=`uuidgen`
-        export GNOCCHI_ENDPOINT="$(gnocchi_service_url)"
     fi
 
     # run metricd last so we are properly waiting for swift and friends
