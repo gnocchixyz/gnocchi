@@ -298,7 +298,8 @@ class MetricdServiceManager(cotyledon.ServiceManager):
         self.metric_processor_id = self.add(
             MetricProcessor, args=(self.conf, self.queue),
             workers=conf.metricd.workers)
-        self.add(MetricReporting, args=(self.conf,))
+        if self.conf.metricd.metric_reporting_delay >= 0:
+            self.add(MetricReporting, args=(self.conf,))
         self.add(MetricJanitor, args=(self.conf,))
 
         self.register_hooks(on_reload=self.on_reload)

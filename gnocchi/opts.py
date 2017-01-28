@@ -72,9 +72,11 @@ def list_opts():
             cfg.IntOpt('metric_reporting_delay',
                        deprecated_group='storage',
                        default=120,
+                       min=-1,
                        required=True,
                        help="How many seconds to wait between "
-                       "metric ingestion reporting"),
+                       "metric ingestion reporting. Set value to -1 to "
+                       "disable reporting"),
             cfg.IntOpt('metric_cleanup_delay',
                        deprecated_group='storage',
                        default=300,
