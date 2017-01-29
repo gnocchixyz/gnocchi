@@ -700,8 +700,8 @@ class AggregatedTimeSerie(TimeSerie):
         # Create a structured array with two dimensions
         values = numpy.array(self.ts.values, dtype='<d')
         ones = numpy.ones_like(values, dtype='<?')
-        values = numpy.core.records.fromarrays(
-            (ones, values), names='b, v', formats='<?, <d')
+        values = numpy.core.records.fromarrays((ones, values),
+                                               dtype=serial_dtype)
 
         serial[locs] = values
 
