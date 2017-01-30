@@ -37,6 +37,7 @@ from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
 from gnocchi import storage
+from gnocchi.storage import incoming
 from gnocchi import utils
 
 
@@ -1649,8 +1650,11 @@ class StatusController(rest.RestController):
     @pecan.expose('json')
     def get(details=True):
         enforce("get status", {})
-        report = pecan.request.storage.incoming.measures_report(
-            strutils.bool_from_string(details))
+        try:
+            report = pecan.request.storage.incoming.measures_report(
+                strutils.bool_from_string(details))
+        except incoming.ReportGenerationError:
+            abort(503, 'Unable to generate status. Please retry.')
         report_dict = {"storage": {"summary": report['summary']}}
         if 'details' in report:
             report_dict["storage"]["measures_to_process"] = report['details']

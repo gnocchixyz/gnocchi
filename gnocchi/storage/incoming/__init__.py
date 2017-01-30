@@ -17,6 +17,10 @@
 from gnocchi import exceptions
 
 
+class ReportGenerationError(Exception):
+    pass
+
+
 # TODO(sileht): We inherit from this storage driver temporary
 # until we moved out all incoming code from here.
 class StorageDriver(object):

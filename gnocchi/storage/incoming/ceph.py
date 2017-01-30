@@ -93,21 +93,33 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                         flags=self.OMAP_WRITE_FLAGS)
 
     def _build_report(self, details):
-        names = self._list_object_names_to_process()
+        LIMIT = 1000
         metrics = set()
         count = 0
         metric_details = defaultdict(int)
-        for name in names:
-            count += 1
-            metric = name.split("_")[1]
-            metrics.add(metric)
-            if details:
-                metric_details[metric] += 1
+        marker = ""
+        while True:
+            names = list(self._list_object_names_to_process(marker=marker,
+                                                            limit=LIMIT))
+            if names and names[0] < marker:
+                raise _carbonara.ReportGenerationError("Unable to cleanly "
+                                                       "compute backlog.")
+            for name in names:
+                count += 1
+                metric = name.split("_")[1]
+                metrics.add(metric)
+                if details:
+                    metric_details[metric] += 1
+            if len(names) < LIMIT:
+                break
+            else:
+                marker = name
+
         return len(metrics), count, metric_details if details else None
 
-    def _list_object_names_to_process(self, prefix="", limit=-1):
+    def _list_object_names_to_process(self, prefix="", marker="", limit=-1):
         with rados.ReadOpCtx() as op:
-            omaps, ret = self.ioctx.get_omap_vals(op, "", prefix, limit)
+            omaps, ret = self.ioctx.get_omap_vals(op, marker, prefix, limit)
             try:
                 self.ioctx.operate_read_op(
                     op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)

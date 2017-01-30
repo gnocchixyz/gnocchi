@@ -36,6 +36,7 @@ from gnocchi import indexer
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
+from gnocchi.storage import incoming
 from gnocchi import utils
 
 
@@ -137,6 +138,9 @@ class MetricReporting(MetricProcessBase):
                      "metrics wait to be processed.",
                      report['summary']['measures'],
                      report['summary']['metrics'])
+        except incoming.ReportGenerationError:
+            LOG.warning("Unable to compute backlog. Retrying at next "
+                        "interval.")
         except Exception:
             LOG.error("Unexpected error during pending measures reporting",
                       exc_info=True)
