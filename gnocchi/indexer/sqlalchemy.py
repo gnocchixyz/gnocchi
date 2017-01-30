@@ -61,11 +61,23 @@ _marker = indexer._marker
 LOG = log.getLogger(__name__)
 
 
+def _retry_on_exceptions(exc):
+    return (
+        pymysql and
+        isinstance(exc, exception.DBError) and
+        isinstance(exc.inner_exception, sqlalchemy.exc.InternalError) and
+        isinstance(exc.inner_exception.orig, pymysql.err.InternalError) and
+        (exc.inner_exception.orig.args[0] ==
+         pymysql.constants.ER.TABLE_DEF_CHANGED)
+    )
+
+
 def retry_on_deadlock(f):
     return oslo_db.api.wrap_db_retry(retry_on_deadlock=True,
                                      max_retries=20,
                                      retry_interval=0.1,
-                                     max_retry_interval=2)(f)
+                                     max_retry_interval=2,
+                                     exception_checker=_retry_on_exceptions)(f)
 
 
 class PerInstanceFacade(object):
