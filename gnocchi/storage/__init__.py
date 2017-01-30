@@ -135,13 +135,15 @@ def get_driver_class(namespace, conf):
     :param conf: The conf to use to determine the driver.
     """
     return driver.DriverManager(namespace,
-                                conf.storage.driver).driver
+                                conf.driver).driver
 
 
 def get_driver(conf):
     """Return the configured driver."""
-    incoming = get_driver_class('gnocchi.incoming', conf)(conf.incoming)
-    return get_driver_class('gnocchi.storage', conf)(conf.storage, incoming)
+    incoming = get_driver_class('gnocchi.incoming', conf.incoming)(
+        conf.incoming)
+    return get_driver_class('gnocchi.storage', conf.storage)(
+        conf.storage, incoming)
 
 
 class StorageDriver(object):
