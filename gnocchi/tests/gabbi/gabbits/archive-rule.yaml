@@ -26,7 +26,6 @@ tests:
 
     - name: create archive policy rule1
       POST: /v1/archive_policy_rule
-      method: POST
       request_headers:
           content-type: application/json
           x-roles: admin
@@ -42,7 +41,6 @@ tests:
 
     - name: create archive policy rule 2
       POST: /v1/archive_policy_rule
-      method: POST
       request_headers:
           content-type: application/json
           x-roles: admin

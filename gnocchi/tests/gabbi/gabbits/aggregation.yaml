@@ -39,7 +39,7 @@ tests:
       status: 201
 
     - name: get metric list to push metric 1
-      url: /v1/metric
+      GET: /v1/metric
 
     - name: push measurements to metric 1
       POST: /v1/metric/$RESPONSE['$[0].id']/measures

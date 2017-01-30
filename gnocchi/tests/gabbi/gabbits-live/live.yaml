@@ -9,13 +9,12 @@ defaults:
 
 tests:
     - name: check /
-      url: /
+      GET: /
 
     # Fail to create archive policy
     - name: wrong archive policy content type
       desc: attempt to create archive policy with invalid content-type
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: text/plain
       status: 415
@@ -24,16 +23,14 @@ tests:
 
     - name: wrong method
       desc: attempt to create archive policy with 'PUT' method
-      url: /v1/archive_policy
-      method: PUT
+      PUT: /v1/archive_policy
       request_headers:
           content-type: application/json
       status: 405
 
     - name: invalid authZ
       desc: x-auth-token is invalid
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
           x-auth-token: 'hello'
@@ -45,8 +42,7 @@ tests:
 
     - name: bad archive policy body
       desc: archive policy contains invalid key 'cowsay'
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -57,8 +53,7 @@ tests:
 
     - name: missing definition
       desc: archive policy is missing 'definition' keyword
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -69,8 +64,7 @@ tests:
 
     - name: empty definition
       desc: empty definition for archive policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -82,8 +76,7 @@ tests:
 
     - name: wrong value definition
       desc: invalid type of 'definition' key
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -95,8 +88,7 @@ tests:
 
     - name: useless definition
       desc: invalid archive policy definition
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -113,8 +105,7 @@ tests:
 
     - name: create archive policy
       desc: create archve policy 'gabbilive' for live tests
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -139,7 +130,7 @@ tests:
 
     - name: get archive policy
       desc: retrieve archive policy 'gabbilive' and asster its values
-      url: $LOCATION
+      GET: $LOCATION
       response_headers:
           content-type: /application/json/
       response_json_paths:
@@ -159,7 +150,7 @@ tests:
 
     - name: get wrong accept
       desc: invalid 'accept' header
-      url: /v1/archive_policy/medium
+      GET: /v1/archive_policy/medium
       request_headers:
           accept: text/plain
       status: 406
@@ -168,22 +159,19 @@ tests:
 
     - name: post single archive
       desc: unexpected 'POST' request to archive policy
-      url: /v1/archive_policy/gabbilive
-      method: POST
+      POST: /v1/archive_policy/gabbilive
       status: 405
 
     - name: put single archive
       desc: unexpected 'PUT' request to archive policy
-      url: /v1/archive_policy/gabbilive
-      method: PUT
+      PUT: /v1/archive_policy/gabbilive
       status: 405
 
     # Duplicated archive policy names ain't allowed
 
     - name: create duplicate archive policy
       desc: create archve policy 'gabbilive' for live tests
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -198,8 +186,7 @@ tests:
     # Create a unicode named policy
 
     - name: post unicode policy name
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -214,29 +201,26 @@ tests:
           name: ✔éñ☃
 
     - name: retrieve unicode policy name
-      url: $LOCATION
+      GET: $LOCATION
       response_json_paths:
           name: ✔éñ☃
 
     - name: delete unicode archive policy
-      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
-      method: DELETE
+      DELETE: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       status: 204
 
     # It really is gone
 
     - name: confirm delete
       desc: assert deleted unicode policy is not available
-      method: GET
-      url: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
+      GET: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       status: 404
 
     # Fail to delete one that does not exist
 
     - name: delete missing archive
       desc: delete non-existent archive policy
-      url: /v1/archive_policy/grandiose
-      method: DELETE
+      DELETE: /v1/archive_policy/grandiose
       status: 404
       response_strings:
           - Archive policy grandiose does not exist
@@ -244,8 +228,7 @@ tests:
     # Attempt to create illogical policies
 
     - name: create illogical policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -259,8 +242,7 @@ tests:
           - timespan ≠ granularity × points
 
     - name: create identical granularities policy
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -276,8 +258,7 @@ tests:
 
     - name: policy invalid unit
       desc: invalid unit for archive policy 'timespan' key
-      url: /v1/archive_policy
-      method: POST
+      POST: /v1/archive_policy
       request_headers:
           content-type: application/json
       data:
@@ -292,8 +273,7 @@ tests:
     #
 
     - name: create archive policy rule1
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
       data:
@@ -307,8 +287,7 @@ tests:
         $.name: gabbilive_rule
 
     - name: create invalid archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
       data:
@@ -317,8 +296,7 @@ tests:
       status: 400
 
     - name: missing auth archive policy rule
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
           x-auth-token: 'hello'
@@ -329,8 +307,7 @@ tests:
       status: 401
 
     - name: wrong archive policy rule content type
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: text/plain
       status: 415
@@ -338,8 +315,7 @@ tests:
           - Unsupported Media Type
 
     - name: bad archive policy rule body
-      url: /v1/archive_policy_rule
-      method: POST
+      POST: /v1/archive_policy_rule
       request_headers:
           content-type: application/json
       data:
@@ -351,18 +327,18 @@ tests:
     # get an archive policy rules
 
     - name: get all archive policy rules
-      url: /v1/archive_policy_rule
+      GET: /v1/archive_policy_rule
       status: 200
       response_strings:
         '"metric_pattern": "live.*", "archive_policy_name": "gabbilive", "name": "gabbilive_rule"'
 
     - name: get unknown archive policy rule
-      url: /v1/archive_policy_rule/foo
+      GET: /v1/archive_policy_rule/foo
       status: 404
 
 
     - name: get archive policy rule
-      url: /v1/archive_policy_rule/gabbilive_rule
+      GET: /v1/archive_policy_rule/gabbilive_rule
       status: 200
       response_json_paths:
           $.metric_pattern: "live.*"
@@ -371,8 +347,7 @@ tests:
 
     - name: delete archive policy in use
       desc: fails due to https://bugs.launchpad.net/gnocchi/+bug/1569781
-      url: /v1/archive_policy/gabbilive
-      method: DELETE
+      DELETE: /v1/archive_policy/gabbilive
       status: 400
 
     #
@@ -381,14 +356,13 @@ tests:
 
 
     - name: get all metrics
-      url: /v1/metric
+      GET: /v1/metric
       status: 200
 
     - name: create metric with name and rule
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           name: "live.io.rate"
       status: 201
@@ -397,15 +371,13 @@ tests:
           $.name: live.io.rate
 
     - name: delete metric
-      url: $LOCATION
-      method: DELETE
+      DELETE: $LOCATION
       status: 204
 
     - name: create metric with name and policy
-      url: /v1/metric
+      POST: /v1/metric
       request_headers:
           content-type: application/json
-      method: post
       data:
           name: "aagabbi.live.metric"
           archive_policy_name: "gabbilive"
@@ -415,19 +387,17 @@ tests:
           $.name: "aagabbi.live.metric"
 
     - name: get valid metric id
-      url: $LOCATION
+      GET: $LOCATION
       status: 200
       response_json_paths:
         $.archive_policy.name: gabbilive
 
     - name: delete the metric
-      url: /v1/metric/$RESPONSE['$.id']
-      method: DELETE
+      DELETE: /v1/metric/$RESPONSE['$.id']
       status: 204
 
     - name: create metric bad archive policy
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: application/json
       data:
@@ -437,8 +407,7 @@ tests:
           - Archive policy 2e2675aa-105e-4664-a30d-c407e6a0ea7f does not exist
 
     - name: create metric bad content-type
-      url: /v1/metric
-      method: POST
+      POST: /v1/metric
       request_headers:
           content-type: plain/text
       data: '{"archive_policy_name": "cookies"}'
@@ -450,13 +419,11 @@ tests:
     #
 
     - name: delete archive policy rule
-      url: /v1/archive_policy_rule/gabbilive_rule
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/gabbilive_rule
       status: 204
 
     - name: confirm delete archive policy rule
-      url: /v1/archive_policy_rule/gabbilive_rule
-      method: DELETE
+      DELETE: /v1/archive_policy_rule/gabbilive_rule
       status: 404
 
 
@@ -465,25 +432,24 @@ tests:
     #
 
     - name: root of resource
-      url: /v1/resource
+      GET: /v1/resource
       response_json_paths:
           $.generic: $SCHEME://$NETLOC/v1/resource/generic
 
     - name: typo of resource
-      url: /v1/resoue
+      GET: /v1/resoue
       status: 404
 
     - name: typo of resource extra
-      url: /v1/resource/foobar
+      GET: /v1/resource/foobar
       status: 404
 
     - name: generic resource
-      url: /v1/resource/generic
+      GET: /v1/resource/generic
       status: 200
 
     - name: post resource type
-      url: /v1/resource_type
-      method: post
+      POST: /v1/resource_type
       request_headers:
           content-type: application/json
       data:
@@ -499,8 +465,7 @@ tests:
           location: $SCHEME://$NETLOC/v1/resource_type/myresource
 
     - name: add an attribute
-      url: /v1/resource_type/myresource
-      method: PATCH
+      PATCH: /v1/resource_type/myresource
       request_headers:
           content-type: application/json-patch+json
       data:
@@ -514,8 +479,7 @@ tests:
           $.attributes.[*].`len`: 2
 
     - name: remove an attribute
-      url: /v1/resource_type/myresource
-      method: PATCH
+      PATCH: /v1/resource_type/myresource
       request_headers:
           content-type: application/json-patch+json
       data:
@@ -531,7 +495,7 @@ tests:
       desc: Expect 406 on bad accept type
       request_headers:
           accept: text/plain
-      url: /v1/resource/myresource
+      GET: /v1/resource/myresource
       status: 406
       response_strings:
           - 406 Not Acceptable
@@ -540,12 +504,11 @@ tests:
       desc: failover accept media type appropriately
       request_headers:
           accept: text/plain, application/json; q=0.8
-      url: /v1/resource/myresource
+      GET: /v1/resource/myresource
       status: 200
 
     - name: post myresource resource
-      url: /v1/resource/myresource
-      method: post
+      POST: /v1/resource/myresource
       request_headers:
           content-type: application/json
       data:
@@ -564,7 +527,7 @@ tests:
           $.display_name: "myvm"
 
     - name: get myresource resource
-      url: $LOCATION
+      GET: $LOCATION
       status: 200
       response_json_paths:
           $.id: 2ae35573-7f9f-4bb1-aae8-dad8dff5706e
@@ -573,9 +536,7 @@ tests:
           $.display_name: "myvm"
 
     - name: search for myresource resource via user_id
-      #url: /v1/search/resource/generic
-      url: /v1/search/resource/myresource
-      method: POST
+      POST: /v1/search/resource/myresource
       request_headers:
         content-type: application/json
       data:
@@ -588,8 +549,7 @@ tests:
         $..display_name: myvm
 
     - name: search for myresource resource via user_id and 'generic' type
-      url: /v1/search/resource/generic
-      method: POST
+      POST: /v1/search/resource/generic
       request_headers:
         content-type: application/json
       data:
@@ -599,8 +559,7 @@ tests:
         '"user_id": "126204ef-989a-46fd-999b-ee45c8108f31"'
 
     - name: search for myresource resource via user_id and project_id
-      url: /v1/search/resource/generic
-      method: POST
+      POST: /v1/search/resource/generic
       request_headers:
         content-type: application/json
       data:
@@ -613,8 +572,7 @@ tests:
         '"id": "2ae35573-7f9f-4bb1-aae8-dad8dff5706e"'
 
     - name: patch myresource resource
-      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
-      method: patch
+      PATCH: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       request_headers:
           content-type: application/json
       data:
@@ -624,10 +582,9 @@ tests:
           display_name: myvm2
 
     - name: post some measures to the metric on myresource
-      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
+      POST: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
       request_headers:
           content-type: application/json
-      method: POST
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 2
@@ -636,7 +593,7 @@ tests:
       status: 202
 
     - name: get myresource measures with poll
-      url: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
+      GET: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e/metric/vcpus/measures
       # wait up to 60 seconds before policy is deleted
       poll:
           count: 60
@@ -671,18 +628,15 @@ tests:
     #
 
     - name: typo of search
-      url: /v1/search/notexists
-      method: POST
+      POST: /v1/search/notexists
       status: 404
 
     - name: typo of search in resource
-      url: /v1/search/resource/foobar
-      method: POST
+      POST: /v1/search/resource/foobar
       status: 404
 
     - name: search with invalid uuid
-      url: /v1/search/resource/generic
-      method: POST
+      POST: /v1/search/resource/generic
       request_headers:
         content-type: application/json
       data:
@@ -691,26 +645,22 @@ tests:
 
 
     - name: delete myresource resource
-      url: /v1/resource/generic/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
-      method: DELETE
+      DELETE: /v1/resource/generic/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       status: 204
 
       # assert resource is really deleted
     - name: assert resource resource is deleted
-      url: /v1/resource/generic/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
-      method: GET
+      GET: /v1/resource/generic/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       status: 404
 
     - name: post myresource resource no data
-      url: /v1/resource/generic
-      method: post
+      POST: /v1/resource/generic
       request_headers:
           content-type: application/json
       status: 400
 
     - name: delete single archive policy cleanup
-      url: /v1/archive_policy/gabbilive
-      method: DELETE
+      DELETE: /v1/archive_policy/gabbilive
       poll:
           count: 360
           delay: 1
@@ -723,5 +673,5 @@ tests:
       status: 204
 
     - name: confirm delete of cleanup
-      url: /v1/archive_policy/gabbilive
+      GET: /v1/archive_policy/gabbilive
       status: 404
