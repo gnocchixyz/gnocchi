@@ -25,7 +25,7 @@ dump_data(){
     dir="$1"
     mkdir -p $dir
     echo "* Dumping measures aggregations to $dir"
-    gnocchi resource list > $dir/resources.list
+    gnocchi resource list -c id -c type -c project_id -c user_id -c original_resource_id -c started_at -c ended_at -c revision_start -c revision_end > $dir/resources.list
     for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
         for agg in min max mean sum ; do
             gnocchi measures show --aggregation $agg --resource-id $resource_id metric > $dir/${agg}.txt
@@ -89,6 +89,8 @@ fi
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 inject_data $GNOCCHI_DATA
+# Encode resource id as it contains slashes and gnocchiclient does not encode it
+[ "$have_resource_type_post" ] && RESOURCE_ID_EXT="19235bb9-35ca-5f55-b7db-165cfb033c86"
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
