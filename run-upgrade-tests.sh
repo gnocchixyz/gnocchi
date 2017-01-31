@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-export OS_AUTH_TYPE=gnocchi-noauth
-export GNOCCHI_ENDPOINT=http://localhost:8041
-export GNOCCHI_USER_ID=99aae-4dc2-4fbc-b5b8-9688c470d9cc
-export GNOCCHI_PROJECT_ID=c8d27445-48af-457c-8e0d-1de7103eae1f
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 GDATE=$((which gdate >/dev/null && echo gdate) || echo date)
@@ -87,6 +83,10 @@ else
 fi
 
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+# Override default to be sure to use noauth
+export OS_AUTH_TYPE=gnocchi-noauth
+export GNOCCHI_USER_ID=admin
+export GNOCCHI_PROJECT_ID=admin
 gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 inject_data $GNOCCHI_DATA
 # Encode resource id as it contains slashes and gnocchiclient does not encode it
