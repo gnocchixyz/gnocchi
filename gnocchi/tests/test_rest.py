@@ -138,6 +138,12 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
                               indexer=self.index,
                               auth=self.auth)
 
+    @staticmethod
+    def runTest():
+        pass
+
+
+class RootTest(RestTest):
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
             self.app.post(
@@ -169,10 +175,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         self.assertEqual({}, status['storage']['measures_to_process'])
         self.assertIs(type(status['storage']['summary']['metrics']), int)
         self.assertIs(type(status['storage']['summary']['measures']), int)
-
-    @staticmethod
-    def runTest():
-        pass
 
 
 class ArchivePolicyTest(RestTest):

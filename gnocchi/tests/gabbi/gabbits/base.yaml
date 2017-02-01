@@ -7,7 +7,7 @@ tests:
   desc: Root URL must return information about API versions
   url: /
   response_headers:
-      content-type: application/json; charset=UTF-8
+      content-type: /^application\/json/
   response_json_paths:
       $.versions.[0].id: "v1.0"
       $.versions.[0].status: "CURRENT"
@@ -25,7 +25,7 @@ tests:
             points: 20
   status: 201
   response_headers:
-      content-type: /application\/json/
+      content-type: /^application\/json/
       location: $SCHEME://$NETLOC/v1/archive_policy/test1
   response_json_paths:
       $.name: test1
@@ -95,7 +95,7 @@ tests:
   desc: Resources index page should return list of type associated with a URL
   url: /v1/resource/
   response_headers:
-      content-type: application/json; charset=UTF-8
+      content-type: /^application\/json/
   status: 200
   response_json_paths:
       $.generic: $SCHEME://$NETLOC/v1/resource/generic

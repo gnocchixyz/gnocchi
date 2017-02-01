@@ -36,7 +36,7 @@ except ImportError:
     pymysql = None
 import six
 import sqlalchemy
-import sqlalchemy.engine.url as sqlalchemy_url
+from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
 from sqlalchemy import types
 import sqlalchemy_utils
@@ -221,14 +221,27 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @classmethod
     def _create_new_database(cls, url):
         """Used by testing to create a new database."""
-        purl = sqlalchemy_url.make_url(url)
+        purl = sqlalchemy_url.make_url(
+            cls.dress_url(
+                url))
         purl.database = purl.database + str(uuid.uuid4()).replace('-', '')
         new_url = str(purl)
         sqlalchemy_utils.create_database(new_url)
         return new_url
 
+    @staticmethod
+    def dress_url(url):
+        # If no explicit driver has been set, we default to pymysql
+        if url.startswith("mysql://"):
+            url = sqlalchemy_url.make_url(url)
+            url.drivername = "mysql+pymysql"
+            return str(url)
+        return url
+
     def __init__(self, conf):
-        conf.set_override("connection", conf.indexer.url, "database")
+        conf.set_override("connection",
+                          self.dress_url(conf.indexer.url),
+                          "database")
         self.conf = conf
         self.facade = PerInstanceFacade(conf)
 

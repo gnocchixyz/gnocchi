@@ -441,6 +441,7 @@ tests:
       url: /v1/archive_policy
       method: POST
       request_headers:
+          content-type: application/json
           x-user-id: b45187c5-150b-4730-bcb2-b5e04e234220
           x-project-id: 16764ee0-bffe-4843-aa36-04b002cdbc7c
       data:

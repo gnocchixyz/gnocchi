@@ -28,6 +28,7 @@ import sqlalchemy.engine.url as sqlalchemy_url
 import sqlalchemy_utils
 
 from gnocchi import indexer
+from gnocchi.indexer import sqlalchemy
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import storage
@@ -102,7 +103,9 @@ class ConfigFixture(fixture.GabbiFixture):
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
-        url = sqlalchemy_url.make_url(conf.indexer.url)
+        url = sqlalchemy_url.make_url(
+            sqlalchemy.SQLAlchemyIndexer.dress_url(
+                conf.indexer.url))
 
         url.database = url.database + str(uuid.uuid4()).replace('-', '')
         db_url = str(url)

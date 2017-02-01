@@ -15,6 +15,7 @@
 import abc
 
 import mock
+import oslo_db.exception
 from oslo_db.sqlalchemy import test_migrations
 import six
 import sqlalchemy_utils
@@ -45,6 +46,14 @@ class ModelsMigrationsSync(
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
         self.index.upgrade(nocreate=True, create_legacy_resource_types=True)
+        self.addCleanup(self._drop_database)
+
+    def _drop_database(self):
+        try:
+            sqlalchemy_utils.drop_database(self.conf.indexer.url)
+        except oslo_db.exception.DBNonExistentDatabase:
+            # NOTE(sileht): oslo db >= 4.15.0 cleanup this for us
+            pass
 
     @staticmethod
     def get_metadata():
@@ -56,7 +65,3 @@ class ModelsMigrationsSync(
     @staticmethod
     def db_sync(engine):
         pass
-
-    def tearDown(self):
-        sqlalchemy_utils.drop_database(self.conf.indexer.url)
-        super(ModelsMigrationsSync, self).tearDown()
