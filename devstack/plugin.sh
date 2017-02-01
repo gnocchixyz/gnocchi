@@ -33,11 +33,6 @@ XTRACE=$(set +o | grep xtrace)
 set -o xtrace
 
 
-# Defaults
-# --------
-GITDIR["python-gnocchiclient"]=$DEST/python-gnocchiclient
-GITREPO["python-gnocchiclient"]=${GNOCCHICLIENT_REPO:-${GIT_BASE}/openstack/python-gnocchiclient.git}
-
 if [ -z "$GNOCCHI_DEPLOY" ]; then
     # Default
     GNOCCHI_DEPLOY=simple
@@ -113,15 +108,6 @@ function gnocchi_service_url {
         echo "$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT"
     else
         echo "$GNOCCHI_SERVICE_PROTOCOL://$GNOCCHI_SERVICE_HOST$GNOCCHI_SERVICE_PREFIX"
-    fi
-}
-
-function install_gnocchiclient {
-    if use_library_from_git python-gnocchiclient; then
-        git_clone_by_name python-gnocchiclient
-        setup_dev_lib python-gnocchiclient
-    else
-        pip_install gnocchiclient
     fi
 }
 
@@ -382,8 +368,6 @@ function install_gnocchi {
     then
         _gnocchi_install_grafana
     fi
-
-    install_gnocchiclient
 
     [ "$GNOCCHI_USE_KEYSTONE" == "True" ] && EXTRA_FLAVOR=,keystone
 
