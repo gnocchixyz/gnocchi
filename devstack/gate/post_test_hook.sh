@@ -46,7 +46,6 @@ curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: applicati
 sudo gnocchi-upgrade
 
 # Just ensure tools still works
-gnocchi metric create
 sudo -E -H -u stack $GNOCCHI_DIR/tools/measures_injector.py --metrics 1 --batch-of-measures 2 --measures-per-batch 2
 
 # NOTE(sileht): on swift job permissions are wrong, I don't known why

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import random
+import uuid
 
 from concurrent import futures
 from oslo_config import cfg
@@ -28,7 +29,9 @@ from gnocchi import utils
 def injector():
     conf = cfg.ConfigOpts()
     conf.register_cli_opts([
-        cfg.IntOpt("metrics"),
+        cfg.IntOpt("metrics", default=1, min=1),
+        cfg.StrOpt("archive-policy-name", default="low"),
+        cfg.StrOpt("creator", default="admin"),
         cfg.IntOpt("batch-of-measures", default=1000),
         cfg.IntOpt("measures-per-batch", default=10),
     ])
@@ -37,11 +40,12 @@ def injector():
     index.connect()
     s = storage.get_driver(conf)
 
-    metrics = index.list_metrics()
-    if conf.metrics:
-        metrics = metrics[:conf.metrics]
+    def todo():
+        metric = index.create_metric(
+            uuid.uuid4(),
+            creator=conf.creator,
+            archive_policy_name=conf.archive_policy_name)
 
-    def todo(metric):
         for _ in six.moves.range(conf.batch_of_measures):
             measures = [
                 storage.Measure(
@@ -49,10 +53,9 @@ def injector():
                 for __ in six.moves.range(conf.measures_per_batch)]
             s.incoming.add_measures(metric, measures)
 
-    with futures.ThreadPoolExecutor(max_workers=len(metrics)) as executor:
-        # We use 'list' to iterate all threads here to raise the first
-        # exception now, not much choice
-        list(executor.map(todo, metrics))
+    with futures.ThreadPoolExecutor(max_workers=conf.metrics) as executor:
+        for m in six.moves.range(conf.metrics):
+            executor.submit(todo)
 
 
 if __name__ == '__main__':
