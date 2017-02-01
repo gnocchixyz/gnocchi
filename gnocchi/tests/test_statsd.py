@@ -35,7 +35,7 @@ class TestStatsd(tests_base.TestCase):
         super(TestStatsd, self).setUp()
 
         self.conf.set_override("resource_id",
-                               uuid.uuid4(), "statsd")
+                               str(uuid.uuid4()), "statsd")
         self.conf.set_override("user_id",
                                self.STATSD_USER_ID, "statsd")
         self.conf.set_override("project_id",

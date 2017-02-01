@@ -35,7 +35,7 @@ tests:
       status: 201
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
-          content-type: application/json; charset=UTF-8
+          content-type: /^application\/json/
       response_json_paths:
           $.created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           $.created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
