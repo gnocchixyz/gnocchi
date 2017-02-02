@@ -244,7 +244,7 @@ tests:
       response_json_paths:
           $.description.cause: "Unknown resources"
           $.description.detail:
-            - resource_id: "301dbf9a-4fce-52b6-9010-4484c469dcec"
+            - resource_id: "6b8e287d-c01a-538c-979b-a819ee49de5d"
               original_resource_id: "foobar"
 
     - name: push measurements to named metrics and resource with create_metrics with wrong measure objects

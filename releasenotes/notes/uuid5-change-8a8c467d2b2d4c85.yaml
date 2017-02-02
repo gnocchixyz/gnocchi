@@ -1,0 +1,12 @@
+---
+issues:
+  - >-
+    The conversion mechanism provided by the API to convert non-UUID resource
+    id to UUID is now also based on the user creating/accessing the resource.
+    This makes sure that the conversion generates a unique UUID for the user
+    and that several users can use the same string as `original_resource_id`.
+upgrade:
+  - >-
+    Since `original_resource_id` is now unique per creator, that means users
+    cannot refer to resource by using the `original_resource_id` if the
+    resource was not created by them.
