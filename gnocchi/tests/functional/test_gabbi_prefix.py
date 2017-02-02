@@ -19,7 +19,7 @@ import os
 
 from gabbi import driver
 
-from gnocchi.tests.gabbi import fixtures
+from gnocchi.tests.functional import fixtures
 
 
 TESTS_DIR = 'gabbits'
