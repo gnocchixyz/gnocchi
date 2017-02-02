@@ -6,6 +6,7 @@
 defaults:
     request_headers:
         x-auth-token: $ENVIRON['GNOCCHI_SERVICE_TOKEN']
+        authorization: $ENVIRON['GNOCCHI_AUTHORIZATION']
 
 tests:
     - name: check /
@@ -34,6 +35,7 @@ tests:
       request_headers:
           content-type: application/json
           x-auth-token: 'hello'
+          authorization: 'basic hello:'
       data:
           name: medium
           definition:
@@ -145,8 +147,8 @@ tests:
           $.definition[2].granularity: "0:01:00"
           $.definition[2].points: 5
           $.definition[2].timespan: "0:05:00"
-      response_strings:
-          - '"aggregation_methods": ["max", "min", "mean"]'
+      response_json_paths:
+          $.aggregation_methods.`sorted`: ["max", "mean", "min"]
 
     - name: get wrong accept
       desc: invalid 'accept' header
@@ -300,6 +302,7 @@ tests:
       request_headers:
           content-type: application/json
           x-auth-token: 'hello'
+          authorization: 'basic hello:'
       data:
         name: test_rule
         metric_pattern: "disk.foo.*"
@@ -329,8 +332,10 @@ tests:
     - name: get all archive policy rules
       GET: /v1/archive_policy_rule
       status: 200
-      response_strings:
-          - '"metric_pattern": "live.*", "archive_policy_name": "gabbilive", "name": "gabbilive_rule"'
+      response_json_paths:
+          $[\name][0].name: "gabbilive_rule"
+          $[\name][0].metric_pattern: "live.*"
+          $[\name][0].archive_policy_name: "gabbilive"
 
     - name: get unknown archive policy rule
       GET: /v1/archive_policy_rule/foo
