@@ -62,6 +62,7 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
             require_ssl=require_ssl)
 
         os.environ["GNOCCHI_SERVICE_TOKEN"] = token
+        os.environ["GNOCCHI_AUTHORIZATION"] = "not used"
 
     @classmethod
     def clear_credentials(cls):
