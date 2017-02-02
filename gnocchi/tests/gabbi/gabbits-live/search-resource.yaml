@@ -19,6 +19,7 @@
 defaults:
     request_headers:
         x-auth-token: $ENVIRON['GNOCCHI_SERVICE_TOKEN']
+        authorization: $ENVIRON['GNOCCHI_AUTHORIZATION']
 
 tests:
     #
