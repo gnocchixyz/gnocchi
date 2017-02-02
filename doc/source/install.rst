@@ -11,8 +11,9 @@ To install Gnocchi using `pip`, just type::
 
   pip install gnocchi
 
-Depending on the drivers and features you want to use, you need to install
-extra variants using, for example::
+Depending on the drivers and features you want to use (see :doc:`architecture`
+for which driver to pick), you need to install extra variants using, for
+example::
 
   pip install gnocchi[postgresql,ceph,keystone]
 
@@ -47,7 +48,7 @@ install extra variants using, for example::
 Ceph requirements
 -----------------
 
-The ceph driver need to have a ceph user and a pool already created. They can
+The ceph driver needs to have a Ceph user and a pool already created. They can
 be created for example with:
 
 ::
@@ -65,11 +66,59 @@ If Ceph and python-rados are >= 10.1.0, cradox python library becomes optional
 but is still recommended.
 
 
+Configuration
+=============
+
+Gnocchi is configured by the `/etc/gnocchi/gnocchi.conf` file.
+
+No config file is provided with the source code; it will be created during the
+installation. In case where no configuration file was installed, one can be
+easily created by running:
+
+::
+
+    gnocchi-config-generator > /etc/gnocchi/gnocchi.conf
+
+The configuration file should be pretty explicit, but here are some of the base
+options you want to change and configure:
+
++---------------------+---------------------------------------------------+
+| Option name         | Help                                              |
++=====================+===================================================+
+| storage.driver      | The storage driver for metrics.                   |
++---------------------+---------------------------------------------------+
+| indexer.url         | URL to your indexer.                              |
++---------------------+---------------------------------------------------+
+| storage.file_*      | Configuration options to store files              |
+|                     | if you use the file storage driver.               |
++---------------------+---------------------------------------------------+
+| storage.swift_*     | Configuration options to access Swift             |
+|                     | if you use the Swift storage driver.              |
++---------------------+---------------------------------------------------+
+| storage.ceph_*      | Configuration options to access Ceph              |
+|                     | if you use the Ceph storage driver.               |
++---------------------+---------------------------------------------------+
+| storage.s3_*        | Configuration options to access S3                |
+|                     | if you use the S3 storage driver.                 |
++---------------------+---------------------------------------------------+
+
+Configuring authentication
+-----------------------------
+
+The API server supports different authentication methods: `basic` (the default)
+which uses the standard HTTP `Authorization` header or `keystone` to use
+`OpenStack Keystone`_. If you successfully installed the `keystone` flavor
+using `pip` (see :ref:`installation`), you can set `api.auth_mode` to
+`keystone` to enable Keystone authentication.
+
+.. _`Paste Deployment`: http://pythonpaste.org/deploy/
+.. _`OpenStack Keystone`: http://launchpad.net/keystone
+
 Initialization
 ==============
 
-Once you have configured Gnocchi properly (see :doc:`configuration`), you need
-to initialize the indexer and storage:
+Once you have configured Gnocchi properly you need to initialize the indexer
+and storage:
 
 ::
 
@@ -98,7 +147,7 @@ that your indexer and storage are properly upgraded. Run the following:
 Installation Using Devstack
 ===========================
 
-To enable Gnocchi in devstack, add the following to local.conf:
+To enable Gnocchi in `devstack`_, add the following to local.conf:
 
 ::
 
@@ -113,3 +162,5 @@ Then, you can start devstack:
 ::
 
     ./stack.sh
+
+.. _devstack: http://devstack.org

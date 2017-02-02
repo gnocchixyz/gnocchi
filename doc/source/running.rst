@@ -10,20 +10,8 @@ To run Gnocchi, simply run the HTTP server and metric daemon:
     gnocchi-metricd
 
 
-Running As A WSGI Application
-=============================
-
-It's possible – and strongly advised – to run Gnocchi through a WSGI
-service such as `mod_wsgi`_ or any other WSGI application. The file
-`gnocchi/rest/app.wsgi` provided with Gnocchi allows you to enable Gnocchi as
-a WSGI application.
-For other WSGI setup you can refer to the `pecan deployment`_ documentation.
-
-.. _`pecan deployment`: http://pecan.readthedocs.org/en/latest/deployment.html#deployment
-
-
-How to scale out the Gnocchi HTTP REST API tier
-===============================================
+Running API As A WSGI Application
+=================================
 
 The Gnocchi API tier runs using WSGI. This means it can be run using `Apache
 httpd`_ and `mod_wsgi`_, or other HTTP daemon such as `uwsgi`_. You should
@@ -32,10 +20,104 @@ have, usually around 1.5 × number of CPU. If one server is not enough, you can
 spawn any number of new API server to scale Gnocchi out, even on different
 machines.
 
+The following uwsgi configuration file can be used::
+
+  [uwsgi]
+  http = localhost:8041
+  # Set the correct path depending on your installation
+  wsgi-file = /usr/lib/python2.7/dist-packages/gnocchi/rest/app.wsgi
+  master = true
+  die-on-term = true
+  threads = 32
+  # Adjust based on the number of CPU
+  processes = 32
+  enabled-threads = true
+  thunder-lock = true
+  plugins = python
+  buffer-size = 65535
+  lazy-apps = true
+
+Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
+
+  uwsgi /etc/gnocchi/uwsgi.ini
+
 .. _Apache httpd: http://httpd.apache.org/
 .. _mod_wsgi: https://modwsgi.readthedocs.org/
 .. _uwsgi: https://uwsgi-docs.readthedocs.org/
 
+How to define archive policies
+==============================
+
+In Gnocchi, the archive policy definitions are expressed in number of points.
+If your archive policy defines a policy of 10 points with a granularity of 1
+second, the time series archive will keep up to 10 seconds, each representing
+an aggregation over 1 second. This means the time series will at maximum retain
+10 seconds of data (sometimes a bit more) between the more recent point and the
+oldest point. That does not mean it will be 10 consecutive seconds: there might
+be a gap if data is fed irregularly.
+
+There is no expiry of data relative to the current timestamp.
+
+Therefore, both the archive policy and the granularity entirely depends on your
+use case. Depending on the usage of your data, you can define several archiving
+policies. A typical low grained use case could be::
+
+    3600 points with a granularity of 1 second = 1 hour
+    1440 points with a granularity of 1 minute = 24 hours
+    720 points with a granularity of 1 hour = 30 days
+    365 points with a granularity of 1 day = 1 year
+
+This would represent 6125 points × 9 = 54 KiB per aggregation method. If
+you use the 8 standard aggregation method, your metric will take up to 8 × 54
+KiB = 432 KiB of disk space.
+
+Be aware that the more definitions you set in an archive policy, the more CPU
+it will consume. Therefore, creating an archive policy with 2 definitons (e.g.
+1 second granularity for 1 day and 1 minute granularity for 1 month) may
+consume twice CPU than just one definition (e.g. just 1 second granularity for
+1 day).
+
+Default archive policies
+========================
+
+By default, 3 archive policies are created when calling `gnocchi-upgrade`:
+*low*, *medium* and *high*. The name both describes the storage space and CPU
+usage needs. They use `default_aggregation_methods` which is by default set to
+*mean*, *min*, *max*, *sum*, *std*, *count*.
+
+A fourth archive policy named `bool` is also provided by default and is
+designed to store only boolean values (i.e. 0 and 1). It only stores one data
+point for each second (using the `last` aggregation method), with a one year
+retention period. The maximum optimistic storage size is estimated based on the
+assumption that no other value than 0 and 1 are sent as measures. If other
+values are sent, the maximum pessimistic storage size is taken into account.
+
+- low
+
+  * 5 minutes granularity over 30 days
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 406 KiB
+
+- medium
+
+  * 1 minute granularity over 7 days
+  * 1 hour granularity over 365 days
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 887 KiB
+
+- high
+
+  * 1 second granularity over 1 hour
+  * 1 minute granularity over 1 week
+  * 1 hour granularity over 1 year
+  * aggregation methods used: `default_aggregation_methods`
+  * maximum estimated size per metric: 1 057 KiB
+
+- bool
+  * 1 second granularity over 1 year
+  * aggregation methods used: *last*
+  * maximum optimistic size per metric: 1 539 KiB
+  * maximum pessimistic size per metric: 277 172 KiB
 
 How many metricd workers do we need to run
 ==========================================
