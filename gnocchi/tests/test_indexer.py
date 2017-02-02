@@ -214,7 +214,32 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": rc.started_at,
                           "ended_at": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
+                          "type": "generic",
+                          "metrics": {}},
+                         rc.jsonify())
+        rg = self.index.get_resource('generic', r1, with_metrics=True)
+        self.assertEqual(rc, rg)
+        self.assertEqual(rc.metrics, rg.metrics)
+
+    def test_create_resource_with_original_resource_id(self):
+        r1 = uuid.uuid4()
+        creator = str(uuid.uuid4())
+        rc = self.index.create_resource('generic', r1, creator,
+                                        original_resource_id="foobar")
+        self.assertIsNotNone(rc.started_at)
+        self.assertIsNotNone(rc.revision_start)
+        self.assertEqual({"id": r1,
+                          "revision_start": rc.revision_start,
+                          "revision_end": None,
+                          "creator": creator,
+                          "created_by_user_id": creator,
+                          "created_by_project_id": "",
+                          "user_id": None,
+                          "project_id": None,
+                          "started_at": rc.started_at,
+                          "ended_at": None,
+                          "original_resource_id": "foobar",
                           "type": "generic",
                           "metrics": {}},
                          rc.jsonify())
@@ -240,7 +265,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": rc.started_at,
                           "ended_at": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "type": "generic",
                           "metrics": {}},
                          rc.jsonify())
@@ -323,7 +348,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": ts,
                           "ended_at": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "type": "generic",
                           "metrics": {}}, rc.jsonify())
         r = self.index.get_resource('generic', r1, with_metrics=True)
@@ -352,7 +377,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "started_at": rc.started_at,
                           "ended_at": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "type": "generic",
                           "metrics": {'foo': str(e1), 'bar': str(e2)}},
                          rc.jsonify())
@@ -369,7 +394,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "ended_at": None,
                           "user_id": None,
                           "project_id": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "metrics": {'foo': str(e1), 'bar': str(e2)}},
                          r.jsonify())
 
@@ -419,7 +444,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "project_id": None,
                           "type": "generic",
                           "started_at": r.started_at,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "metrics": {}}, r.jsonify())
 
     def test_update_resource_metrics(self):
@@ -592,7 +617,7 @@ class TestIndexerDriver(tests_base.TestCase):
                           "created_by_user_id": creator,
                           "user_id": None,
                           "project_id": None,
-                          "original_resource_id": None,
+                          "original_resource_id": str(r1),
                           "type": "generic",
                           "metrics": {'bar': str(e2)}}, r.jsonify())
 

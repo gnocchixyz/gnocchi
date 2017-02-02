@@ -734,17 +734,21 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def create_resource(self, resource_type, id,
                         creator, user_id=None, project_id=None,
                         started_at=None, ended_at=None, metrics=None,
+                        original_resource_id=None,
                         **kwargs):
         if (started_at is not None
            and ended_at is not None
            and started_at > ended_at):
             raise ValueError(
                 "Start timestamp cannot be after end timestamp")
+        if original_resource_id is None:
+            original_resource_id = str(id)
         with self.facade.writer() as session:
             resource_cls = self._resource_type_to_mappers(
                 session, resource_type)['resource']
             r = resource_cls(
                 id=id,
+                original_resource_id=original_resource_id,
                 type=resource_type,
                 creator=creator,
                 user_id=user_id,
