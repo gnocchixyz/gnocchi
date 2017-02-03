@@ -59,7 +59,7 @@ tests:
     - name: root of resource
       GET: /v1/resource
       response_json_paths:
-          $.volume: $SCHEME://$NETLOC/v1/resource/volume
+          $.generic: $SCHEME://$NETLOC/v1/resource/generic
 
     - name: typo of resource
       GET: /v1/resoue
@@ -72,13 +72,13 @@ tests:
 # Explore that GETting a list of resources demonstrates the expected
 # behaviors notably with regard to content negotiation.
 
-    - name: instance resource
-      desc: there are no instance resources yet
-      GET: /v1/resource/instance
+    - name: generic resource list
+      desc: there are no generic resources yet
+      GET: /v1/resource/generic
       response_strings:
           - "[]"
 
-    - name: instance resource bad accept
+    - name: generic resource bad accept
       desc: Expect 406 on bad accept type
       GET: $LAST_URL
       request_headers:
@@ -87,7 +87,7 @@ tests:
       response_strings:
           - 406 Not Acceptable
 
-    - name: instance resource complex accept
+    - name: generic resource complex accept
       desc: failover accept media type appropriately
       GET: $LAST_URL
       request_headers:
@@ -160,36 +160,18 @@ tests:
       data: '{"id": "f93450f2-d8a5-4d67-9985-02511241e7d1", "started_at": "2014-01-03T02:02:02.000000", "user_id": "0fbb231484614b1a80131fc22f6afc9c", "project_id": "f3d41b770cc14f0bb94a1d5be9c0e3ea"}'
       status: 415
 
-# Create a new instance resource, demonstrate that including no data
+# Create a new generic resource, demonstrate that including no data
 # gets a useful 400 response.
 
-    - name: post instance resource no data
-      POST: /v1/resource/instance
+    - name: post generic resource no data
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 400
 
-    - name: post instance resource with missing data
-      POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
-      data:
-          id: 75C44741-CC60-4033-804E-2D3098C7D2E9
-          user_id: 0fbb231484614b1a80131fc22f6afc9c
-          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute1
-      status: 400
-      response_strings:
-          - "Invalid input: required key not provided @ data["
-          - "'display_name']"
-
-    - name: post instance with invalid metric name
+    - name: post generic with invalid metric name
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -203,7 +185,7 @@ tests:
       response_strings:
           - "'/' is not supported in metric name"
 
-    - name: post instance resource
+    - name: post generic resource to modify
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -213,44 +195,40 @@ tests:
           id: 75C44741-CC60-4033-804E-2D3098C7D2E9
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute1
-          display_name: myvm
       status: 201
       response_json_paths:
           $.metrics: {} # empty dictionary
 
-# PATCH that instance resource to change its attributes and to
+# PATCH that generic resource to change its attributes and to
 # associate metrics. If a metric does not exist there should be a
 # graceful failure.
-    - name: patch instance resource
+    - name: patch generic resource
       PATCH: $LOCATION
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
-          host: compute2
+          user_id: foobar
       status: 200
       response_json_paths:
-          host: compute2
+          user_id: foobar
 
-    - name: patch instance resource with same data
+    - name: patch generic resource with same data
       desc: Ensure no useless revision have been created
-      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      PATCH: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
-          host: compute2
+          user_id: foobar
       status: 200
       response_json_paths:
-          host: compute2
+          user_id: foobar
           revision_start: $RESPONSE['$.revision_start']
 
-    - name: patch instance resource with id
+    - name: patch generic resource with id
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -263,7 +241,7 @@ tests:
           - "Invalid input: extra keys not allowed @ data["
           - "'id']"
 
-    - name: patch instance with metrics
+    - name: patch generic with metrics
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -277,9 +255,9 @@ tests:
       response_strings:
         - '"disk.iops": '
 
-    - name: get instance history
+    - name: get generic history
       desc: Ensure we can get the history
-      GET: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history?sort=revision_end:asc-nullslast
+      GET: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/history?sort=revision_end:asc-nullslast
       request_headers:
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -287,13 +265,11 @@ tests:
           content-type: application/json
       response_json_paths:
         $.`len`: 2
-        $[0].host: compute1
-        $[1].host: compute2
         $[1].revision_end: null
         $[1].metrics.'disk.iops': $RESPONSE["metrics.'disk.iops'"]
 
-    - name: patch instance bad metric association
-      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+    - name: patch generic bad metric association
+      PATCH: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -305,7 +281,7 @@ tests:
       response_strings:
           - Metric f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea does not exist
 
-    - name: patch instance with bad archive policy
+    - name: patch generic with bad archive policy
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -319,7 +295,7 @@ tests:
       response_strings:
           - Archive policy noexist does not exist
 
-    - name: patch instance with no archive policy rule
+    - name: patch generic with no archive policy rule
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -332,7 +308,7 @@ tests:
       response_strings:
           - No archive policy name specified and no archive policy rule found matching the metric name disk.iops
 
-    - name: patch instance with archive policy rule
+    - name: patch generic with archive policy rule
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -351,7 +327,7 @@ tests:
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       data:
-          host: compute2
+          user_id: foobar
 
     - name: patch resource empty dict
       desc: an empty dict in patch is an existence check
@@ -363,7 +339,7 @@ tests:
       data: "{}"
       status: 200
       data:
-          host: compute2
+          user_id: foobar
 
     - name: patch resource without change with metrics in response
       desc: an empty dict in patch is an existence check
@@ -377,7 +353,7 @@ tests:
       response_json_paths:
           $.metrics.'disk.io.rate': $RESPONSE["$.metrics.'disk.io.rate'"]
 
-    - name: patch instance with invalid metric name
+    - name: patch generic with invalid metric name
       PATCH: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -393,16 +369,16 @@ tests:
 
 # Failure modes for history
 
-    - name: post instance history
+    - name: post generic history
       desc: should don't work
-      POST: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9/history
+      POST: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/history
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 405
 
-    - name: delete instance history
+    - name: delete generic history
       desc: should don't work
       DELETE: $LAST_URL
       request_headers:
@@ -415,7 +391,7 @@ tests:
 
     - name: patch resource no data
       desc: providing no data is an error
-      PATCH: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+      PATCH: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -439,7 +415,7 @@ tests:
 
     - name: patch noexit resource
       desc: "patching something that doesn't exist is a 404"
-      PATCH: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
+      PATCH: /v1/resource/generic/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -460,7 +436,7 @@ tests:
 
     - name: get bad resource id
       desc: https://bugs.launchpad.net/gnocchi/+bug/1425588
-      GET:  /v1/resource/instance/noexist
+      GET:  /v1/resource/generic/noexist
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -469,7 +445,7 @@ tests:
           - The resource could not be found.
 
     - name: get metrics for this not-existing resource
-      GET: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
+      GET: /v1/resource/generic/77777777-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -478,19 +454,19 @@ tests:
 
 # List resources
 
-    - name: list instance resources no auth
-      GET: /v1/resource/instance
+    - name: list generic resources no auth
+      GET: /v1/resource/generic
       response_strings:
           - "[]"
 
-    - name: list instance resources
+    - name: list generic resources
       GET: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
-          $[0].host: compute2
-          $[-1].host: compute2
+          $[0].user_id: 0fbb231484614b1a80131fc22f6afc9c
+          $[-1].user_id: foobar
 
     - name: list all resources
       GET: /v1/resource/generic
@@ -502,8 +478,8 @@ tests:
 
 # Metric handling when POSTing resources.
 
-    - name: post new instance with non-existent metrics
-      POST: /v1/resource/instance
+    - name: post new generic with non-existent metrics
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -512,15 +488,11 @@ tests:
           id: 85C44741-CC60-4033-804E-2D3098C7D2E9
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               cpu.util: 10
       status: 400
 
-    - name: post new instance with metrics bad policy
+    - name: post new generic with metrics bad policy
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -530,16 +502,12 @@ tests:
           id: 85C44741-CC60-4033-804E-2D3098C7D2E9
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               cpu.util:
                   archive_policy_name: noexist
       status: 400
 
-    - name: post new instance with metrics no policy rule
+    - name: post new generic with metrics no policy rule
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -549,17 +517,13 @@ tests:
           id: 85BABE39-F7F7-455A-877B-62C22E11AA40
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               cpu.util: {}
       status: 400
       response_strings:
         - No archive policy name specified and no archive policy rule found matching the metric name cpu.util
 
-    - name: post new instance with metrics using policy rule
+    - name: post new generic with metrics using policy rule
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -569,15 +533,11 @@ tests:
           id: 85BABE39-F7F7-455A-877B-62C22E11AA40
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               disk.io.rate: {}
       status: 201
 
-    - name: post new instance with metrics
+    - name: post new generic with metrics
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -587,10 +547,6 @@ tests:
           id: d13982cb-4cce-4f84-a96e-7581be1e599c
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               disk.util:
                   archive_policy_name: medium
@@ -599,7 +555,7 @@ tests:
           created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
           created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
-    - name: post new instance with metrics and un-normalized user/project id from keystone middleware
+    - name: post new generic with metrics and un-normalized user/project id from keystone middleware
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -607,10 +563,6 @@ tests:
           content-type: application/json
       data:
           id: 85C44741-CC60-4033-804E-2D3098C7D2E9
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               cpu.util:
                   archive_policy_name: medium
@@ -622,7 +574,7 @@ tests:
 
     - name: get metrics for this resource
       desc: with async measure handling this is a null test
-      GET: /v1/resource/instance/$RESPONSE['$.id']/metric/cpu.util/measures
+      GET: /v1/resource/generic/$RESPONSE['$.id']/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -632,14 +584,14 @@ tests:
 
 # Interrogate the NamedMetricController
 
-    - name: list the instances
-      GET: /v1/resource/instance
+    - name: list the generics
+      GET: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
 
-    - name: request metrics from one of the instances
-      GET: /v1/resource/instance/$RESPONSE['$[-1].id']/metric
+    - name: request metrics from one of the generics
+      GET: /v1/resource/generic/$RESPONSE['$[-1].id']/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -650,15 +602,15 @@ tests:
 
     - name: request metrics from non uuid metrics
       desc: 404 from GenericResourceController
-      GET: /v1/resource/instance/not.a.uuid/metric
+      GET: /v1/resource/generic/not.a.uuid/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       status: 404
 
-    - name: request cpuutil metric from instance
-      GET: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
+    - name: request cpuutil metric from generic
+      GET: /v1/resource/generic/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -666,7 +618,7 @@ tests:
           $.created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           $.archive_policy.name: medium
 
-    - name: try post cpuutil metric to instance
+    - name: try post cpuutil metric to generic
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -674,9 +626,9 @@ tests:
           content-type: application/json
       status: 405
 
-    - name: request cpuutil measures from instance
+    - name: request cpuutil measures from generic
       desc: with async measure handling this is a null test
-      GET: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
+      GET: /v1/resource/generic/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -709,8 +661,8 @@ tests:
           $[0][1]: 1.0
           $[0][2]: 43.100000000000001
 
-    - name: post metric at instance
-      POST: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
+    - name: post metric at generic
+      POST: /v1/resource/generic/85C44741-CC60-4033-804E-2D3098C7D2E9/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -721,7 +673,7 @@ tests:
               archive_policy_name: medium
       response_headers:
 
-    - name: post metric at instance with empty definition
+    - name: post metric at generic with empty definition
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -733,7 +685,7 @@ tests:
       response_strings:
         - No archive policy name specified and no archive policy rule found matching the metric name foo.bar
 
-    - name: post metric at instance using archive policy rule
+    - name: post metric at generic using archive policy rule
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -743,7 +695,7 @@ tests:
       data:
           disk.io.rate: {}
 
-    - name: duplicate metrics at instance
+    - name: duplicate metrics at generic
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -756,7 +708,7 @@ tests:
       response_strings:
           - Named metric electron.spin already exists
 
-    - name: post metrics at instance bad policy
+    - name: post metrics at generic bad policy
       POST: $LAST_URL
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
@@ -771,8 +723,8 @@ tests:
 
 # Check bad timestamps
 
-    - name: post new instance with bad timestamp
-      POST: /v1/resource/instance
+    - name: post new generic with bad timestamp
+      POST: /v1/resource/generic
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -781,10 +733,6 @@ tests:
           id: 95C44741-CC60-4033-804E-2D3098C7D2E9
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          flavor_id: "2"
-          image_ref: http://image
-          host: compute3
-          display_name: myvm2
           metrics:
               cpu.util:
                   archive_policy_name: medium
@@ -798,7 +746,7 @@ tests:
 
     - name: post to non uuid metrics
       desc: 404 from GenericResourceController
-      POST: /v1/resource/instance/not.a.uuid/metric
+      POST: /v1/resource/generic/not.a.uuid/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -810,7 +758,7 @@ tests:
 
     - name: post to missing uuid metrics
       desc: 404 from NamedMetricController
-      POST: /v1/resource/instance/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
+      POST: /v1/resource/generic/d5a5994e-ee90-11e4-88cf-685b35afa334/metric
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -824,7 +772,7 @@ tests:
 
     - name: post measure on unknown metric
       desc: 404 from NamedMetricController with metric error
-      POST: /v1/resource/instance/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
+      POST: /v1/resource/generic/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/unknown/measures
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
@@ -836,17 +784,17 @@ tests:
       response_strings:
           - Metric unknown does not exist
 
-# DELETE-ing instances
+# DELETE-ing generics
 
-    - name: delete instance
-      DELETE: /v1/resource/instance/75C44741-CC60-4033-804E-2D3098C7D2E9
+    - name: delete generic
+      DELETE: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 204
 
-    - name: delete noexist instance
-      DELETE: /v1/resource/instance/77777777-CC60-4033-804E-2D3098C7D2E9
+    - name: delete noexist generic
+      DELETE: /v1/resource/generic/77777777-CC60-4033-804E-2D3098C7D2E9
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
