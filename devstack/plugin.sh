@@ -347,11 +347,7 @@ function init_gnocchi {
     if is_service_enabled mysql postgresql; then
         recreate_database gnocchi
     fi
-    if is_service_enabled ceilometer; then
-        $GNOCCHI_BIN_DIR/gnocchi-upgrade --create-legacy-resource-types
-    else
-        $GNOCCHI_BIN_DIR/gnocchi-upgrade
-    fi
+    $GNOCCHI_BIN_DIR/gnocchi-upgrade
 }
 
 function preinstall_gnocchi {
