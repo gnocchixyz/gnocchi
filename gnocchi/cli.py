@@ -56,16 +56,13 @@ def upgrade():
                     help="Skip storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
-        cfg.BoolOpt("create-legacy-resource-types", default=False,
-                    help="Creation of Ceilometer legacy resource types.")
     ])
     conf = service.prepare_service(conf=conf)
     index = indexer.get_driver(conf)
     index.connect()
     if not conf.skip_index:
         LOG.info("Upgrading indexer %s", index)
-        index.upgrade(
-            create_legacy_resource_types=conf.create_legacy_resource_types)
+        index.upgrade()
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)

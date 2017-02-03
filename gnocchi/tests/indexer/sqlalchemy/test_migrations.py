@@ -50,7 +50,7 @@ class ModelsMigrationsSync(
             'indexer')
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
-        self.index.upgrade(nocreate=True, create_legacy_resource_types=True)
+        self.index.upgrade(nocreate=True)
         self.addCleanup(self._drop_database)
 
     def _drop_database(self):

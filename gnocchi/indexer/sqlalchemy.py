@@ -46,6 +46,7 @@ import sqlalchemy_utils
 from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy_base as base
+from gnocchi import resource_type
 from gnocchi import utils
 
 Base = base.Base
@@ -310,7 +311,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def get_engine(self):
         return self.facade.get_engine()
 
-    def upgrade(self, nocreate=False, create_legacy_resource_types=False):
+    def upgrade(self, nocreate=False):
         from alembic import command
         from alembic import migration
 
@@ -328,30 +329,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 else:
                     command.upgrade(cfg, "head")
 
-        # TODO(sileht): generic shouldn't be a particular case
-        # we must create a rt_generic and rt_generic_history table
-        # like other type
-        for rt in base.get_legacy_resource_types():
-            if not (rt.name == "generic" or create_legacy_resource_types):
-                continue
-
-            try:
-                with self.facade.writer() as session:
-                    session.add(rt)
-            except exception.DBDuplicateEntry:
-                continue
-
-            if rt.name != "generic":
-                try:
-                    self._RESOURCE_TYPE_MANAGER.map_and_create_tables(
-                        rt, self.facade)
-                except Exception:
-                    self._set_resource_type_state(rt.name, "creation_error")
-                    LOG.exception('Fail to create tables for '
-                                  'resource_type "%s"', rt.name)
-                    continue
-
-            self._set_resource_type_state(rt.name, "active")
+        try:
+            with self.facade.writer() as session:
+                session.add(
+                    ResourceType(
+                        name="generic",
+                        tablename="generic",
+                        state="active",
+                        attributes=resource_type.ResourceTypeAttributes()))
+        except exception.DBDuplicateEntry:
+            pass
 
     # NOTE(jd) We can have deadlock errors either here or later in
     # map_and_create_tables(). We can't decorate create_resource_type()

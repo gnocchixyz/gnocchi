@@ -1,0 +1,3 @@
+---
+deprecations:
+  - The creation of the legacy Ceilometer resource types has been removed.
