@@ -294,6 +294,11 @@ class TestCase(base.BaseTestCase):
                 os.getenv("CEPH_CONF"), pool_name), shell=True)
             self.conf.set_override('ceph_pool', pool_name, 'storage')
 
+        # Override the bucket prefix to be unique to avoid concurrent access
+        # with any other test
+        self.conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
+                               "storage")
+
         self.storage = storage.get_driver(self.conf)
         # NOTE(jd) Do not upgrade the storage. We don't really need the storage
         # upgrade for now, and the code that upgrade from pre-1.3
