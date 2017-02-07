@@ -40,6 +40,9 @@ OPTS = [
                default=os.getenv("AWS_SECRET_ACCESS_KEY"),
                help='S3 secret access key'),
     cfg.StrOpt('s3_bucket_prefix',
+               # Max bucket length is 63 and we use "-" as separator
+               # 63 - 1 - len(uuid) = 26
+               max_length=26,
                default='gnocchi',
                help='Prefix to namespace metric bucket.'),
 ]
