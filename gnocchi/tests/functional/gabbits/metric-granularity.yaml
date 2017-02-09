@@ -38,7 +38,7 @@ tests:
             value: 12
       status: 202
 
-    - name: get metric list for invalid granularity
+    - name: get metric list
       GET: /v1/metric
       status: 200
 
@@ -48,12 +48,8 @@ tests:
       response_strings:
         - Granularity '42.0' for metric $RESPONSE['$[0].id'] does not exist
 
-    - name: get metric list for granularity
-      GET: /v1/metric
-      status: 200
-
     - name: get measurements granularity
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?granularity=1
+      GET: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[0].id']/measures?granularity=1
       status: 200
       poll:
           count: 50
