@@ -21,7 +21,7 @@ from gabbi import driver
 import six.moves.urllib.parse as urlparse
 
 
-TESTS_DIR = 'gabbits-live'
+TESTS_DIR = 'gabbits'
 
 
 def load_tests(loader, tests, pattern):

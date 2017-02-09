@@ -54,7 +54,7 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
             port = parsed_url.port
 
         test_dir = os.path.join(os.path.dirname(__file__), '..', '..',
-                                'tests', 'gabbi', 'gabbits-live')
+                                'tests', 'functional_live', 'gabbits')
         cls.tests = driver.build_tests(
             test_dir, unittest.TestLoader(),
             host=host, port=port, prefix=prefix,
