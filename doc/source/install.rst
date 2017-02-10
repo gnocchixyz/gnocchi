@@ -69,7 +69,21 @@ but is still recommended.
 Configuration
 =============
 
-Gnocchi is configured by the `/etc/gnocchi/gnocchi.conf` file.
+Configuration file
+-------------------
+
+By default, gnocchi looks for its configuration file in the following places,
+in order:
+
+* ``~/.gnocchi/gnocchi.conf``
+* ``~/gnocchi.conf``
+* ``/etc/gnocchi/gnocchi.conf``
+* ``/etc/gnocchi.conf``
+* ``~/gnocchi/gnocchi.conf.d``
+* ``~/gnocchi.conf.d``
+* ``/etc/gnocchi/gnocchi.conf.d``
+* ``/etc/gnocchi.conf.d``
+
 
 No config file is provided with the source code; it will be created during the
 installation. In case where no configuration file was installed, one can be
@@ -77,7 +91,9 @@ easily created by running:
 
 ::
 
-    gnocchi-config-generator > /etc/gnocchi/gnocchi.conf
+    gnocchi-config-generator > /path/to/gnocchi.conf
+
+Configure Gnocchi by editing the appropriate file.
 
 The configuration file should be pretty explicit, but here are some of the base
 options you want to change and configure:
