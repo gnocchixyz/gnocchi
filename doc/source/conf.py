@@ -178,3 +178,10 @@ html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'gnocchidoc'
+
+# Multiversion docs
+scv_sort = ('semver',)
+scv_greatest_tag = True
+scv_priority = 'branches'
+scv_whitelist_branches = ('master',)
+scv_whitelist_tags = ('3.1.0', '3.0.4', '2.2.1')
