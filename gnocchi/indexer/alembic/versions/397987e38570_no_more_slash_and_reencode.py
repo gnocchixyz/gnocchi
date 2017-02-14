@@ -103,17 +103,16 @@ def upgrade():
 
     for resource in connection.execute(resource_table.select()):
 
-        if resource_table.c.original_resource_id is None:
+        if resource.original_resource_id is None:
             # statsd resource has no original_resource_id and is NULL
             continue
 
         try:
-            orig_as_uuid = uuid.UUID(
-                str(resource_table.c.original_resource_id))
+            orig_as_uuid = uuid.UUID(str(resource.original_resource_id))
         except ValueError:
             pass
         else:
-            if orig_as_uuid == resource_table.c.id:
+            if orig_as_uuid == resource.id:
                 continue
 
         new_original_resource_id = resource.original_resource_id.replace(
