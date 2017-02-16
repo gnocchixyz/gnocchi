@@ -161,13 +161,13 @@ tests:
       response_strings:
         - Timestamp must be after Epoch
 
-    - name: get valid metric id for bad timestamp
+    - name: list valid metrics
       GET: /v1/metric
       response_json_paths:
           $[0].archive_policy.name: cookies
 
     - name: push measurements to metric with bad timestamp
-      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
       data:
@@ -175,11 +175,8 @@ tests:
             value: 43.1
       status: 400
 
-    - name: get valid metric id again
-      GET: /v1/metric
-
     - name: push measurements to metric epoch format
-      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
       data:
@@ -187,11 +184,8 @@ tests:
             value: 43.1
       status: 202
 
-    - name: get valid metric id again 2
-      GET: /v1/metric
-
     - name: push measurements to metric
-      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
       data:
@@ -199,30 +193,21 @@ tests:
             value: 12
       status: 202
 
-    - name: get valid metric id again 3
-      GET: /v1/metric
-
     - name: get measurements by start
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34
       response_json_paths:
         $:
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
 
-    - name: get valid metric id again 4
-      GET: /v1/metric
-
     - name: get measurements from metric
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
       response_json_paths:
         $:
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
 
-    - name: get valid metric id again 5
-      GET: /v1/metric
-
     - name: push measurements to metric again
-      POST: /v1/metric/$RESPONSE['$[0].id']/measures
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       request_headers:
            content-type: application/json
       data:
@@ -234,31 +219,22 @@ tests:
             value: 11
       status: 202
 
-    - name: get valid metric id again 6
-      GET: /v1/metric
-
     - name: get measurements from metric and resample
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true&resample=60&granularity=1
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&resample=60&granularity=1
       response_json_paths:
         $:
           - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
           - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
-    - name: get valid metric id again 7
-      GET: /v1/metric
-
     - name: get measurements from metric and resample no granularity
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?resample=60
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60
       status: 400
       response_strings:
         - A granularity must be specified to resample
 
-    - name: get valid metric id again 8
-      GET: /v1/metric
-
     - name: get measurements from metric and bad resample
-      GET: /v1/metric/$RESPONSE['$[0].id']/measures?resample=abc
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=abc
       status: 400
 
     - name: create valid metric two
@@ -325,7 +301,7 @@ tests:
           $[0].archive_policy.name: cookies
 
     - name: get measure unknown aggregates
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&aggregation=last
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list for aggregates'].$RESPONSE['$[0].id']&aggregation=last
       status: 404
       response_strings:
           - Aggregation method 'last' for metric $RESPONSE['$[0].id'] does not exist
@@ -336,14 +312,8 @@ tests:
       response_strings:
           - Metric cee6ef1f-52cc-4a16-bbb5-648aedfd1c37 does not exist
 
-    - name: get metric list for delete
-      GET: /v1/metric
-      status: 200
-      response_json_paths:
-          $[0].archive_policy.name: cookies
-
     - name: delete metric
-      DELETE: /v1/metric/$RESPONSE['$[0].id']
+      DELETE: /v1/metric/$HISTORY['get metric list for aggregates'].$RESPONSE['$[0].id']
       status: 204
 
     - name: delete metric again

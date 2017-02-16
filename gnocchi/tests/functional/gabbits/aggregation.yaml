@@ -38,7 +38,7 @@ tests:
         archive_policy_name: low
       status: 201
 
-    - name: get metric list to push metric 1
+    - name: get metric list
       GET: /v1/metric
 
     - name: push measurements to metric 1
@@ -52,11 +52,8 @@ tests:
             value: 12
       status: 202
 
-    - name: get metric list to push metric 2
-      GET: /v1/metric
-
     - name: push measurements to metric 2
-      POST: /v1/metric/$RESPONSE['$[1].id']/measures
+      POST: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[1].id']/measures
       request_headers:
            content-type: application/json
       data:
@@ -68,28 +65,19 @@ tests:
             value: 5
       status: 202
 
-    - name: get metric list to get aggregates
-      GET: /v1/metric
-
     - name: get measure aggregates by granularity not float
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=foobar
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=foobar
       status: 400
 
-    - name: get metric list to get aggregates for get with refresh
-      GET: /v1/metric
-
     - name: get measure aggregates by granularity with refresh
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&refresh=true
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&refresh=true
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
-    - name: get metric list to get aggregates 2
-      GET: /v1/metric
-
     - name: get measure aggregates by granularity
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1
       poll:
           count: 10
           delay: 1
@@ -98,11 +86,8 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
-    - name: get metric list to push metric 3
-      GET: /v1/metric
-
     - name: get measure aggregates by granularity with timestamps
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
       poll:
           count: 10
           delay: 1
@@ -111,11 +96,8 @@ tests:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
-    - name: get metric list to push metric 4
-      GET: /v1/metric
-
     - name: get measure aggregates and reaggregate
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&reaggregation=min
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&reaggregation=min
       poll:
           count: 10
           delay: 1
@@ -125,50 +107,35 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 2.0]
 
-    - name: get metric list to get aggregates 5
-      GET: /v1/metric
-
     - name: get measure aggregates and resample
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&resample=60
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&resample=60
       response_json_paths:
         $:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
 
-    - name: get metric list to push metric 6
-      GET: /v1/metric
-
     - name: get measure aggregates with fill zero
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=0
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=0
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
 
-    - name: get metric list to push metric 7
-      GET: /v1/metric
-
     - name: get measure aggregates with fill null
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=null
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=null
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 5.0]
 
-    - name: get metric list to push metric 8
-      GET: /v1/metric
-
     - name: get measure aggregates with fill missing granularity
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&fill=0
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&fill=0
       status: 400
 
-    - name: get metric list to push metric 9
-      GET: /v1/metric
-
     - name: get measure aggregates with bad fill
-      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&metric=$RESPONSE['$[1].id']&granularity=1&fill=asdf
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=asdf
       status: 400
 
 

@@ -371,24 +371,17 @@ tests:
           $[0].name: $RESPONSE['$[0].name']
           $[1].name: $RESPONSE['$[1].name']
 
-    - name: list all default order again
-      GET: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
-
     - name: list next three metrics default order
-      GET: /v1/metric?limit=4&marker=$RESPONSE['$[1].id']
+      GET: /v1/metric?limit=4&marker=$HISTORY['list all default order'].$RESPONSE['$[1].id']
       request_headers:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
       response_json_paths:
           $.`len`: 3
-          $[0].name: $RESPONSE['$[2].name']
-          $[1].name: $RESPONSE['$[3].name']
-          $[2].name: $RESPONSE['$[4].name']
+          $[0].name: $HISTORY['list all default order'].$RESPONSE['$[2].name']
+          $[1].name: $HISTORY['list all default order'].$RESPONSE['$[3].name']
+          $[2].name: $HISTORY['list all default order'].$RESPONSE['$[4].name']
 
     - name: list first two metrics order by user without direction
       GET: /v1/metric?limit=2&sort=name
