@@ -107,7 +107,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         if full:
             return metrics
 
-        return metrics[size * part:]
+        return sorted(list(metrics))[size * part:]
 
     def _list_measure_files_for_metric_id(self, metric_id):
         files = set()
