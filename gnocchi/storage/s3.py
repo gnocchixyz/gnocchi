@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import logging
 import os
 
 from oslo_config import cfg
@@ -24,8 +23,6 @@ from gnocchi.storage.common import s3
 
 boto3 = s3.boto3
 botocore = s3.botocore
-
-LOG = logging.getLogger(__name__)
 
 OPTS = [
     cfg.StrOpt('s3_endpoint_url',
