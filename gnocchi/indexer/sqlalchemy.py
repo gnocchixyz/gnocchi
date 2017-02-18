@@ -62,14 +62,28 @@ LOG = log.getLogger(__name__)
 
 
 def _retry_on_exceptions(exc):
-    return (
+    if not isinstance(exc, exception.DBError):
+        return False
+    inn_e = exception.inner_exception
+    if not isinstance(inn_e, sqlalchemy.exc.InternalError):
+        return False
+    return ((
         pymysql and
-        isinstance(exc, exception.DBError) and
-        isinstance(exc.inner_exception, sqlalchemy.exc.InternalError) and
-        isinstance(exc.inner_exception.orig, pymysql.err.InternalError) and
-        (exc.inner_exception.orig.args[0] ==
-         pymysql.constants.ER.TABLE_DEF_CHANGED)
-    )
+        isinstance(inn_e.orig, pymysql.err.InternalError) and
+        (inn_e.orig.args[0] == pymysql.constants.ER.TABLE_DEF_CHANGED)
+    ) or (
+        # HACK(jd) Sometimes, PostgreSQL raises an error such as "current
+        # transaction is aborted, commands ignored until end of transaction
+        # block" on its own catalog, so we need to retry, but this is not
+        # caught by oslo.db as a deadlock. This is likely because when we use
+        # Base.metadata.create_all(), sqlalchemy itself gets an error it does
+        # not catch or something. So this is why this function exists. To
+        # paperover I guess.
+        psycopg2
+        and isinstance(inn_e.orig, psycopg2.InternalError)
+        # current transaction is aborted
+        and inn_e.orig.pgcode == '25P02'
+    ))
 
 
 def retry_on_deadlock(f):
@@ -176,33 +190,12 @@ class ResourceClassMapper(object):
         tables = [Base.metadata.tables[mappers["resource"].__tablename__],
                   Base.metadata.tables[mappers["history"].__tablename__]]
 
-        try:
-            with facade.writer_connection() as connection:
-                Base.metadata.create_all(connection, tables=tables)
-        except exception.DBError as e:
-            if self._is_current_transaction_aborted(e):
-                raise exception.RetryRequest(e)
-            raise
+        with facade.writer_connection() as connection:
+            Base.metadata.create_all(connection, tables=tables)
 
         # NOTE(sileht): no need to protect the _cache with a lock
         # get_classes cannot be called in state creating
         self._cache[resource_type.tablename] = mappers
-
-    @staticmethod
-    def _is_current_transaction_aborted(exception):
-        # HACK(jd) Sometimes, PostgreSQL raises an error such as "current
-        # transaction is aborted, commands ignored until end of transaction
-        # block" on its own catalog, so we need to retry, but this is not
-        # caught by oslo.db as a deadlock. This is likely because when we use
-        # Base.metadata.create_all(), sqlalchemy itself gets an error it does
-        # not catch or something. So this is why this function exists. To
-        # paperover I guess.
-        inn_e = exception.inner_exception
-        return (psycopg2
-                and isinstance(inn_e, sqlalchemy.exc.InternalError)
-                and isinstance(inn_e.orig, psycopg2.InternalError)
-                # current transaction is aborted
-                and inn_e.orig.pgcode == '25P02')
 
     @retry_on_deadlock
     def unmap_and_delete_tables(self, resource_type, facade):
@@ -225,25 +218,20 @@ class ResourceClassMapper(object):
         # so this code cannot be triggerred anymore for this
         # resource_type
         with facade.writer_connection() as connection:
-            try:
-                for table in tables:
-                    for fk in table.foreign_key_constraints:
-                        try:
-                            self._safe_execute(
-                                connection,
-                                sqlalchemy.schema.DropConstraint(fk))
-                        except exception.DBNonExistentConstraint:
-                            pass
-                for table in tables:
+            for table in tables:
+                for fk in table.foreign_key_constraints:
                     try:
-                        self._safe_execute(connection,
-                                           sqlalchemy.schema.DropTable(table))
-                    except exception.DBNonExistentTable:
+                        self._safe_execute(
+                            connection,
+                            sqlalchemy.schema.DropConstraint(fk))
+                    except exception.DBNonExistentConstraint:
                         pass
-            except exception.DBError as e:
-                if self._is_current_transaction_aborted(e):
-                    raise exception.RetryRequest(e)
-                raise
+            for table in tables:
+                try:
+                    self._safe_execute(connection,
+                                       sqlalchemy.schema.DropTable(table))
+                except exception.DBNonExistentTable:
+                    pass
 
             # NOTE(sileht): If something goes wrong here, we are currently
             # fucked, that why we expose the state to the superuser.
