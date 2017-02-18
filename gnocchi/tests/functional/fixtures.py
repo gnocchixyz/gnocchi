@@ -107,7 +107,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         index = indexer.get_driver(conf)
         index.connect()
-        index.upgrade(create_legacy_resource_types=True)
+        index.upgrade()
 
         # Set pagination to a testable value
         conf.set_override('max_limit', 7, 'api')

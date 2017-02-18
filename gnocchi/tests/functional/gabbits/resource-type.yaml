@@ -17,7 +17,7 @@ tests:
       desc: only legacy resource types are present
       GET: /v1/resource_type
       response_json_paths:
-          $.`len`: 15
+          $.`len`: 1
 
 # Some bad cases
 
@@ -174,9 +174,9 @@ tests:
       desc: we have a resource type now
       GET: $LAST_URL
       response_json_paths:
-          $.`len`: 16
-          $.[11].name: my_custom_resource
-          $.[11].state: active
+          $.`len`: 2
+          $.[1].name: my_custom_resource
+          $.[1].state: active
 
     - name: get the custom resource type
       GET: /v1/resource_type/my_custom_resource
