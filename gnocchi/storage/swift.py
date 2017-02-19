@@ -15,7 +15,6 @@
 # under the License.
 
 from oslo_config import cfg
-from oslo_log import log
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -23,8 +22,6 @@ from gnocchi.storage.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
-
-LOG = log.getLogger(__name__)
 
 OPTS = [
     cfg.StrOpt('swift_auth_version',

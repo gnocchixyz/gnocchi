@@ -16,7 +16,6 @@ import contextlib
 import datetime
 import uuid
 
-from oslo_log import log
 import six
 
 from gnocchi.storage.common import swift
@@ -24,8 +23,6 @@ from gnocchi.storage.incoming import _carbonara
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
-
-LOG = log.getLogger(__name__)
 
 
 class SwiftStorage(_carbonara.CarbonaraBasedStorage):

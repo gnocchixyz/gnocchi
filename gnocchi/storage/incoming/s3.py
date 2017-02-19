@@ -16,7 +16,6 @@
 from collections import defaultdict
 import contextlib
 import datetime
-import logging
 import uuid
 
 import six
@@ -27,8 +26,6 @@ from gnocchi.storage.incoming import _carbonara
 
 boto3 = s3.boto3
 botocore = s3.botocore
-
-LOG = logging.getLogger(__name__)
 
 
 class S3Storage(_carbonara.CarbonaraBasedStorage):
