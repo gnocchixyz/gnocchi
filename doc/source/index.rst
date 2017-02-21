@@ -73,5 +73,3 @@ Documentation
    collectd
    glossary
    releasenotes/index.rst
-
-.. _`OpenStack`: http://openstack.org
