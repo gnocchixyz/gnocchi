@@ -33,6 +33,7 @@ OPTS = [
                help='Ceph username (ie: admin without "client." prefix).'),
     cfg.StrOpt('ceph_secret', help='Ceph key', secret=True),
     cfg.StrOpt('ceph_keyring', help='Ceph keyring path.'),
+    cfg.IntOpt('ceph_timeout', help='Ceph connection timeout'),
     cfg.StrOpt('ceph_conffile',
                default='/etc/ceph/ceph.conf',
                help='Ceph configuration file.'),
