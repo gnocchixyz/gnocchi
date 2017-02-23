@@ -138,6 +138,8 @@ function _gnocchi_install_grafana {
     elif is_fedora; then
         sudo yum install "$GRAFANA_RPM_PKG"
     fi
+    sudo -u grafana mkdir -p /var/lib/grafana/plugins
+    sudo rm -rf /var/lib/grafana/plugins/grafana-gnocchi-datasource
     if [ ! "$GRAFANA_PLUGIN_VERSION" ]; then
         sudo grafana-cli plugins install sileht-gnocchi-datasource
     elif [ "$GRAFANA_PLUGIN_VERSION" != "git" ]; then
