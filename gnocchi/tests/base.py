@@ -17,6 +17,7 @@ import functools
 import json
 import os
 import subprocess
+import threading
 import uuid
 
 import fixtures
@@ -178,6 +179,9 @@ class FakeSwiftClient(object):
 @six.add_metaclass(SkipNotImplementedMeta)
 class TestCase(base.BaseTestCase):
 
+    REDIS_DB_INDEX = 0
+    REDIS_DB_LOCK = threading.Lock()
+
     ARCHIVE_POLICIES = {
         'no_granularity_match': archive_policy.ArchivePolicy(
             "no_granularity_match",
@@ -310,6 +314,11 @@ class TestCase(base.BaseTestCase):
                                "storage")
 
         self.storage = storage.get_driver(self.conf)
+        if self.conf.storage.driver == 'redis':
+            # Create one prefix per test
+            self.storage.STORAGE_PREFIX = str(uuid.uuid4())
+            self.storage.incoming.STORAGE_PREFIX = str(uuid.uuid4())
+
         # NOTE(jd) Do not upgrade the storage. We don't really need the storage
         # upgrade for now, and the code that upgrade from pre-1.3
         # (TimeSerieArchive) uses a lot of parallel lock, which makes tooz

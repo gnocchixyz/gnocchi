@@ -250,6 +250,9 @@ function configure_gnocchi {
     elif [[ "$GNOCCHI_STORAGE_BACKEND" = 'file' ]] ; then
         iniset $GNOCCHI_CONF storage driver file
         iniset $GNOCCHI_CONF storage file_basepath $GNOCCHI_DATA_DIR/
+    elif [[ "$GNOCCHI_STORAGE_BACKEND" = 'redis' ]] ; then
+        iniset $GNOCCHI_CONF storage driver redis
+        iniset $GNOCCHI_CONF storage redis_url $GNOCCHI_REDIS_URL
     else
         echo "ERROR: could not configure storage driver"
         exit 1
@@ -353,7 +356,7 @@ function preinstall_gnocchi {
 
 # install_gnocchi() - Collect source and prepare
 function install_gnocchi {
-    if [ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]; then
+    if [[ "$GNOCCHI_STORAGE_BACKEND" = 'redis' ]] || [[ "${GNOCCHI_COORDINATOR_URL%%:*}" == "redis" ]]; then
         _gnocchi_install_redis
     fi
 

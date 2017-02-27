@@ -44,6 +44,7 @@ Gnocchi currently offers different storage drivers:
 * `Ceph`_ (preferred)
 * `OpenStack Swift`_
 * `S3`_
+* `Redis`_
 
 The drivers are based on an intermediate library, named *Carbonara*, which
 handles the time series manipulation, since none of these storage technologies
@@ -63,6 +64,7 @@ the recommended driver.
 .. _OpenStack Swift: http://docs.openstack.org/developer/swift/
 .. _Ceph: https://ceph.com
 .. _`S3`: https://aws.amazon.com/s3/
+.. _`Redis`: https://redis.io
 
 Available index back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~~~
