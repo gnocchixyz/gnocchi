@@ -21,7 +21,6 @@ import operator
 
 from concurrent import futures
 import iso8601
-import msgpack
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
@@ -354,83 +353,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                 aggregation, granularity, version=3):
         raise NotImplementedError
 
-    def _check_for_metric_upgrade(self, metric):
-        # FIXME(gordc): this is only required for v2.x to v3.x storage upgrade.
-        # we should make storage version easily detectable rather than
-        # checking each metric individually
-        lock = self._lock(metric.id)
-        with lock:
-            try:
-                old_unaggregated = self._get_unaggregated_timeserie_and_unserialize_v2(  # noqa
-                    metric)
-            except (storage.MetricDoesNotExist, CorruptionError) as e:
-                # This case can happen if v3.0 to v3.x or if no measures
-                # pushed. skip the rest of upgrade on metric.
-                LOG.debug(
-                    "Unable to find v2 unaggregated timeserie for "
-                    "metric %s, no data to upgrade: %s",
-                    metric.id, e)
-                return
-
-            unaggregated = carbonara.BoundTimeSerie(
-                ts=old_unaggregated.ts,
-                block_size=metric.archive_policy.max_block_size,
-                back_window=metric.archive_policy.back_window)
-            # Upgrade unaggregated timeserie to v3
-            self._store_unaggregated_timeserie(
-                metric, unaggregated.serialize())
-            oldest_mutable_timestamp = (
-                unaggregated.first_block_timestamp()
-            )
-            for agg_method, d in itertools.product(
-                    metric.archive_policy.aggregation_methods,
-                    metric.archive_policy.definition):
-                LOG.debug(
-                    "Checking if the metric %s needs migration for %s",
-                    metric, agg_method)
-
-                try:
-                    all_keys = self._list_split_keys_for_metric(
-                        metric, agg_method, d.granularity, version=2)
-                except storage.MetricDoesNotExist:
-                    # Just try the next metric, this one has no measures
-                    break
-                else:
-                    LOG.info("Migrating metric %s to new format", metric)
-                    timeseries = filter(
-                        lambda x: x is not None,
-                        self._map_in_thread(
-                            self._get_measures_and_unserialize_v2,
-                            ((metric, key, agg_method, d.granularity)
-                             for key in all_keys))
-                    )
-                    ts = carbonara.AggregatedTimeSerie.from_timeseries(
-                        sampling=d.granularity,
-                        aggregation_method=agg_method,
-                        timeseries=timeseries, max_size=d.points)
-                    for key, split in ts.split():
-                        self._store_timeserie_split(
-                            metric, key, split,
-                            ts.aggregation_method,
-                            d, oldest_mutable_timestamp)
-                    for key in all_keys:
-                        self._delete_metric_measures(
-                            metric, key, agg_method,
-                            d.granularity, version=None)
-            self._delete_unaggregated_timeserie(metric, version=None)
-            LOG.info("Migrated metric %s to new format", metric)
-
-    def upgrade(self, index):
-        marker = None
-        while True:
-            metrics = [(metric,) for metric in
-                       index.list_metrics(limit=self.UPGRADE_BATCH_SIZE,
-                                          marker=marker)]
-            self._map_in_thread(self._check_for_metric_upgrade, metrics)
-            if len(metrics) == 0:
-                break
-            marker = metrics[-1][0].id
-
     def process_new_measures(self, indexer, metrics_to_process,
                              sync=False):
         # process only active metrics. deleted metrics with unprocessed
@@ -645,31 +567,3 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # We use 'list' to iterate all threads here to raise the first
             # exception now, not much choice
             return list(executor.map(lambda args: method(*args), list_of_args))
-
-    @staticmethod
-    def _unserialize_timeserie_v2(data):
-        return carbonara.TimeSerie.from_data(
-            *carbonara.TimeSerie._timestamps_and_values_from_dict(
-                msgpack.loads(data, encoding='utf-8')['values']),
-            clean=True)
-
-    def _get_unaggregated_timeserie_and_unserialize_v2(self, metric):
-        """Unserialization method for unaggregated v2 timeseries."""
-        data = self._get_unaggregated_timeserie(metric, version=None)
-        try:
-            return self._unserialize_timeserie_v2(data)
-        except ValueError:
-            LOG.error("Data corruption detected for %s ignoring.", metric.id)
-
-    def _get_measures_and_unserialize_v2(self, metric, key,
-                                         aggregation, granularity):
-        """Unserialization method for upgrading v2 objects. Upgrade only."""
-        data = self._get_measures(
-            metric, key, aggregation, granularity, version=None)
-        try:
-            return self._unserialize_timeserie_v2(data)
-        except ValueError:
-            LOG.error("Data corruption detected for %s "
-                      "aggregated `%s' timeserie, granularity `%s' "
-                      "around time `%s', ignoring.",
-                      metric.id, aggregation, granularity, key)

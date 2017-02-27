@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The storage upgrade is only supported from version 3.1.

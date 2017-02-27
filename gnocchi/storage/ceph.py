@@ -50,35 +50,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()
 
-    def _check_for_metric_upgrade(self, metric):
-        lock = self._lock(metric.id)
-        with lock:
-            container = "gnocchi_%s_container" % metric.id
-            unagg_obj = self._build_unaggregated_timeserie_path(metric, 3)
-            try:
-                xattrs = tuple(k for k, v in self.ioctx.get_xattrs(container))
-            except rados.ObjectNotFound:
-                # this means already upgraded or some corruption? move on.
-                pass
-            else:
-                # if xattrs are found, it means we're coming from
-                # gnocchiv2. migrate to omap accordingly.
-                if xattrs:
-                    keys = xattrs
-                # if no xattrs but object exists, it means it already
-                # migrated to v3 and now upgrade to use single object
-                else:
-                    with rados.ReadOpCtx() as op:
-                        omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
-                        self.ioctx.operate_read_op(op, container)
-                        keys = (k for k, __ in omaps)
-                with rados.WriteOpCtx() as op:
-                    self.ioctx.set_omap(op, keys,
-                                        tuple([b""] * len(keys)))
-                    self.ioctx.operate_write_op(op, unagg_obj)
-                self.ioctx.remove_object(container)
-        super(CephStorage, self)._check_for_metric_upgrade(metric)
-
     @staticmethod
     def _get_object_name(metric, timestamp_key, aggregation, granularity,
                          version=3):

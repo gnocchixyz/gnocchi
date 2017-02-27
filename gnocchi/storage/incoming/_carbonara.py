@@ -18,7 +18,6 @@ import itertools
 import struct
 
 from oslo_log import log
-from oslo_serialization import msgpackutils
 import pandas
 import six.moves
 
@@ -38,14 +37,10 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
             measures = struct.unpack(
                 "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
         except struct.error:
-            # This either a corruption, either a v2 measures
-            try:
-                return msgpackutils.loads(data)
-            except ValueError:
-                LOG.error(
-                    "Unable to decode measure %s, possible data corruption",
-                    measure_id)
-                raise
+            LOG.error(
+                "Unable to decode measure %s, possible data corruption",
+                measure_id)
+            raise
         return six.moves.zip(
             pandas.to_datetime(measures[::2], unit='ns'),
             itertools.islice(measures, 1, len(measures), 2))
