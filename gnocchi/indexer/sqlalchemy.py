@@ -64,7 +64,7 @@ LOG = log.getLogger(__name__)
 def _retry_on_exceptions(exc):
     if not isinstance(exc, exception.DBError):
         return False
-    inn_e = exception.inner_exception
+    inn_e = exc.inner_exception
     if not isinstance(inn_e, sqlalchemy.exc.InternalError):
         return False
     return ((
