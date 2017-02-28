@@ -29,6 +29,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
+
+    def upgrade(self, indexer):
+        super(SwiftStorage, self).upgrade(indexer)
         self.swift.put_container(self.MEASURE_PREFIX)
 
     def _store_new_measures(self, metric, data):

@@ -39,6 +39,9 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         self._bucket_name_measures = (
             self._bucket_prefix + "-" + self.MEASURE_PREFIX
         )
+
+    def upgrade(self, indexer):
+        super(S3Storage, self).upgrade(indexer)
         try:
             s3.create_bucket(self.s3, self._bucket_name_measures,
                              self._region_name)
