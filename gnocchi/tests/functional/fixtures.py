@@ -25,6 +25,8 @@ import warnings
 from gabbi import fixture
 from oslo_config import cfg
 from oslo_middleware import cors
+from oslotest import log
+from oslotest import output
 import sqlalchemy_utils
 
 from gnocchi import indexer
@@ -65,6 +67,11 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def start_fixture(self):
         """Create necessary temp files and do the config dance."""
+
+        self.output = output.CaptureOutput()
+        self.output.setUp()
+        self.log = log.ConfigureLogging()
+        self.log.setUp()
 
         global LOAD_APP_KWARGS
 
@@ -150,6 +157,8 @@ class ConfigFixture(fixture.GabbiFixture):
             shutil.rmtree(self.tmp_dir)
 
         self.conf.reset()
+        self.output.cleanUp()
+        self.log.cleanUp()
 
 
 class MetricdThread(threading.Thread):

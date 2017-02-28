@@ -21,7 +21,9 @@ import uuid
 
 import fixtures
 from oslotest import base
+from oslotest import log
 from oslotest import mockpatch
+from oslotest import output
 import six
 from six.moves.urllib.parse import unquote
 try:
@@ -229,6 +231,14 @@ class TestCase(base.BaseTestCase):
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
+
+        # NOTE(sileht): oslotest does this in setUp() but we
+        # need it here
+        self.output = output.CaptureOutput()
+        self.output.setUp()
+        self.log = log.ConfigureLogging()
+        self.log.setUp()
+
         self.conf = service.prepare_service([],
                                             default_config_files=[])
 
