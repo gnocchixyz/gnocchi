@@ -213,6 +213,7 @@ function configure_gnocchi {
 
     # Configure logging
     iniset $GNOCCHI_CONF DEFAULT debug "$ENABLE_DEBUG_LOG_LEVEL"
+    iniset $GNOCCHI_CONF metricd metric_processing_delay "$GNOCCHI_METRICD_PROCESSING_DELAY"
 
     # Set up logging
     if [ "$SYSLOG" != "False" ]; then
