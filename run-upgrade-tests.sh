@@ -4,10 +4,8 @@ set -e
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 GDATE=$((which gdate >/dev/null && echo gdate) || echo date)
-GSED=$((which gsed >/dev/null && echo gsed) || echo sed)
 
 old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
-[ "${old_version:0:1}" == "3" ] && have_resource_type_post=1
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
@@ -15,8 +13,6 @@ RESOURCE_IDS=(
     "5a301761-cccc-46e2-8900-8b4f6fe6675a"
     "non-uuid"
 )
-
-[ "$have_resource_type_post" ] && RESOURCE_ID_EXT="5a301761/dddd/46e2/8900/8b4f6fe6675a"
 
 dump_data(){
     dir="$1"
@@ -38,12 +34,6 @@ inject_data() {
     for resource_id in ${RESOURCE_IDS[@]}; do
         gnocchi resource create generic --attribute id:$resource_id -n metric:high > /dev/null
     done
-
-    if [ "$have_resource_type_post" ]
-    then
-        gnocchi resource-type create ext > /dev/null
-        gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
-    fi
 
     {
         measures_sep=""
@@ -84,14 +74,10 @@ else
 fi
 
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
-# Override default to be sure to use noauth
-export OS_AUTH_TYPE=gnocchi-noauth
-export GNOCCHI_USER_ID=admin
-export GNOCCHI_PROJECT_ID=admin
+export OS_AUTH_TYPE=gnocchi-basic
+export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
 inject_data $GNOCCHI_DATA
-# Encode resource id as it contains slashes and gnocchiclient does not encode it
-[ "$have_resource_type_post" ] && RESOURCE_ID_EXT="19235bb9-35ca-5f55-b7db-165cfb033c86"
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
@@ -107,25 +93,7 @@ export GNOCCHI_USER=$GNOCCHI_USER_ID
 # pifpaf creates a new statsd resource on each start
 gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 
-RESOURCE_IDS=(
-    "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
-    "5a301761-bbbb-46e2-8900-8b4f6fe6675a"
-    "5a301761-cccc-46e2-8900-8b4f6fe6675a"
-    "24d2e3ed-c7c1-550f-8232-56c48809a6d4"
-)
-# NOTE(sileht): / are now _
-# NOTE(jdanjou): and we reencode for admin:admin, but we cannot authenticate as
-# admin:admin in basic since ":" is forbidden in any username, so let's use the direct
-# computed ID
-[ "$have_resource_type_post" ] && RESOURCE_ID_EXT="517920a9-2e50-58b8-88e8-25fd7aae1d8f"
-
 dump_data $GNOCCHI_DATA/new
-
-# NOTE(sileht): change the output of the old gnocchi to compare with the new without '/'
-$GSED -i -e "s,5a301761/dddd/46e2/8900/8b4f6fe6675a,5a301761_dddd_46e2_8900_8b4f6fe6675a,g" \
-      -e "s,19235bb9-35ca-5f55-b7db-165cfb033c86,517920a9-2e50-58b8-88e8-25fd7aae1d8f,g" \
-      -e "s,None                                ,${original_statsd_resource_id},g" \
-      -e "s,37d1416a-381a-5b6c-99ef-37d89d95f1e1,24d2e3ed-c7c1-550f-8232-56c48809a6d4,g" $GNOCCHI_DATA/old/resources.list
 
 echo "* Checking output difference between Gnocchi $old_version and $new_version"
 diff -uNr $GNOCCHI_DATA/old $GNOCCHI_DATA/new
