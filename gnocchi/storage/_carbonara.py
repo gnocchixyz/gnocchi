@@ -18,7 +18,6 @@ import collections
 import datetime
 import itertools
 import operator
-import uuid
 
 from concurrent import futures
 import iso8601
@@ -28,7 +27,6 @@ from oslo_log import log
 from oslo_utils import timeutils
 import six
 import six.moves
-from tooz import coordination
 
 from gnocchi import carbonara
 from gnocchi import storage
@@ -351,6 +349,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # If the metric has never been upgraded, we need to delete this
             # here too
             self._delete_metric(metric)
+            self.incoming.delete_unprocessed_measures_for_metric_id(metric.id)
 
     @staticmethod
     def _delete_metric_measures(metric, timestamp_key,
@@ -436,23 +435,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def process_new_measures(self, indexer, metrics_to_process,
                              sync=False):
+        # process only active metrics. deleted metrics with unprocessed
+        # measures will be skipped until cleaned by janitor.
         metrics = indexer.list_metrics(ids=metrics_to_process)
-        # This build the list of deleted metrics, i.e. the metrics we have
-        # measures to process for but that are not in the indexer anymore.
-        deleted_metrics_id = (set(map(uuid.UUID, metrics_to_process))
-                              - set(m.id for m in metrics))
-        for metric_id in deleted_metrics_id:
-            # NOTE(jd): We need to lock the metric otherwise we might delete
-            # measures that another worker might be processing. Deleting
-            # measurement files under its feet is not nice!
-            try:
-                with self._lock(metric_id)(blocking=sync):
-                    self.incoming.delete_unprocessed_measures_for_metric_id(
-                        metric_id)
-            except coordination.LockAcquireFailed:
-                LOG.debug("Cannot acquire lock for metric %s, postponing "
-                          "unprocessed measures deletion", metric_id)
-
         for metric in metrics:
             lock = self._lock(metric.id)
             # Do not block if we cannot acquire the lock, that means some other
