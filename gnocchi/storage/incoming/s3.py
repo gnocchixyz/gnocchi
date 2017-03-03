@@ -20,7 +20,6 @@ import uuid
 
 import six
 
-
 from gnocchi.storage.common import s3
 from gnocchi.storage.incoming import _carbonara
 
@@ -80,7 +79,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self):
+    def list_metric_with_measures_to_process(self, sack):
         limit = 1000        # 1000 is the default anyway
         metrics = set()
         response = {}

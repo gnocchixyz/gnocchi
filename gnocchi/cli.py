@@ -146,15 +146,31 @@ class MetricProcessor(MetricProcessBase):
         self._coord, self._my_id = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
 
+    def _sack_lock(self, sack):
+        lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
+        return self._coord.get_lock(lock_name)
+
     def _run_job(self):
-        try:
-            metrics = list(
-                self.store.incoming.list_metric_with_measures_to_process())
-            LOG.debug("%d metrics scheduled for processing.", len(metrics))
-            self.store.process_background_tasks(self.index, metrics)
-        except Exception:
-            LOG.error("Unexpected error scheduling metrics for processing",
-                      exc_info=True)
+        m_count = 0
+        s_count = 0
+        in_store = self.store.incoming
+        for s in six.moves.range(in_store.NUM_SACKS):
+            # TODO(gordc): support delay release lock so we don't
+            # process a sack right after another process
+            lock = self._sack_lock(s)
+            if not lock.acquire(blocking=False):
+                continue
+            try:
+                metrics = in_store.list_metric_with_measures_to_process(s)
+                m_count = len(metrics)
+                self.store.process_background_tasks(self.index, metrics)
+                s_count += 1
+            except Exception:
+                LOG.error("Unexpected error processing assigned job",
+                          exc_info=True)
+            finally:
+                lock.release()
+        LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
 
     def close_services(self):
         self._coord.stop()
@@ -211,9 +227,13 @@ def metricd_tester(conf):
     index = indexer.get_driver(conf)
     index.connect()
     s = storage.get_driver(conf)
-    metrics = s.incoming.list_metric_with_measures_to_process()[
-        :conf.stop_after_processing_metrics]
-    s.process_new_measures(index, metrics, True)
+    metrics = set()
+    for i in six.moves.range(s.incoming.NUM_SACKS):
+        metrics.update(s.incoming.list_metric_with_measures_to_process(i))
+        if len(metrics) >= conf.stop_after_processing_metrics:
+            break
+    s.process_new_measures(
+        index, list(metrics)[:conf.stop_after_processing_metrics], True)
 
 
 def metricd():

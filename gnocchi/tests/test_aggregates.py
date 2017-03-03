@@ -23,6 +23,7 @@ from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
+from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
 
 
@@ -60,7 +61,7 @@ class TestAggregates(tests_base.TestCase):
             for n, val in enumerate(data)]
         self.index.create_metric(metric.id, str(uuid.uuid4()), 'medium')
         self.storage.incoming.add_measures(metric, measures)
-        metrics = self.storage.incoming.list_metric_with_measures_to_process()
+        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
         self.storage.process_background_tasks(self.index, metrics, sync=True)
 
         return metric

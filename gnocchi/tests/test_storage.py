@@ -27,6 +27,7 @@ from gnocchi import indexer
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 from gnocchi.tests import base as tests_base
+from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
 
 
@@ -97,15 +98,15 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((utils.datetime_utc(2014, 1, 1, 12), 300.0, 5.0), m)
 
     def test_list_metric_with_measures_to_process(self):
-        metrics = self.storage.incoming.list_metric_with_measures_to_process()
+        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
         self.assertEqual(set(), metrics)
         self.storage.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
         ])
-        metrics = self.storage.incoming.list_metric_with_measures_to_process()
+        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
         self.assertEqual(set([str(self.metric.id)]), metrics)
         self.trigger_processing()
-        metrics = self.storage.incoming.list_metric_with_measures_to_process()
+        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
         self.assertEqual(set([]), metrics)
 
     def test_delete_nonempty_metric(self):

@@ -75,7 +75,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self):
+    def list_metric_with_measures_to_process(self, sack):
         return set(os.listdir(self.measure_path))
 
     def _list_measures_container_for_metric_id(self, metric_id):

@@ -36,6 +36,7 @@ from gnocchi import archive_policy
 from gnocchi import rest
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
+from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
 
 
@@ -122,7 +123,7 @@ class TestingApp(webtest.TestApp):
             req.headers['X-User-Id'] = self.USER_ID
             req.headers['X-Project-Id'] = self.PROJECT_ID
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = self.storage.incoming.list_metric_with_measures_to_process()
+        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
         self.storage.process_background_tasks(self.indexer, metrics, sync=True)
         return response
 

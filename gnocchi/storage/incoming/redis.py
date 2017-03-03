@@ -46,7 +46,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self):
+    def list_metric_with_measures_to_process(self, sack):
         match = redis.SEP.join([self.STORAGE_PREFIX, "*"])
         keys = self._client.scan_iter(match=match, count=1000)
         measures = set([k.decode('utf8').split(redis.SEP)[1] for k in keys])

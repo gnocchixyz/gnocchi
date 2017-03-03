@@ -34,6 +34,7 @@ from gnocchi.indexer import sqlalchemy
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import storage
+from gnocchi.tests import utils
 
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
@@ -179,9 +180,8 @@ class MetricdThread(threading.Thread):
         self.flag = True
 
     def run(self):
-        incoming = self.storage.incoming
         while self.flag:
-            metrics = incoming.list_metric_with_measures_to_process()
+            metrics = utils.list_all_incoming_metrics(self.storage.incoming)
             self.storage.process_background_tasks(self.index, metrics)
             time.sleep(0.1)
 
