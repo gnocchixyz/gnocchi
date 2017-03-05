@@ -346,8 +346,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def delete_metric(self, metric, sync=False):
         LOG.debug("Deleting metric %s", metric)
         with self._lock(metric.id)(blocking=sync):
-            # If the metric has never been upgraded, we need to delete this
-            # here too
             self._delete_metric(metric)
             self.incoming.delete_unprocessed_measures_for_metric_id(metric.id)
 
