@@ -1,0 +1,4 @@
+---
+deprecations:
+  - The `noauth` authentication mechanism is deprecated and will be removed in
+    a next version.
