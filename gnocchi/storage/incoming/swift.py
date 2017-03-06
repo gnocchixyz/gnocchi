@@ -43,12 +43,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         if details:
             headers, files = self.swift.get_container(self.MEASURE_PREFIX,
                                                       full_listing=True)
-            metrics = set()
             for f in files:
-                metric, metric_files = f['name'].split("/", 1)
+                metric, __ = f['name'].split("/", 1)
                 metric_details[metric] += 1
-                metrics.add(metric)
-            nb_metrics = len(metrics)
+            nb_metrics = len(metric_details)
         else:
             headers, files = self.swift.get_container(self.MEASURE_PREFIX,
                                                       delimiter='/',
