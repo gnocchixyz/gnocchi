@@ -240,6 +240,23 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self._do_test_aggregation('std', 1.5275252316519465,
                                   0.70710678118654757)
 
+    def test_aggregation_std_with_unique(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3)])
+        ts = self._resample(ts, 60, 'std')
+        self.assertEqual(0, len(ts), ts.ts.values)
+
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 3),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 6),
+             (datetime.datetime(2014, 1, 1, 12, 0, 9), 5),
+             (datetime.datetime(2014, 1, 1, 12, 1, 6), 9)])
+        ts = self._resample(ts, 60, "std")
+
+        self.assertEqual(1, len(ts))
+        self.assertEqual(1.5275252316519465,
+                         ts[datetime.datetime(2014, 1, 1, 12, 0, 0)])
+
     def test_different_length_in_timestamps_and_data(self):
         self.assertRaises(ValueError,
                           carbonara.AggregatedTimeSerie.from_data,
