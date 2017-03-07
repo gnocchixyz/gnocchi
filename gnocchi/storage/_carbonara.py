@@ -55,7 +55,6 @@ class CorruptionError(ValueError):
 
 
 class CarbonaraBasedStorage(storage.StorageDriver):
-    UPGRADE_BATCH_SIZE = 1000
 
     def __init__(self, conf, incoming):
         super(CarbonaraBasedStorage, self).__init__(conf, incoming)
