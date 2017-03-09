@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import contextlib
 import datetime
 import os
@@ -47,11 +48,10 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
 
     def _build_report(self, details):
         match = os.path.join(self.STORAGE_PREFIX, "*")
-        metric_details = {}
+        metric_details = collections.defaultdict(int)
         for key in self._client.scan_iter(match=match.encode('utf8')):
             metric = key.decode('utf8').split(os.path.sep)[1]
-            count = metric_details.setdefault(metric, 0)
-            count += 1
+            metric_details[metric] += 1
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
