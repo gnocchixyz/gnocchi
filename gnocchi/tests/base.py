@@ -21,7 +21,6 @@ import uuid
 
 import fixtures
 from oslotest import base
-from oslotest import mockpatch
 import six
 from six.moves.urllib.parse import unquote
 try:
@@ -279,7 +278,7 @@ class TestCase(base.BaseTestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         if swexc:
-            self.useFixture(mockpatch.Patch(
+            self.useFixture(fixtures.MockPatch(
                 'swiftclient.client.Connection',
                 FakeSwiftClient))
 
