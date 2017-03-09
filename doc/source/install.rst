@@ -31,6 +31,7 @@ The list of variants available is:
 * ceph_recommended_lib – provides Ceph (>=0.80) storage support
 * ceph_alternative_lib – provides Ceph (>=10.1.0) storage support
 * file – provides file driver support
+* redis – provides Redis storage support
 * doc – documentation building support
 * test – unit and functional tests support
 
@@ -116,6 +117,9 @@ options you want to change and configure:
 +---------------------+---------------------------------------------------+
 | storage.s3_*        | Configuration options to access S3                |
 |                     | if you use the S3 storage driver.                 |
++---------------------+---------------------------------------------------+
+| storage.redis_*     | Configuration options to access Redis             |
+|                     | if you use the Redis storage driver.              |
 +---------------------+---------------------------------------------------+
 
 Configuring authentication

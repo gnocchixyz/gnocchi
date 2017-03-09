@@ -8,8 +8,8 @@ do
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}
     do
         case $GNOCCHI_TEST_STORAGE_DRIVER in
-            ceph)
-                pifpaf run ceph -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
+            ceph|redis)
+                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
                 ;;
             s3)
                 if ! which s3rver >/dev/null 2>&1

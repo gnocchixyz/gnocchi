@@ -26,6 +26,7 @@ import gnocchi.indexer
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
+import gnocchi.storage.redis
 import gnocchi.storage.s3
 import gnocchi.storage.swift
 
@@ -48,6 +49,7 @@ _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
                                      gnocchi.storage.ceph.OPTS,
                                      gnocchi.storage.file.OPTS,
                                      gnocchi.storage.swift.OPTS,
+                                     gnocchi.storage.redis.OPTS,
                                      gnocchi.storage.s3.OPTS))
 
 
