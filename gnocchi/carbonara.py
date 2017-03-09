@@ -154,15 +154,16 @@ class GroupedTimeSeries(object):
 
     def _scipy_aggregate(self, method, remove_unique=False, *args, **kwargs):
         if remove_unique:
-            locs = numpy.argwhere(self.counts > 1).T[0]
+            tstamps = self.tstamps[self.counts > 1]
+        else:
+            tstamps = self.tstamps
 
-        values = method(self._ts.values, self.indexes, self.tstamps,
+        if len(tstamps) == 0:
+            return pandas.Series()
+
+        values = method(self._ts.values, self.indexes, tstamps,
                         *args, **kwargs)
-        timestamps = numpy.array(self.tstamps, 'datetime64[ns]')
-
-        if remove_unique:
-            timestamps = timestamps[locs]
-            values = values[locs]
+        timestamps = numpy.array(tstamps, 'datetime64[ns]')
         return pandas.Series(values, pandas.to_datetime(timestamps))
 
 
