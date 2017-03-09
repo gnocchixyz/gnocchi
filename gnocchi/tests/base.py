@@ -21,7 +21,6 @@ import uuid
 
 import fixtures
 from oslotest import base
-from oslotest import mockpatch
 import six
 from six.moves.urllib.parse import unquote
 try:
@@ -481,12 +480,12 @@ class TestCase(base.BaseTestCase):
     def setUp(self):
         super(TestCase, self).setUp()
         if swexc:
-            self.useFixture(mockpatch.Patch(
+            self.useFixture(fixtures.MockPatch(
                 'swiftclient.client.Connection',
                 FakeSwiftClient))
 
-        self.useFixture(mockpatch.Patch('gnocchi.storage.ceph.rados',
-                                        FakeRadosModule()))
+        self.useFixture(fixtures.MockPatch('gnocchi.storage.ceph.rados',
+                                           FakeRadosModule()))
 
         if self.conf.storage.driver == 'file':
             tempdir = self.useFixture(fixtures.TempDir())
