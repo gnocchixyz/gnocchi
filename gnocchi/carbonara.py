@@ -26,7 +26,7 @@ import re
 import struct
 import time
 
-import lz4
+import lz4.block
 import numpy
 import numpy.lib.recfunctions
 import pandas
@@ -315,7 +315,7 @@ class BoundTimeSerie(TimeSerie):
 
     @classmethod
     def unserialize(cls, data, block_size, back_window):
-        uncompressed = lz4.loads(data)
+        uncompressed = lz4.block.decompress(data)
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
@@ -341,7 +341,7 @@ class BoundTimeSerie(TimeSerie):
         timestamps = numpy.array(timestamps, dtype='<Q')
         values = numpy.array(self.ts.values, dtype='<d')
         payload = (timestamps.tobytes() + values.tobytes())
-        return lz4.dumps(payload)
+        return lz4.block.compress(payload)
 
     @classmethod
     def benchmark(cls):
@@ -602,7 +602,8 @@ class AggregatedTimeSerie(TimeSerie):
         if data:
             if cls.is_compressed(data):
                 # Compressed format
-                uncompressed = lz4.loads(memoryview(data)[1:].tobytes())
+                uncompressed = lz4.block.decompress(
+                    memoryview(data)[1:].tobytes())
                 nb_points = len(uncompressed) // cls.COMPRESSED_SERIAL_LEN
 
                 timestamps_raw = uncompressed[
@@ -677,7 +678,7 @@ class AggregatedTimeSerie(TimeSerie):
             timestamps = numpy.array(timestamps, dtype='<H')
             values = numpy.array(self.ts.values, dtype='<d')
             payload = (timestamps.tobytes() + values.tobytes())
-            return None, b"c" + lz4.dumps(payload)
+            return None, b"c" + lz4.block.compress(payload)
         # NOTE(gordc): this binary serializes series based on the split
         # time. the format is 1B True/False flag which denotes whether
         # subsequent 8B is a real float or zero padding. every 9B
