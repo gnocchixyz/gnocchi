@@ -313,17 +313,13 @@ class TestCase(base.BaseTestCase):
                                "storage")
 
         self.storage = storage.get_driver(self.conf)
+
         if self.conf.storage.driver == 'redis':
             # Create one prefix per test
             self.storage.STORAGE_PREFIX = str(uuid.uuid4())
             self.storage.incoming.STORAGE_PREFIX = str(uuid.uuid4())
 
-        # NOTE(jd) Do not upgrade the storage. We don't really need the storage
-        # upgrade for now, and the code that upgrade from pre-1.3
-        # (TimeSerieArchive) uses a lot of parallel lock, which makes tooz
-        # explodes because MySQL does not support that many connections in real
-        # life.
-        # self.storage.upgrade(self.index)
+        self.storage.upgrade(self.index)
 
     def tearDown(self):
         self.index.disconnect()

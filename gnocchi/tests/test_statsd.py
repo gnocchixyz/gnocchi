@@ -40,10 +40,10 @@ class TestStatsd(tests_base.TestCase):
         self.conf.set_override("archive_policy_name",
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
 
-        # NOTE(jd) Always use self.stats.storage and self.stats.indexer to
-        # pick at the right storage/indexer used by the statsd server, and not
-        # new instances from the base test class.
         self.stats = statsd.Stats(self.conf)
+        # Replace storage/indexer with correct ones that have been upgraded
+        self.stats.storage = self.storage
+        self.stats.indexer = self.index
         self.server = statsd.StatsdServer(self.stats)
 
     def test_flush_empty(self):
