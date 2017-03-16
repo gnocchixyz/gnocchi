@@ -33,100 +33,93 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     WRITE_FULL = True
 
     STORAGE_PREFIX = "timeseries"
+    FIELD_SEP = '_'
 
     def __init__(self, conf, incoming):
         super(RedisStorage, self).__init__(conf, incoming)
         self._client = redis.get_client(conf)
 
-    def _build_metric_dir(self, metric):
+    def _metric_key(self, metric):
         return os.path.join(self.STORAGE_PREFIX, str(metric.id))
 
-    def _build_unaggregated_timeserie_path(self, metric, version=3):
-        return os.path.join(
-            self._build_metric_dir(metric),
-            'none' + ("_v%s" % version if version else ""))
+    @staticmethod
+    def _unaggregated_field(version=3):
+        return 'none' + ("_v%s" % version if version else "")
 
-    def _build_metric_path(self, metric, aggregation):
-        return os.path.join(self._build_metric_dir(metric),
-                            "agg_" + aggregation)
-
-    def _build_metric_path_for_split(self, metric, aggregation,
-                                     timestamp_key, granularity, version=3):
-        path = os.path.join(self._build_metric_path(metric, aggregation),
-                            timestamp_key + "_" + str(granularity))
+    @classmethod
+    def _aggregated_field_for_split(cls, aggregation, timestamp_key,
+                                    granularity, version=3):
+        path = cls.FIELD_SEP.join([timestamp_key, aggregation,
+                                   str(granularity)])
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):
-        path = self._build_metric_dir(metric)
-        ret = self._client.set(path.encode("utf-8"), "created", nx=True)
-        if ret is None:
+        key = self._metric_key(metric).encode("utf8")
+        if self._client.exists(key):
             raise storage.MetricAlreadyExists(metric)
+        self._client.hset(
+            key, self._unaggregated_field().encode("utf8"), None)
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
-        path = self._build_unaggregated_timeserie_path(metric, version)
-        self._client.set(path.encode("utf8"), data)
+        self._client.hset(self._metric_key(metric).encode("utf8"),
+                          self._unaggregated_field(version).encode("utf8"),
+                          data)
 
     def _get_unaggregated_timeserie(self, metric, version=3):
-        path = self._build_unaggregated_timeserie_path(metric, version)
-        data = self._client.get(path.encode("utf8"))
+        data = self._client.hget(
+            self._metric_key(metric).encode("utf8"),
+            self._unaggregated_field(version).encode("utf8"))
         if data is None:
             raise storage.MetricDoesNotExist(metric)
         return data
 
     def _delete_unaggregated_timeserie(self, metric, version=3):
-        path = self._build_unaggregated_timeserie_path(metric, version)
-        data = self._client.get(path.encode("utf8"))
-        if data is None:
-            raise storage.MetricDoesNotExist(metric)
-        self._client.delete(path.encode("utf8"))
+        # FIXME(gordc): this really doesn't need to be part of abstract
+        # do it part of _delete_metric
+        pass
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=None):
-        path = self._build_metric_dir(metric)
-        if self._client.get(path.encode("utf8")) is None:
+        key = self._metric_key(metric).encode("utf8")
+        if not self._client.exists(key):
             raise storage.MetricDoesNotExist(metric)
-        match = os.path.join(self._build_metric_path(metric, aggregation),
-                             "*")
         split_keys = set()
-        for key in self._client.scan_iter(match=match.encode("utf8")):
-            key = key.decode("utf8")
-            key = key.split(os.path.sep)[-1]
-            meta = key.split("_")
-            if meta[1] == str(granularity) and self._version_check(key,
-                                                                   version):
-                split_keys.add(meta[0])
+        # FIXME(gordc): version shouldn't be None but it's not used anywhere
+        hashes = self._client.hscan_iter(
+            key, match=self._aggregated_field_for_split(aggregation, '*',
+                                                        granularity, 3))
+        for f, __ in hashes:
+            meta = f.decode("utf8").split(self.FIELD_SEP, 1)
+            split_keys.add(meta[0])
         return split_keys
 
     def _delete_metric_measures(self, metric, timestamp_key, aggregation,
                                 granularity, version=3):
-        path = self._build_metric_path_for_split(
-            metric, aggregation, timestamp_key, granularity, version)
-        self._client.delete(path.encode("utf8"))
+        key = self._metric_key(metric)
+        field = self._aggregated_field_for_split(
+            aggregation, timestamp_key, granularity, version)
+        self._client.hdel(key.encode("utf8"), field.encode("utf8"))
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data, offset=None, version=3):
-        path = self._build_metric_path_for_split(metric, aggregation,
-                                                 timestamp_key, granularity,
-                                                 version)
-        self._client.set(path.encode("utf8"), data)
+        key = self._metric_key(metric)
+        field = self._aggregated_field_for_split(
+            aggregation, timestamp_key, granularity, version)
+        self._client.hset(key.encode("utf8"), field.encode("utf8"), data)
 
     def _delete_metric(self, metric):
-        match = os.path.join(self._build_metric_dir(metric), '*')
-        # FIXME(gordc): this should be done in redis pipeline but i'm
-        # switching this to hashes anyways so it is what it is.
-        for key in self._client.scan_iter(match=match.encode("utf8")):
-            self._client.delete(key)
+        self._client.delete(self._metric_key(metric).encode("utf8"))
 
     # Carbonara API
 
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
                       version=3):
-        path = self._build_metric_path_for_split(
-            metric, aggregation, timestamp_key, granularity, version)
-        data = self._client.get(path.encode("utf8"))
+        key = self._metric_key(metric)
+        field = self._aggregated_field_for_split(
+            aggregation, timestamp_key, granularity, version)
+        data = self._client.hget(key.encode("utf8"), field.encode("utf8"))
         if data is None:
-            fpath = self._build_metric_dir(metric)
-            if self._client.get(fpath.encode("utf8")) is None:
+            if not self._client.exists(key.encode("utf8")):
                 raise storage.MetricDoesNotExist(metric)
             raise storage.AggregationDoesNotExist(metric, aggregation)
         return data
