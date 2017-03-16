@@ -15,9 +15,7 @@
 # under the License.
 import collections
 import contextlib
-import datetime
 import os
-import uuid
 
 import six
 
@@ -33,25 +31,19 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
 
-    def _build_measure_path(self, metric_id, random_id=None):
-        path = os.path.join(self.STORAGE_PREFIX, six.text_type(metric_id))
-        if random_id:
-            if random_id is True:
-                now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
-                random_id = six.text_type(uuid.uuid4()) + now
-            return os.path.join(path, random_id)
-        return path
+    def _build_measure_path(self, metric_id):
+        return os.path.join(self.STORAGE_PREFIX, six.text_type(metric_id))
 
     def _store_new_measures(self, metric, data):
-        path = self._build_measure_path(metric.id, True)
-        self._client.set(path.encode("utf8"), data)
+        path = self._build_measure_path(metric.id)
+        self._client.rpush(path.encode("utf8"), data)
 
     def _build_report(self, details):
         match = os.path.join(self.STORAGE_PREFIX, "*")
         metric_details = collections.defaultdict(int)
         for key in self._client.scan_iter(match=match.encode('utf8')):
             metric = key.decode('utf8').split(os.path.sep)[1]
-            metric_details[metric] += 1
+            metric_details[metric] = self._client.llen(key)
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
@@ -63,25 +55,21 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
             return measures
         return set(list(measures)[size * part:size * (part + 1)])
 
-    def _list_measures_container_for_metric_id(self, metric_id):
-        match = os.path.join(self._build_measure_path(metric_id), "*")
-        return list(self._client.scan_iter(match=match.encode("utf8")))
-
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
-        keys = self._list_measures_container_for_metric_id(metric_id)
-        if keys:
-            self._client.delete(*keys)
+        self._client.delete(self._build_measure_path(metric_id))
 
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
-        keys = self._list_measures_container_for_metric_id(metric.id)
+        key = self._build_measure_path(metric.id)
+        item_len = self._client.llen(key)
+        # lrange is inclusive on both ends, decrease to grab exactly n items
+        item_len = item_len - 1 if item_len else item_len
         measures = []
-        for k in keys:
-            data = self._client.get(k)
-            sp_key = k.decode('utf8').split("/")[-1]
-            measures.extend(self._unserialize_measures(sp_key, data))
+        for i, data in enumerate(self._client.lrange(key, 0, item_len)):
+            measures.extend(self._unserialize_measures(
+                '%s-%s' % (metric.id, i), data))
 
         yield measures
 
-        if keys:
-            self._client.delete(*keys)
+        # ltrim is inclusive, bump 1 to remove up to and including nth item
+        self._client.ltrim(key, item_len + 1, -1)
