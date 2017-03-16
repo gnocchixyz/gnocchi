@@ -103,7 +103,13 @@ def to_timestamps(values):
               is_valid_timestamp(values[0])):
             times = pd.to_datetime(values, utc=True, box=False)
         else:
-            times = (utcnow() + pd.to_timedelta(values)).values
+            try:
+                float(values[0])
+            except ValueError:
+                times = (utcnow() + pd.to_timedelta(values)).values
+            else:
+                times = pd.to_datetime(list(map(float, values)),
+                                       utc=True, box=False, unit='s')
     except ValueError:
         raise ValueError("Unable to convert timestamps")
 

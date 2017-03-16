@@ -199,6 +199,12 @@ tests:
         $:
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
 
+    - name: get measurements by start with epoch
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=1425652440
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+
     - name: get measurements from metric
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
       response_json_paths:
