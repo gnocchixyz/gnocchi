@@ -98,6 +98,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
         self.storage.delete_metric(self.metric, sync=True)
         self.trigger_processing()
+        self.assertEqual([], self.storage.get_measures(self.metric))
+        self.assertRaises(storage.MetricDoesNotExist,
+                          self.storage._get_unaggregated_timeserie,
+                          self.metric)
 
     def test_delete_nonempty_metric_unprocessed(self):
         self.storage.incoming.add_measures(self.metric, [
