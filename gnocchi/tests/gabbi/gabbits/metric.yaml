@@ -211,6 +211,15 @@ tests:
     - name: get valid metric id again 4
       GET: /v1/metric
 
+    - name: get measurements by start with epoch
+      GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true&start=1425652440
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+
+    - name: get valid metric id again 4.5
+      GET: /v1/metric
+
     - name: get measurements from metric
       GET: /v1/metric/$RESPONSE['$[0].id']/measures?refresh=true
       response_json_paths:
