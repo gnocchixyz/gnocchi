@@ -108,7 +108,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             raise
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=None):
+                                    version=3):
         try:
             files = os.listdir(self._build_metric_path(metric, aggregation))
         except OSError as e:

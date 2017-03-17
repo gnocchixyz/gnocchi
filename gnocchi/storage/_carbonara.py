@@ -123,7 +123,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     @staticmethod
     def _list_split_keys_for_metric(metric, aggregation, granularity,
-                                    version=None):
+                                    version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -132,9 +132,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         Version should be last attribute and start with 'v'
         """
-        attrs = name.split("_")
-        return not v or (not attrs[-1].startswith('v') if v == 2
-                         else attrs[-1] == 'v%s' % v)
+        return name.split("_")[-1] == 'v%s' % v
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean', granularity=None, resample=None):

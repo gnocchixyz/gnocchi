@@ -123,7 +123,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=None):
+                                    version=3):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
             try:

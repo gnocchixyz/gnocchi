@@ -79,15 +79,14 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         pass
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=None):
+                                    version=3):
         key = self._metric_key(metric).encode("utf8")
         if not self._client.exists(key):
             raise storage.MetricDoesNotExist(metric)
         split_keys = set()
-        # FIXME(gordc): version shouldn't be None but it's not used anywhere
         hashes = self._client.hscan_iter(
             key, match=self._aggregated_field_for_split(aggregation, '*',
-                                                        granularity, 3))
+                                                        granularity, version))
         for f, __ in hashes:
             meta = f.decode("utf8").split(self.FIELD_SEP, 1)
             split_keys.add(meta[0])
