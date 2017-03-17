@@ -111,8 +111,11 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         self._client.set(path.encode("utf8"), data)
 
     def _delete_metric(self, metric):
-        path = self._build_metric_dir(metric)
-        self._client.delete(path.encode("utf8"))
+        match = os.path.join(self._build_metric_dir(metric), '*')
+        # FIXME(gordc): this should be done in redis pipeline but i'm
+        # switching this to hashes anyways so it is what it is.
+        for key in self._client.scan_iter(match=match.encode("utf8")):
+            self._client.delete(key)
 
     # Carbonara API
 
