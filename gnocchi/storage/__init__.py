@@ -163,7 +163,7 @@ class StorageDriver(object):
         This calls :func:`process_new_measures` to process new measures
 
         :param index: An indexer to be used for querying metrics
-        :param block_size: number of metrics to process
+        :param metrics: The list of metrics waiting for processing
         :param sync: If True, then process everything synchronously and raise
                      on error
         :type sync: bool
