@@ -107,7 +107,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                               version))
 
     def _delete_metric(self, metric):
-        self._delete_unaggregated_timeserie(metric)
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -184,12 +183,3 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self.swift.put_object(self._container_name(metric),
                               self._build_unaggregated_timeserie_path(version),
                               data)
-
-    def _delete_unaggregated_timeserie(self, metric, version=3):
-        try:
-            self.swift.delete_object(
-                self._container_name(metric),
-                self._build_unaggregated_timeserie_path(version))
-        except swclient.ClientException as e:
-            if e.http_status != 404:
-                raise

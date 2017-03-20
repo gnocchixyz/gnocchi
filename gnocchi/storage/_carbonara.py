@@ -118,10 +118,6 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def _delete_unaggregated_timeserie(metric, version=3):
-        raise NotImplementedError
-
-    @staticmethod
     def _list_split_keys_for_metric(metric, aggregation, granularity,
                                     version=None):
         raise NotImplementedError

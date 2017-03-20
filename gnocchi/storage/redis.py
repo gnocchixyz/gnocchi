@@ -73,11 +73,6 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricDoesNotExist(metric)
         return data
 
-    def _delete_unaggregated_timeserie(self, metric, version=3):
-        # FIXME(gordc): this really doesn't need to be part of abstract
-        # do it part of _delete_metric
-        pass
-
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=None):
         key = self._metric_key(metric).encode("utf8")
