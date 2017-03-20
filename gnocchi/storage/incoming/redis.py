@@ -15,7 +15,6 @@
 # under the License.
 import collections
 import contextlib
-import os
 
 import six
 
@@ -32,25 +31,25 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         self._client = redis.get_client(conf)
 
     def _build_measure_path(self, metric_id):
-        return os.path.join(self.STORAGE_PREFIX, six.text_type(metric_id))
+        return redis.SEP.join([self.STORAGE_PREFIX, six.text_type(metric_id)])
 
     def _store_new_measures(self, metric, data):
         path = self._build_measure_path(metric.id)
         self._client.rpush(path.encode("utf8"), data)
 
     def _build_report(self, details):
-        match = os.path.join(self.STORAGE_PREFIX, "*").encode('utf8')
+        match = redis.SEP.join([self.STORAGE_PREFIX, "*"]).encode('utf8')
         metric_details = collections.defaultdict(int)
         for key in self._client.scan_iter(match=match, count=1000):
-            metric = key.decode('utf8').split(os.path.sep)[1]
+            metric = key.decode('utf8').split(redis.SEP)[1]
             metric_details[metric] = self._client.llen(key)
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
     def list_metric_with_measures_to_process(self, size, part, full=False):
-        match = os.path.join(self.STORAGE_PREFIX, "*").encode('utf8')
+        match = redis.SEP.join([self.STORAGE_PREFIX, "*"]).encode('utf8')
         keys = self._client.scan_iter(match=match, count=1000)
-        measures = set([k.decode('utf8').split(os.path.sep)[1] for k in keys])
+        measures = set([k.decode('utf8').split(redis.SEP)[1] for k in keys])
         if full:
             return measures
         return set(list(measures)[size * part:size * (part + 1)])

@@ -28,6 +28,8 @@ except ImportError:
     sentinel = None
 
 
+SEP = ':'
+
 CLIENT_ARGS = frozenset([
     'db',
     'encoding',
