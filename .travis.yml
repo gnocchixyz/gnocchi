@@ -1,0 +1,44 @@
+language: python
+sudo: required
+
+services:
+  - docker
+
+cache:
+  directories:
+    - ~/.cache/pip
+env:
+  - TARGET: bashate
+  - TARGET: pep8
+  - TARGET: docs
+  - TARGET: docs-gnocchi.xyz
+
+  - TARGET: py27-mysql-ceph-upgrade-from-3.1
+  - TARGET: py35-postgresql-file-upgrade-from-3.1
+
+  - TARGET: py27-mysql
+  - TARGET: py35-mysql
+  - TARGET: py27-postgresql
+  - TARGET: py35-postgresql
+
+before_script:
+# Travis We need to fetch all tags/branches for documentation target
+  - case $TARGET in
+      docs*)
+        git fetch origin $(git ls-remote -q | sed -n '/refs\/heads/s,.*refs/heads\(.*\),:remotes/origin\1,gp') ;
+        git fetch --tags ;
+        git fetch --unshallow ;
+        ;;
+    esac
+
+  - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
+script:
+  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
+
+notifications:
+  email: false
+  irc:
+    on_success: change
+    on_failure: always
+    channels:
+      - "irc.freenode.org#gnocchi"
