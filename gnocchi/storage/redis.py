@@ -52,28 +52,25 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):
-        key = self._metric_key(metric).encode("utf8")
+        key = self._metric_key(metric)
         if self._client.exists(key):
             raise storage.MetricAlreadyExists(metric)
-        self._client.hset(
-            key, self._unaggregated_field().encode("utf8"), None)
+        self._client.hset(key, self._unaggregated_field(), None)
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self._client.hset(self._metric_key(metric).encode("utf8"),
-                          self._unaggregated_field(version).encode("utf8"),
-                          data)
+        self._client.hset(self._metric_key(metric),
+                          self._unaggregated_field(version), data)
 
     def _get_unaggregated_timeserie(self, metric, version=3):
-        data = self._client.hget(
-            self._metric_key(metric).encode("utf8"),
-            self._unaggregated_field(version).encode("utf8"))
+        data = self._client.hget(self._metric_key(metric),
+                                 self._unaggregated_field(version))
         if data is None:
             raise storage.MetricDoesNotExist(metric)
         return data
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=3):
-        key = self._metric_key(metric).encode("utf8")
+        key = self._metric_key(metric)
         if not self._client.exists(key):
             raise storage.MetricDoesNotExist(metric)
         split_keys = set()
@@ -90,17 +87,17 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         key = self._metric_key(metric)
         field = self._aggregated_field_for_split(
             aggregation, timestamp_key, granularity, version)
-        self._client.hdel(key.encode("utf8"), field.encode("utf8"))
+        self._client.hdel(key, field)
 
     def _store_metric_measures(self, metric, timestamp_key, aggregation,
                                granularity, data, offset=None, version=3):
         key = self._metric_key(metric)
         field = self._aggregated_field_for_split(
             aggregation, timestamp_key, granularity, version)
-        self._client.hset(key.encode("utf8"), field.encode("utf8"), data)
+        self._client.hset(key, field, data)
 
     def _delete_metric(self, metric):
-        self._client.delete(self._metric_key(metric).encode("utf8"))
+        self._client.delete(self._metric_key(metric))
 
     # Carbonara API
 
@@ -109,9 +106,9 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         key = self._metric_key(metric)
         field = self._aggregated_field_for_split(
             aggregation, timestamp_key, granularity, version)
-        data = self._client.hget(key.encode("utf8"), field.encode("utf8"))
+        data = self._client.hget(key, field)
         if data is None:
-            if not self._client.exists(key.encode("utf8")):
+            if not self._client.exists(key):
                 raise storage.MetricDoesNotExist(metric)
             raise storage.AggregationDoesNotExist(metric, aggregation)
         return data
