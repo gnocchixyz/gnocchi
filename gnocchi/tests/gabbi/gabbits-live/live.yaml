@@ -146,7 +146,7 @@ tests:
           $.definition[2].points: 5
           $.definition[2].timespan: "0:05:00"
       response_strings:
-          '"aggregation_methods": ["max", "min", "mean"]'
+          - '"aggregation_methods": ["max", "min", "mean"]'
 
     - name: get wrong accept
       desc: invalid 'accept' header
@@ -330,7 +330,7 @@ tests:
       GET: /v1/archive_policy_rule
       status: 200
       response_strings:
-        '"metric_pattern": "live.*", "archive_policy_name": "gabbilive", "name": "gabbilive_rule"'
+          - '"metric_pattern": "live.*", "archive_policy_name": "gabbilive", "name": "gabbilive_rule"'
 
     - name: get unknown archive policy rule
       GET: /v1/archive_policy_rule/foo
@@ -556,7 +556,7 @@ tests:
         =:
           id: "2ae35573-7f9f-4bb1-aae8-dad8dff5706e"
       response_strings:
-        '"user_id": "126204ef-989a-46fd-999b-ee45c8108f31"'
+          - '"user_id": "126204ef-989a-46fd-999b-ee45c8108f31"'
 
     - name: search for myresource resource via user_id and project_id
       POST: /v1/search/resource/generic
@@ -569,7 +569,7 @@ tests:
           - =:
               project_id: "98e785d7-9487-4159-8ab8-8230ec37537a"
       response_strings:
-        '"id": "2ae35573-7f9f-4bb1-aae8-dad8dff5706e"'
+          - '"id": "2ae35573-7f9f-4bb1-aae8-dad8dff5706e"'
 
     - name: patch myresource resource
       PATCH: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
