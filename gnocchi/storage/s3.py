@@ -93,7 +93,6 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 timestamp_key, aggregation, granularity, version))
 
     def _delete_metric(self, metric):
-        self._delete_unaggregated_timeserie(metric)
         bucket = self._bucket_name(metric)
         response = {}
         while response.get('IsTruncated', True):
@@ -188,13 +187,3 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             Bucket=self._bucket_name(metric),
             Key=self._build_unaggregated_timeserie_path(version),
             Body=data)
-
-    def _delete_unaggregated_timeserie(self, metric, version=3):
-        try:
-            self.s3.delete_object(
-                Bucket=self._bucket_name(metric),
-                Key=self._build_unaggregated_timeserie_path(version))
-        except botocore.exceptions.ClientError as e:
-            code = e.response['Error'].get('Code')
-            if code not in ("NoSuchKey", "NoSuchBucket"):
-                raise
