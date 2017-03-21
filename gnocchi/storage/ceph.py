@@ -88,11 +88,19 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                                 granularity, version=3):
         name = self._get_object_name(metric, timestamp_key,
                                      aggregation, granularity, version)
+
+        try:
+            self.ioctx.remove_object(name)
+        except rados.ObjectNotFound:
+            # It's possible that we already remove that object and then crashed
+            # before removing it from the OMAP key list; then no big deal
+            # anyway.
+            pass
+
         with rados.WriteOpCtx() as op:
             self.ioctx.remove_omap_keys(op, (name,))
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
-        self.ioctx.aio_remove(name)
 
     def _delete_metric(self, metric):
         with rados.ReadOpCtx() as op:
@@ -104,9 +112,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 return
             if ret == errno.ENOENT:
                 return
-            for name, _ in omaps:
-                self.ioctx.aio_remove(name)
-        self.ioctx.aio_remove(
+
+        ops = [self.ioctx.aio_remove(name) for name, _ in omaps]
+
+        for op in ops:
+            op.wait_for_complete_and_cb()
+
+        self.ioctx.remove_object(
             self._build_unaggregated_timeserie_path(metric, 3))
 
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
