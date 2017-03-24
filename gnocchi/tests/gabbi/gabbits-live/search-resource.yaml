@@ -25,13 +25,13 @@ tests:
     # Setup resource types if don't exist
     #
 
-    - name: create new resource type 'instance'
+    - name: create new resource type 'instance-like'
       POST: /v1/resource_type
       status: 201
       request_headers:
           content-type: application/json
       data:
-          name: instance
+          name: instance-like
           attributes:
               display_name:
                   type: string
@@ -49,13 +49,13 @@ tests:
                   type: string
                   required: False
 
-    - name: create new resource type 'image'
+    - name: create new resource type 'image-like'
       POST: /v1/resource_type
       status: 201
       request_headers:
           content-type: application/json
       data:
-          name: image
+          name: image-like
           attributes:
               name:
                   type: string
@@ -70,8 +70,8 @@ tests:
     #
     # Setup test resources
     #
-    - name: helper. create instance resource-1
-      POST: /v1/resource/instance
+    - name: helper. create instance-like resource-1
+      POST: /v1/resource/instance-like
       request_headers:
           content-type: application/json
       data:
@@ -84,8 +84,8 @@ tests:
           project_id: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
       status: 201
 
-    - name: helper. create instance resource-2
-      POST: /v1/resource/instance
+    - name: helper. create instance-like resource-2
+      POST: /v1/resource/instance-like
       request_headers:
           content-type: application/json
       data:
@@ -98,8 +98,8 @@ tests:
           project_id: c9a5f184-c0d0-4daa-83c3-af6fdc0879e6
       status: 201
 
-    - name: helper. create instance resource-3
-      POST: /v1/resource/instance
+    - name: helper. create instance-like resource-3
+      POST: /v1/resource/instance-like
       request_headers:
           content-type: application/json
       data:
@@ -112,8 +112,8 @@ tests:
           project_id: 40eba01c-b348-49b8-803f-67123251a00a
       status: 201
 
-    - name: helper. create image resource-1
-      POST: /v1/resource/image
+    - name: helper. create image-like resource-1
+      POST: /v1/resource/image-like
       request_headers:
           content-type: application/json
       data:
@@ -141,12 +141,12 @@ tests:
       response_json_paths:
           $.`len`: 2
       response_json_paths:
-          $.[0].type: instance
-          $.[1].type: image
+          $.[0].type: instance-like
+          $.[1].type: image-like
           $.[0].id: c442a47c-eb33-46ce-9665-f3aa0bef54e7
           $.[1].id: 7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
 
-    - name: search for all resources of instance type create by specific user_id
+    - name: search for all resources of instance-like type create by specific user_id
       desc: all instances created by a specified user
       POST: /v1/search/resource/generic
       request_headers:
@@ -154,7 +154,7 @@ tests:
       data:
           and:
               - =:
-                  type: instance
+                  type: instance-like
               - =:
                   user_id: 33ba83ca-2f12-4ad6-8fa2-bc8b55d36e07
       status: 200
@@ -166,8 +166,8 @@ tests:
       response_json_paths:
           $.[0].id: a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
           $.[1].id: 7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
-          $.[0].type: instance
-          $.[1].type: instance
+          $.[0].type: instance-like
+          $.[1].type: instance-like
           $.[0].metrics.`len`: 0
           $.[1].metrics.`len`: 0
 
@@ -185,7 +185,7 @@ tests:
 
     - name: search for intances on a specific compute using "like" keyword
       desc: search for vms hosted on a specific compute node
-      POST: /v1/search/resource/instance
+      POST: /v1/search/resource/instance-like
       request_headers:
           content-type: application/json
       data:
@@ -203,7 +203,7 @@ tests:
 
     - name: search for instances using complex search with "like" keyword and user_id
       desc: search for vms of specified user hosted on a specific compute node
-      POST: /v1/search/resource/instance
+      POST: /v1/search/resource/instance-like
       request_headers:
           content-type: application/json
       data:
@@ -219,8 +219,8 @@ tests:
           - '"display_name": "vm-gabbi-2"'
           - '"project_id": "c9a5f184-c0d0-4daa-83c3-af6fdc0879e6"'
 
-    - name: search for resources of instance or image type with specific user_id
-      desc: search for all image or instance resources created by a specific user
+    - name: search for resources of instance-like or image-like type with specific user_id
+      desc: search for all image-like or instance-like resources created by a specific user
       POST: /v1/search/resource/generic
       request_headers:
           content-type: application/json
@@ -231,16 +231,16 @@ tests:
 
               - or:
                   - =:
-                      type: instance
+                      type: instance-like
 
                   - =:
-                      type: image
+                      type: image-like
       status: 200
       response_json_paths:
           $.`len`: 2
       response_strings:
-          - '"type": "image"'
-          - '"type": "instance"'
+          - '"type": "image-like"'
+          - '"type": "instance-like"'
           - '"id": "7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d"'
           - '"id": "c442a47c-eb33-46ce-9665-f3aa0bef54e7"'
 
@@ -248,27 +248,27 @@ tests:
     # Tear down resources
     #
 
-    - name: helper. delete instance resource-1
-      DELETE: /v1/resource/instance/a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
+    - name: helper. delete instance-like resource-1
+      DELETE: /v1/resource/instance-like/a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
       status: 204
 
-    - name: helper. delete instance resource-2
-      DELETE: /v1/resource/instance/7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
+    - name: helper. delete instance-like resource-2
+      DELETE: /v1/resource/instance-like/7ccccfa0-92ce-4225-80ca-3ac9cb122d6a
       status: 204
 
-    - name: helper. delete instance resource-3
-      DELETE: /v1/resource/instance/c442a47c-eb33-46ce-9665-f3aa0bef54e7
+    - name: helper. delete instance-like resource-3
+      DELETE: /v1/resource/instance-like/c442a47c-eb33-46ce-9665-f3aa0bef54e7
       status: 204
 
-    - name: helper. delete image resource
-      DELETE: /v1/resource/image/7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
+    - name: helper. delete image-like resource
+      DELETE: /v1/resource/image-like/7ab2f7ae-7af5-4469-bdc8-3c0f6dfab75d
       status: 204
 
-    - name: helper. delete resource-type instance
-      DELETE: /v1/resource_type/instance
+    - name: helper. delete resource-type instance-like
+      DELETE: /v1/resource_type/instance-like
       status: 204
 
-    - name: helper. delete resource-type image
-      DELETE: /v1/resource_type/image
+    - name: helper. delete resource-type image-like
+      DELETE: /v1/resource_type/image-like
       status: 204
 
