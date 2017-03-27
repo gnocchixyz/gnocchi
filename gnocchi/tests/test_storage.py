@@ -76,6 +76,26 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1), m)
         self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 300.0, 1), m)
 
+    def test_aborted_initial_processing(self):
+        self.storage.incoming.add_measures(self.metric, [
+            storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 5),
+        ])
+        with mock.patch.object(self.storage, '_store_unaggregated_timeserie',
+                               side_effect=Exception):
+            try:
+                self.trigger_processing()
+            except Exception:
+                pass
+
+        with mock.patch('gnocchi.storage._carbonara.LOG') as LOG:
+            self.trigger_processing()
+            self.assertFalse(LOG.error.called)
+
+        m = self.storage.get_measures(self.metric)
+        self.assertIn((utils.datetime_utc(2014, 1, 1), 86400.0, 5.0), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 12), 3600.0, 5.0), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 12), 300.0, 5.0), m)
+
     def test_list_metric_with_measures_to_process(self):
         metrics = self.storage.incoming.list_metric_with_measures_to_process(
             None, None, full=True)
