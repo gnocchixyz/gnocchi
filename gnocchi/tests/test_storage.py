@@ -107,8 +107,13 @@ class TestStorageDriver(tests_base.TestCase):
         self.storage.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
         ])
-        self.storage.delete_metric(self.metric, sync=True)
+        self.index.delete_metric(self.metric.id)
         self.trigger_processing()
+        __, __, details = self.storage.incoming._build_report(True)
+        self.assertIn(str(self.metric.id), details)
+        self.storage.expunge_metrics(self.index, sync=True)
+        __, __, details = self.storage.incoming._build_report(True)
+        self.assertNotIn(str(self.metric.id), details)
 
     def test_delete_expunge_metric(self):
         self.storage.incoming.add_measures(self.metric, [
