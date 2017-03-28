@@ -249,6 +249,9 @@ class TestCase(base.BaseTestCase):
         self.conf.set_override('paste_config',
                                os.path.join(py_root, 'rest', 'api-paste.ini'),
                                group="api")
+        self.conf.set_override('policy_file',
+                               os.path.join(py_root, 'rest', 'policy.json'),
+                               group="oslo_policy")
 
         # NOTE(jd) This allows to test S3 on AWS
         if not os.getenv("AWS_ACCESS_KEY_ID"):

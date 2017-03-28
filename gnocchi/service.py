@@ -38,10 +38,7 @@ def prepare_service(args=None, conf=None,
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
     log.register_options(conf)
     db_options.set_defaults(conf)
-    policy_opts.set_defaults(conf, policy_file=os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
-            "rest", "policy.json")))
+    policy_opts.set_defaults(conf)
 
     # Register our own Gnocchi options
     for group, options in opts.list_opts():
@@ -70,6 +67,14 @@ def prepare_service(args=None, conf=None,
         conf.set_default("coordination_url",
                          urlparse.urlunparse(parsed),
                          "storage")
+
+    cfg_path = conf.oslo_policy.policy_file
+    if not os.path.isabs(cfg_path):
+        cfg_path = conf.find_file(cfg_path)
+    if cfg_path is None or not os.path.exists(cfg_path):
+        cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                                'rest', 'policy.json'))
+    conf.set_default('policy_file', cfg_path, group='oslo_policy')
 
     log.set_defaults(default_log_levels=log.get_default_log_levels() +
                      ["passlib.utils.compat=INFO"])
