@@ -244,6 +244,11 @@ class TestCase(base.BaseTestCase):
 
         self.conf = service.prepare_service([],
                                             default_config_files=[])
+        py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                               '..',))
+        self.conf.set_override('paste_config',
+                               os.path.join(py_root, 'rest', 'api-paste.ini'),
+                               group="api")
 
         # NOTE(jd) This allows to test S3 on AWS
         if not os.getenv("AWS_ACCESS_KEY_ID"):

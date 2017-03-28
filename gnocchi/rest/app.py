@@ -14,10 +14,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
+import pkg_resources
 import uuid
 import warnings
 
-from oslo_config import cfg
 from oslo_log import log
 from oslo_middleware import cors
 from oslo_policy import policy
@@ -100,7 +100,8 @@ def load_app(conf, indexer=None, storage=None,
         cfg_path = conf.find_file(cfg_path)
 
     if cfg_path is None or not os.path.exists(cfg_path):
-        raise cfg.ConfigFilesNotFoundError([conf.api.paste_config])
+        LOG.debug("No api-paste configuration file found! Using default.")
+        cfg_path = pkg_resources.resource_filename(__name__, "api-paste.ini")
 
     config = dict(conf=conf, indexer=indexer, storage=storage,
                   not_implemented_middleware=not_implemented_middleware)

@@ -14,7 +14,6 @@
 import copy
 import itertools
 import operator
-import os
 import pkg_resources
 import uuid
 
@@ -89,10 +88,7 @@ def list_opts():
         )),
         ("api", (
             cfg.StrOpt('paste_config',
-                       default=os.path.abspath(
-                           os.path.join(
-                               os.path.dirname(__file__),
-                               "rest", "api-paste.ini")),
+                       default="api-paste.ini",
                        help='Path to API Paste configuration.'),
             cfg.StrOpt('auth_mode',
                        default="basic",
