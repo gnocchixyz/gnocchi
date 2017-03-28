@@ -417,8 +417,8 @@ function start_gnocchi {
     fi
 
     # run metricd last so we are properly waiting for swift and friends
-    run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d -v --config-file $GNOCCHI_CONF"
-    run_process gnocchi-statsd "$GNOCCHI_BIN_DIR/gnocchi-statsd -d -v --config-file $GNOCCHI_CONF"
+    run_process gnocchi-metricd "$GNOCCHI_BIN_DIR/gnocchi-metricd -d --config-file $GNOCCHI_CONF"
+    run_process gnocchi-statsd "$GNOCCHI_BIN_DIR/gnocchi-statsd -d --config-file $GNOCCHI_CONF"
 }
 
 # stop_gnocchi() - Stop running processes
