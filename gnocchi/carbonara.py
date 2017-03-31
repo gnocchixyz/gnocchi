@@ -94,7 +94,7 @@ class GroupedTimeSeries(object):
         # we always assume the orderd to be the same as the input.
         freq = granularity * 10e8
         self._ts = ts
-        self.indexes = (numpy.array(ts.index, 'float') // freq) * freq
+        self.indexes = (numpy.array(ts.index, numpy.float) // freq) * freq
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
@@ -124,7 +124,7 @@ class GroupedTimeSeries(object):
                                      default=None)
 
     def _count(self):
-        timestamps = numpy.array(self.tstamps, 'datetime64[ns]')
+        timestamps = self.tstamps.astype('datetime64[ns]', copy=False)
         return (self.counts, timestamps)
 
     def count(self):
@@ -163,7 +163,7 @@ class GroupedTimeSeries(object):
 
         values = method(self._ts.values, self.indexes, tstamps,
                         *args, **kwargs)
-        timestamps = numpy.array(tstamps, 'datetime64[ns]')
+        timestamps = tstamps.astype('datetime64[ns]', copy=False)
         return pandas.Series(values, pandas.to_datetime(timestamps))
 
 
@@ -323,7 +323,7 @@ class BoundTimeSerie(TimeSerie):
             :nb_points*cls._SERIALIZATION_TIMESTAMP_LEN]
         timestamps = numpy.frombuffer(timestamps_raw, dtype='<Q')
         timestamps = numpy.cumsum(timestamps)
-        timestamps = numpy.array(timestamps, dtype='datetime64[ns]')
+        timestamps = timestamps.astype(dtype='datetime64[ns]', copy=False)
 
         values_raw = uncompressed[nb_points*cls._SERIALIZATION_TIMESTAMP_LEN:]
         values = numpy.frombuffer(values_raw, dtype='<d')
@@ -338,8 +338,8 @@ class BoundTimeSerie(TimeSerie):
         # NOTE(jd) Use a double delta encoding for timestamps
         timestamps = numpy.insert(numpy.diff(self.ts.index),
                                   0, self.first.value)
-        timestamps = numpy.array(timestamps, dtype='<Q')
-        values = numpy.array(self.ts.values, dtype='<d')
+        timestamps = timestamps.astype('<Q', copy=False)
+        values = self.ts.values.astype('<d', copy=False)
         payload = (timestamps.tobytes() + values.tobytes())
         return lz4.block.compress(payload)
 
@@ -542,7 +542,7 @@ class AggregatedTimeSerie(TimeSerie):
         # but we have ordered timestamps, so don't need
         # to iter the whole series.
         freq = self.sampling * SplitKey.POINTS_PER_SPLIT
-        ix = numpy.array(self.ts.index, 'float64') / 10e8
+        ix = numpy.array(self.ts.index, numpy.float64) / 10e8
         keys, counts = numpy.unique((ix // freq) * freq, return_counts=True)
         start = 0
         for key, count in six.moves.zip(keys, counts):
@@ -629,8 +629,8 @@ class AggregatedTimeSerie(TimeSerie):
                 y = index * sampling + start
                 x = everything['v'][index]
 
-            y = numpy.array(y, dtype='float64') * 10e8
-            y = numpy.array(y, dtype='datetime64[ns]')
+            y = y.astype(numpy.float64, copy=False) * 10e8
+            y = y.astype('datetime64[ns]', copy=False)
             y = pandas.to_datetime(y)
         return cls.from_data(sampling, agg_method, y, x)
 
@@ -675,8 +675,8 @@ class AggregatedTimeSerie(TimeSerie):
             timestamps = numpy.insert(
                 numpy.diff(self.ts.index) // offset_div,
                 0, int((self.first.value - start) // offset_div))
-            timestamps = numpy.array(timestamps, dtype='<H')
-            values = numpy.array(self.ts.values, dtype='<d')
+            timestamps = timestamps.astype('<H', copy=False)
+            values = self.ts.values.astype('<d', copy=False)
             payload = (timestamps.tobytes() + values.tobytes())
             return None, b"c" + lz4.block.compress(payload)
         # NOTE(gordc): this binary serializes series based on the split
@@ -693,14 +693,14 @@ class AggregatedTimeSerie(TimeSerie):
 
         locs = (numpy.cumsum(numpy.diff(self.ts.index)) // offset_div)
         locs = numpy.insert(locs, 0, 0)
-        locs = numpy.array(locs, dtype='int')
+        locs = locs.astype(numpy.int, copy=False)
 
         # Fill everything with zero
         serial_dtype = [('b', '<?'), ('v', '<d')]
         serial = numpy.zeros((e_offset,), dtype=serial_dtype)
 
         # Create a structured array with two dimensions
-        values = numpy.array(self.ts.values, dtype='<d')
+        values = self.ts.values.astype(dtype='<d', copy=False)
         ones = numpy.ones_like(values, dtype='<?')
         values = numpy.core.records.fromarrays((ones, values),
                                                dtype=serial_dtype)
