@@ -16,7 +16,6 @@ import contextlib
 import datetime
 import errno
 import functools
-import itertools
 import uuid
 
 
@@ -119,14 +118,18 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 return ()
             return (k for k, v in omaps)
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process(limit=-1 if full else
-                                                   size * (part + 1))
-        if full:
-            objs_it = names
-        else:
-            objs_it = itertools.islice(names, size * part, size * (part + 1))
-        return set([name.split("_")[1] for name in objs_it])
+    def list_metric_with_measures_to_process(self):
+        names = set()
+        marker = ""
+        while True:
+            obj_names = list(self._list_object_names_to_process(
+                marker=marker, limit=1000))
+            names.update(name.split("_")[1] for name in obj_names)
+            if len(obj_names) < 1000:
+                break
+            else:
+                marker = obj_names[-1]
+        return names
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)

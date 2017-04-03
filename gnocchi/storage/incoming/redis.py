@@ -46,13 +46,11 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
+    def list_metric_with_measures_to_process(self):
         match = redis.SEP.join([self.STORAGE_PREFIX, "*"])
         keys = self._client.scan_iter(match=match, count=1000)
         measures = set([k.decode('utf8').split(redis.SEP)[1] for k in keys])
-        if full:
-            return measures
-        return set(list(measures)[size * part:size * (part + 1)])
+        return measures
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))

@@ -77,18 +77,15 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 300.0, 1), m)
 
     def test_list_metric_with_measures_to_process(self):
-        metrics = self.storage.incoming.list_metric_with_measures_to_process(
-            None, None, full=True)
+        metrics = self.storage.incoming.list_metric_with_measures_to_process()
         self.assertEqual(set(), metrics)
         self.storage.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
         ])
-        metrics = self.storage.incoming.list_metric_with_measures_to_process(
-            None, None, full=True)
+        metrics = self.storage.incoming.list_metric_with_measures_to_process()
         self.assertEqual(set([str(self.metric.id)]), metrics)
         self.trigger_processing()
-        metrics = self.storage.incoming.list_metric_with_measures_to_process(
-            None, None, full=True)
+        metrics = self.storage.incoming.list_metric_with_measures_to_process()
         self.assertEqual(set([]), metrics)
 
     def test_delete_nonempty_metric(self):

@@ -173,8 +173,7 @@ class MetricdThread(threading.Thread):
     def run(self):
         incoming = self.storage.incoming
         while self.flag:
-            metrics = incoming.list_metric_with_measures_to_process(
-                None, None, full=True)
+            metrics = incoming.list_metric_with_measures_to_process()
             self.storage.process_background_tasks(self.index, metrics)
             time.sleep(0.1)
 
