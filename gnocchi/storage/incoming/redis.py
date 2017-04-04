@@ -24,21 +24,21 @@ from gnocchi.storage.incoming import _carbonara
 
 class RedisStorage(_carbonara.CarbonaraBasedStorage):
 
-    STORAGE_PREFIX = "incoming"
-
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
 
     def _build_measure_path(self, metric_id):
-        return redis.SEP.join([self.STORAGE_PREFIX, six.text_type(metric_id)])
+        return redis.SEP.join([
+            self.get_sack_name(self.sack_for_metric(metric_id)),
+            six.text_type(metric_id)])
 
     def _store_new_measures(self, metric, data):
         path = self._build_measure_path(metric.id)
         self._client.rpush(path, data)
 
     def _build_report(self, details):
-        match = redis.SEP.join([self.STORAGE_PREFIX, "*"])
+        match = redis.SEP.join([self.get_sack_name("*"), "*"])
         metric_details = collections.defaultdict(int)
         for key in self._client.scan_iter(match=match, count=1000):
             metric = key.decode('utf8').split(redis.SEP)[1]
@@ -47,10 +47,9 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
                 metric_details if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
-        match = redis.SEP.join([self.STORAGE_PREFIX, "*"])
+        match = redis.SEP.join([self.get_sack_name(sack), "*"])
         keys = self._client.scan_iter(match=match, count=1000)
-        measures = set([k.decode('utf8').split(redis.SEP)[1] for k in keys])
-        return measures
+        return set([k.decode('utf8').split(redis.SEP)[1] for k in keys])
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
