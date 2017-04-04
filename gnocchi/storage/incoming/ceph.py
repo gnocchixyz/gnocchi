@@ -26,6 +26,9 @@ rados = ceph.rados
 
 
 class CephStorage(_carbonara.CarbonaraBasedStorage):
+
+    Q_LIMIT = 1000
+
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
@@ -55,59 +58,62 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         super(CephStorage, self).stop()
 
     def add_measures_batch(self, metrics_and_measures):
-        names = []
+        names_by_sack = defaultdict(list)
         for metric, measures in six.iteritems(metrics_and_measures):
             name = "_".join((
                 self.MEASURE_PREFIX,
                 str(metric.id),
                 str(uuid.uuid4()),
                 datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-            names.append(name)
+            sack = self.get_sack_name(self.sack_for_metric(metric.id))
+            names_by_sack[sack].append(name)
             data = self._encode_measures(measures)
             self.ioctx.write_full(name, data)
 
-        with rados.WriteOpCtx() as op:
-            # NOTE(sileht): list all objects in a pool is too slow with
-            # many objects (2min for 20000 objects in 50osds cluster),
-            # and enforce us to iterrate over all objects
-            # So we create an object MEASURE_PREFIX, that have as
-            # omap the list of objects to process (not xattr because
-            # it doesn't # allow to configure the locking behavior)
-            self.ioctx.set_omap(op, tuple(names), (b"",) * len(names))
-            self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
-                                        flags=self.OMAP_WRITE_FLAGS)
+        for sack, names in names_by_sack.items():
+            with rados.WriteOpCtx() as op:
+                # NOTE(sileht): list all objects in a pool is too slow with
+                # many objects (2min for 20000 objects in 50osds cluster),
+                # and enforce us to iterrate over all objects
+                # So we create an object MEASURE_PREFIX, that have as
+                # omap the list of objects to process (not xattr because
+                # it doesn't # allow to configure the locking behavior)
+                self.ioctx.set_omap(op, tuple(names), (b"",) * len(names))
+                self.ioctx.operate_write_op(op, sack,
+                                            flags=self.OMAP_WRITE_FLAGS)
 
     def _build_report(self, details):
-        LIMIT = 1000
         metrics = set()
         count = 0
         metric_details = defaultdict(int)
-        marker = ""
-        while True:
-            names = list(self._list_object_names_to_process(marker=marker,
-                                                            limit=LIMIT))
-            if names and names[0] < marker:
-                raise _carbonara.ReportGenerationError("Unable to cleanly "
-                                                       "compute backlog.")
-            for name in names:
-                count += 1
-                metric = name.split("_")[1]
-                metrics.add(metric)
-                if details:
-                    metric_details[metric] += 1
-            if len(names) < LIMIT:
-                break
-            else:
-                marker = name
+        for i in six.moves.range(self.NUM_SACKS):
+            marker = ""
+            while True:
+                names = list(self._list_object_names_to_process(
+                    i, marker=marker, limit=self.Q_LIMIT))
+                if names and names[0] < marker:
+                    raise _carbonara.ReportGenerationError("Unable to cleanly "
+                                                           "compute backlog.")
+                for name in names:
+                    count += 1
+                    metric = name.split("_")[1]
+                    metrics.add(metric)
+                    if details:
+                        metric_details[metric] += 1
+                if len(names) < self.Q_LIMIT:
+                    break
+                else:
+                    marker = name
 
         return len(metrics), count, metric_details if details else None
 
-    def _list_object_names_to_process(self, prefix="", marker="", limit=-1):
+    def _list_object_names_to_process(self, sack, prefix="", marker="",
+                                      limit=-1):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, marker, prefix, limit)
             try:
                 self.ioctx.operate_read_op(
-                    op, self.MEASURE_PREFIX, flag=self.OMAP_READ_FLAGS)
+                    op, self.get_sack_name(sack), flag=self.OMAP_READ_FLAGS)
             except rados.ObjectNotFound:
                 # API have still written nothing
                 return ()
@@ -129,17 +135,19 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         marker = ""
         while True:
             obj_names = list(self._list_object_names_to_process(
-                marker=marker, limit=1000))
+                sack, marker=marker, limit=self.Q_LIMIT))
             names.update(name.split("_")[1] for name in obj_names)
-            if len(obj_names) < 1000:
+            if len(obj_names) < self.Q_LIMIT:
                 break
             else:
                 marker = obj_names[-1]
         return names
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-        object_names = tuple(self._list_object_names_to_process(object_prefix))
+        object_names = tuple(self._list_object_names_to_process(
+            sack, object_prefix))
 
         if not object_names:
             return
@@ -152,13 +160,15 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
             self.ioctx.remove_omap_keys(op, object_names)
-            self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
+            self.ioctx.operate_write_op(op, self.get_sack_name(sack),
                                         flags=self.OMAP_WRITE_FLAGS)
 
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
+        sack = self.sack_for_metric(metric.id)
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
-        object_names = tuple(self._list_object_names_to_process(object_prefix))
+        object_names = tuple(self._list_object_names_to_process(
+            sack, object_prefix))
 
         measures = []
         ops = []
@@ -212,5 +222,5 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
             self.ioctx.remove_omap_keys(op, object_names)
-            self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
+            self.ioctx.operate_write_op(op, self.get_sack_name(sack),
                                         flags=self.OMAP_WRITE_FLAGS)
