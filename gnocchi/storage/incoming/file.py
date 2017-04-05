@@ -29,14 +29,22 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
-        self.measure_path = os.path.join(self.basepath, 'measure')
 
-    def upgrade(self, indexer):
-        super(FileStorage, self).upgrade(indexer)
-        utils.ensure_paths([self.basepath_tmp, self.measure_path])
+    def upgrade(self, index):
+        super(FileStorage, self).upgrade(index)
+        utils.ensure_paths([self._sack_path(i)
+                            for i in six.moves.range(self.NUM_SACKS)])
+        utils.ensure_paths([self.basepath_tmp])
+
+    def _sack_path(self, sack):
+        return os.path.join(self.basepath, self.get_sack_name(sack))
+
+    def _measure_path(self, sack, metric_id):
+        return os.path.join(self._sack_path(sack), six.text_type(metric_id))
 
     def _build_measure_path(self, metric_id, random_id=None):
-        path = os.path.join(self.measure_path, six.text_type(metric_id))
+        sack = self.sack_for_metric(metric_id)
+        path = self._measure_path(sack, metric_id)
         if random_id:
             if random_id is True:
                 now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
@@ -69,18 +77,26 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
 
     def _build_report(self, details):
         metric_details = {}
-        for metric in os.listdir(self.measure_path):
-            metric_details[metric] = len(
-                self._list_measures_container_for_metric_id(metric))
+        for i in six.moves.range(self.NUM_SACKS):
+            for metric in self.list_metric_with_measures_to_process(i):
+                metric_details[metric] = len(
+                    self._list_measures_container_for_metric_id_str(i, metric))
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
-        return set(os.listdir(self.measure_path))
+        return set(self._list_target(self._sack_path(sack)))
+
+    def _list_measures_container_for_metric_id_str(self, sack, metric_id):
+        return self._list_target(self._measure_path(sack, metric_id))
 
     def _list_measures_container_for_metric_id(self, metric_id):
+        return self._list_target(self._build_measure_path(metric_id))
+
+    @staticmethod
+    def _list_target(target):
         try:
-            return os.listdir(self._build_measure_path(metric_id))
+            return os.listdir(target)
         except OSError as e:
             # Some other process treated this one, then do nothing
             if e.errno == errno.ENOENT:
