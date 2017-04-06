@@ -109,9 +109,9 @@ def list_opts():
         ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS)),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
-            cfg.StrOpt('host',
-                       default='0.0.0.0',
-                       help='The listen IP for statsd'),
+            cfg.HostAddressOpt('host',
+                               default='0.0.0.0',
+                               help='The listen IP for statsd'),
             cfg.PortOpt('port',
                         default=8125,
                         help='The port for statsd'),
