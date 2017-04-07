@@ -48,16 +48,16 @@ def prepare_service(args=None, conf=None,
         conf.register_opts(list(options),
                            group=None if group == "DEFAULT" else group)
 
-    # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
-    archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
-        conf.archive_policy.default_aggregation_methods
-    )
-
     conf.set_default("workers", utils.get_default_workers(), group="metricd")
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
+
+    # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
+    archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
+        conf.archive_policy.default_aggregation_methods
+    )
 
     # If no coordination URL is provided, default to using the indexer as
     # coordinator
