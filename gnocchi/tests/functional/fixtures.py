@@ -83,6 +83,11 @@ class ConfigFixture(fixture.GabbiFixture):
             dcf = []
         conf = service.prepare_service([],
                                        default_config_files=dcf)
+        py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                               '..', '..',))
+        conf.set_override('paste_config',
+                          os.path.join(py_root, 'rest', 'api-paste.ini'),
+                          group="api")
 
         # NOTE(sileht): This is not concurrency safe, but only this tests file
         # deal with cors, so we are fine. set_override don't work because cors
