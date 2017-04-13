@@ -182,7 +182,7 @@ htmlhelp_basename = 'gnocchidoc'
 # Multiversion docs
 scv_sort = ('semver',)
 scv_show_banner = True
-scv_banner_recent_tag = True
+scv_banner_greatest_tag = True
 scv_priority = 'branches'
 scv_whitelist_branches = ('master', '^stable/(2\.1|2\.2|[3-9]\.)')
 scv_whitelist_tags = ("^[2-9]\.",)
