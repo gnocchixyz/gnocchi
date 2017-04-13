@@ -98,15 +98,6 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _delete_unaggregated_timeserie(self, metric, version=3):
-        path = self._build_unaggregated_timeserie_path(metric, version)
-        try:
-            os.unlink(path)
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                raise storage.MetricDoesNotExist(metric)
-            raise
-
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=3):
         try:

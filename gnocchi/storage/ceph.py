@@ -157,10 +157,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         self.ioctx.write_full(
             self._build_unaggregated_timeserie_path(metric, version), data)
 
-    def _delete_unaggregated_timeserie(self, metric, version=3):
-        self.ioctx.aio_remove(
-            self._build_unaggregated_timeserie_path(metric, version))
-
     def _get_object_content(self, name):
         offset = 0
         content = b''
