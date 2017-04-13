@@ -55,7 +55,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         key = self._metric_key(metric)
         if self._client.exists(key):
             raise storage.MetricAlreadyExists(metric)
-        self._client.hset(key, self._unaggregated_field(), None)
+        self._client.hset(key, self._unaggregated_field(), '')
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self._client.hset(self._metric_key(metric),
