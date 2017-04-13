@@ -88,6 +88,9 @@ class ConfigFixture(fixture.GabbiFixture):
         conf.set_override('paste_config',
                           os.path.join(py_root, 'rest', 'api-paste.ini'),
                           group="api")
+        conf.set_override('policy_file',
+                          os.path.join(py_root, 'rest', 'policy.json'),
+                          group="oslo_policy")
 
         # NOTE(sileht): This is not concurrency safe, but only this tests file
         # deal with cors, so we are fine. set_override don't work because cors
