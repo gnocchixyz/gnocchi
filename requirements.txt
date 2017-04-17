@@ -1,4 +1,4 @@
-pbr
+pbr!=2.1.0
 numpy>=1.9.0
 iso8601
 oslo.config>=2.7.0
