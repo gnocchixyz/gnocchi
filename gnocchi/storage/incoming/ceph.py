@@ -55,23 +55,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()
 
-    def upgrade(self, index):
-        super(CephStorage, self).upgrade(index)
-
-        # Move names stored in xattrs to omap
-        try:
-            xattrs = tuple(k for k, v in
-                           self.ioctx.get_xattrs(self.MEASURE_PREFIX))
-        except rados.ObjectNotFound:
-            return
-        with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, xattrs, tuple([b""]*len(xattrs)))
-            self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
-                                        flags=self.OMAP_WRITE_FLAGS)
-
-        for xattr in xattrs:
-            self.ioctx.rm_xattr(self.MEASURE_PREFIX, xattr)
-
     def _store_new_measures(self, metric, data):
         # NOTE(sileht): list all objects in a pool is too slow with
         # many objects (2min for 20000 objects in 50osds cluster),
