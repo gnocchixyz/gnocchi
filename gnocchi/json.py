@@ -13,10 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from __future__ import absolute_import
-
 import datetime
-import json
 import uuid
 
 import numpy
@@ -52,8 +49,8 @@ def to_primitive(obj):
     return obj
 
 
-def dumps(*args, **kwargs):
-    return json.dumps(*args, default=to_primitive, **kwargs)
+def dumps(obj):
+    return ujson.dumps(to_primitive(obj))
 
 
 # For convenience
