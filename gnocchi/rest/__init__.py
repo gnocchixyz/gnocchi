@@ -21,7 +21,6 @@ import uuid
 from concurrent import futures
 import jsonpatch
 from oslo_utils import dictutils
-from oslo_utils import strutils
 import pecan
 from pecan import rest
 import pyparsing
@@ -138,16 +137,8 @@ def Timespan(value):
 def get_header_option(name, params):
     type, options = werkzeug.http.parse_options_header(
         pecan.request.headers.get('Accept'))
-    try:
-        return strutils.bool_from_string(
-            options.get(name, params.pop(name, 'false')),
-            strict=True)
-    except ValueError as e:
-        method = 'Accept' if name in options else 'query'
-        abort(
-            400,
-            "Unable to parse %s value in %s: %s"
-            % (name, method, six.text_type(e)))
+    return strtobool('Accept header' if name in options else name,
+                     options.get(name, params.pop(name, 'false')))
 
 
 def get_history(params):
@@ -156,6 +147,17 @@ def get_history(params):
 
 def get_details(params):
     return get_header_option('details', params)
+
+
+def strtobool(varname, v):
+    """Convert a string to a boolean.
+
+    Default to false if unable to convert.
+    """
+    try:
+        return utils.strtobool(v)
+    except ValueError as e:
+        abort(400, "Unable to parse `%s': %s" % (varname, six.text_type(e)))
 
 
 RESOURCE_DEFAULT_PAGINATION = ['revision_start:asc',
@@ -427,7 +429,7 @@ class MetricController(rest.RestController):
             except ValueError as e:
                 abort(400, e)
 
-        if strutils.bool_from_string(refresh):
+        if strtobool("refresh", refresh):
             pecan.request.storage.process_new_measures(
                 pecan.request.indexer, [six.text_type(self.metric.id)], True)
 
@@ -1366,7 +1368,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                 names=names, resource_id=resource_id)
 
             known_names = [m.name for m in metrics]
-            if strutils.bool_from_string(create_metrics):
+            if strtobool("create_metrics", create_metrics):
                 already_exists_names = []
                 for name in names:
                     if name not in known_names:
@@ -1603,7 +1605,7 @@ class AggregationController(rest.RestController):
                     abort(400, "fill must be a float or \'null\': %s" % e)
 
         try:
-            if strutils.bool_from_string(refresh):
+            if strtobool("refresh", refresh):
                 pecan.request.storage.process_new_measures(
                     pecan.request.indexer,
                     [six.text_type(m.id) for m in metrics], True)
@@ -1667,7 +1669,7 @@ class StatusController(rest.RestController):
         enforce("get status", {})
         try:
             report = pecan.request.storage.incoming.measures_report(
-                strutils.bool_from_string(details))
+                strtobool("details", details))
         except incoming.ReportGenerationError:
             abort(503, 'Unable to generate status. Please retry.')
         report_dict = {"storage": {"summary": report['summary']}}

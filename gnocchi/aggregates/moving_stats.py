@@ -16,7 +16,6 @@
 import datetime
 
 import numpy
-from oslo_utils import strutils
 from oslo_utils import timeutils
 import pandas
 import six
@@ -75,7 +74,7 @@ class MovingAverage(aggregates.CustomAggregator):
         """
 
         if center:
-            center = strutils.bool_from_string(center)
+            center = utils.strtobool(center)
 
         def moving_window(x):
             msec = datetime.timedelta(milliseconds=1)

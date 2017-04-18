@@ -18,14 +18,14 @@ from __future__ import absolute_import
 
 from six.moves.urllib import parse
 
-from oslo_utils import strutils
-
 try:
     import redis
     from redis import sentinel
 except ImportError:
     redis = None
     sentinel = None
+
+from gnocchi import utils
 
 
 SEP = ':'
@@ -96,7 +96,7 @@ def get_client(conf):
         if a not in options:
             continue
         if a in CLIENT_BOOL_ARGS:
-            v = strutils.bool_from_string(options[a][-1])
+            v = utils.strtobool(options[a][-1])
         elif a in CLIENT_LIST_ARGS:
             v = options[a][-1]
         elif a in CLIENT_INT_ARGS:

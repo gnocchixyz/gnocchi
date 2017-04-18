@@ -1450,8 +1450,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/generic?details=awesome",
                               status=400)
         self.assertIn(
-            b"Unable to parse details value in query: "
-            b"Unrecognized value 'awesome', acceptable values are",
+            b"Unable to parse `details': invalid truth value",
             result.body)
 
     def test_list_resources_with_bad_details_in_accept(self):
@@ -1461,8 +1460,7 @@ class ResourceTest(RestTest):
                               },
                               status=400)
         self.assertIn(
-            b"Unable to parse details value in Accept: "
-            b"Unrecognized value 'foo', acceptable values are",
+            b"Unable to parse `Accept header': invalid truth value",
             result.body)
 
     def _do_test_list_resources_with_detail(self, request):
