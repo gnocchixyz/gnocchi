@@ -13,17 +13,20 @@
 # under the License.
 
 from oslo_log import log
-from oslo_utils import importutils
 
 LOG = log.getLogger(__name__)
 
 
 for RADOS_MODULE_NAME in ('cradox', 'rados'):
-    rados = importutils.try_import(RADOS_MODULE_NAME)
-    if rados is not None:
+    try:
+        rados = __import__(RADOS_MODULE_NAME)
+    except ImportError:
+        pass
+    else:
         break
 else:
     RADOS_MODULE_NAME = None
+    rados = None
 
 if rados is not None and hasattr(rados, 'run_in_thread'):
     rados.run_in_thread = lambda target, args, timeout=None: target(*args)
