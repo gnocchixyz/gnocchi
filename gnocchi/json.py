@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2015-2016 Red Hat, Inc.
+# Copyright © 2015-2017 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,38 +13,47 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from __future__ import absolute_import
+
 import datetime
+import json
+import uuid
 
 import numpy
-from oslo_serialization import jsonutils
+import six
 import ujson
 
 
-_ORIG_TP = jsonutils.to_primitive
-
-
-def _to_primitive(value, *args, **kwargs):
-    if isinstance(value, datetime.datetime):
-        return value.isoformat()
-    if isinstance(value, numpy.datetime64):
+def to_primitive(obj):
+    if isinstance(obj, ((six.text_type,)
+                        + six.integer_types
+                        + (type(None), bool, float))):
+        return obj
+    if isinstance(obj, uuid.UUID):
+        return six.text_type(obj)
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    if isinstance(obj, numpy.datetime64):
         # Do not include nanoseconds if null
-        return str(value).rpartition(".000000000")[0] + "+00:00"
+        return str(obj).rpartition(".000000000")[0] + "+00:00"
     # This mimics what Pecan implements in its default JSON encoder
-    if hasattr(value, "jsonify"):
-        return _to_primitive(value.jsonify(), *args, **kwargs)
-    return _ORIG_TP(value, *args, **kwargs)
+    if hasattr(obj, "jsonify"):
+        return to_primitive(obj.jsonify())
+    if isinstance(obj, dict):
+        return {to_primitive(k): to_primitive(v)
+                for k, v in obj.items()}
+    if hasattr(obj, 'iteritems'):
+        return to_primitive(dict(obj.iteritems()))
+    # Python 3 does not have iteritems
+    if hasattr(obj, 'items'):
+        return to_primitive(dict(obj.items()))
+    if hasattr(obj, '__iter__'):
+        return list(map(to_primitive, obj))
+    return obj
 
 
-def to_primitive(*args, **kwargs):
-    try:
-        jsonutils.to_primitive = _to_primitive
-        return jsonutils.to_primitive(*args, **kwargs)
-    finally:
-        jsonutils.to_primitive = _ORIG_TP
-
-
-def dumps(obj, *args, **kwargs):
-    return jsonutils.dumps(obj, default=to_primitive)
+def dumps(*args, **kwargs):
+    return json.dumps(*args, default=to_primitive, **kwargs)
 
 
 # For convenience
