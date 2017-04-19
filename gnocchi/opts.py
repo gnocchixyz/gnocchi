@@ -91,7 +91,13 @@ def list_opts():
                             "leave system (in seconds). A shorter rate, may "
                             "improve rebalancing but create more coordination "
                             "load"),
-
+            cfg.IntOpt('processing_replicas',
+                       default=3,
+                       min=1,
+                       help="Number of workers that share a task. A higher "
+                       "value may improve worker utilization but may also "
+                       "increase load on coordination backend. Value is "
+                       "capped by number of workers globally."),
         )),
         ("api", (
             cfg.StrOpt('paste_config',
