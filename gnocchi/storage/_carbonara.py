@@ -35,9 +35,9 @@ from gnocchi import utils
 OPTS = [
     cfg.IntOpt('aggregation_workers_number',
                default=1, min=1,
-               help='Number of workers to run during adding new measures for '
-                    'pre-aggregation needs. Due to the Python GIL, '
-                    '1 is usually faster, unless you have high latency I/O'),
+               help='Number of threads to process and store aggregates. '
+                    'Set value roughly equal to number of aggregates to be '
+                    'computed per metric'),
     cfg.StrOpt('coordination_url',
                secret=True,
                help='Coordination driver URL'),
