@@ -48,6 +48,8 @@ def ResourceUUID(value, creator):
         return uuid.UUID(value)
     except ValueError:
         if len(value) <= 255:
+            if creator is None:
+                creator = "\x00"
             # value/creator must be str (unicode) in Python 3 and str (bytes)
             # in Python 2. It's not logical, I know.
             if six.PY2:
