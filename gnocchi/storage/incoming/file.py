@@ -14,6 +14,7 @@
 import contextlib
 import datetime
 import errno
+import json
 import os
 import tempfile
 import uuid
@@ -30,11 +31,26 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
 
-    def upgrade(self, index):
-        super(FileStorage, self).upgrade(index)
+    def upgrade(self, index, num_sacks):
+        super(FileStorage, self).upgrade(index, num_sacks)
+        utils.ensure_paths([self.basepath_tmp])
+
+    def get_storage_sacks(self):
+        try:
+            with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX),
+                      'r') as f:
+                return json.load(f)[self.CFG_SACKS]
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                return
+            raise
+
+    def set_storage_settings(self, num_sacks):
+        data = {self.CFG_SACKS: num_sacks}
+        with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX), 'w') as f:
+            json.dump(data, f)
         utils.ensure_paths([self._sack_path(i)
                             for i in six.moves.range(self.NUM_SACKS)])
-        utils.ensure_paths([self.basepath_tmp])
 
     def _sack_path(self, sack):
         return os.path.join(self.basepath, self.get_sack_name(sack))

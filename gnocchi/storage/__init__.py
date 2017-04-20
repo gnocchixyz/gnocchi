@@ -162,8 +162,8 @@ class StorageDriver(object):
     def stop():
         pass
 
-    def upgrade(self, index):
-        self.incoming.upgrade(index)
+    def upgrade(self, index, num_sacks):
+        self.incoming.upgrade(index, num_sacks)
 
     def process_background_tasks(self, index, metrics, sync=False):
         """Process background tasks for this storage.

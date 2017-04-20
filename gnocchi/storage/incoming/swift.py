@@ -14,6 +14,7 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import json
 import uuid
 
 import six
@@ -30,8 +31,18 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
 
-    def upgrade(self, index):
-        super(SwiftStorage, self).upgrade(index)
+    def get_storage_sacks(self):
+        try:
+            __, data = self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)
+            return json.loads(data)[self.CFG_SACKS]
+        except swclient.ClientException as e:
+            if e.http_status == 404:
+                return
+
+    def set_storage_settings(self, num_sacks):
+        self.swift.put_container(self.CFG_PREFIX)
+        self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
+                              json.dumps({self.CFG_SACKS: num_sacks}))
         for i in six.moves.range(self.NUM_SACKS):
             self.swift.put_container(self.get_sack_name(i))
 

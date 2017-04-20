@@ -16,6 +16,7 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import json
 import uuid
 
 import six
@@ -29,9 +30,6 @@ botocore = s3.botocore
 
 class S3Storage(_carbonara.CarbonaraBasedStorage):
 
-    # NOTE(gordc): override to follow s3 partitioning logic
-    SACK_PREFIX = '%s/'
-
     def __init__(self, conf):
         super(S3Storage, self).__init__(conf)
         self.s3, self._region_name, self._bucket_prefix = (
@@ -42,8 +40,26 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             self._bucket_prefix + "-" + self.MEASURE_PREFIX
         )
 
-    def upgrade(self, indexer):
-        super(S3Storage, self).upgrade(indexer)
+    def get_storage_sacks(self):
+        try:
+            response = self.s3.get_object(Bucket=self._bucket_name_measures,
+                                          Key=self.CFG_PREFIX)
+            return json.loads(response['Body'].read().decode())[self.CFG_SACKS]
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error'].get('Code') == "NoSuchKey":
+                return
+
+    def set_storage_settings(self, num_sacks):
+        data = {self.CFG_SACKS: num_sacks}
+        self.s3.put_object(Bucket=self._bucket_name_measures,
+                           Key=self.CFG_PREFIX,
+                           Body=json.dumps(data).encode())
+
+    def get_sack_prefix(self, num_sacks=None):
+        # NOTE(gordc): override to follow s3 partitioning logic
+        return '%s-' + ('%s/' % (num_sacks if num_sacks else self.NUM_SACKS))
+
+    def upgrade(self, indexer, num_sacks):
         try:
             s3.create_bucket(self.s3, self._bucket_name_measures,
                              self._region_name)
@@ -52,6 +68,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                     "BucketAlreadyExists", "BucketAlreadyOwnedByYou"
             ):
                 raise
+        # need to create bucket first to store storage settings object
+        super(S3Storage, self).upgrade(indexer, num_sacks)
 
     def _store_new_measures(self, metric, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
@@ -77,8 +95,9 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 **kwargs)
             # FIXME(gordc): this can be streamlined if not details
             for c in response.get('Contents', ()):
-                __, metric, metric_file = c['Key'].split("/", 2)
-                metric_details[metric] += 1
+                if c['Key'] != self.CFG_PREFIX:
+                    __, metric, metric_file = c['Key'].split("/", 2)
+                    metric_details[metric] += 1
         return (len(metric_details), sum(metric_details.values()),
                 metric_details if details else None)
 
