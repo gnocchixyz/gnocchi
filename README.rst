@@ -2,7 +2,7 @@
  Gnocchi - Metric as a Service
 ===============================
 
-.. image:: doc/source/gnocchi-logo.jpg
+.. image:: doc/source/gnocchi-logo.png
 
 Gnocchi is a multi-tenant timeseries, metrics and resources database. It
 provides an `HTTP REST`_ interface to create and manipulate the data. It is

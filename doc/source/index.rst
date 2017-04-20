@@ -2,11 +2,6 @@
 Gnocchi – Metric as a Service
 ==================================
 
-.. image:: gnocchi-logo.jpg
-  :align: right
-  :width: 20%
-  :alt: Gnocchi logo
-
 .. include:: ../../README.rst
    :start-line: 6
 
