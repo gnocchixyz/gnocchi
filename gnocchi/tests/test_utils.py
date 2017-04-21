@@ -13,6 +13,7 @@
 # under the License.
 import datetime
 import os
+import uuid
 
 import iso8601
 import mock
@@ -57,3 +58,21 @@ class TestUtils(tests_base.TestCase):
             utils.to_datetime(utils.to_timestamp(1425652440.4)),
             datetime.datetime(2015, 3, 6, 14, 34, 0, 400000,
                               tzinfo=iso8601.iso8601.UTC))
+
+
+class TestResourceUUID(tests_base.TestCase):
+    def test_conversion(self):
+        self.assertEqual(
+            uuid.UUID('ba571521-1de6-5aff-b183-1535fd6eb5d0'),
+            utils.ResourceUUID(
+                uuid.UUID('ba571521-1de6-5aff-b183-1535fd6eb5d0'),
+                "bar"))
+        self.assertEqual(
+            uuid.UUID('ba571521-1de6-5aff-b183-1535fd6eb5d0'),
+            utils.ResourceUUID("foo", "bar"))
+        self.assertEqual(
+            uuid.UUID('4efb21f6-3d19-5fe3-910b-be8f0f727846'),
+            utils.ResourceUUID("foo", None))
+        self.assertEqual(
+            uuid.UUID('853e5c64-f45e-58b2-999c-96df856fbe3d'),
+            utils.ResourceUUID("foo", ""))
