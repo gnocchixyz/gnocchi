@@ -80,12 +80,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        if full:
-            limit = 1000        # 1000 is the default anyway
-        else:
-            limit = size * (part + 1)
-
+    def list_metric_with_measures_to_process(self):
+        limit = 1000        # 1000 is the default anyway
         metrics = set()
         response = {}
         # Handle pagination
@@ -103,11 +99,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 **kwargs)
             for p in response.get('CommonPrefixes', ()):
                 metrics.add(p['Prefix'].rstrip('/'))
-
-        if full:
-            return metrics
-
-        return sorted(list(metrics))[size * part:]
+        return metrics
 
     def _list_measure_files_for_metric_id(self, metric_id):
         files = set()

@@ -52,5 +52,5 @@ class StorageDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def list_metric_with_measures_to_process(size, part, full=False):
+    def list_metric_with_measures_to_process():
         raise NotImplementedError

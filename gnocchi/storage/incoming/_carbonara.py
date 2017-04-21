@@ -68,10 +68,6 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
         raise NotImplementedError
 
     @staticmethod
-    def list_metric_with_measures_to_process(size, part, full=False):
-        raise NotImplementedError
-
-    @staticmethod
     def delete_unprocessed_measures_for_metric_id(metric_id):
         raise NotImplementedError
 
