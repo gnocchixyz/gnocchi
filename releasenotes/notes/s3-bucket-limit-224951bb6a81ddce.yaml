@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Previously, s3 storage driver stored aggregates in a bucket per metric.
+    This would quickly run into bucket limit set by s3. s3 storage driver is
+    fixed so it stores all aggregates for all metrics in a single bucket.
+    Buckets previously created by Gnocchi will need to be deleted as they will
+    no longer be handled.
