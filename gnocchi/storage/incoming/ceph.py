@@ -133,25 +133,26 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-        object_names = self._list_object_names_to_process(object_prefix)
+        object_names = tuple(self._list_object_names_to_process(object_prefix))
+
         if not object_names:
             return
+
+        for op in list(map(self.ioctx.aio_remove, object_names)):
+            op.wait_for_complete_and_cb()
 
         # Now clean objects and omap
         with rados.WriteOpCtx() as op:
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
-            self.ioctx.remove_omap_keys(op, tuple(object_names))
+            self.ioctx.remove_omap_keys(op, object_names)
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
-
-        for n in object_names:
-            self.ioctx.aio_remove(n)
 
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
-        object_names = list(self._list_object_names_to_process(object_prefix))
+        object_names = tuple(self._list_object_names_to_process(object_prefix))
 
         measures = []
         ops = []
@@ -160,6 +161,18 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         tmp_measures = {}
 
         def add_to_measures(name, comp, data):
+            # Check that the measure file has not been deleted while still
+            # listed in the OMAP – this can happen after a crash
+            ret = comp.get_return_value()
+            if ret < 0:
+                exc = rados.errno_to_exception[abs(ret)]
+                if exc == rados.ObjectNotFound:
+                    # Object has been deleted, so this is just a stalled entry
+                    # in the OMAP listing, ignore
+                    return
+                # This is not an "expected" error, raise it back
+                raise exc
+
             if name in tmp_measures:
                 tmp_measures[name] += data
             else:
@@ -186,13 +199,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
         yield measures
 
-        # Now clean objects and omap
+        # First delete all objects
+        for op in list(map(self.ioctx.aio_remove, object_names)):
+            op.wait_for_complete_and_cb()
+
+        # Now clean omap
         with rados.WriteOpCtx() as op:
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
-            self.ioctx.remove_omap_keys(op, tuple(object_names))
+            self.ioctx.remove_omap_keys(op, object_names)
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
-
-        for n in object_names:
-            self.ioctx.aio_remove(n)
