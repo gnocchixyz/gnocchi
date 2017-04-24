@@ -335,9 +335,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     metric, key, split, aggregation, archive_policy_def,
                     oldest_mutable_timestamp)
 
-    def add_measures(self, metric, measures):
+    def _encode_measures(self, measures):
         measures = list(measures)
-        data = struct.pack(
+        return struct.pack(
             "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
             *list(
                 itertools.chain(
@@ -345,7 +345,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     *((int(utils.datetime_to_unix(timestamp) * int(10e8)),
                        value)
                       for timestamp, value in measures))))
-        self._store_new_measures(metric, data)
+
+    def add_measures_batch(self, metrics_and_measures):
+        for metric, measures in six.iteritems(metrics_and_measures):
+            self._store_new_measures(metric, self._encode_measures(measures))
 
     @staticmethod
     def _store_new_measures(metric, data):

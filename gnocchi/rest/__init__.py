@@ -1312,9 +1312,10 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
-        for metric in known_metrics:
-            measures = body[metric.resource_id][metric.name]
-            pecan.request.storage.add_measures(metric, measures)
+        pecan.request.storage.add_measures_batch(
+            dict((metric,
+                 body[metric.resource_id][metric.name])
+                 for metric in known_metrics))
 
         pecan.response.status = 202
 
@@ -1343,8 +1344,9 @@ class MetricsMeasuresBatchController(rest.RestController):
         for metric in metrics:
             enforce("post measures", metric)
 
-        for metric in metrics:
-            pecan.request.storage.add_measures(metric, body[metric.id])
+        pecan.request.storage.add_measures_batch(
+            dict((metric, body[metric.id]) for metric in
+                 metrics))
 
         pecan.response.status = 202
 
