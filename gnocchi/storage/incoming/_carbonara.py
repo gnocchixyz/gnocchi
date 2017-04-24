@@ -14,16 +14,20 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from concurrent import futures
 import itertools
 import struct
 
 from oslo_log import log
 import pandas
-import six.moves
+import six
 
 from gnocchi.storage import incoming
+from gnocchi import utils
 
 LOG = log.getLogger(__name__)
+
+_NUM_WORKERS = utils.get_default_workers()
 
 
 class CarbonaraBasedStorage(incoming.StorageDriver):
@@ -45,12 +49,19 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
             pandas.to_datetime(measures[::2], unit='ns'),
             itertools.islice(measures, 1, len(measures), 2))
 
-    def add_measures(self, metric, measures):
+    def _encode_measures(self, measures):
         measures = list(measures)
-        data = struct.pack(
+        return struct.pack(
             "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
             *list(itertools.chain.from_iterable(measures)))
-        self._store_new_measures(metric, data)
+
+    def add_measures_batch(self, metrics_and_measures):
+        with futures.ThreadPoolExecutor(max_workers=_NUM_WORKERS) as executor:
+            list(executor.map(
+                lambda args: self._store_new_measures(*args),
+                ((metric, self._encode_measures(measures))
+                 for metric, measures
+                 in six.iteritems(metrics_and_measures))))
 
     @staticmethod
     def _store_new_measures(metric, data):
