@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The S3 driver now checks for data consistency by default. S3 does not
+    guarantee read-after-write consistency when overwriting data. Gnocchi now
+    waits up to `s3_check_consistency_timeout` seconds before returning and
+    unlocking a metric for new processing. This makes sure that the data that
+    will be read by the next workers will be consistent and that no data will
+    be lost. This feature can be disabled by setting the value to 0.
