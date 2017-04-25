@@ -129,6 +129,14 @@ class MetricUnaggregatable(StorageError):
             % (", ".join((str(m.id) for m in metrics)), reason))
 
 
+class LockedMetric(StorageError):
+    """Error raised when this metric is already being handled by another."""
+
+    def __init__(self, metric):
+        self.metric = metric
+        super(LockedMetric, self).__init__("Metric %s is locked" % metric)
+
+
 def get_driver_class(namespace, conf):
     """Return the storage driver class.
 
@@ -190,18 +198,16 @@ class StorageDriver(object):
         for m in metrics_to_expunge:
             try:
                 self.delete_metric(m, sync)
+                index.expunge_metric(m.id)
+            except (indexer.NoSuchMetric, LockedMetric):
+                # It's possible another process deleted or is deleting the
+                # metric, not a big deal
+                pass
             except Exception:
                 if sync:
                     raise
                 LOG.error("Unable to expunge metric %s from storage", m,
                           exc_info=True)
-                continue
-            try:
-                index.expunge_metric(m.id)
-            except indexer.NoSuchMetric:
-                # It's possible another process deleted the metric in the mean
-                # time, not a big deal
-                pass
 
     @staticmethod
     def process_new_measures(indexer, metrics, sync=False):
