@@ -59,14 +59,23 @@ def prepare_service(args=None, conf=None,
     # If no coordination URL is provided, default to using the indexer as
     # coordinator
     if conf.storage.coordination_url is None:
-        parsed = urlparse.urlparse(conf.indexer.url)
-        proto, _, _ = parsed.scheme.partition("+")
-        parsed = list(parsed)
-        # Set proto without the + part
-        parsed[0] = proto
-        conf.set_default("coordination_url",
-                         urlparse.urlunparse(parsed),
-                         "storage")
+        if conf.storage.driver == "redis":
+            conf.set_default("coordination_url",
+                             conf.storage.redis_url,
+                             "storage")
+        elif conf.incoming.driver == "redis":
+            conf.set_default("coordination_url",
+                             conf.incoming.redis_url,
+                             "storage")
+        else:
+            parsed = urlparse.urlparse(conf.indexer.url)
+            proto, _, _ = parsed.scheme.partition("+")
+            parsed = list(parsed)
+            # Set proto without the + part
+            parsed[0] = proto
+            conf.set_default("coordination_url",
+                             urlparse.urlunparse(parsed),
+                             "storage")
 
     cfg_path = conf.oslo_policy.policy_file
     if not os.path.isabs(cfg_path):
