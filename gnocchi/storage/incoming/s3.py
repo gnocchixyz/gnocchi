@@ -59,6 +59,11 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         # NOTE(gordc): override to follow s3 partitioning logic
         return '%s-' + ('%s/' % (num_sacks if num_sacks else self.NUM_SACKS))
 
+    @staticmethod
+    def remove_sack_group(num_sacks):
+        # nothing to cleanup since sacks are part of path
+        pass
+
     def upgrade(self, indexer, num_sacks):
         try:
             s3.create_bucket(self.s3, self._bucket_name_measures,

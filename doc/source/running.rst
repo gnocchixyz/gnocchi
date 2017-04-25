@@ -162,6 +162,39 @@ If the estimated number of metrics is the absolute maximum, divide the value
 by 500 instead. If the estimated number of active metrics is conservative and
 expected to grow, divide the value by 100 instead to accommodate growth.
 
+How do we change sack size
+--------------------------
+
+In the event your system grows to capture signficantly more metrics than
+originally anticipated, the number of sacks can be changed to maintain good
+distribution. To avoid any loss of data when modifying `sacks` option. The
+option should be changed in the following order::
+
+  1. Stop all input services (api, statsd)
+
+  2. Stop all metricd services once backlog is cleared
+
+  3. Run gnocchi-change-sack-size <number of sacks> to set new sack size. Note
+     that sack value can only be changed if the backlog is empty.
+
+  4. Restart all gnocchi services (api, statsd, metricd) with new configuration
+
+Alternatively, to minimise API downtime::
+
+  1. Run gnocchi-upgrade but use a new incoming storage target such as a new
+     ceph pool, file path, etc... Additionally, set aggregate storage to a
+     new target as well.
+
+  2. Run gnocchi-change-sack-size <number of sacks> against new target
+
+  3. Stop all input services (api, statsd)
+
+  4. Restart all input services but target newly created incoming storage
+
+  5. When done clearing backlog from original incoming storage, switch all
+     metricd datemons to target new incoming storage but maintain original
+     aggregate storage.
+
 How to monitor Gnocchi
 ======================
 

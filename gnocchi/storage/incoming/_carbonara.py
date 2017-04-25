@@ -67,6 +67,10 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
     def set_storage_settings(num_sacks):
         raise NotImplementedError
 
+    @staticmethod
+    def remove_sack_group(num_sacks):
+        raise NotImplementedError
+
     def _unserialize_measures(self, measure_id, data):
         nb_measures = len(data) // self._MEASURE_SERIAL_LEN
         try:
