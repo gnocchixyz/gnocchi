@@ -26,7 +26,7 @@ TESTS_DIR = 'gabbits'
 
 def load_tests(loader, tests, pattern):
     """Provide a TestSuite to the discovery process."""
-    gnocchi_url = os.getenv('GNOCCHI_SERVICE_URL')
+    gnocchi_url = os.getenv('GNOCCHI_ENDPOINT')
     if gnocchi_url:
         parsed_url = urlparse.urlsplit(gnocchi_url)
         prefix = parsed_url.path.rstrip('/')  # turn it into a prefix
@@ -45,4 +45,4 @@ def load_tests(loader, tests, pattern):
                                   port=port,
                                   prefix=prefix)
     elif os.getenv("GABBI_LIVE"):
-        raise RuntimeError('"GNOCCHI_SERVICE_URL" is not set')
+        raise RuntimeError('"GNOCCHI_ENDPOINT" is not set')

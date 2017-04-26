@@ -39,10 +39,10 @@ cd $GNOCCHI_DIR
 openstack catalog list
 
 export GNOCCHI_SERVICE_TOKEN=$(openstack token issue -c id -f value)
-export GNOCCHI_SERVICE_URL=$(openstack catalog show metric -c endpoints -f value | awk '/public/{print $2}')
+export GNOCCHI_ENDPOINT=$(openstack catalog show metric -c endpoints -f value | awk '/public/{print $2}')
 export GNOCCHI_AUTHORIZATION=""  # Temporary set to transition to the new functional testing
 
-curl -X GET ${GNOCCHI_SERVICE_URL}/v1/archive_policy -H "Content-Type: application/json"
+curl -X GET ${GNOCCHI_ENDPOINT}/v1/archive_policy -H "Content-Type: application/json"
 
 sudo gnocchi-upgrade
 
