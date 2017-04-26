@@ -2,7 +2,6 @@
 set -e
 
 cleanup(){
-    type -t gnocchi_stop >/dev/null && gnocchi_stop || true
     type -t indexer_stop >/dev/null && indexer_stop || true
     type -t storage_stop >/dev/null && storage_stop || true
 }
@@ -42,12 +41,11 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
         esac
 
         eval $(pifpaf -e INDEXER run $indexer)
-        eval $(pifpaf -e GNOCCHI run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 
         export GNOCCHI_SERVICE_TOKEN="" # Just make gabbi happy
         export GNOCCHI_AUTHORIZATION="basic YWRtaW46" # admin in base64
         export OS_TEST_PATH=gnocchi/tests/functional_live
-        ./tools/pretty_tox.sh $*
+        pifpaf -e GNOCCHI run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL -- ./tools/pretty_tox.sh $*
 
         cleanup
     done
