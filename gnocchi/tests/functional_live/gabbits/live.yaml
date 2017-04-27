@@ -375,9 +375,27 @@ tests:
           $.archive_policy_name: gabbilive
           $.name: live.io.rate
 
+    - name: assert metric is present in listing
+      GET: /v1/metric?id=$HISTORY['create metric with name and rule'].$RESPONSE['$.id']
+      response_json_paths:
+          $.`len`: 1
+
+    - name: assert metric is the only one with this policy
+      GET: /v1/metric?archive_policy_name=gabbilive
+      response_json_paths:
+          $.`len`: 1
+
     - name: delete metric
-      DELETE: $LOCATION
+      DELETE: /v1/metric/$HISTORY['create metric with name and rule'].$RESPONSE['$.id']
       status: 204
+
+    - name: assert metric is expunged
+      GET: $HISTORY['assert metric is present in listing'].$URL&status=delete
+      poll:
+          count: 360
+          delay: 1
+      response_json_paths:
+          $.`len`: 0
 
     - name: create metric with name and policy
       POST: /v1/metric
@@ -400,6 +418,10 @@ tests:
     - name: delete the metric
       DELETE: /v1/metric/$RESPONSE['$.id']
       status: 204
+
+    - name: ensure the metric is delete
+      GET: /v1/metric/$HISTORY['get valid metric id'].$RESPONSE['$.id']
+      status: 404
 
     - name: create metric bad archive policy
       POST: /v1/metric
@@ -540,6 +562,13 @@ tests:
           $.project_id: 98e785d7-9487-4159-8ab8-8230ec37537a
           $.display_name: "myvm"
 
+    - name: get vcpus metric
+      GET: /v1/metric/$HISTORY['get myresource resource'].$RESPONSE['$.metrics.vcpus']
+      status: 200
+      response_json_paths:
+          $.name: vcpus
+          $.resource.id: 2ae35573-7f9f-4bb1-aae8-dad8dff5706e
+
     - name: search for myresource resource via user_id
       POST: /v1/search/resource/myresource
       request_headers:
@@ -651,6 +680,14 @@ tests:
       response_json_paths:
           $.`len`: 0
 
+    - name: assert vcpus metric exists in listing
+      GET: /v1/metric?id=$HISTORY['get myresource resource'].$RESPONSE['$.metrics.vcpus']
+      poll:
+          count: 360
+          delay: 1
+      response_json_paths:
+          $.`len`: 1
+
     - name: delete myresource resource
       DELETE: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       status: 204
@@ -660,11 +697,29 @@ tests:
       GET: /v1/resource/myresource/2ae35573-7f9f-4bb1-aae8-dad8dff5706e
       status: 404
 
+    - name: assert vcpus metric is really expurged
+      GET: $HISTORY['assert vcpus metric exists in listing'].$URL&status=delete
+      poll:
+          count: 360
+          delay: 1
+      response_json_paths:
+          $.`len`: 0
+
     - name: post myresource resource no data
       POST: /v1/resource/myresource
       request_headers:
           content-type: application/json
       status: 400
+
+    - name: assert no metrics have the gabbilive policy
+      GET: $HISTORY['assert metric is the only one with this policy'].$URL
+      response_json_paths:
+          $.`len`: 0
+
+    - name: assert no delete metrics have the gabbilive policy
+      GET: $HISTORY['assert metric is the only one with this policy'].$URL&status=delete
+      response_json_paths:
+          $.`len`: 0
 
     - name: delete single archive policy cleanup
       DELETE: /v1/archive_policy/gabbilive
