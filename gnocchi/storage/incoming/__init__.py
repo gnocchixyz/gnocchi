@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -31,16 +32,23 @@ class StorageDriver(object):
     def upgrade(indexer):
         pass
 
-    @staticmethod
-    def add_measures(metric, measures):
+    def add_measures(self, metric, measures):
         """Add a measure to a metric.
 
         :param metric: The metric measured.
         :param measures: The actual measures.
         """
-        raise exceptions.NotImplementedError
+        self.add_measures_batch({metric: measures})
 
     @staticmethod
+    def add_measures_batch(metrics_and_measures):
+        """Add a batch of measures for some metrics.
+
+        :param metrics_and_measures: A dict where keys
+        are metrics and value are measure.
+        """
+        raise exceptions.NotImplementedError
+
     def measures_report(details=True):
         """Return a report of pending to process measures.
 

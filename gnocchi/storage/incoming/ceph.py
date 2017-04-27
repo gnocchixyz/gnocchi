@@ -18,6 +18,7 @@ import errno
 import functools
 import uuid
 
+import six
 
 from gnocchi.storage.common import ceph
 from gnocchi.storage.incoming import _carbonara
@@ -54,23 +55,26 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()
 
-    def _store_new_measures(self, metric, data):
-        # NOTE(sileht): list all objects in a pool is too slow with
-        # many objects (2min for 20000 objects in 50osds cluster),
-        # and enforce us to iterrate over all objects
-        # So we create an object MEASURE_PREFIX, that have as
-        # omap the list of objects to process (not xattr because
-        # it doesn't allow to configure the locking behavior)
-        name = "_".join((
-            self.MEASURE_PREFIX,
-            str(metric.id),
-            str(uuid.uuid4()),
-            datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-
-        self.ioctx.write_full(name, data)
+    def add_measures_batch(self, metrics_and_measures):
+        names = []
+        for metric, measures in six.iteritems(metrics_and_measures):
+            name = "_".join((
+                self.MEASURE_PREFIX,
+                str(metric.id),
+                str(uuid.uuid4()),
+                datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
+            names.append(name)
+            data = self._encode_measures(measures)
+            self.ioctx.write_full(name, data)
 
         with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, (name,), (b"",))
+            # NOTE(sileht): list all objects in a pool is too slow with
+            # many objects (2min for 20000 objects in 50osds cluster),
+            # and enforce us to iterrate over all objects
+            # So we create an object MEASURE_PREFIX, that have as
+            # omap the list of objects to process (not xattr because
+            # it doesn't # allow to configure the locking behavior)
+            self.ioctx.set_omap(op, tuple(names), (b"",) * len(names))
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
 
