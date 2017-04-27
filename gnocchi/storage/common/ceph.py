@@ -71,3 +71,8 @@ def close_rados_connection(conn, ioctx):
     ioctx.aio_flush()
     ioctx.close()
     conn.shutdown()
+
+
+def errno_to_exception(ret):
+    if ret < 0:
+        raise rados.errno_to_exception[abs(ret)]

@@ -14,7 +14,6 @@
 from collections import defaultdict
 import contextlib
 import datetime
-import errno
 import functools
 import uuid
 
@@ -118,8 +117,11 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             # before operate_read_op is called, I dunno if the int
             # content is copied during this transformation or if
             # this is a pointer to the C int, I think it's copied...
-            if ret == errno.ENOENT:
+            try:
+                ceph.errno_to_exception(ret)
+            except rados.ObjectNotFound:
                 return ()
+
             return (k for k, v in omaps)
 
     def list_metric_with_measures_to_process(self):
@@ -168,14 +170,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             # Check that the measure file has not been deleted while still
             # listed in the OMAP – this can happen after a crash
             ret = comp.get_return_value()
-            if ret < 0:
-                exc = rados.errno_to_exception[abs(ret)]
-                if exc == rados.ObjectNotFound:
-                    # Object has been deleted, so this is just a stalled entry
-                    # in the OMAP listing, ignore
-                    return
-                # This is not an "expected" error, raise it back
-                raise exc
+            try:
+                ceph.errno_to_exception(ret)
+            except rados.ObjectNotFound:
+                # Object has been deleted, so this is just a stalled entry
+                # in the OMAP listing, ignore
+                return
 
             if name in tmp_measures:
                 tmp_measures[name] += data
