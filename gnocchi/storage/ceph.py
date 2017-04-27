@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import errno
 
 from oslo_config import cfg
 
@@ -110,7 +109,16 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                     op, self._build_unaggregated_timeserie_path(metric, 3))
             except rados.ObjectNotFound:
                 return
-            if ret == errno.ENOENT:
+
+            # NOTE(sileht): after reading the libradospy, I'm
+            # not sure that ret will have the correct value
+            # get_omap_vals transforms the C int to python int
+            # before operate_read_op is called, I dunno if the int
+            # content is copied during this transformation or if
+            # this is a pointer to the C int, I think it's copied...
+            try:
+                ceph.errno_to_exception(ret)
+            except rados.ObjectNotFound:
                 return
 
         ops = [self.ioctx.aio_remove(name) for name, _ in omaps]
@@ -143,8 +151,18 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                     op, self._build_unaggregated_timeserie_path(metric, 3))
             except rados.ObjectNotFound:
                 raise storage.MetricDoesNotExist(metric)
-            if ret == errno.ENOENT:
+
+            # NOTE(sileht): after reading the libradospy, I'm
+            # not sure that ret will have the correct value
+            # get_omap_vals transforms the C int to python int
+            # before operate_read_op is called, I dunno if the int
+            # content is copied during this transformation or if
+            # this is a pointer to the C int, I think it's copied...
+            try:
+                ceph.errno_to_exception(ret)
+            except rados.ObjectNotFound:
                 raise storage.MetricDoesNotExist(metric)
+
             keys = set()
             for name, value in omaps:
                 meta = name.split('_')
