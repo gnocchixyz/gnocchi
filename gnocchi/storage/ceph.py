@@ -118,8 +118,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         for op in ops:
             op.wait_for_complete_and_cb()
 
-        self.ioctx.remove_object(
-            self._build_unaggregated_timeserie_path(metric, 3))
+        try:
+            self.ioctx.remove_object(
+                self._build_unaggregated_timeserie_path(metric, 3))
+        except rados.ObjectNotFound:
+            # It's possible that the object does not exists
+            pass
 
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
                       version=3):
