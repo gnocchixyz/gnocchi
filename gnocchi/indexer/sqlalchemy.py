@@ -663,7 +663,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @retry_on_deadlock
     def list_metrics(self, names=None, ids=None, details=False,
                      status='active', limit=None, marker=None, sorts=None,
-                     **kwargs):
+                     creator=None, **kwargs):
         sorts = sorts or []
         if ids is not None and not ids:
             return []
@@ -676,6 +676,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 q = q.filter(Metric.name.in_(names))
             if ids is not None:
                 q = q.filter(Metric.id.in_(ids))
+            if creator is not None:
+                if creator[0] == ":":
+                    q = q.filter(Metric.creator.like("%%%s" % creator))
+                elif creator[-1] == ":":
+                    q = q.filter(Metric.creator.like("%s%%" % creator))
+                else:
+                    q = q.filter(Metric.creator == creator)
             for attr in kwargs:
                 q = q.filter(getattr(Metric, attr) == kwargs[attr])
             if details:

@@ -1,0 +1,108 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
+      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      x-roles: admin
+
+tests:
+    - name: create archive policy 1
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: first_archive
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: create archive policy 2
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: second_archive
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: create metric 1
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+          name: "disk.io.rate"
+          unit: "B/s"
+          archive_policy_name: first_archive
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: first_archive
+          $.name: disk.io.rate
+          $.unit: B/s
+
+    - name: create metric 2
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+          x-user-id: 4fff6179c2fc414dbedfc8cc82d6ada7
+          x-project-id: f3ca498a61c84422b953133adb71cff8
+      data:
+          name: "disk.io.rate"
+          unit: "B/s"
+          archive_policy_name: first_archive
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: first_archive
+          $.name: disk.io.rate
+          $.unit: B/s
+
+    - name: create metric 3
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+          x-user-id: faf30294217c4e1a91387d9c8f1fb1fb
+          x-project-id: f3ca498a61c84422b953133adb71cff8
+      data:
+          name: "cpu_util"
+          unit: "%"
+          archive_policy_name: first_archive
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: first_archive
+          $.name: cpu_util
+          $.unit: "%"
+
+    - name: create metric 4
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+          name: "cpu"
+          unit: "ns"
+          archive_policy_name: second_archive
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: second_archive
+          $.name: cpu
+          $.unit: ns
+
+    - name: list metrics
+      GET: /v1/metric
+      response_json_paths:
+          $.`len`: 4
+
+    - name: list metrics by user_id
+      GET: /v1/metric?user_id=faf30294217c4e1a91387d9c8f1fb1fb
+      response_json_paths:
+          $.`len`: 1
+
+    - name: list metrics by project_id
+      GET: /v1/metric?project_id=f3ca498a61c84422b953133adb71cff8
+      response_json_paths:
+          $.`len`: 2
