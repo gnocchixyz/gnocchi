@@ -167,9 +167,9 @@ METRIC_DEFAULT_PAGINATION = ['id:asc']
 
 def get_pagination_options(params, default):
     max_limit = pecan.request.conf.api.max_limit
-    limit = params.get('limit', max_limit)
-    marker = params.get('marker')
-    sorts = params.get('sort', default)
+    limit = params.pop('limit', max_limit)
+    marker = params.pop('marker', None)
+    sorts = params.pop('sort', default)
     if not isinstance(sorts, list):
         sorts = [sorts]
 
@@ -536,14 +536,30 @@ class MetricsController(rest.RestController):
         pecan.response.status = 201
         return m
 
-    @staticmethod
+    MetricListSchema = voluptuous.Schema({
+        "user_id": six.text_type,
+        "project_id": six.text_type,
+        "creator": six.text_type,
+        "limit": six.text_type,
+        "name": six.text_type,
+        "id": six.text_type,
+        "unit": six.text_type,
+        "archive_policy_name": six.text_type,
+        "status": voluptuous.Any("active", "delete"),
+        "sort": voluptuous.Any([six.text_type], six.text_type),
+        "marker": six.text_type,
+    })
+
+    @classmethod
     @pecan.expose('json')
-    def get_all(**kwargs):
+    def get_all(cls, **kwargs):
+        kwargs = cls.MetricListSchema(kwargs)
+
         # Compat with old user/project API
-        provided_user_id = kwargs.get('user_id')
-        provided_project_id = kwargs.get('project_id')
+        provided_user_id = kwargs.pop('user_id', None)
+        provided_project_id = kwargs.pop('project_id', None)
         if provided_user_id is None and provided_project_id is None:
-            provided_creator = kwargs.get('creator')
+            provided_creator = kwargs.pop('creator', None)
         else:
             provided_creator = (
                 (provided_user_id or "")
@@ -563,6 +579,7 @@ class MetricsController(rest.RestController):
             attr_filter['creator'] = provided_creator
         attr_filter.update(get_pagination_options(
             kwargs, METRIC_DEFAULT_PAGINATION))
+        attr_filter.update(kwargs)
         try:
             return pecan.request.indexer.list_metrics(**attr_filter)
         except indexer.IndexerException as e:

@@ -97,6 +97,40 @@ tests:
       response_json_paths:
           $.`len`: 4
 
+    - name: list metrics by id
+      GET: /v1/metric?id=$HISTORY['create metric 1'].$RESPONSE['id']
+      response_json_paths:
+          $.`len`: 1
+          $[0].name: disk.io.rate
+          $[0].archive_policy.name: first_archive
+
+    - name: list metrics by name
+      GET: /v1/metric?name=disk.io.rate
+      response_json_paths:
+          $.`len`: 2
+          $[0].name: disk.io.rate
+          $[1].name: disk.io.rate
+          $[0].archive_policy.name: first_archive
+          $[1].archive_policy.name: first_archive
+
+    - name: list metrics by unit
+      GET: /v1/metric?unit=ns
+      response_json_paths:
+          $.`len`: 1
+          $[0].name: cpu
+          $[0].archive_policy.name: second_archive
+
+    - name: list metrics by archive_policy
+      GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc
+      response_json_paths:
+          $.`len`: 3
+          $[0].name: disk.io.rate
+          $[1].name: disk.io.rate
+          $[2].name: cpu_util
+          $[0].archive_policy.name: first_archive
+          $[1].archive_policy.name: first_archive
+          $[2].archive_policy.name: first_archive
+
     - name: list metrics by user_id
       GET: /v1/metric?user_id=faf30294217c4e1a91387d9c8f1fb1fb
       response_json_paths:
