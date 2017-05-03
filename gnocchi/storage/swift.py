@@ -30,6 +30,7 @@ except ImportError:
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 LOG = log.getLogger(__name__)
 
@@ -83,7 +84,13 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         super(SwiftStorage, self).__init__(conf)
         if swclient is None:
             raise RuntimeError("python-swiftclient unavailable")
-        self.swift = swclient.Connection(
+        self.swift = self._get_connection(conf)
+        self._container_prefix = conf.swift_container_prefix
+        self.swift.put_container(self.MEASURE_PREFIX)
+
+    @utils.retry
+    def _get_connection(self, conf):
+        return swclient.Connection(
             auth_version=conf.swift_auth_version,
             authurl=conf.swift_authurl,
             preauthtoken=conf.swift_preauthtoken,
@@ -94,8 +101,6 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             os_options={'endpoint_type': conf.swift_endpoint_type,
                         'user_domain_name': conf.swift_user_domain_name},
             retries=0)
-        self._container_prefix = conf.swift_container_prefix
-        self.swift.put_container(self.MEASURE_PREFIX)
 
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
