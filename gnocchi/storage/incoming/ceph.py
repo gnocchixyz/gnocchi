@@ -183,6 +183,11 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.operate_write_op(op, self.get_sack_name(sack),
                                         flags=self.OMAP_WRITE_FLAGS)
 
+    def has_unprocessed(self, metric):
+        sack = self.sack_for_metric(metric.id)
+        object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
+        return bool(self._list_object_names_to_process(sack, object_prefix))
+
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
         sack = self.sack_for_metric(metric.id)

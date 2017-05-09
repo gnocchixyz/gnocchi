@@ -93,6 +93,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         files = self._list_measure_files_for_metric_id(sack, metric_id)
         swift.bulk_delete(self.swift, self.get_sack_name(sack), files)
 
+    def has_unprocessed(self, metric):
+        sack = self.sack_for_metric(metric.id)
+        return bool(self._list_measure_files_for_metric_id(sack, metric.id))
+
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
         sack = self.sack_for_metric(metric.id)
