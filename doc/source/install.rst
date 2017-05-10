@@ -154,6 +154,11 @@ that your indexer and storage are properly upgraded. Run the following:
 
 2. Stop the old version of `gnocchi-metricd` daemon
 
+.. note::
+
+   Data in backlog is never migrated between versions. Ensure the backlog is
+   empty before any upgrade to ensure data is not lost.
+
 3. Install the new version of Gnocchi
 
 4. Run `gnocchi-upgrade`
