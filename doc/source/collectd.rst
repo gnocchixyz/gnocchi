@@ -3,7 +3,7 @@
 ==================
 
 `Collectd`_ can use Gnocchi to store its data through a plugin called
-`collectd-gnocchi`. It can be installed with _pip_::
+`collectd-gnocchi`. It can be installed with *pip*::
 
      pip install collectd-gnocchi
 
@@ -11,4 +11,4 @@
 
 
 .. _`Collectd`: https://www.collectd.org/
-.. _`Sources and documentation`: https://github.com/jd/collectd-gnocchi
+.. _`Sources and documentation`: https://github.com/gnocchixyz/collectd-gnocchi
