@@ -19,8 +19,8 @@ import os
 
 import iso8601
 from oslo_config import cfg
-from oslo_utils import netutils
 import six
+from six.moves.urllib import parse
 from stevedore import driver
 
 from gnocchi import exceptions
@@ -72,7 +72,7 @@ class Resource(object):
 
 def get_driver(conf):
     """Return the configured driver."""
-    split = netutils.urlsplit(conf.indexer.url)
+    split = parse.urlsplit(conf.indexer.url)
     d = driver.DriverManager('gnocchi.indexer',
                              split.scheme).driver
     return d(conf)
