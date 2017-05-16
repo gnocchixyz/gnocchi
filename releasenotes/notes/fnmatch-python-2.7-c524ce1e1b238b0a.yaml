@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    A workaround for a Python 2.7 bug in `fnmatch` has been removed. Makes sure
+    you use at least Python 2.7.9 to avoid running into it.
