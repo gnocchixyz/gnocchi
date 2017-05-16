@@ -76,3 +76,30 @@ class TestResourceUUID(tests_base.TestCase):
         self.assertEqual(
             uuid.UUID('853e5c64-f45e-58b2-999c-96df856fbe3d'),
             utils.ResourceUUID("foo", ""))
+
+
+class StopWatchTest(tests_base.TestCase):
+    def test_no_states(self):
+        watch = utils.StopWatch()
+        self.assertRaises(RuntimeError, watch.stop)
+
+    def test_start_stop(self):
+        watch = utils.StopWatch()
+        watch.start()
+        watch.stop()
+
+    def test_no_elapsed(self):
+        watch = utils.StopWatch()
+        self.assertRaises(RuntimeError, watch.elapsed)
+
+    def test_elapsed(self):
+        watch = utils.StopWatch()
+        watch.start()
+        watch.stop()
+        elapsed = watch.elapsed()
+        self.assertAlmostEqual(elapsed, watch.elapsed())
+
+    def test_context_manager(self):
+        with utils.StopWatch() as watch:
+            pass
+        self.assertGreater(watch.elapsed(), 0)

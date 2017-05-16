@@ -23,9 +23,9 @@ import hashlib
 import json
 import uuid
 
+import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
-from oslo_utils import timeutils
 import six
 from stevedore import extension
 import testscenarios
@@ -417,7 +417,7 @@ class MetricTest(RestTest):
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(utils, 'utcnow')
     def test_get_measure_start_relative(self, utcnow):
         """Make sure the timestamps can be relative to now."""
         utcnow.return_value = datetime.datetime(2014, 1, 1, 10, 23)
@@ -732,7 +732,7 @@ class ResourceTest(RestTest):
     @staticmethod
     def _strtime_to_httpdate(dt):
         return email_utils.formatdate(calendar.timegm(
-            timeutils.parse_isotime(dt).timetuple()), usegmt=True)
+            iso8601.parse_date(dt).timetuple()), usegmt=True)
 
     def _check_etag(self, response, resource):
         lastmodified = self._strtime_to_httpdate(resource['revision_start'])

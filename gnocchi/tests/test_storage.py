@@ -16,8 +16,8 @@
 import datetime
 import uuid
 
+import iso8601
 import mock
-from oslo_utils import timeutils
 from oslotest import base
 import six.moves
 
@@ -649,7 +649,7 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=timeutils.parse_isotime("2014-1-1 13:00:00+01:00"),
+            from_timestamp=iso8601.parse_date("2014-1-1 13:00:00+01:00"),
             to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2)))
 
         self.assertEqual([

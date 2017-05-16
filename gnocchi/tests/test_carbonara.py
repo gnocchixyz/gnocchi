@@ -18,7 +18,7 @@ import functools
 import math
 
 import fixtures
-from oslo_utils import timeutils
+import iso8601
 from oslotest import base
 import pandas
 import six
@@ -138,13 +138,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
             ts.fetch(
-                from_timestamp=timeutils.parse_isotime(
+                from_timestamp=iso8601.parse_date(
                     "2014-01-01 12:00:04")))
         self.assertEqual(
             [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
             ts.fetch(
-                from_timestamp=timeutils.parse_isotime(
+                from_timestamp=iso8601.parse_date(
                     "2014-01-01 13:00:04+01:00")))
 
     def test_before_epoch(self):

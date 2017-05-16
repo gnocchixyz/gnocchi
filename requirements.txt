@@ -4,7 +4,6 @@ iso8601
 oslo.config>=3.22.0
 oslo.log>=2.3.0
 oslo.policy>=0.3.0
-oslo.utils>=3.18.0
 oslo.middleware>=3.22.0
 pandas>=0.18.0
 scipy>=0.18.1  # BSD
@@ -22,3 +21,4 @@ tenacity>=3.1.0  # Apache-2.0
 WebOb>=1.4.1
 Paste
 PasteDeploy
+monotonic

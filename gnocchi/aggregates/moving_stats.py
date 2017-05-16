@@ -16,7 +16,6 @@
 import datetime
 
 import numpy
-from oslo_utils import timeutils
 import pandas
 import six
 
@@ -80,8 +79,8 @@ class MovingAverage(aggregates.CustomAggregator):
             msec = datetime.timedelta(milliseconds=1)
             zero = datetime.timedelta(seconds=0)
             half_span = datetime.timedelta(seconds=window / 2)
-            start = timeutils.normalize_time(data.index[0])
-            stop = timeutils.normalize_time(
+            start = utils.normalize_time(data.index[0])
+            stop = utils.normalize_time(
                 data.index[-1] + datetime.timedelta(seconds=min_grain))
             # min_grain addition necessary since each bin of rolled-up data
             # is indexed by leftmost timestamp of bin.
@@ -90,7 +89,7 @@ class MovingAverage(aggregates.CustomAggregator):
             right = 2 * half_span - left - msec
             # msec subtraction is so we don't include right endpoint in slice.
 
-            x = timeutils.normalize_time(x)
+            x = utils.normalize_time(x)
 
             if x - left >= start and x + right <= stop:
                 dslice = data[x - left: x + right]
