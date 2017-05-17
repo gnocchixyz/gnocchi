@@ -251,6 +251,13 @@ class TimeSerie(object):
 
         return GroupedTimeSeries(self.ts[start:], granularity)
 
+    @staticmethod
+    def _compress(payload):
+        # FIXME(jd) lz4 > 0.9.2 returns bytearray instead of bytes. But Cradox
+        # does not accept bytearray but only bytes, so make sure that we have a
+        # byte type returned.
+        return memoryview(lz4.block.compress(payload)).tobytes()
+
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, ts=None, block_size=None, back_window=0):
@@ -341,7 +348,7 @@ class BoundTimeSerie(TimeSerie):
         timestamps = numpy.array(timestamps, dtype='<Q')
         values = numpy.array(self.ts.values, dtype='<d')
         payload = (timestamps.tobytes() + values.tobytes())
-        return lz4.block.compress(payload)
+        return self._compress(payload)
 
     @classmethod
     def benchmark(cls):
@@ -678,7 +685,7 @@ class AggregatedTimeSerie(TimeSerie):
             timestamps = numpy.array(timestamps, dtype='<H')
             values = numpy.array(self.ts.values, dtype='<d')
             payload = (timestamps.tobytes() + values.tobytes())
-            return None, b"c" + lz4.block.compress(payload)
+            return None, b"c" + self._compress(payload)
         # NOTE(gordc): this binary serializes series based on the split
         # time. the format is 1B True/False flag which denotes whether
         # subsequent 8B is a real float or zero padding. every 9B
