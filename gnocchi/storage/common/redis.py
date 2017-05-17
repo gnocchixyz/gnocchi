@@ -98,7 +98,7 @@ def get_client(conf):
         if a in CLIENT_BOOL_ARGS:
             v = utils.strtobool(options[a][-1])
         elif a in CLIENT_LIST_ARGS:
-            v = options[a][-1]
+            v = options[a]
         elif a in CLIENT_INT_ARGS:
             v = int(options[a][-1])
         else:
