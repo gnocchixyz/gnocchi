@@ -14,9 +14,10 @@
 
 import errno
 
-from oslo_log import log
+import daiquiri
 
-LOG = log.getLogger(__name__)
+
+LOG = daiquiri.getLogger(__name__)
 
 
 for RADOS_MODULE_NAME in ('cradox', 'rados'):

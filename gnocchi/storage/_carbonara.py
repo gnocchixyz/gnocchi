@@ -20,9 +20,9 @@ import itertools
 import operator
 
 from concurrent import futures
+import daiquiri
 import iso8601
 from oslo_config import cfg
-from oslo_log import log
 import six
 import six.moves
 
@@ -43,7 +43,7 @@ OPTS = [
 
 ]
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 class CorruptionError(ValueError):

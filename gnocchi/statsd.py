@@ -19,8 +19,8 @@ try:
     import asyncio
 except ImportError:
     import trollius as asyncio
+import daiquiri
 from oslo_config import cfg
-from oslo_log import log
 import six
 
 from gnocchi import indexer
@@ -29,7 +29,7 @@ from gnocchi import storage
 from gnocchi import utils
 
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 class Stats(object):

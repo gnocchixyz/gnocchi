@@ -11,9 +11,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
-
-from oslo_log import log
+import daiquiri
 from six.moves.urllib.parse import quote
 
 try:
@@ -26,7 +24,7 @@ except ImportError:
 from gnocchi import storage
 from gnocchi import utils
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 @utils.retry

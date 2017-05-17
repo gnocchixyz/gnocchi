@@ -22,11 +22,11 @@ import uuid
 
 from alembic import migration
 from alembic import operations
+import daiquiri
 import oslo_db.api
 from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as oslo_db_utils
-from oslo_log import log
 try:
     import psycopg2
 except ImportError:
@@ -59,7 +59,7 @@ ResourceType = base.ResourceType
 
 _marker = indexer._marker
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 def _retry_on_exceptions(exc):

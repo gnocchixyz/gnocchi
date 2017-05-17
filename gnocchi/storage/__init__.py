@@ -14,8 +14,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import operator
+
+import daiquiri
 from oslo_config import cfg
-from oslo_log import log
 from stevedore import driver
 
 from gnocchi import exceptions
@@ -28,7 +29,7 @@ OPTS = [
                help='Storage driver to use'),
 ]
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 class Measure(object):

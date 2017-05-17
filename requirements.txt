@@ -2,7 +2,6 @@ pbr
 numpy>=1.9.0
 iso8601
 oslo.config>=3.22.0
-oslo.log>=2.3.0
 oslo.policy>=0.3.0
 oslo.middleware>=3.22.0
 pandas>=0.18.0
@@ -22,3 +21,4 @@ WebOb>=1.4.1
 Paste
 PasteDeploy
 monotonic
+daiquiri
