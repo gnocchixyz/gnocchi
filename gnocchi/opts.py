@@ -114,6 +114,10 @@ def list_opts():
                        required=True,
                        help=('The maximum number of items returned in a '
                              'single response from a collection resource')),
+            cfg.IntOpt('refresh_timeout',
+                       default=10, min=0,
+                       help='Number of seconds before timeout when attempting '
+                            'to force refresh of metric.'),
         )),
         ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS)),
         ("incoming", _INCOMING_OPTS),

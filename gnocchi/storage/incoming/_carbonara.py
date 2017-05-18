@@ -127,6 +127,10 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
     def process_measure_for_metric(metric):
         raise NotImplementedError
 
+    @staticmethod
+    def has_unprocessed(metric):
+        raise NotImplementedError
+
     def sack_for_metric(self, metric_id):
         return metric_id.int % self.NUM_SACKS
 

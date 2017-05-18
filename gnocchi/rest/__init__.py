@@ -440,10 +440,14 @@ class MetricController(rest.RestController):
             except ValueError as e:
                 abort(400, e)
 
-        if strtobool("refresh", refresh):
-            pecan.request.storage.process_new_measures(
-                pecan.request.indexer, [six.text_type(self.metric.id)], True)
-
+        if (strtobool("refresh", refresh) and
+                pecan.request.storage.incoming.has_unprocessed(self.metric)):
+            try:
+                pecan.request.storage.refresh_metric(
+                    pecan.request.indexer, self.metric,
+                    pecan.request.conf.api.refresh_timeout)
+            except storage.SackLockTimeoutError as e:
+                abort(503, e)
         try:
             if aggregation in self.custom_agg:
                 measures = self.custom_agg[aggregation].compute(
@@ -1630,9 +1634,16 @@ class AggregationController(rest.RestController):
 
         try:
             if strtobool("refresh", refresh):
-                pecan.request.storage.process_new_measures(
-                    pecan.request.indexer,
-                    [six.text_type(m.id) for m in metrics], True)
+                store = pecan.request.storage
+                metrics_to_update = [
+                    m for m in metrics if store.incoming.has_unprocessed(m)]
+                for m in metrics_to_update:
+                    try:
+                        pecan.request.storage.refresh_metric(
+                            pecan.request.indexer, m,
+                            pecan.request.conf.api.refresh_timeout)
+                    except storage.SackLockTimeoutError as e:
+                        abort(503, e)
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric

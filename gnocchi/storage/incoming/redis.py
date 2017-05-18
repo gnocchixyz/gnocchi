@@ -65,6 +65,9 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
 
+    def has_unprocessed(self, metric):
+        return bool(self._client.exists(self._build_measure_path(metric.id)))
+
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
         key = self._build_measure_path(metric.id)
