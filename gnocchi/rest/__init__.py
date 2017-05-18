@@ -1422,6 +1422,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             unknown_resources.append({
                                 'resource_id': six.text_type(resource_id),
                                 'original_resource_id': original_resource_id})
+                            break
                         except indexer.IndexerException as e:
                             # This catch NoSuchArchivePolicy, which is unlikely
                             # be still possible
