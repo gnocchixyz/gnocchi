@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The custom gnocchi/rest/app.wsgi is now deprecated, the gnocchi-api binary
+    should be used as wsgi script file. For example, with uwsgi "--wsgi-file
+    /usr/lib/python2.7/gnocchi/rest/app.wsgi" should be replaced by
+    "--wsgi-file /usr/bin/gnocchi-api".

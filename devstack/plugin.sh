@@ -281,7 +281,7 @@ function configure_gnocchi {
         rm -f "$GNOCCHI_UWSGI_FILE"
 
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi http $GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT
-        iniset "$GNOCCHI_UWSGI_FILE" uwsgi wsgi-file "$GNOCCHI_DIR/gnocchi/rest/app.wsgi"
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi wsgi-file "/usr/local/bin/gnocchi-api"
         # This is running standalone
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi master true
         # Set die-on-term & exit-on-reload so that uwsgi shuts down
