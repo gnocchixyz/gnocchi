@@ -162,7 +162,7 @@ class MetricProcessor(MetricProcessBase):
                 continue
             try:
                 metrics = in_store.list_metric_with_measures_to_process(s)
-                m_count = len(metrics)
+                m_count += len(metrics)
                 self.store.process_background_tasks(self.index, metrics)
                 s_count += 1
             except Exception:
