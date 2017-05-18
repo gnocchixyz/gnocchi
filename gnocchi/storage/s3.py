@@ -75,8 +75,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         else:
             self._consistency_stop = None
 
-    def upgrade(self, index):
-        super(S3Storage, self).upgrade(index)
+    def upgrade(self, index, num_sacks):
+        super(S3Storage, self).upgrade(index, num_sacks)
         try:
             s3.create_bucket(self.s3, self._bucket_name, self._region_name)
         except botocore.exceptions.ClientError as e:

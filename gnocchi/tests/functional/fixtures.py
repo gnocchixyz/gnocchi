@@ -134,7 +134,7 @@ class ConfigFixture(fixture.GabbiFixture):
         self.index = index
 
         s = storage.get_driver(conf)
-        s.upgrade(index)
+        s.upgrade(index, 128)
 
         LOAD_APP_KWARGS = {
             'storage': s,

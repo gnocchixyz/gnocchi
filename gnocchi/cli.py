@@ -53,6 +53,9 @@ def upgrade():
                     help="Skip storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
+        cfg.IntOpt("num-storage-sacks", default=128,
+                   help="Initial number of storage sacks to create."),
+
     ])
     conf = service.prepare_service(conf=conf)
     index = indexer.get_driver(conf)
@@ -63,7 +66,7 @@ def upgrade():
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(index)
+        s.upgrade(index, conf.num_storage_sacks)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()

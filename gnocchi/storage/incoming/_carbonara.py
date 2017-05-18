@@ -32,11 +32,40 @@ _NUM_WORKERS = utils.get_default_workers()
 
 class CarbonaraBasedStorage(incoming.StorageDriver):
     MEASURE_PREFIX = "measure"
-    SACK_PREFIX = "incoming-%s"
+    SACK_PREFIX = "incoming"
+    CFG_PREFIX = 'gnocchi-config'
+    CFG_SACKS = 'sacks'
     _MEASURE_SERIAL_FORMAT = "Qd"
     _MEASURE_SERIAL_LEN = struct.calcsize(_MEASURE_SERIAL_FORMAT)
 
-    NUM_SACKS = 8
+    @property
+    def NUM_SACKS(self):
+        if not hasattr(self, '_num_sacks'):
+            try:
+                self._num_sacks = int(self.get_storage_sacks())
+            except Exception as e:
+                LOG.error('Unable to detect the number of storage sacks. '
+                          'Ensure gnocchi-upgrade has been executed: %s', e)
+                raise
+        return self._num_sacks
+
+    def get_sack_prefix(self, num_sacks=None):
+        sacks = num_sacks if num_sacks else self.NUM_SACKS
+        return self.SACK_PREFIX + str(sacks) + '-%s'
+
+    def upgrade(self, index, num_sacks):
+        super(CarbonaraBasedStorage, self).upgrade(index)
+        if not self.get_storage_sacks():
+            self.set_storage_settings(num_sacks)
+
+    @staticmethod
+    def get_storage_sacks():
+        """Return the number of sacks in storage. None if not set."""
+        raise NotImplementedError
+
+    @staticmethod
+    def set_storage_settings(num_sacks):
+        raise NotImplementedError
 
     def _unserialize_measures(self, measure_id, data):
         nb_measures = len(data) // self._MEASURE_SERIAL_LEN
@@ -93,4 +122,4 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
         return metric_id.int % self.NUM_SACKS
 
     def get_sack_name(self, sack):
-        return self.SACK_PREFIX % sack
+        return self.get_sack_prefix() % sack
