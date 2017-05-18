@@ -13,12 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import fnmatch
 import hashlib
 import os
 
 import iso8601
 from oslo_config import cfg
-from oslo_utils import fnmatch
 from oslo_utils import netutils
 import six
 from stevedore import driver
