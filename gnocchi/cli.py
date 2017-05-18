@@ -186,10 +186,10 @@ class MetricProcessor(MetricProcessBase):
             if (not self._tasks or
                     self.group_state != self.partitioner.ring.nodes):
                 self.group_state = self.partitioner.ring.nodes.copy()
-                # TODO(gordc): make replicas configurable
                 self._tasks = [
                     i for i in six.moves.range(self.store.incoming.NUM_SACKS)
-                    if self.partitioner.belongs_to_self(i, replicas=3)]
+                    if self.partitioner.belongs_to_self(
+                        i, replicas=self.conf.metricd.processing_replicas)]
         finally:
             return self._tasks or self.fallback_tasks
 
