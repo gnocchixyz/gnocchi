@@ -76,6 +76,26 @@ def upgrade():
         index.create_archive_policy_rule("default", "*", "low")
 
 
+def change_sack_size():
+    conf = cfg.ConfigOpts()
+    conf.register_cli_opts([
+        cfg.IntOpt("sack_size", required=True, min=1,
+                   help="Number of sacks."),
+    ])
+    conf = service.prepare_service(conf=conf)
+    s = storage.get_driver(conf)
+    report = s.incoming.measures_report(details=False)
+    remainder = report['summary']['measures']
+    if remainder:
+        LOG.error('Cannot change sack when non-empty backlog. Process '
+                  'remaining %s measures and try again', remainder)
+        return
+    LOG.info("Changing sack size to: %s", conf.sack_size)
+    old_num_sacks = s.incoming.get_storage_sacks()
+    s.incoming.set_storage_settings(conf.sack_size)
+    s.incoming.remove_sack_group(old_num_sacks)
+
+
 def statsd():
     statsd_service.start()
 

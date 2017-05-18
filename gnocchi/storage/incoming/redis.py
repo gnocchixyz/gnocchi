@@ -34,6 +34,11 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     def set_storage_settings(self, num_sacks):
         self._client.hset(self.CFG_PREFIX, self.CFG_SACKS, num_sacks)
 
+    @staticmethod
+    def remove_sack_group(num_sacks):
+        # NOTE(gordc): redis doesn't maintain keys with empty values
+        pass
+
     def _build_measure_path(self, metric_id):
         return redis.SEP.join([
             self.get_sack_name(self.sack_for_metric(metric_id)),

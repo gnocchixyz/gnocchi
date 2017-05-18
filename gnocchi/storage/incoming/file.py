@@ -16,6 +16,7 @@ import datetime
 import errno
 import json
 import os
+import shutil
 import tempfile
 import uuid
 
@@ -51,6 +52,11 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             json.dump(data, f)
         utils.ensure_paths([self._sack_path(i)
                             for i in six.moves.range(self.NUM_SACKS)])
+
+    def remove_sack_group(self, num_sacks):
+        prefix = self.get_sack_prefix(num_sacks)
+        for i in six.moves.xrange(num_sacks):
+            shutil.rmtree(os.path.join(self.basepath, prefix % i))
 
     def _sack_path(self, sack):
         return os.path.join(self.basepath, self.get_sack_name(sack))
