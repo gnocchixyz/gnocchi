@@ -19,7 +19,6 @@ import itertools
 import uuid
 
 import jsonpatch
-from oslo_utils import dictutils
 import pecan
 from pecan import rest
 import pyparsing
@@ -57,6 +56,21 @@ def abort(status_code, detail='', headers=None, comment=None, **kw):
     return pecan.abort(status_code, detail, headers, comment, **kw)
 
 
+def flatten_dict_to_keypairs(d, separator=':'):
+    """Generator that produces sequence of keypairs for nested dictionaries.
+
+    :param d: dictionaries which may be nested
+    :param separator: symbol between names
+    """
+    for name, value in sorted(six.iteritems(d)):
+        if isinstance(value, dict):
+            for subname, subvalue in flatten_dict_to_keypairs(value,
+                                                              separator):
+                yield ('%s%s%s' % (name, separator, subname), subvalue)
+        else:
+            yield name, value
+
+
 def enforce(rule, target):
     """Return the user and project the request should be limited to.
 
@@ -73,7 +87,7 @@ def enforce(rule, target):
             target = target.__dict__
 
     # Flatten dict
-    target = dict(dictutils.flatten_dict_to_keypairs(d=target, separator='.'))
+    target = dict(flatten_dict_to_keypairs(d=target, separator='.'))
 
     if not pecan.request.policy_enforcer.enforce(rule, target, creds):
         abort(403)
