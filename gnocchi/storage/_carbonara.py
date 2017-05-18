@@ -375,16 +375,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         for metric in metrics:
             # NOTE(gordc): must lock at sack level
             try:
-                locksw = timeutils.StopWatch().start()
                 LOG.debug("Processing measures for %s", metric)
                 with self.incoming.process_measure_for_metric(metric) \
                         as measures:
                     self._compute_and_store_timeseries(metric, measures)
-                LOG.debug("Metric %s locked during %.2f seconds",
-                          metric.id, locksw.elapsed())
+                LOG.debug("Measures for metric %s processed", metric)
             except Exception:
-                LOG.debug("Metric %s locked during %.2f seconds",
-                          metric.id, locksw.elapsed())
                 if sync:
                     raise
                 LOG.error("Error processing new measures", exc_info=True)
