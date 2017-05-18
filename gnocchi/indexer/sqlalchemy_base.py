@@ -22,7 +22,6 @@ import decimal
 import iso8601
 from oslo_db.sqlalchemy import models
 from oslo_utils import timeutils
-from oslo_utils import units
 import six
 import sqlalchemy
 from sqlalchemy.dialects import mysql
@@ -58,7 +57,7 @@ class PreciseTimestamp(types.TypeDecorator):
             return None
 
         integer = int(dec)
-        micro = (dec - decimal.Decimal(integer)) * decimal.Decimal(units.M)
+        micro = (dec - decimal.Decimal(integer)) * decimal.Decimal(1000000)
         daittyme = datetime.datetime.utcfromtimestamp(integer)
         return daittyme.replace(microsecond=int(round(micro)))
 
