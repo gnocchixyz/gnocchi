@@ -216,10 +216,6 @@ class MetricProcessor(MetricProcessBase):
         finally:
             return self._tasks or self.fallback_tasks
 
-    def _sack_lock(self, sack):
-        lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
-        return self._coord.get_lock(lock_name)
-
     def _run_job(self):
         m_count = 0
         s_count = 0
@@ -227,7 +223,7 @@ class MetricProcessor(MetricProcessBase):
         for s in self._get_tasks():
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
-            lock = self._sack_lock(s)
+            lock = in_store.get_sack_lock(self._coord, s)
             if not lock.acquire(blocking=False):
                 continue
             try:
