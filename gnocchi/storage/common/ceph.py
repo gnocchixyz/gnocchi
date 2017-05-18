@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import errno
+
 from oslo_log import log
 
 LOG = log.getLogger(__name__)
@@ -73,6 +75,26 @@ def close_rados_connection(conn, ioctx):
     conn.shutdown()
 
 
+# NOTE(sileht): The mapping is not part of the rados Public API So we copy it
+# here.
+EXCEPTION_NAMES = {
+    errno.EPERM: 'PermissionError',
+    errno.ENOENT: 'ObjectNotFound',
+    errno.EIO: 'IOError',
+    errno.ENOSPC: 'NoSpace',
+    errno.EEXIST: 'ObjectExists',
+    errno.EBUSY: 'ObjectBusy',
+    errno.ENODATA: 'NoData',
+    errno.EINTR: 'InterruptedOrTimeoutError',
+    errno.ETIMEDOUT: 'TimedOut',
+    errno.EACCES: 'PermissionDeniedError'
+}
+
+
 def errno_to_exception(ret):
     if ret < 0:
-        raise rados.errno_to_exception[abs(ret)]
+        name = EXCEPTION_NAMES.get(abs(ret))
+        if name is None:
+            raise rados.Error("Unhandled error '%s'" % ret)
+        else:
+            raise getattr(rados, name)
