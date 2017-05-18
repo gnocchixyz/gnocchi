@@ -119,6 +119,36 @@ values are sent, the maximum pessimistic storage size is taken into account.
   * maximum optimistic size per metric: 1 539 KiB
   * maximum pessimistic size per metric: 277 172 KiB
 
+How to plan for Gnocchi’s storage
+=================================
+
+Gnocchi uses a custom file format based on its library *Carbonara*. In Gnocchi,
+a time series is a collection of points, where a point is a given measure, or
+sample, in the lifespan of a time series. The storage format is compressed
+using various techniques, therefore the computing of a time series' size can be
+estimated based on its **worst** case scenario with the following formula::
+
+    number of points × 8 bytes = size in bytes
+
+The number of points you want to keep is usually determined by the following
+formula::
+
+    number of points = timespan ÷ granularity
+
+For example, if you want to keep a year of data with a one minute resolution::
+
+    number of points = (365 days × 24 hours × 60 minutes) ÷ 1 minute
+    number of points = 525 600
+
+Then::
+
+    size in bytes = 525 600 bytes × 6 = 3 159 600 bytes = 3 085 KiB
+
+This is just for a single aggregated time series. If your archive policy uses
+the 6 default aggregation methods (mean, min, max, sum, std, count) with the
+same "one year, one minute aggregations" resolution, the space used will go up
+to a maximum of 6 × 4.1 MiB = 24.6 MiB.
+
 How many metricd workers do we need to run
 ==========================================
 
