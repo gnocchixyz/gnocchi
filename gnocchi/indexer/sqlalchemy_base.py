@@ -21,7 +21,6 @@ import decimal
 
 import iso8601
 from oslo_db.sqlalchemy import models
-from oslo_utils import timeutils
 import six
 import sqlalchemy
 from sqlalchemy.dialects import mysql
@@ -91,7 +90,7 @@ class PreciseTimestamp(types.TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
-            value = timeutils.normalize_time(value)
+            value = utils.normalize_time(value)
         if dialect.name == 'mysql':
             return self._dt_to_decimal(value)
         return value
@@ -100,7 +99,7 @@ class PreciseTimestamp(types.TypeDecorator):
         if dialect.name == 'mysql':
             value = self._decimal_to_dt(value)
         if value is not None:
-            return timeutils.normalize_time(value).replace(
+            return utils.normalize_time(value).replace(
                 tzinfo=iso8601.iso8601.UTC)
 
 
@@ -116,7 +115,7 @@ class TimestampUTC(types.TypeDecorator):
 
     def process_bind_param(self, value, dialect):
         if value is not None:
-            return timeutils.normalize_time(value)
+            return utils.normalize_time(value)
 
     def process_result_value(self, value, dialect):
         if value is not None:
