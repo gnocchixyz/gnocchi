@@ -3,7 +3,7 @@ Gnocchi – Metric as a Service
 ==================================
 
 .. include:: ../../README.rst
-   :start-line: 6
+   :start-line: 13
 
 Key Features
 ------------

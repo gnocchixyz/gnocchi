@@ -2,6 +2,13 @@
  Gnocchi - Metric as a Service
 ===============================
 
+.. image:: https://travis-ci.org/gnocchixyz/gnocchi.png?branch=master
+    :target: https://travis-ci.org/gnocchixyz/gnocchi
+    :alt: Build Status
+
+.. image:: https://badge.fury.io/py/gnocchi.svg
+    :target: https://badge.fury.io/py/gnocchi
+
 .. image:: doc/source/_static/gnocchi-logo.png
 
 Gnocchi is a multi-tenant timeseries, metrics and resources database. It
