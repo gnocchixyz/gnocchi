@@ -17,6 +17,13 @@
 
 See http://pecan.readthedocs.org/en/latest/deployment.html for details.
 """
+
+import debtcollector
+
 from gnocchi.rest import app
 
 application = app.build_wsgi_app()
+debtcollector.deprecate(prefix="The wsgi script gnocchi/rest/app.wsgi is deprecated",
+                        postfix=", please use gnocchi-api binary as wsgi script instead",
+                        version="4.0", removal_version="4.1",
+                        category=RuntimeWarning)

@@ -25,7 +25,7 @@ The following uwsgi configuration file can be used::
   [uwsgi]
   http = localhost:8041
   # Set the correct path depending on your installation
-  wsgi-file = /usr/lib/python2.7/dist-packages/gnocchi/rest/app.wsgi
+  wsgi-file = /usr/local/bin/gnocchi-api
   master = true
   die-on-term = true
   threads = 32
