@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    New measures are now sharded into sacks to better distribute data across
+    storage driver as well as allow for improved scheduling of aggregation
+    workload.
+upgrade:
+  - |
+    The storage driver needs to be upgraded. The number of sacks to distribute
+    across can be configured on upgrade by passing in ``num-storage-sacks``
+    value on upgrade. A default number of sacks will be created if not set.
+    This can be reconfigured post-upgrade as well by using
+    ``gnocchi-change-sack-size`` cli. See documentation for hints on the number
+    of sacks to set for your environment and upgrade notes
