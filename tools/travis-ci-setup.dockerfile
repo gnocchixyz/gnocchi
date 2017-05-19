@@ -2,12 +2,8 @@ FROM ubuntu:16.04
 ENV GNOCCHI_SRC /home/tester/src
 ENV DEBIAN_FRONTEND noninteractive
 
-#NOTE(sileht): really no utf-8 in 2017 !?
-ENV LANG en_US.UTF-8
-RUN update-locale
-RUN locale-gen $LANG
-
 RUN apt-get update -y && apt-get install -qy \
+        locales \
         git \
         wget \
         nodejs \
@@ -17,7 +13,7 @@ RUN apt-get update -y && apt-get install -qy \
         python3 \
         python-dev \
         python3-dev \
-        python-tox \
+        python-pip \
         redis-server \
         build-essential \
         libffi-dev \
@@ -26,8 +22,17 @@ RUN apt-get update -y && apt-get install -qy \
         mysql-client \
         mysql-server \
         librados-dev \
+        liberasurecode-dev \
         ceph \
     && apt-get clean -y
+
+#NOTE(sileht): really no utf-8 in 2017 !?
+ENV LANG en_US.UTF-8
+RUN update-locale
+RUN locale-gen $LANG
+
+#NOTE(sileht): Upgrade python dev tools
+RUN pip install -U pip tox virtualenv
 
 RUN useradd -ms /bin/bash tester
 RUN mkdir $GNOCCHI_SRC

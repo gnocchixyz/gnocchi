@@ -182,9 +182,7 @@ metrics the system will capture. Additionally, the number of sacks, should
 be higher than the total number of active `gnocchi-metricd` workers.
 
 In general, use the following equation to determine the appropriate `sacks`
-value to set:
-
-.. math::
+value to set::
 
    sacks value = number of **active** metrics / 300
 
