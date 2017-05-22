@@ -3,7 +3,7 @@ Gnocchi – Metric as a Service
 ==================================
 
 .. include:: ../../README.rst
-   :start-line: 6
+   :start-line: 13
 
 Key Features
 ------------
@@ -27,11 +27,8 @@ Community
 ---------
 You can join Gnocchi's community via the following channels:
 
-- Bug tracker: https://bugs.launchpad.net/gnocchi
+- Bug tracker: https://github.com/gnocchixyz/gnocchi/issues
 - IRC: #gnocchi on `Freenode <https://freenode.net>`_
-- Mailing list: `openstack-dev@lists.openstack.org
-  <http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-dev>`_ with
-  *[gnocchi]* in the `Subject` header.
 
 Why Gnocchi?
 ------------
