@@ -122,6 +122,10 @@ options you want to change and configure:
 |                     | if you use the Redis storage driver.              |
 +---------------------+---------------------------------------------------+
 
+The same options are also available as `incoming.<drivername>_*` for
+configuring the incoming storage. If no incoming storage is set, the default is
+to use the configured storage driver.
+
 Configuring authentication
 -----------------------------
 
