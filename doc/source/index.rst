@@ -65,3 +65,4 @@ Documentation
    collectd
    glossary
    releasenotes/index.rst
+   contributing
