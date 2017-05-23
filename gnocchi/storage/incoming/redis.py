@@ -13,7 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import collections
 import contextlib
 
 import six
@@ -52,13 +51,34 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         pipe.execute()
 
     def _build_report(self, details):
+        report_vars = {'measures': 0, 'metric_details': {}}
+
+        def update_report(results, m_list):
+            report_vars['measures'] += sum(results)
+            if details:
+                report_vars['metric_details'].update(
+                    dict(six.moves.zip(m_list, results)))
+
         match = redis.SEP.join([self.get_sack_name("*"), "*"])
-        metric_details = collections.defaultdict(int)
+        metrics = 0
+        m_list = []
+        pipe = self._client.pipeline()
         for key in self._client.scan_iter(match=match, count=1000):
-            metric = key.decode('utf8').split(redis.SEP)[1]
-            metric_details[metric] = self._client.llen(key)
-        return (len(metric_details.keys()), sum(metric_details.values()),
-                metric_details if details else None)
+            metrics += 1
+            pipe.llen(key)
+            if details:
+                m_list.append(key.decode('utf8').split(redis.SEP)[1])
+            # group 100 commands/call
+            if metrics % 100 == 0:
+                results = pipe.execute()
+                update_report(results, m_list)
+                m_list = []
+                pipe = self._client.pipeline()
+        else:
+            results = pipe.execute()
+            update_report(results, m_list)
+        return (metrics, report_vars['measures'],
+                report_vars['metric_details'] if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
         match = redis.SEP.join([self.get_sack_name(sack), "*"])

@@ -98,13 +98,27 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                         raise
 
     def _build_report(self, details):
-        metric_details = {}
+        report_vars = {'metrics': 0, 'measures': 0, 'metric_details': {}}
+        if details:
+            def build_metric_report(metric, sack):
+                report_vars['metric_details'][metric] = len(
+                    self._list_measures_container_for_metric_id_str(sack,
+                                                                    metric))
+        else:
+            def build_metric_report(metric, sack):
+                report_vars['metrics'] += 1
+                report_vars['measures'] += len(
+                    self._list_measures_container_for_metric_id_str(sack,
+                                                                    metric))
+
         for i in six.moves.range(self.NUM_SACKS):
             for metric in self.list_metric_with_measures_to_process(i):
-                metric_details[metric] = len(
-                    self._list_measures_container_for_metric_id_str(i, metric))
-        return (len(metric_details.keys()), sum(metric_details.values()),
-                metric_details if details else None)
+                build_metric_report(metric, i)
+        return (report_vars['metrics'] or
+                len(report_vars['metric_details'].keys()),
+                report_vars['measures'] or
+                sum(report_vars['metric_details'].values()),
+                report_vars['metric_details'] if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
         return set(self._list_target(self._sack_path(sack)))
