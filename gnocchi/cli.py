@@ -279,10 +279,6 @@ class MetricdServiceManager(cotyledon.ServiceManager):
         self.reconfigure(self.metric_processor_id,
                          workers=self.conf.metricd.workers)
 
-    def run(self):
-        super(MetricdServiceManager, self).run()
-        self.queue.close()
-
 
 def metricd_tester(conf):
     # NOTE(sileht): This method is designed to be profiled, we
