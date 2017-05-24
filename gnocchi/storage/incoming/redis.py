@@ -44,9 +44,12 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
             self.get_sack_name(self.sack_for_metric(metric_id)),
             six.text_type(metric_id)])
 
-    def _store_new_measures(self, metric, data):
-        path = self._build_measure_path(metric.id)
-        self._client.rpush(path, data)
+    def add_measures_batch(self, metrics_and_measures):
+        pipe = self._client.pipeline(transaction=False)
+        for metric, measures in six.iteritems(metrics_and_measures):
+            path = self._build_measure_path(metric.id)
+            pipe.rpush(path, self._encode_measures(measures))
+        pipe.execute()
 
     def _build_report(self, details):
         match = redis.SEP.join([self.get_sack_name("*"), "*"])
