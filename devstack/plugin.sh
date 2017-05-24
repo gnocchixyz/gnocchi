@@ -3,7 +3,7 @@
 
 # To enable Gnocchi service, add the following to localrc:
 #
-#   enable_plugin gnocchi https://github.com/openstack/gnocchi master
+#   enable_plugin gnocchi https://github.com/gnocchixyz/gnocchi master
 #
 # This will turn on both gnocchi-api and gnocchi-metricd services.
 # If you don't want one of those (you do) you can use the
@@ -141,10 +141,10 @@ function _gnocchi_install_grafana {
     sudo -u grafana mkdir -p /var/lib/grafana/plugins
     sudo rm -rf /var/lib/grafana/plugins/grafana-gnocchi-datasource
     if [ ! "$GRAFANA_PLUGIN_VERSION" ]; then
-        sudo grafana-cli plugins install sileht-gnocchi-datasource
+        sudo grafana-cli plugins install gnocchixyz-gnocchi-datasource
     elif [ "$GRAFANA_PLUGIN_VERSION" != "git" ]; then
-        tmpfile=/tmp/sileht-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz
-        wget https://github.com/sileht/grafana-gnocchi-datasource/releases/download/${GRAFANA_PLUGIN_VERSION}/sileht-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz -O $tmpfile
+        tmpfile=/tmp/gnocchixyz-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz
+        wget https://github.com/gnocchixyz/grafana-gnocchi-datasource/releases/download/${GRAFANA_PLUGIN_VERSION}/gnocchixyz-gnocchi-datasource-${GRAFANA_PLUGIN_VERSION}.tar.gz -O $tmpfile
         sudo -u grafana tar -xzf $tmpfile -C /var/lib/grafana/plugins
         rm -f $file
     else

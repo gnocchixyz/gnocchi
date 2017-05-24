@@ -10,6 +10,6 @@ Enabling Gnocchi in DevStack
 2. Add this repo as an external repository in ``local.conf`` file::
 
     [[local|localrc]]
-    enable_plugin gnocchi https://git.openstack.org/openstack/gnocchi
+    enable_plugin gnocchi https://github.com/gnocchixyz/gnocchi
 
 3. Run ``stack.sh``.
