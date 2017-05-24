@@ -72,7 +72,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             else:
                 headers, files = self.swift.get_container(
                     self.get_sack_name(i), delimiter='/', full_listing=True)
-                nb_metrics += len(files)
+                nb_metrics += len([f for f in files if 'subdir' in f])
             measures += int(headers.get('x-container-object-count'))
         return (nb_metrics or len(metric_details), measures,
                 metric_details if details else None)
