@@ -1,4 +1,4 @@
-# Copyright ${create_date.year} OpenStack Foundation
+# Copyright ${create_date.year} The Gnocchi Developers
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
