@@ -46,7 +46,7 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
             except Exception as e:
                 LOG.error('Unable to detect the number of storage sacks. '
                           'Ensure gnocchi-upgrade has been executed: %s', e)
-                raise
+                raise incoming.SackDetectionError(e)
         return self._num_sacks
 
     def get_sack_prefix(self, num_sacks=None):
