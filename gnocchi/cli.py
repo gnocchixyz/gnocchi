@@ -86,7 +86,11 @@ def change_sack_size():
     ])
     conf = service.prepare_service(conf=conf)
     s = storage.get_incoming_driver(conf.incoming)
-    report = s.measures_report(details=False)
+    try:
+        report = s.measures_report(details=False)
+    except incoming.SackDetectionError:
+        # issue is already logged by NUM_SACKS, abort.
+        return
     remainder = report['summary']['measures']
     if remainder:
         LOG.error('Cannot change sack when non-empty backlog. Process '
