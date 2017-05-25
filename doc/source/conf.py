@@ -47,7 +47,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Gnocchi'
-copyright = u'%s, OpenStack Foundation' % datetime.date.today().year
+copyright = u'%s, The Gnocchi Developers' % datetime.date.today().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
