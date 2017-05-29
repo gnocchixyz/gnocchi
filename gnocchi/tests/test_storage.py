@@ -143,7 +143,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchMetric, self.index.delete_metric,
                           self.metric.id)
 
-    def test_measures_reporting(self):
+    def test_measures_reporting_format(self):
         report = self.storage.incoming.measures_report(True)
         self.assertIsInstance(report, dict)
         self.assertIn('summary', report)
@@ -157,6 +157,26 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn('metrics', report['summary'])
         self.assertIn('measures', report['summary'])
         self.assertNotIn('details', report)
+
+    def test_measures_reporting(self):
+        m2, __ = self._create_metric('medium')
+        for i in six.moves.range(60):
+            self.storage.incoming.add_measures(self.metric, [
+                storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, i), 69),
+            ])
+            self.storage.incoming.add_measures(m2, [
+                storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, i), 69),
+            ])
+        report = self.storage.incoming.measures_report(True)
+        self.assertIsInstance(report, dict)
+        self.assertEqual(2, report['summary']['metrics'])
+        self.assertEqual(120, report['summary']['measures'])
+        self.assertIn('details', report)
+        self.assertIsInstance(report['details'], dict)
+        report = self.storage.incoming.measures_report(False)
+        self.assertIsInstance(report, dict)
+        self.assertEqual(2, report['summary']['metrics'])
+        self.assertEqual(120, report['summary']['measures'])
 
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
