@@ -480,6 +480,18 @@ tests:
                 timespan: "1 shenanigan"
       status: 400
 
+    - name: create policy when granularity is larger than timespan
+      POST: /v1/archive_policy
+      request_headers:
+          content-type: application/json
+          x-roles: admin
+      data:
+          name: should-have-failed
+          definition:
+              - granularity: 2 hour
+                timespan: 1 hour
+      status: 400
+
 # Non admin user attempt
 
     - name: fail to create policy non-admin
