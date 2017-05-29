@@ -176,6 +176,8 @@ class ArchivePolicyItem(dict):
                 self['timespan'] = None
             else:
                 points = int(timespan / granularity)
+                if points <= 0:
+                    raise ValueError("Calculated number of points is < 0")
                 self['timespan'] = granularity * points
         else:
             points = int(points)
