@@ -78,7 +78,7 @@ def enforce(rule, target):
     :param target: The target to enforce on.
 
     """
-    creds = pecan.request.auth_helper.get_auth_info(pecan.request.headers)
+    creds = pecan.request.auth_helper.get_auth_info(pecan.request)
 
     if not isinstance(target, dict):
         if hasattr(target, "jsonify"):
@@ -523,7 +523,7 @@ class MetricsController(rest.RestController):
                 definition['archive_policy_name'] = ap.name
 
         creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
+            pecan.request)
 
         enforce("create metric", {
             "creator": creator,
@@ -537,7 +537,7 @@ class MetricsController(rest.RestController):
     @pecan.expose('json')
     def post(self):
         creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
+            pecan.request)
         body = deserialize_and_validate(self.MetricSchema)
         try:
             m = pecan.request.indexer.create_metric(
@@ -587,7 +587,7 @@ class MetricsController(rest.RestController):
         except webob.exc.HTTPForbidden:
             enforce("list metric", {})
             creator = pecan.request.auth_helper.get_current_user(
-                pecan.request.headers)
+                pecan.request)
             if provided_creator and creator != provided_creator:
                 abort(403, "Insufficient privileges to filter by user/project")
         attr_filter = {}
@@ -883,7 +883,7 @@ class ResourceController(rest.RestController):
     def __init__(self, resource_type, id):
         self._resource_type = resource_type
         creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
+            pecan.request)
         try:
             self.id = utils.ResourceUUID(id, creator)
         except ValueError:
@@ -990,7 +990,7 @@ class ResourcesController(rest.RestController):
         # and we don't want that next patch call have the "id"
         schema = dict(schema_for(self._resource_type))
         creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
+            pecan.request)
         schema["id"] = functools.partial(ResourceID, creator=creator)
 
         body = deserialize_and_validate(schema)
@@ -1027,7 +1027,7 @@ class ResourcesController(rest.RestController):
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
-            pecan.request.headers, "list resource", self._resource_type)
+            pecan.request, "list resource", self._resource_type)
 
         try:
             # FIXME(sileht): next API version should returns
@@ -1055,7 +1055,7 @@ class ResourcesController(rest.RestController):
                   delete entire database")
 
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
-            pecan.request.headers,
+            pecan.request,
             "delete resources", self._resource_type)
 
         if policy_filter:
@@ -1177,7 +1177,7 @@ def ResourceSearchSchema(v):
 
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
-        pecan.request.headers)
+        pecan.request)
     _ResourceUUID = functools.partial(ResourceUUID, creator=user)
 
     return voluptuous.Schema(
@@ -1238,7 +1238,7 @@ class SearchResourceTypeController(rest.RestController):
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
-            pecan.request.headers, "search resource", self._resource_type)
+            pecan.request, "search resource", self._resource_type)
         if policy_filter:
             if attr_filter:
                 attr_filter = {"and": [
@@ -1378,7 +1378,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
     @pecan.expose('json')
     def post(self, create_metrics=False):
         creator = pecan.request.auth_helper.get_current_user(
-            pecan.request.headers)
+            pecan.request)
         MeasuresBatchSchema = voluptuous.Schema(
             {functools.partial(ResourceID, creator=creator):
              {six.text_type: MeasuresListSchema}}

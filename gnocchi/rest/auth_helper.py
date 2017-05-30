@@ -22,26 +22,26 @@ from gnocchi import rest
 
 class KeystoneAuthHelper(object):
     @staticmethod
-    def get_current_user(headers):
+    def get_current_user(request):
         # FIXME(jd) should have domain but should not break existing :(
-        user_id = headers.get("X-User-Id", "")
-        project_id = headers.get("X-Project-Id", "")
+        user_id = request.headers.get("X-User-Id", "")
+        project_id = request.headers.get("X-Project-Id", "")
         return user_id + ":" + project_id
 
     @staticmethod
-    def get_auth_info(headers):
-        user_id = headers.get("X-User-Id")
-        project_id = headers.get("X-Project-Id")
+    def get_auth_info(request):
+        user_id = request.headers.get("X-User-Id")
+        project_id = request.headers.get("X-Project-Id")
         return {
             "user": (user_id or "") + ":" + (project_id or ""),
             "user_id": user_id,
             "project_id": project_id,
-            'domain_id': headers.get("X-Domain-Id"),
-            'roles': headers.get("X-Roles", "").split(","),
+            'domain_id': request.headers.get("X-Domain-Id"),
+            'roles': request.headers.get("X-Roles", "").split(","),
         }
 
     @staticmethod
-    def get_resource_policy_filter(headers, rule, resource_type):
+    def get_resource_policy_filter(request, rule, resource_type):
         try:
             # Check if the policy allows the user to list any resource
             rest.enforce(rule, {
@@ -49,7 +49,7 @@ class KeystoneAuthHelper(object):
             })
         except webob.exc.HTTPForbidden:
             policy_filter = []
-            project_id = headers.get("X-Project-Id")
+            project_id = request.headers.get("X-Project-Id")
 
             try:
                 # Check if the policy allows the user to list resources linked
@@ -88,10 +88,10 @@ class KeystoneAuthHelper(object):
 
 class NoAuthHelper(KeystoneAuthHelper):
     @staticmethod
-    def get_current_user(headers):
+    def get_current_user(request):
         # FIXME(jd) Should be a single header
-        user_id = headers.get("X-User-Id")
-        project_id = headers.get("X-Project-Id")
+        user_id = request.headers.get("X-User-Id")
+        project_id = request.headers.get("X-Project-Id")
         if user_id:
             if project_id:
                 return user_id + ":" + project_id
@@ -103,15 +103,15 @@ class NoAuthHelper(KeystoneAuthHelper):
 
 class BasicAuthHelper(object):
     @staticmethod
-    def get_current_user(headers):
+    def get_current_user(request):
         auth = werkzeug.http.parse_authorization_header(
-            headers.get("Authorization"))
+            request.headers.get("Authorization"))
         if auth is None:
             rest.abort(401)
         return auth.username
 
-    def get_auth_info(self, headers):
-        user = self.get_current_user(headers)
+    def get_auth_info(self, request):
+        user = self.get_current_user(request)
         roles = []
         if user == "admin":
             roles.append("admin")
@@ -121,5 +121,5 @@ class BasicAuthHelper(object):
         }
 
     @staticmethod
-    def get_resource_policy_filter(headers, rule, resource_type):
+    def get_resource_policy_filter(request, rule, resource_type):
         return None
