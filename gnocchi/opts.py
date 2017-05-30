@@ -41,6 +41,7 @@ class CustomStrSubWrapper(cfg.ConfigOpts.StrSubWrapper):
             return ''
         return value
 
+
 cfg.ConfigOpts.StrSubWrapper = CustomStrSubWrapper
 
 
