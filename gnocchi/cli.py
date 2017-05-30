@@ -52,8 +52,8 @@ def upgrade():
                     help="Skip storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
-        cfg.IntOpt("num-storage-sacks", default=128,
-                   help="Initial number of storage sacks to create."),
+        cfg.IntOpt("sacks-number", default=128, min=1,
+                   help="Number of storage sacks to create."),
 
     ])
     conf = service.prepare_service(conf=conf)
@@ -65,7 +65,7 @@ def upgrade():
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(index, conf.num_storage_sacks)
+        s.upgrade(index, conf.sacks_number)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()
@@ -78,8 +78,8 @@ def upgrade():
 def change_sack_size():
     conf = cfg.ConfigOpts()
     conf.register_cli_opts([
-        cfg.IntOpt("sack_size", required=True, min=1,
-                   help="Number of sacks."),
+        cfg.IntOpt("sacks-number", required=True, min=1,
+                   help="Number of storage sacks."),
     ])
     conf = service.prepare_service(conf=conf)
     s = storage.get_driver(conf)
@@ -89,9 +89,9 @@ def change_sack_size():
         LOG.error('Cannot change sack when non-empty backlog. Process '
                   'remaining %s measures and try again', remainder)
         return
-    LOG.info("Changing sack size to: %s", conf.sack_size)
+    LOG.info("Changing sack size to: %s", conf.sacks_number)
     old_num_sacks = s.incoming.get_storage_sacks()
-    s.incoming.set_storage_settings(conf.sack_size)
+    s.incoming.set_storage_settings(conf.sacks_number)
     s.incoming.remove_sack_group(old_num_sacks)
 
 
