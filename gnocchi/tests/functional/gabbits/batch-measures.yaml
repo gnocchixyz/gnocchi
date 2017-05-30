@@ -3,16 +3,18 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
     - name: create archive policy
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: simple
           definition:
@@ -21,16 +23,12 @@ tests:
 
     - name: create metric
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: simple
       status: 201
 
     - name: push measurements to metric
       POST: /v1/batch/metrics/measures
-      request_headers:
-           content-type: application/json
       data:
         $RESPONSE['$.id']:
           - timestamp: "2015-03-06T14:33:57"
@@ -41,8 +39,6 @@ tests:
 
     - name: push measurements to unknown metrics
       POST: /v1/batch/metrics/measures
-      request_headers:
-           content-type: application/json
       data:
         37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5C:
           - timestamp: "2015-03-06T14:33:57"
@@ -60,8 +56,6 @@ tests:
 
     - name: push measurements to unknown named metrics
       POST: /v1/batch/resources/metrics/measures
-      request_headers:
-           content-type: application/json
       data:
         37AEC8B7-C0D9-445B-8AB9-D3C6312DCF5D:
           cpu_util:
@@ -81,16 +75,12 @@ tests:
 
     - name: create second metric
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: simple
       status: 201
 
     - name: post a resource
       POST: /v1/resource/generic
-      request_headers:
-          content-type: application/json
       data:
           id: 46c9418d-d63b-4cdd-be89-8f57ffc5952e
           user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -104,8 +94,6 @@ tests:
 
     - name: post a second resource
       POST: /v1/resource/generic
-      request_headers:
-          content-type: application/json
       data:
           id: f0f6038f-f82c-4f30-8d81-65db8be249fe
           user_id: 0fbb2314-8461-4b1a-8013-1fc22f6afc9c
@@ -122,8 +110,6 @@ tests:
 
     - name: push measurements to two metrics
       POST: /v1/batch/metrics/measures
-      request_headers:
-           content-type: application/json
       data:
         $RESPONSE['$[0].id']:
           - timestamp: "2015-03-06T14:33:57"
@@ -139,8 +125,6 @@ tests:
 
     - name: push measurements to two named metrics
       POST: /v1/batch/resources/metrics/measures
-      request_headers:
-           content-type: application/json
       data:
         46c9418d-d63b-4cdd-be89-8f57ffc5952e:
           disk.iops:
@@ -169,8 +153,8 @@ tests:
     - name: create archive policy rule for auto
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: rule_auto
         metric_pattern: "auto.*"
@@ -179,8 +163,6 @@ tests:
 
     - name: push measurements to unknown named metrics and create it
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
-      request_headers:
-           content-type: application/json
       data:
         46c9418d-d63b-4cdd-be89-8f57ffc5952e:
           auto.test:
@@ -202,7 +184,6 @@ tests:
     - name: push measurements to unknown named metrics and resource with create_metrics with uuid resource id
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
-        content-type: application/json
         accept: application/json
       data:
         aaaaaaaa-d63b-4cdd-be89-111111111111:
@@ -230,7 +211,6 @@ tests:
     - name: push measurements to unknown named metrics and resource with create_metrics with uuid resource id where resources is several times listed
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
-        content-type: application/json
         accept: application/json
       data:
         aaaaaaaa-d63b-4cdd-be89-111111111111:
@@ -263,7 +243,6 @@ tests:
     - name: push measurements to unknown named metrics and resource with create_metrics with non uuid resource id
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
-        content-type: application/json
         accept: application/json
       data:
         foobar:
@@ -277,13 +256,12 @@ tests:
       response_json_paths:
           $.description.cause: "Unknown resources"
           $.description.detail:
-            - resource_id: "6b8e287d-c01a-538c-979b-a819ee49de5d"
+            - resource_id: "2fbfbb20-8d56-5e1e-afb9-b3007da11fdf"
               original_resource_id: "foobar"
 
     - name: push measurements to named metrics and resource with create_metrics with wrong measure objects
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
       request_headers:
-        content-type: application/json
         accept: application/json
       data:
         46c9418d-d63b-4cdd-be89-8f57ffc5952e:

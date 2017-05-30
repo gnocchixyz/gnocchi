@@ -8,8 +8,9 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
     - name: typo of search
@@ -22,16 +23,12 @@ tests:
 
     - name: search with invalid uuid
       POST: /v1/search/resource/generic
-      request_headers:
-        content-type: application/json
       data:
         =:
           id: "cd9eef"
 
     - name: post generic resource
       POST: /v1/resource/generic
-      request_headers:
-          content-type: application/json
       data:
           id: faef212f-0bf4-4030-a461-2186fef79be0
           started_at: "2014-01-03T02:02:02.000000"
@@ -41,8 +38,6 @@ tests:
 
     - name: post generic resource twice
       POST: /v1/resource/generic
-      request_headers:
-          content-type: application/json
       data:
           id: df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e
           started_at: "2014-01-03T02:02:02.000000"
@@ -52,8 +47,6 @@ tests:
 
     - name: search in_
       POST: /v1/search/resource/generic
-      request_headers:
-        content-type: application/json
       data:
         in:
           id:
@@ -64,8 +57,6 @@ tests:
 
     - name: search like created_by_project_id
       POST: /v1/search/resource/generic
-      request_headers:
-        content-type: application/json
       data:
         eq:
           created_by_project_id:
@@ -75,15 +66,11 @@ tests:
 
     - name: search in_ query string
       POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
-      request_headers:
-        content-type: application/json
       response_json_paths:
         $.`len`: 2
 
     - name: search empty query
       POST: /v1/search/resource/generic
-      request_headers:
-        content-type: application/json
       data: {}
       response_json_paths:
         $.`len`: 2

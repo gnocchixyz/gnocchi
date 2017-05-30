@@ -8,9 +8,9 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-      content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
 
@@ -22,7 +22,8 @@ tests:
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: medium
           definition:
@@ -41,8 +42,7 @@ tests:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
-          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
-          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          creator: foobar
       response_headers:
           # is a UUID
           location: /v1/resource/generic/[a-f0-9-]{36}/
@@ -72,8 +72,7 @@ tests:
     - name: post new resource non uuid again different user
       POST: /v1/resource/generic
       request_headers:
-        x-user-id: 0fbb231484614b1a80131fc22f6afc9b
-        x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+        authorization: "basic cGFzdGE6"
       data:
           id: generic zero
           metrics:
@@ -81,8 +80,7 @@ tests:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
-          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9b
-          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+          creator: pasta
       response_headers:
           # is a UUID
           location: /v1/resource/generic/[a-f0-9-]{36}/
@@ -98,8 +96,7 @@ tests:
                   archive_policy_name: medium
       status: 201
       response_json_paths:
-          created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
-          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+        creator: foobar
       response_headers:
           # is a UUID
           location: /v1/resource/generic/[a-f0-9-]{36}/

@@ -3,16 +3,17 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
     - name: create archive policy
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: cookies
           definition:
@@ -21,8 +22,6 @@ tests:
 
     - name: create metric
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: cookies
       status: 201
@@ -31,8 +30,6 @@ tests:
 
     - name: push measurements to metric with relative timestamp
       POST: /v1/metric/$RESPONSE['$.id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "-5 minutes"
             value: 43.1
@@ -40,8 +37,6 @@ tests:
 
     - name: create metric 2
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: cookies
       status: 201
@@ -50,8 +45,6 @@ tests:
 
     - name: push measurements to metric with mixed timestamps
       POST: /v1/metric/$RESPONSE['$.id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: 1478012832
             value: 43.1

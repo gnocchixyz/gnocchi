@@ -5,6 +5,12 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
 tests:
 
 #
@@ -12,10 +18,6 @@ tests:
 #
     - name: post resource 1
       POST: /v1/resource/generic
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 57a9e836-87b8-4a21-9e30-18a474b98fef
           started_at: "2014-01-01T02:02:02.000000"
@@ -25,10 +27,6 @@ tests:
 
     - name: post resource 2
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 4facbf7e-a900-406d-a828-82393f7006b3
           started_at: "2014-01-02T02:02:02.000000"
@@ -38,10 +36,6 @@ tests:
 
     - name: post resource 3
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 36775172-ebc9-4060-9870-a649361bc3ab
           started_at: "2014-01-03T02:02:02.000000"
@@ -51,10 +45,6 @@ tests:
 
     - name: post resource 4
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 28593168-52bb-43b5-a6db-fc2343aac02a
           started_at: "2014-01-04T02:02:02.000000"
@@ -64,10 +54,6 @@ tests:
 
     - name: post resource 5
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
           started_at: "2014-01-05T02:02:02.000000"
@@ -80,10 +66,6 @@ tests:
 #
     - name: list first two items default order
       GET: /v1/resource/generic?limit=2
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 2
           $[0].id: 57a9e836-87b8-4a21-9e30-18a474b98fef
@@ -91,10 +73,6 @@ tests:
 
     - name: list next third items default order
       GET: /v1/resource/generic?limit=4&marker=4facbf7e-a900-406d-a828-82393f7006b3
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 3
           $[0].id: 36775172-ebc9-4060-9870-a649361bc3ab
@@ -103,10 +81,6 @@ tests:
 
     - name: list first two items order by id witouth direction
       GET: /v1/resource/generic?limit=2&sort=id
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 200
       response_json_paths:
           $.`len`: 2
@@ -115,10 +89,6 @@ tests:
 
     - name: list first two items order by id
       GET: /v1/resource/generic?limit=2&sort=id:asc
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 2
           $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
@@ -126,10 +96,6 @@ tests:
 
     - name: list next third items order by id
       GET: /v1/resource/generic?limit=4&sort=id:asc&marker=28593168-52bb-43b5-a6db-fc2343aac02a
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 3
           $[0].id: 36775172-ebc9-4060-9870-a649361bc3ab
@@ -138,10 +104,6 @@ tests:
 
     - name: search for some resources with limit, order and marker
       POST: /v1/search/resource/generic?limit=2&sort=id:asc&marker=36775172-ebc9-4060-9870-a649361bc3ab
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
         "or": [
             {"=": {"id": 36775172-ebc9-4060-9870-a649361bc3ab}},
@@ -158,42 +120,22 @@ tests:
 #
     - name: invalid sort_key
       GET: /v1/resource/generic?sort=invalid:asc
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: invalid sort_dir
       GET: /v1/resource/generic?sort=id:invalid
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: invalid marker
       GET: /v1/resource/generic?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: invalid negative limit
       GET: /v1/resource/generic?limit=-2
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: invalid limit
       GET: /v1/resource/generic?limit=invalid
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
 #
@@ -202,10 +144,6 @@ tests:
 
     - name: post resource 6
       POST: /v1/resource/generic
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 465f87b2-61f7-4118-adec-1d96a78af401
           started_at: "2014-01-02T02:02:02.000000"
@@ -215,10 +153,6 @@ tests:
 
     - name: post resource 7
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: 9b6af245-57df-4ed6-a8c0-f64b77d8867f
           started_at: "2014-01-28T02:02:02.000000"
@@ -228,10 +162,6 @@ tests:
 
     - name: post resource 8
       POST: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: d787aa85-5743-4443-84f9-204270bc141a
           started_at: "2014-01-31T02:02:02.000000"
@@ -241,10 +171,6 @@ tests:
 
     - name: default limit
       GET: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 7
           $[-1].id: 9b6af245-57df-4ed6-a8c0-f64b77d8867f
@@ -252,28 +178,16 @@ tests:
 
     - name: update resource 5
       PATCH: /v1/resource/generic/1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           ended_at: "2014-01-30T02:02:02.000000"
 
     - name: update resource 5 again
       PATCH: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           ended_at: "2014-01-31T02:02:02.000000"
 
     - name: default limit with history and multiple sort key
       GET: /v1/resource/generic?history=true&sort=id:asc&sort=ended_at:desc-nullslast
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 7
           $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
@@ -290,8 +204,8 @@ tests:
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: dummy_policy
           definition:
@@ -300,10 +214,6 @@ tests:
 
     - name: create metric with name1
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           name: "dummy1"
           archive_policy_name: dummy_policy
@@ -311,10 +221,6 @@ tests:
 
     - name: create metric with name2
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           name: "dummy2"
           archive_policy_name: dummy_policy
@@ -322,10 +228,6 @@ tests:
 
     - name: create metric with name3
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           name: "dummy3"
           archive_policy_name: dummy_policy
@@ -333,10 +235,6 @@ tests:
 
     - name: create metric with name4
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           name: "dummy4"
           archive_policy_name: dummy_policy
@@ -344,10 +242,6 @@ tests:
 
     - name: create metric with name5
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           name: "dummy5"
           archive_policy_name: dummy_policy
@@ -355,17 +249,9 @@ tests:
 
     - name: list all default order
       GET: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
 
     - name: list first two metrics default order
       GET: /v1/metric?limit=2
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 2
           $[0].name: $RESPONSE['$[0].name']
@@ -373,10 +259,6 @@ tests:
 
     - name: list next three metrics default order
       GET: /v1/metric?limit=4&marker=$HISTORY['list all default order'].$RESPONSE['$[1].id']
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 3
           $[0].name: $HISTORY['list all default order'].$RESPONSE['$[2].name']
@@ -385,10 +267,6 @@ tests:
 
     - name: list first two metrics order by user without direction
       GET: /v1/metric?limit=2&sort=name
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 200
       response_json_paths:
           $.`len`: 2
@@ -397,10 +275,6 @@ tests:
 
     - name: list first two metrics order by user
       GET: /v1/metric?limit=2&sort=name:asc
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 2
           $[0].name: dummy1
@@ -408,10 +282,6 @@ tests:
 
     - name: list next third metrics order by user
       GET: /v1/metric?limit=4&sort=name:asc&marker=$RESPONSE['$[1].id']
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 3
           $[0].name: dummy3
@@ -424,40 +294,24 @@ tests:
 
     - name: create metric with name6
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name7
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: create metric with name8
       POST: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           archive_policy_name: dummy_policy
       status: 201
 
     - name: default metric limit
       GET: /v1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       response_json_paths:
           $.`len`: 7
 
@@ -467,40 +321,20 @@ tests:
 
     - name: metric invalid sort_key
       GET: /v1/metric?sort=invalid:asc
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: metric invalid sort_dir
       GET: /v1/metric?sort=id:invalid
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: metric invalid marker
       GET: /v1/metric?marker=d44b3f4c-27bc-4ace-b81c-2a8e60026874
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: metric invalid negative limit
       GET: /v1/metric?limit=-2
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
 
     - name: metric invalid limit
       GET: /v1/metric?limit=invalid
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       status: 400
