@@ -7,7 +7,7 @@ features:
 upgrade:
   - |
     The storage driver needs to be upgraded. The number of sacks to distribute
-    across can be configured on upgrade by passing in ``num-storage-sacks``
+    across can be configured on upgrade by passing in ``sacks-number``
     value on upgrade. A default number of sacks will be created if not set.
     This can be reconfigured post-upgrade as well by using
     ``gnocchi-change-sack-size`` cli. See documentation for hints on the number
