@@ -22,7 +22,7 @@ env:
   - TARGET: py35-postgresql
 
 before_script:
-# Travis We need to fetch all tags/branches for documentation target
+  # Travis We need to fetch all tags/branches for documentation target
   - case $TARGET in
       docs*)
         git fetch origin $(git ls-remote -q | sed -n '/refs\/heads/s,.*refs/heads\(.*\),:remotes/origin\1,gp') ;
@@ -30,7 +30,7 @@ before_script:
         git fetch --unshallow ;
         ;;
     esac
-
+  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then git pull --rebase ; fi'
   - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
 script:
   - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
