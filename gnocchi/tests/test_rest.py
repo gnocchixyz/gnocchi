@@ -84,6 +84,13 @@ class TestingApp(webtest.TestApp):
                 yield
             finally:
                 self.user = old_user
+        elif self.auth_mode == "remoteuser":
+            old_user = self.user
+            self.user = b"admin"
+            try:
+                yield
+            finally:
+                self.user = old_user
         elif self.auth_mode == "noauth":
             raise testcase.TestSkipped("auth mode is noauth")
         else:
@@ -119,6 +126,8 @@ class TestingApp(webtest.TestApp):
             req.headers['Authorization'] = (
                 b"basic " + base64.b64encode(self.user + b":")
             )
+        elif self.auth_mode == "remoteuser":
+            req.remote_user = self.user
         elif self.auth_mode == "noauth":
             req.headers['X-User-Id'] = self.USER_ID
             req.headers['X-Project-Id'] = self.PROJECT_ID
@@ -134,6 +143,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         ('basic', dict(auth_mode="basic")),
         ('keystone', dict(auth_mode="keystone")),
         ('noauth', dict(auth_mode="noauth")),
+        ('remoteuser', dict(auth_mode="remoteuser")),
     ]
 
     def setUp(self):
@@ -645,7 +655,7 @@ class ResourceTest(RestTest):
             self.resource['creator'] = (
                 TestingApp.USER_ID + ":" + TestingApp.PROJECT_ID
             )
-        elif self.auth_mode == "basic":
+        elif self.auth_mode in ["basic", "remoteuser"]:
             self.resource['created_by_project_id'] = ""
             self.resource['creator'] = TestingApp.USER_ID
         self.resource['ended_at'] = None

@@ -123,3 +123,26 @@ class BasicAuthHelper(object):
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type):
         return None
+
+
+class RemoteUserAuthHelper(object):
+    @staticmethod
+    def get_current_user(request):
+        user = request.remote_user
+        if user is None:
+            rest.abort(401)
+        return user.decode('iso-8859-1')
+
+    def get_auth_info(self, request):
+        user = self.get_current_user(request)
+        roles = []
+        if user == "admin":
+            roles.append("admin")
+        return {
+            "user": user,
+            "roles": roles
+        }
+
+    @staticmethod
+    def get_resource_policy_filter(request, rule, resource_type):
+        return None

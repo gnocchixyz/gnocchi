@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Gnocchi provides a new authentication mode 'remoteuser'. It uses the HTTP
+    server REMOTE_USER environment variable to retrieve the username.
