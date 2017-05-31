@@ -667,11 +667,14 @@ tests:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      status: 204
+      status: 200
       data:
           electron.spin:
               archive_policy_name: medium
       response_headers:
+      response_json_paths:
+          $[/name][1].name: electron.spin
+          $[/name][1].resource_id: 85c44741-cc60-4033-804e-2d3098c7d2e9
 
     - name: post metric at generic with empty definition
       POST: $LAST_URL
@@ -691,9 +694,12 @@ tests:
           x-user-id: 0fbb231484614b1a80131fc22f6afc9c
           x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           content-type: application/json
-      status: 204
+      status: 200
       data:
           disk.io.rate: {}
+      response_json_paths:
+          $[/name][1].name: disk.io.rate
+          $[/name][1].resource_id: 85c44741-cc60-4033-804e-2d3098c7d2e9
 
     - name: duplicate metrics at generic
       POST: $LAST_URL

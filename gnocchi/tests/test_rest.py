@@ -978,7 +978,7 @@ class ResourceTest(RestTest):
         metrics = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id'] + "/metric",
-                           params=metrics, status=204)
+                           params=metrics, status=200)
         metrics = {'foo': {'archive_policy_name': "low"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id']
@@ -999,7 +999,7 @@ class ResourceTest(RestTest):
         metrics = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type
                            + "/" + self.attributes['id'] + "/metric",
-                           params=metrics, status=204)
+                           params=metrics, status=200)
         result = self.app.get("/v1/resource/"
                               + self.resource_type + "/"
                               + self.attributes['id'])
