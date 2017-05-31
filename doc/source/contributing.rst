@@ -5,14 +5,16 @@
 Issues
 ------
 
-We use the [Gihub issue tracker](https://github.com/gnocchixyz/gnocchi/issues)
-for reporting issues. Before opening a new issue, ensure the bug was not
-already reported by searching on Issue tracker first.
+We use the `GitHub issue tracker`_ for reporting issues. Before opening a new
+issue, ensure the bug was not already reported by searching on Issue tracker
+first.
 
 If you're unable to find an open issue addressing the problem, open a new one.
 Be sure to include a title and clear description, as much relevant information
 as possible, and a code sample or an executable test case demonstrating the
 expected behavior that is not occurring.
+
+.. _`GitHub issue tracker`: https://github.com/gnocchixyz/gnocchi/issues
 
 Running the Tests
 -----------------
