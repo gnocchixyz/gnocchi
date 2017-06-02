@@ -146,6 +146,9 @@ class MetricReporting(MetricProcessBase):
         super(MetricReporting, self).__init__(
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
+    def _configure(self):
+        self.store = storage.get_driver(self.conf)
+
     def _run_job(self):
         try:
             report = self.store.incoming.measures_report(details=False)
