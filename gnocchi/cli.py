@@ -57,19 +57,22 @@ def upgrade():
 
     ])
     conf = service.prepare_service(conf=conf)
-    index = indexer.get_driver(conf)
-    index.connect()
     if not conf.skip_index:
+        index = indexer.get_driver(conf)
+        index.connect()
         LOG.info("Upgrading indexer %s", index)
         index.upgrade()
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(index, conf.sacks_number)
+        s.upgrade(conf.sacks_number)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()
             and not index.list_archive_policy_rules()):
+        if conf.skip_index:
+            index = indexer.get_driver(conf)
+            index.connect()
         for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
             index.create_archive_policy(ap)
         index.create_archive_policy_rule("default", "*", "low")
