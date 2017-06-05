@@ -188,12 +188,8 @@ class TimeSerie(object):
         return ts
 
     @classmethod
-    def from_data(cls, timestamps=None, values=None, clean=False):
-        ts = pandas.Series(values, timestamps)
-        if clean:
-            # For format v2
-            ts = cls.clean_ts(ts)
-        return cls(ts)
+    def from_data(cls, timestamps=None, values=None):
+        return cls(pandas.Series(values, timestamps))
 
     @classmethod
     def from_tuples(cls, timestamps_values):
