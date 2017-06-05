@@ -355,8 +355,6 @@ class ArchivePolicyRulesController(rest.RestController):
             pecan.request.indexer.delete_archive_policy_rule(name)
         except indexer.NoSuchArchivePolicyRule as e:
             abort(404, e)
-        except indexer.ArchivePolicyRuleInUse as e:
-            abort(400, e)
 
 
 def MeasuresListSchema(measures):
