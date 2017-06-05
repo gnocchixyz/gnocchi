@@ -29,7 +29,7 @@ class StorageDriver(object):
         pass
 
     @staticmethod
-    def upgrade(indexer):
+    def upgrade():
         pass
 
     def add_measures(self, metric, measures):

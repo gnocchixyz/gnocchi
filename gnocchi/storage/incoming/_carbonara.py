@@ -53,8 +53,8 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
         sacks = num_sacks if num_sacks else self.NUM_SACKS
         return self.SACK_PREFIX + str(sacks) + '-%s'
 
-    def upgrade(self, index, num_sacks):
-        super(CarbonaraBasedStorage, self).upgrade(index)
+    def upgrade(self, num_sacks):
+        super(CarbonaraBasedStorage, self).upgrade()
         if not self.get_storage_sacks():
             self.set_storage_settings(num_sacks)
 
