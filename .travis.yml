@@ -21,9 +21,8 @@ before_script:
 # Travis We need to fetch all tags/branches for documentation target
   - case $TARGET in
       docs*)
-        git fetch origin $(git ls-remote -q | sed -n '/refs\/heads/s,.*refs/heads\(.*\),:remotes/origin\1,gp') ;
-        git fetch --tags ;
-        git fetch --unshallow ;
+        git config --add remote.origin.fetch +refs/heads/stable/*:refs/remotes/origin/stable/*;
+        git fetch --unshallow --tags;
         ;;
     esac
 
