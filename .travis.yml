@@ -28,10 +28,10 @@ before_script:
         git fetch --unshallow --tags;
         ;;
     esac
-  - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
 install:
+  - docker pull gnocchixyz/ci-tools:latest
 script:
-  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
+  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
 notifications:
   email: false
