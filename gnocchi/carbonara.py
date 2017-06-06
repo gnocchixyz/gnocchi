@@ -210,15 +210,6 @@ class TimeSerie(object):
         return len(self.ts)
 
     @staticmethod
-    def _timestamps_and_values_from_dict(values):
-        timestamps = numpy.array(list(values.keys()), dtype='datetime64[ns]')
-        timestamps = pandas.to_datetime(timestamps)
-        v = list(values.values())
-        if v:
-            return timestamps, v
-        return (), ()
-
-    @staticmethod
     def _to_offset(value):
         if isinstance(value, numbers.Real):
             return pandas.tseries.offsets.Nano(value * 10e8)
