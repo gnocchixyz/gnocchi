@@ -85,17 +85,17 @@ def change_sack_size():
                    help="Number of storage sacks."),
     ])
     conf = service.prepare_service(conf=conf)
-    s = storage.get_driver(conf)
-    report = s.incoming.measures_report(details=False)
+    s = storage.get_incoming_driver(conf.incoming)
+    report = s.measures_report(details=False)
     remainder = report['summary']['measures']
     if remainder:
         LOG.error('Cannot change sack when non-empty backlog. Process '
                   'remaining %s measures and try again', remainder)
         return
     LOG.info("Changing sack size to: %s", conf.sacks_number)
-    old_num_sacks = s.incoming.get_storage_sacks()
-    s.incoming.set_storage_settings(conf.sacks_number)
-    s.incoming.remove_sack_group(old_num_sacks)
+    old_num_sacks = s.get_storage_sacks()
+    s.set_storage_settings(conf.sacks_number)
+    s.remove_sack_group(old_num_sacks)
 
 
 def statsd():
@@ -150,11 +150,11 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
+        self.incoming = storage.get_incoming_driver(self.conf.incoming)
 
     def _run_job(self):
         try:
-            report = self.store.incoming.measures_report(details=False)
+            report = self.incoming.measures_report(details=False)
             LOG.info("%d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],
