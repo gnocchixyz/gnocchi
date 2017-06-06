@@ -8,31 +8,20 @@ cache:
   directories:
     - ~/.cache/pip
 env:
-  - TARGET: bashate
-  - TARGET: pep8
-  - TARGET: docs
-  - TARGET: docs-gnocchi.xyz
-
-  - TARGET: py27-mysql-ceph-upgrade-from-3.1
-  - TARGET: py35-postgresql-file-upgrade-from-3.1
-
-  - TARGET: py27-mysql
-  - TARGET: py35-mysql
-  - TARGET: py27-postgresql
-  - TARGET: py35-postgresql
+  - TARGETS: pep8,docs,docs-gnocchi.xyz,py27-mysql-ceph-upgrade-from-3.1,py35-postgresql-file-upgrade-from-3.1
+  - TARGETS: py27
+  - TARGETS: py35
 
 before_script:
   # Travis We need to fetch all tags/branches for documentation target
-  - case $TARGET in
-      docs*)
+  - case $TARGETS in
+      *docs*)
         git config --add remote.origin.fetch +refs/heads/stable/*:refs/remotes/origin/stable/*;
         git fetch --unshallow --tags;
         ;;
     esac
-  - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then git pull --rebase ; fi'
-  - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
 script:
-  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
+  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGETS}
 
 notifications:
   email: false
