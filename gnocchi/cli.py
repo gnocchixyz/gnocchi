@@ -52,24 +52,27 @@ def upgrade():
                     help="Skip storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
-        cfg.IntOpt("num-storage-sacks", default=128,
-                   help="Initial number of storage sacks to create."),
+        cfg.IntOpt("sacks-number", default=128, min=1,
+                   help="Number of storage sacks to create."),
 
     ])
     conf = service.prepare_service(conf=conf)
-    index = indexer.get_driver(conf)
-    index.connect()
     if not conf.skip_index:
+        index = indexer.get_driver(conf)
+        index.connect()
         LOG.info("Upgrading indexer %s", index)
         index.upgrade()
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(index, conf.num_storage_sacks)
+        s.upgrade(conf.sacks_number)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()
             and not index.list_archive_policy_rules()):
+        if conf.skip_index:
+            index = indexer.get_driver(conf)
+            index.connect()
         for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
             index.create_archive_policy(ap)
         index.create_archive_policy_rule("default", "*", "low")
@@ -78,21 +81,21 @@ def upgrade():
 def change_sack_size():
     conf = cfg.ConfigOpts()
     conf.register_cli_opts([
-        cfg.IntOpt("sack_size", required=True, min=1,
-                   help="Number of sacks."),
+        cfg.IntOpt("sacks-number", required=True, min=1,
+                   help="Number of storage sacks."),
     ])
     conf = service.prepare_service(conf=conf)
-    s = storage.get_driver(conf)
-    report = s.incoming.measures_report(details=False)
+    s = storage.get_incoming_driver(conf.incoming)
+    report = s.measures_report(details=False)
     remainder = report['summary']['measures']
     if remainder:
         LOG.error('Cannot change sack when non-empty backlog. Process '
                   'remaining %s measures and try again', remainder)
         return
-    LOG.info("Changing sack size to: %s", conf.sack_size)
-    old_num_sacks = s.incoming.get_storage_sacks()
-    s.incoming.set_storage_settings(conf.sack_size)
-    s.incoming.remove_sack_group(old_num_sacks)
+    LOG.info("Changing sack size to: %s", conf.sacks_number)
+    old_num_sacks = s.get_storage_sacks()
+    s.set_storage_settings(conf.sacks_number)
+    s.remove_sack_group(old_num_sacks)
 
 
 def statsd():
@@ -146,9 +149,12 @@ class MetricReporting(MetricProcessBase):
         super(MetricReporting, self).__init__(
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
+    def _configure(self):
+        self.incoming = storage.get_incoming_driver(self.conf.incoming)
+
     def _run_job(self):
         try:
-            report = self.store.incoming.measures_report(details=False)
+            report = self.incoming.measures_report(details=False)
             LOG.info("%d measurements bundles across %d "
                      "metrics wait to be processed.",
                      report['summary']['measures'],

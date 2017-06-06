@@ -960,6 +960,16 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
         ], self.storage.get_measures(m))
 
+    def test_resample_no_metric(self):
+        """https://github.com/gnocchixyz/gnocchi/issues/69"""
+        self.assertEqual([],
+                         self.storage.get_measures(
+                             self.metric,
+                             utils.datetime_utc(2014, 1, 1),
+                             utils.datetime_utc(2015, 1, 1),
+                             granularity=300,
+                             resample=3600))
+
 
 class TestMeasureQuery(base.BaseTestCase):
     def test_equal(self):

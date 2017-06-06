@@ -146,6 +146,14 @@ def get_driver_class(namespace, conf):
                                 conf.driver).driver
 
 
+def get_incoming_driver(conf):
+    """Return configured incoming driver only
+
+    :param conf: incoming configuration only (not global)
+    """
+    return get_driver_class('gnocchi.incoming', conf)(conf)
+
+
 def get_driver(conf):
     """Return the configured driver."""
     incoming = get_driver_class('gnocchi.incoming', conf.incoming)(
@@ -162,8 +170,8 @@ class StorageDriver(object):
     def stop():
         pass
 
-    def upgrade(self, index, num_sacks):
-        self.incoming.upgrade(index, num_sacks)
+    def upgrade(self, num_sacks):
+        self.incoming.upgrade(num_sacks)
 
     def process_background_tasks(self, index, metrics, sync=False):
         """Process background tasks for this storage.

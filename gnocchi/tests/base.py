@@ -327,7 +327,7 @@ class TestCase(base.BaseTestCase):
             self.storage.STORAGE_PREFIX = str(uuid.uuid4())
             self.storage.incoming.SACK_PREFIX = str(uuid.uuid4())
 
-        self.storage.upgrade(self.index, 128)
+        self.storage.upgrade(128)
 
     def tearDown(self):
         self.index.disconnect()

@@ -64,7 +64,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         # nothing to cleanup since sacks are part of path
         pass
 
-    def upgrade(self, indexer, num_sacks):
+    def upgrade(self, num_sacks):
         try:
             s3.create_bucket(self.s3, self._bucket_name_measures,
                              self._region_name)
@@ -74,7 +74,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             ):
                 raise
         # need to create bucket first to store storage settings object
-        super(S3Storage, self).upgrade(indexer, num_sacks)
+        super(S3Storage, self).upgrade(num_sacks)
 
     def _store_new_measures(self, metric, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
