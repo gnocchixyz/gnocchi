@@ -188,12 +188,8 @@ class TimeSerie(object):
         return ts
 
     @classmethod
-    def from_data(cls, timestamps=None, values=None, clean=False):
-        ts = pandas.Series(values, timestamps)
-        if clean:
-            # For format v2
-            ts = cls.clean_ts(ts)
-        return cls(ts)
+    def from_data(cls, timestamps=None, values=None):
+        return cls(pandas.Series(values, timestamps))
 
     @classmethod
     def from_tuples(cls, timestamps_values):
@@ -246,7 +242,7 @@ class TimeSerie(object):
         # NOTE(jd) Our whole serialization system is based on Epoch, and we
         # store unsigned integer, so we can't store anything before Epoch.
         # Sorry!
-        if self.ts.index[0].value < 0:
+        if not self.ts.empty and self.ts.index[0].value < 0:
             raise BeforeEpochError(self.ts.index[0])
 
         return GroupedTimeSeries(self.ts[start:], granularity)
