@@ -26,11 +26,13 @@ before_script:
 # Travis We need to fetch all tags/branches for documentation target
   - case $TARGET in
       docs*)
-        git config --add remote.origin.fetch +refs/heads/stable/*:refs/remotes/origin/stable/*;
+        git config --get-all remote.origin.fetch;
+        git config --unset-all remote.origin.fetch;
+        git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*;
+        git config --get-all remote.origin.fetch;
         git fetch --unshallow --tags;
         ;;
     esac
-
   - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
 script:
   - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
