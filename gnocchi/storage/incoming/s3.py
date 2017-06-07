@@ -98,7 +98,6 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             response = self.s3.list_objects_v2(
                 Bucket=self._bucket_name_measures,
                 **kwargs)
-            # FIXME(gordc): this can be streamlined if not details
             for c in response.get('Contents', ()):
                 if c['Key'] != self.CFG_PREFIX:
                     __, metric, metric_file = c['Key'].split("/", 2)
