@@ -275,6 +275,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             url = sqlalchemy_url.make_url(url)
             url.drivername = "mysql+pymysql"
             return str(url)
+        if url.startswith("postgresql://"):
+            url = sqlalchemy_url.make_url(url)
+            url.drivername = "postgresql+psycopg2"
+            return str(url)
         return url
 
     def __init__(self, conf):
