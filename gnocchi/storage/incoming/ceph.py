@@ -107,6 +107,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             op.wait_for_complete()
 
     def _build_report(self, details):
+        def inc_details(details, metric):
+            details[metric] += 1
+
+        build_metric_details = inc_details if details else lambda x, y: None
         metrics = set()
         count = 0
         metric_details = defaultdict(int)
@@ -122,8 +126,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                     count += 1
                     metric = name.split("_")[1]
                     metrics.add(metric)
-                    if details:
-                        metric_details[metric] += 1
+                    build_metric_details(metric_details, metric)
                 if len(names) < self.Q_LIMIT:
                     break
                 else:
