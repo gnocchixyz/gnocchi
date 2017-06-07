@@ -551,9 +551,11 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def from_timeseries(cls, timeseries, sampling, aggregation_method,
                         max_size=None):
-        ts = pandas.Series()
-        for t in timeseries:
-            ts = ts.combine_first(t.ts)
+        # NOTE(gordc): Indices must be unique across all timeseries. Also,
+        # timeseries should be a list that is ordered within list and series.
+        ts = (timeseries[0].ts.append([t.ts for t in timeseries[1:]])
+              if timeseries else None)
+
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
                    ts=ts, max_size=max_size)

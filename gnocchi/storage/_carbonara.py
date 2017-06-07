@@ -200,15 +200,15 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 carbonara.SplitKey.from_timestamp_and_sampling(
                     to_timestamp, granularity))
 
-        timeseries = filter(
+        timeseries = list(filter(
             lambda x: x is not None,
             self._map_in_thread(
                 self._get_measures_and_unserialize,
                 ((metric, key, aggregation, granularity)
-                 for key in all_keys
+                 for key in sorted(all_keys)
                  if ((not from_timestamp or key >= from_timestamp)
                      and (not to_timestamp or key <= to_timestamp))))
-        )
+        ))
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
             sampling=granularity,
