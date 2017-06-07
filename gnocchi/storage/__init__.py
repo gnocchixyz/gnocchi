@@ -184,7 +184,6 @@ class StorageDriver(object):
                      on error
         :type sync: bool
         """
-        LOG.debug("Processing new measures")
         try:
             self.process_new_measures(index, metrics, sync)
         except Exception:

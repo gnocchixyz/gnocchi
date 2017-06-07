@@ -210,15 +210,6 @@ class TimeSerie(object):
         return len(self.ts)
 
     @staticmethod
-    def _timestamps_and_values_from_dict(values):
-        timestamps = numpy.array(list(values.keys()), dtype='datetime64[ns]')
-        timestamps = pandas.to_datetime(timestamps)
-        v = list(values.values())
-        if v:
-            return timestamps, v
-        return (), ()
-
-    @staticmethod
     def _to_offset(value):
         if isinstance(value, numbers.Real):
             return pandas.tseries.offsets.Nano(value * 10e8)
@@ -560,9 +551,11 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def from_timeseries(cls, timeseries, sampling, aggregation_method,
                         max_size=None):
-        ts = pandas.Series()
-        for t in timeseries:
-            ts = ts.combine_first(t.ts)
+        # NOTE(gordc): Indices must be unique across all timeseries. Also,
+        # timeseries should be a list that is ordered within list and series.
+        ts = (timeseries[0].ts.append([t.ts for t in timeseries[1:]])
+              if timeseries else None)
+
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
                    ts=ts, max_size=max_size)
