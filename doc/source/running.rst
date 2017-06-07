@@ -23,7 +23,7 @@ machines.
 The following uwsgi configuration file can be used::
 
   [uwsgi]
-  http = localhost:8041
+  http-socket = localhost:8041
   # Set the correct path depending on your installation
   wsgi-file = /usr/local/bin/gnocchi-api
   master = true
