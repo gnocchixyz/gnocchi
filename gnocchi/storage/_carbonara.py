@@ -448,8 +448,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,
-                          before_truncate_callback=_map_add_measures,
-                          ignore_too_old_timestamps=True)
+                          before_truncate_callback=_map_add_measures)
 
         number_of_operations = (len(agg_methods) * len(definition))
         perf = ""

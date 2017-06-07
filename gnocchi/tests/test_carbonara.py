@@ -899,21 +899,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ],
             ts['return'].fetch())
 
-        try:
-            tsb.set_values([
-                (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
-            ])
-        except carbonara.NoDeloreanAvailable as e:
-            self.assertEqual(
-                six.text_type(e),
-                u"2014-01-01 12:00:02.000099 is before 2014-01-01 12:00:03")
-            self.assertEqual(datetime.datetime(2014, 1, 1, 12, 0, 2, 99),
-                             e.bad_timestamp)
-            self.assertEqual(datetime.datetime(2014, 1, 1, 12, 0, 3),
-                             e.first_timestamp)
-        else:
-            self.fail("No exception raised")
-
     def test_back_window_ignore(self):
         """Back window testing.
 
@@ -948,9 +933,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
-        ], ignore_too_old_timestamps=True,
-            before_truncate_callback=functools.partial(
-                self._resample_and_merge, agg_dict=ts))
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
@@ -969,9 +953,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
             (datetime.datetime(2014, 1, 1, 12, 0, 3, 9), 4.5),
-        ], ignore_too_old_timestamps=True,
-            before_truncate_callback=functools.partial(
-                self._resample_and_merge, agg_dict=ts))
+        ], before_truncate_callback=functools.partial(
+            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
