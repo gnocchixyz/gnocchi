@@ -129,23 +129,24 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [(datetime.datetime(2014, 1, 1, 12), 1, 3),
              (datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
-            ts.fetch())
+            list(ts.fetch()))
         self.assertEqual(
             [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
-            ts.fetch(from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 4)))
+            list(ts.fetch(
+                from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 4))))
         self.assertEqual(
             [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
-            ts.fetch(
+            list(ts.fetch(
                 from_timestamp=iso8601.parse_date(
-                    "2014-01-01 12:00:04")))
+                    "2014-01-01 12:00:04"))))
         self.assertEqual(
             [(datetime.datetime(2014, 1, 1, 12, 0, 4), 1, 5),
              (datetime.datetime(2014, 1, 1, 12, 0, 9), 1, 6)],
-            ts.fetch(
+            list(ts.fetch(
                 from_timestamp=iso8601.parse_date(
-                    "2014-01-01 13:00:04+01:00")))
+                    "2014-01-01 13:00:04+01:00"))))
 
     def test_before_epoch(self):
         ts = carbonara.TimeSerie.from_tuples(
@@ -435,7 +436,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 9, 0
             ), 60.0, 2.0),
-        ], output)
+        ], list(output))
 
     def test_aggregated_different_archive_overlap_edge_missing1(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -483,7 +484,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 6, 0
             ), 60.0, 19.0),
-        ], output)
+        ], list(output))
 
     def test_aggregated_different_archive_overlap_edge_missing2(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -508,7 +509,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 3, 0
             ), 60.0, 4.0),
-        ], output)
+        ], list(output))
 
     def test_fetch(self):
         ts = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -550,7 +551,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
             (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 8.0),
             (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 4.0)
-        ], ts['return'].fetch())
+        ], list(ts['return'].fetch()))
 
         self.assertEqual([
             (datetime.datetime(2014, 1, 1, 12, 1), 60.0, 5.5),
@@ -559,7 +560,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 7.0),
             (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 8.0),
             (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 4.0)
-        ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], list(ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))))
 
     def test_aggregated_some_overlap_with_fill_zero(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -601,7 +602,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 6, 0), 60.0, 9.5),
             (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 2.5),
             (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 1.5),
-        ], output)
+        ], list(output))
 
     def test_aggregated_some_overlap_with_fill_null(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -643,7 +644,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 6, 0), 60.0, 9.5),
             (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 5.0),
             (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 3.0),
-        ], output)
+        ], list(output))
 
     def test_aggregate_no_points_with_fill_zero(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -679,7 +680,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 4, 0), 60.0, 2.5),
             (datetime.datetime(2014, 1, 1, 12, 7, 0), 60.0, 2.5),
             (datetime.datetime(2014, 1, 1, 12, 8, 0), 60.0, 1.5),
-        ], output)
+        ], list(output))
 
     def test_fetch_agg_pct(self):
         ts = {'sampling': 1, 'size': 3600 * 24, 'agg': '90pct'}
@@ -701,7 +702,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ), 1.0, 4)
         ]
 
-        self.assertEqual(len(reference), len(result))
+        self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
@@ -723,7 +724,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ), 1.0, 99.4)
         ]
 
-        self.assertEqual(len(reference), len(result))
+        self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
@@ -754,7 +755,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 11, 47, 0, 200000), 0.2, 50.0),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 400000), 0.2, 4.0),
             (datetime.datetime(2014, 1, 1, 11, 48, 0, 800000), 0.2, 4.5)
-        ], ts['return'].fetch())
+        ], list(ts['return'].fetch()))
 
     def test_fetch_agg_std(self):
         # NOTE (gordc): this is a good test to ensure we drop NaN entries
@@ -777,7 +778,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 2, 0
             ), 60.0, 9.8994949366116654),
-        ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], list(ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
                        before_truncate_callback=functools.partial(
@@ -790,7 +791,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 2, 0
             ), 60.0, 59.304300012730948),
-        ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], list(ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))))
 
     def test_fetch_agg_max(self):
         ts = {'sampling': 60, 'size': 60, 'agg': 'max'}
@@ -814,7 +815,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 2, 0
             ), 60.0, 15),
-        ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], list(ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values([(datetime.datetime(2014, 1, 1, 12, 2, 13), 110)],
                        before_truncate_callback=functools.partial(
@@ -830,7 +831,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2014, 1, 1, 12, 2, 0
             ), 60.0, 110),
-        ], ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0)))
+        ], list(ts['return'].fetch(datetime.datetime(2014, 1, 1, 12, 0, 0))))
 
     def test_serialize(self):
         ts = {'sampling': 0.5, 'agg': 'mean'}
@@ -865,7 +866,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 (datetime.datetime(2014, 1, 1, 12, i, i + 1), float(i + 1))
             ], before_truncate_callback=functools.partial(
                 self._resample_and_merge, agg_dict=ts))
-            self.assertEqual(i, len(ts['return'].fetch()))
+            self.assertEqual(i, len(list(ts['return'].fetch())))
 
     def test_back_window(self):
         """Back window testing.
@@ -897,7 +898,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                     2014, 1, 1, 12, 0, 3
                 ), 1.0, 2.5),
             ],
-            ts['return'].fetch())
+            list(ts['return'].fetch()))
 
         try:
             tsb.set_values([
@@ -944,7 +945,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                     2014, 1, 1, 12, 0, 3
                 ), 1.0, 2.5),
             ],
-            ts['return'].fetch())
+            list(ts['return'].fetch()))
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
@@ -964,7 +965,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                     2014, 1, 1, 12, 0, 3
                 ), 1.0, 2.5),
             ],
-            ts['return'].fetch())
+            list(ts['return'].fetch()))
 
         tsb.set_values([
             (datetime.datetime(2014, 1, 1, 12, 0, 2, 99), 9),
@@ -985,7 +986,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                     2014, 1, 1, 12, 0, 3
                 ), 1.0, 3.5),
             ],
-            ts['return'].fetch())
+            list(ts['return'].fetch()))
 
     def test_aggregated_nominal(self):
         tsc1 = {'sampling': 60, 'size': 10, 'agg': 'mean'}
@@ -1084,7 +1085,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(2014, 1, 1, 12, 4), 60.0, 5.5),
             (datetime.datetime(2014, 1, 1, 12, 5), 60.0, 6.75),
             (datetime.datetime(2014, 1, 1, 12, 6), 60.0, 2.0),
-        ], output)
+        ], list(output))
 
     def test_aggregated_partial_overlap(self):
         tsc1 = {'sampling': 1, 'size': 86400, 'agg': 'mean'}
@@ -1118,7 +1119,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2015, 12, 3, 13, 22, 15
             ), 1.0, 11.0),
-        ], output)
+        ], list(output))
 
         dtfrom = datetime.datetime(2015, 12, 3, 13, 17, 0)
         dtto = datetime.datetime(2015, 12, 3, 13, 25, 0)
@@ -1147,7 +1148,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2015, 12, 3, 13, 24, 15
             ), 1.0, 10.0),
-        ], output)
+        ], list(output))
 
         # By default we require 100% of point that overlap
         # so that fail if from or to is set
@@ -1178,7 +1179,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2015, 12, 3, 13, 22, 15
             ), 1.0, 11.0),
-        ], output)
+        ], list(output))
 
         output = carbonara.AggregatedTimeSerie.aggregated(
             [tsc1['return'], tsc2['return']], to_timestamp=dtto,
@@ -1197,7 +1198,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime.datetime(
                 2015, 12, 3, 13, 24, 15
             ), 1.0, 10.0),
-        ], output)
+        ], list(output))
 
     def test_split_key(self):
         self.assertEqual(

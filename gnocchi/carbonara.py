@@ -18,6 +18,7 @@
 
 import datetime
 import functools
+import itertools
 import logging
 import math
 import numbers
@@ -737,9 +738,8 @@ class AggregatedTimeSerie(TimeSerie):
             del points[to_timestamp]
         except KeyError:
             pass
-        return [(timestamp, self.sampling, value)
-                for timestamp, value
-                in six.iteritems(points)]
+        return six.moves.zip(points.index, itertools.repeat(self.sampling),
+                             points)
 
     def merge(self, ts):
         """Merge a timeserie into this one.
@@ -864,7 +864,7 @@ class AggregatedTimeSerie(TimeSerie):
             return []
 
         for timeserie in timeseries:
-            timeserie_raw = timeserie.fetch(from_timestamp, to_timestamp)
+            timeserie_raw = list(timeserie.fetch(from_timestamp, to_timestamp))
 
             if timeserie_raw:
                 dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
@@ -954,10 +954,10 @@ class AggregatedTimeSerie(TimeSerie):
             agg_timeserie = agg_timeserie[
                 agg_timeserie['timestamp'] <= right_boundary_ts]
 
-        points = (agg_timeserie.sort_values(by=['granularity', 'timestamp'],
-                                            ascending=[0, 1]).itertuples())
-        return [(timestamp, granularity, value)
-                for __, timestamp, granularity, value in points]
+        points = agg_timeserie.sort_values(by=['granularity', 'timestamp'],
+                                           ascending=[0, 1])
+        return six.moves.zip(points.timestamp, points.granularity,
+                             points.value)
 
 
 if __name__ == '__main__':
