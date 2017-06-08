@@ -7,7 +7,7 @@ Authentication
 
 By default, the authentication is configured to the "basic" mode. You need to
 provide an `Authorization` header in your HTTP requests with a valid username
-(the password is not used). The "admin" password is granted all privileges,
+(the password is not used). The "admin" username is granted all privileges,
 whereas any other username is recognize as having standard permissions.
 
 You can customize permissions by specifying a different `policy_file` than the
@@ -17,6 +17,10 @@ If you set the `api.auth_mode` value to `keystone`, the OpenStack Keystone
 middleware will be enabled for authentication. It is then needed to
 authenticate against Keystone and provide a `X-Auth-Token` header with a valid
 token for each request sent to Gnocchi's API.
+
+If you set the `api.auth_mode` value to `remoteuser`, Gnocchi will look at the
+HTTP server REMOTE_USER environment variable to get the username. Then the
+permissions model is the same as the "basic" mode.
 
 Metrics
 =======
