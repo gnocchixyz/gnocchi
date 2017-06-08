@@ -180,6 +180,7 @@ To enable Gnocchi in `devstack`_, add the following to local.conf:
 
 ::
 
+    OVERRIDE_GNOCCHI_GIT_BASE='https://github.com'
     enable_plugin gnocchi https://github.com/gnocchixyz/gnocchi master
 
 To enable Grafana support in devstack, you can also enable `gnocchi-grafana`::
