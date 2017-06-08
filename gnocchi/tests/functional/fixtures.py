@@ -106,12 +106,8 @@ class ConfigFixture(fixture.GabbiFixture):
         if conf.indexer.url is None:
             raise case.SkipTest("No indexer configured")
 
-        # Use the presence of DEVSTACK_GATE_TEMPEST as a semaphore
-        # to signal we are not in a gate driven functional test
-        # and thus should override conf settings.
-        if 'DEVSTACK_GATE_TEMPEST' not in os.environ:
-            conf.set_override('driver', 'file', 'storage')
-            conf.set_override('file_basepath', data_tmp_dir, 'storage')
+        conf.set_override('driver', 'file', 'storage')
+        conf.set_override('file_basepath', data_tmp_dir, 'storage')
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
