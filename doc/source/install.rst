@@ -152,22 +152,36 @@ and storage:
 Upgrading
 =========
 In order to upgrade from a previous version of Gnocchi, you need to make sure
-that your indexer and storage are properly upgraded. Run the following:
+that your indexer and storage are properly upgraded.
+
+.. warning::
+
+   Upgrade is only supported between one major version to another or between
+   minor versions, e.g.:
+
+   - version 2.0 to version 2.1 or 2.2 is supported
+
+   - version 2.1 to version 3.0 is supported
+
+   - version 2 to version 4 is **not** supported.
+
+Run the following:
 
 1. Stop the old version of Gnocchi API server and `gnocchi-statsd` daemon
 
 2. Stop the old version of `gnocchi-metricd` daemon
 
-.. note::
+.. warning::
 
    Data in backlog is never migrated between versions. Ensure the backlog is
    empty before any upgrade to ensure data is not lost.
 
 3. Install the new version of Gnocchi
 
-4. Run `gnocchi-upgrade`
-   This can take several hours depending on the size of your index and
-   storage.
+4. Run `gnocchi-upgrade`.
+
+   This will take from a few minutes to several hours depending on the size of
+   your index and storage.
 
 5. Start the new Gnocchi API server, `gnocchi-metricd`
    and `gnocchi-statsd` daemons
