@@ -32,7 +32,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                 ;;
 
             swift|redis)
-                eval $(pifpaf -e STORAGE run $storage)
+                eval $(pifpaf --debug -e STORAGE run $storage)
                 ;;
             *)
                 echo "Unsupported storage backend by functional tests: $storage"
