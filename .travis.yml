@@ -8,7 +8,6 @@ cache:
   directories:
     - ~/.cache/pip
 env:
-  - TARGET: bashate
   - TARGET: pep8
   - TARGET: docs
   - TARGET: docs-gnocchi.xyz
