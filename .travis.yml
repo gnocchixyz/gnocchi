@@ -33,6 +33,7 @@ before_script:
         ;;
     esac
   - docker build --tag gnocchi-ci --file=tools/travis-ci-setup.dockerfile .
+install:
 script:
   - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchi-ci tox -e ${TARGET}
 
