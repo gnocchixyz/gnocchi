@@ -41,6 +41,7 @@ class CustomStrSubWrapper(cfg.ConfigOpts.StrSubWrapper):
             return ''
         return value
 
+
 cfg.ConfigOpts.StrSubWrapper = CustomStrSubWrapper
 
 
@@ -159,6 +160,7 @@ def list_opts():
 def set_defaults():
     cfg.set_defaults(cors.CORS_OPTS,
                      allow_headers=[
+                         'Authorization',
                          'X-Auth-Token',
                          'X-Subject-Token',
                          'X-User-Id',
