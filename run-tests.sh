@@ -7,6 +7,7 @@ do
     export GNOCCHI_TEST_STORAGE_DRIVER=$storage
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}
     do
+        (
         case $GNOCCHI_TEST_STORAGE_DRIVER in
             ceph|redis)
                 pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
@@ -27,5 +28,12 @@ do
                 pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
                 ;;
         esac
+        # NOTE(sileht): Start all storage tests at once
+        ) &
     done
+    # NOTE(sileht): Wait all storage tests
+    wait
+    # TODO(sileht): the output can be a mess with this
+    # Create a less verbose testrun output (with dot like nose ?)
+    # merge all subunit output and print it in after_script in travis
 done
