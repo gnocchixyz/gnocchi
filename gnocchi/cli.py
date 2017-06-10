@@ -174,26 +174,29 @@ class MetricProcessor(MetricProcessBase):
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
-        self._coord, self._my_id = utils.get_coordinator_and_start(
+        self.coord, __ = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
         self._tasks = []
         self.group_state = None
 
     @utils.retry
     def _configure(self):
-        super(MetricProcessor, self)._configure()
+        self.store = storage.get_driver(self.conf, self.coord)
+        self.index = indexer.get_driver(self.conf)
+        self.index.connect()
+
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
             six.moves.range(self.store.incoming.NUM_SACKS))
         try:
-            self.partitioner = self._coord.join_partitioned_group(
+            self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
 
             @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
                                 run_immediately=True)
             def run_watchers():
-                self._coord.run_watchers()
+                self.coord.run_watchers()
 
             self.periodic = periodics.PeriodicWorker.create([])
             self.periodic.add(run_watchers)
@@ -227,7 +230,7 @@ class MetricProcessor(MetricProcessBase):
         for s in self._get_tasks():
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
-            lock = in_store.get_sack_lock(self._coord, s)
+            lock = in_store.get_sack_lock(self.coord, s)
             if not lock.acquire(blocking=False):
                 continue
             try:
@@ -243,7 +246,7 @@ class MetricProcessor(MetricProcessBase):
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
 
     def close_services(self):
-        self._coord.stop()
+        self.coord.stop()
 
 
 class MetricJanitor(MetricProcessBase):

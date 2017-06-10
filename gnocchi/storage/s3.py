@@ -63,8 +63,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     _consistency_wait = tenacity.wait_exponential(multiplier=0.1)
 
-    def __init__(self, conf, incoming):
-        super(S3Storage, self).__init__(conf, incoming)
+    def __init__(self, conf, incoming, coord=None):
+        super(S3Storage, self).__init__(conf, incoming, coord)
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )

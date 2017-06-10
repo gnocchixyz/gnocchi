@@ -68,8 +68,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
-    def __init__(self, conf, incoming):
-        super(SwiftStorage, self).__init__(conf, incoming)
+    def __init__(self, conf, incoming, coord=None):
+        super(SwiftStorage, self).__init__(conf, incoming, coord)
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 
