@@ -154,16 +154,16 @@ def get_incoming_driver(conf):
     return get_driver_class('gnocchi.incoming', conf)(conf)
 
 
-def get_driver(conf):
+def get_driver(conf, coord=None):
     """Return the configured driver."""
     incoming = get_driver_class('gnocchi.incoming', conf.incoming)(
         conf.incoming)
     return get_driver_class('gnocchi.storage', conf.storage)(
-        conf.storage, incoming)
+        conf.storage, incoming, coord)
 
 
 class StorageDriver(object):
-    def __init__(self, conf, incoming):
+    def __init__(self, conf, incoming, coord=None):
         self.incoming = incoming
 
     @staticmethod

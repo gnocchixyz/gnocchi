@@ -18,6 +18,7 @@
 
 import datetime
 import functools
+import itertools
 import logging
 import math
 import numbers
@@ -40,16 +41,6 @@ import six
 time.strptime("2016-02-19", "%Y-%m-%d")
 
 LOG = logging.getLogger(__name__)
-
-
-class NoDeloreanAvailable(Exception):
-    """Error raised when trying to insert a value that is too old."""
-
-    def __init__(self, first_timestamp, bad_timestamp):
-        self.first_timestamp = first_timestamp
-        self.bad_timestamp = bad_timestamp
-        super(NoDeloreanAvailable, self).__init__(
-            "%s is before %s" % (bad_timestamp, first_timestamp))
 
 
 class BeforeEpochError(Exception):
@@ -280,25 +271,16 @@ class BoundTimeSerie(TimeSerie):
                 and self.block_size == other.block_size
                 and self.back_window == other.back_window)
 
-    def set_values(self, values, before_truncate_callback=None,
-                   ignore_too_old_timestamps=False):
+    def set_values(self, values, before_truncate_callback=None):
         # NOTE: values must be sorted when passed in.
         if self.block_size is not None and not self.ts.empty:
             first_block_timestamp = self.first_block_timestamp()
-            if ignore_too_old_timestamps:
-                for index, (timestamp, value) in enumerate(values):
-                    if timestamp >= first_block_timestamp:
-                        values = values[index:]
-                        break
-                else:
-                    values = []
+            for index, (timestamp, value) in enumerate(values):
+                if timestamp >= first_block_timestamp:
+                    values = values[index:]
+                    break
             else:
-                # Check that the smallest timestamp does not go too much back
-                # in time.
-                smallest_timestamp = values[0][0]
-                if smallest_timestamp < first_block_timestamp:
-                    raise NoDeloreanAvailable(first_block_timestamp,
-                                              smallest_timestamp)
+                values = []
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
             before_truncate_callback(self)
@@ -737,9 +719,8 @@ class AggregatedTimeSerie(TimeSerie):
             del points[to_timestamp]
         except KeyError:
             pass
-        return [(timestamp, self.sampling, value)
-                for timestamp, value
-                in six.iteritems(points)]
+        return six.moves.zip(points.index, itertools.repeat(self.sampling),
+                             points)
 
     def merge(self, ts):
         """Merge a timeserie into this one.
@@ -864,7 +845,7 @@ class AggregatedTimeSerie(TimeSerie):
             return []
 
         for timeserie in timeseries:
-            timeserie_raw = timeserie.fetch(from_timestamp, to_timestamp)
+            timeserie_raw = list(timeserie.fetch(from_timestamp, to_timestamp))
 
             if timeserie_raw:
                 dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
@@ -954,10 +935,10 @@ class AggregatedTimeSerie(TimeSerie):
             agg_timeserie = agg_timeserie[
                 agg_timeserie['timestamp'] <= right_boundary_ts]
 
-        points = (agg_timeserie.sort_values(by=['granularity', 'timestamp'],
-                                            ascending=[0, 1]).itertuples())
-        return [(timestamp, granularity, value)
-                for __, timestamp, granularity, value in points]
+        points = agg_timeserie.sort_values(by=['granularity', 'timestamp'],
+                                           ascending=[0, 1])
+        return six.moves.zip(points.timestamp, points.granularity,
+                             points.value)
 
 
 if __name__ == '__main__':

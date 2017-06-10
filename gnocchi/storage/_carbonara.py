@@ -59,7 +59,7 @@ class SackLockTimeoutError(Exception):
 
 class CarbonaraBasedStorage(storage.StorageDriver):
 
-    def __init__(self, conf, incoming):
+    def __init__(self, conf, incoming, coord=None):
         super(CarbonaraBasedStorage, self).__init__(conf, incoming)
         self.aggregation_workers_number = conf.aggregation_workers_number
         if self.aggregation_workers_number == 1:
@@ -67,11 +67,14 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self._map_in_thread = self._map_no_thread
         else:
             self._map_in_thread = self._map_in_futures_threads
-        self.coord, my_id = utils.get_coordinator_and_start(
-            conf.coordination_url)
+        self.coord, __ = (
+            (coord, None) if coord else
+            utils.get_coordinator_and_start(conf.coordination_url))
+        self.shared_coord = bool(coord)
 
     def stop(self):
-        self.coord.stop()
+        if not self.shared_coord:
+            self.coord.stop()
 
     @staticmethod
     def _get_measures(metric, timestamp_key, aggregation, granularity,
@@ -448,8 +451,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,
-                          before_truncate_callback=_map_add_measures,
-                          ignore_too_old_timestamps=True)
+                          before_truncate_callback=_map_add_measures)
 
         number_of_operations = (len(agg_methods) * len(definition))
         perf = ""
