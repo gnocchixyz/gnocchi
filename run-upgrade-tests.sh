@@ -3,8 +3,6 @@ set -e
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
-GDATE=$((which gdate >/dev/null && echo gdate) || echo date)
-
 old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
 
 RESOURCE_IDS=(
@@ -37,15 +35,11 @@ inject_data() {
 
     {
         measures_sep=""
-        MEASURES=$(for i in $(seq 0 10 288000); do
-                       now=$($GDATE --iso-8601=s -d "-${i}minute") ; value=$((RANDOM % 13 + 52))
-                       echo -n "$measures_sep {\"timestamp\": \"$now\", \"value\": $value }"
-                       measures_sep=","
-                   done)
+        MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
         echo -n '{'
         resource_sep=""
         for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
-            echo -n "$resource_sep \"$resource_id\": { \"metric\": [ $MEASURES ] }"
+            echo -n "$resource_sep \"$resource_id\": { \"metric\": $MEASURES }"
             resource_sep=","
         done
         echo -n '}'
