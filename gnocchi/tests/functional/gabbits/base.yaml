@@ -3,8 +3,9 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
 
@@ -20,8 +21,8 @@ tests:
 - name: archive policy post success
   POST: /v1/archive_policy
   request_headers:
-      content-type: application/json
-      x-roles: admin
+      # User admin
+      authorization: "basic YWRtaW46"
   data:
       name: test1
       definition:
@@ -40,8 +41,6 @@ tests:
 - name: post archive policy no auth
   desc: this confirms that auth handling comes before data validation
   POST: /v1/archive_policy
-  request_headers:
-      content-type: application/json
   data:
       definition:
           - granularity: 1 second
@@ -50,11 +49,6 @@ tests:
 
 - name: post metric with archive policy
   POST: /v1/metric
-  request_headers:
-      content-type: application/json
-      x-roles: admin
-      x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-      x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   data:
       archive_policy_name: test1
   status: 201
@@ -66,13 +60,9 @@ tests:
 - name: retrieve metric info
   GET: $LOCATION
   status: 200
-  request_headers:
-      content_type: /application\/json/
-      x-roles: admin
   response_json_paths:
       $.archive_policy.name: test1
-      $.created_by_user_id: 93180da9-7c15-40d3-a050-a374551e52ee
-      $.created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
+      $.creator: foobar
 
 - name: list the one metric
   GET: /v1/metric
@@ -83,10 +73,6 @@ tests:
 - name: post a single measure
   desc: post one measure
   POST: /v1/metric/$RESPONSE['$[0].id']/measures
-  request_headers:
-      content-type: application/json
-      x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-      x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   data:
       - timestamp: "2013-01-01 23:23:20"
         value: 1234.2
@@ -103,10 +89,6 @@ tests:
 
 - name: post generic resource
   POST: /v1/resource/generic
-  request_headers:
-    content-type: application/json
-    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   data:
     id: 5b7ebe90-4ad2-4c83-ad2c-f6344884ab70
     started_at: "2014-01-03T02:02:02.000000"
@@ -119,14 +101,10 @@ tests:
     type: generic
     started_at: "2014-01-03T02:02:02+00:00"
     project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-    created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
+    creator: foobar
 
 - name: post generic resource bad id
   POST: /v1/resource/generic
-  request_headers:
-    content-type: application/json
-    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   data:
     id: 1.2.3.4
     started_at: "2014-01-03T02:02:02.000000"
@@ -134,13 +112,13 @@ tests:
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
   status: 201
   response_headers:
-    location: $SCHEME://$NETLOC/v1/resource/generic/2d869568-70d4-5ed6-9891-7d7a3bbf572d
+    location: $SCHEME://$NETLOC/v1/resource/generic/a9c729cc-d1b0-5e6b-b5ba-8b5a7f45f1fc
   response_json_paths:
     type: generic
     started_at: "2014-01-03T02:02:02+00:00"
     project_id: f3d41b77-0cc1-4f0b-b94a-1d5be9c0e3ea
-    created_by_project_id: 99d13f22-3618-4288-82b8-6512ded77e4f
-    id: 2d869568-70d4-5ed6-9891-7d7a3bbf572d
+    creator: foobar
+    id: a9c729cc-d1b0-5e6b-b5ba-8b5a7f45f1fc
     original_resource_id: 1.2.3.4
 
 - name: get status denied
@@ -150,19 +128,15 @@ tests:
 - name: get status
   GET: /v1/status
   request_headers:
-    content-type: application/json
-    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
-    x-roles: admin
+    # User admin
+    authorization: "basic YWRtaW46"
   response_json_paths:
     $.storage.`len`: 2
 
 - name: get status, no details
   GET: /v1/status?details=False
   request_headers:
-    content-type: application/json
-    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
-    x-roles: admin
+    # User admin
+    authorization: "basic YWRtaW46"
   response_json_paths:
     $.storage.`len`: 1
