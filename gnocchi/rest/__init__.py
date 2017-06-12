@@ -641,7 +641,7 @@ class NamedMetricController(rest.RestController):
         else:
             abort(404, indexer.NoSuchResource(self.resource_id))
 
-    @pecan.expose()
+    @pecan.expose('json')
     def post(self):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
@@ -650,8 +650,10 @@ class NamedMetricController(rest.RestController):
         enforce("update resource", resource)
         metrics = deserialize_and_validate(MetricsSchema)
         try:
-            pecan.request.indexer.update_resource(
-                self.resource_type, self.resource_id, metrics=metrics,
+            r = pecan.request.indexer.update_resource(
+                self.resource_type,
+                self.resource_id,
+                metrics=metrics,
                 append_metrics=True,
                 create_revision=False)
         except (indexer.NoSuchMetric,
@@ -662,6 +664,8 @@ class NamedMetricController(rest.RestController):
             abort(409, e)
         except indexer.NoSuchResource as e:
             abort(404, e)
+
+        return r.metrics
 
     @pecan.expose('json')
     def get_all(self):

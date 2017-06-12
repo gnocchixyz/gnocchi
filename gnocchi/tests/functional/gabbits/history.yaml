@@ -139,7 +139,10 @@ tests:
       data:
         foobar:
           archive_policy_name: low
-      status: 204
+      status: 200
+      response_json_paths:
+          $[/name][1].name: foobar
+          $[/name][1].resource_id: f93450f2-d8a5-4d67-9985-02511241e7d1
 
     - name: list all resources with history no change after metrics creation
       GET: /v1/resource/generic
