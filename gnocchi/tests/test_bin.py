@@ -15,7 +15,7 @@
 # under the License.
 import subprocess
 
-from oslotest import base
+from gnocchi.tests import base
 
 
 class BinTestCase(base.BaseTestCase):

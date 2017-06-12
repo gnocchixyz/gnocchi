@@ -1,5 +1,5 @@
 #
-# Copyright 2015 Red Hat. All Rights Reserved.
+# Copyright 2015-2017 Red Hat. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,11 +22,10 @@ import time
 from unittest import case
 import warnings
 
+import daiquiri
 from gabbi import fixture
 from oslo_config import cfg
 from oslo_middleware import cors
-from oslotest import log
-from oslotest import output
 import sqlalchemy_utils
 
 from gnocchi import indexer
@@ -34,8 +33,8 @@ from gnocchi.indexer import sqlalchemy
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import storage
+from gnocchi.tests import base
 from gnocchi.tests import utils
-
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
 # pass to the WSGI app used per test suite. LOAD_APP_KWARGS are the olso
@@ -68,13 +67,11 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def start_fixture(self):
         """Create necessary temp files and do the config dance."""
-
-        self.output = output.CaptureOutput()
-        self.output.setUp()
-        self.log = log.ConfigureLogging()
-        self.log.setUp()
-
         global LOAD_APP_KWARGS
+
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
+            self.output = base.CaptureOutput()
+            self.output.setUp()
 
         data_tmp_dir = tempfile.mkdtemp(prefix='gnocchi')
 
@@ -84,6 +81,9 @@ class ConfigFixture(fixture.GabbiFixture):
             dcf = []
         conf = service.prepare_service([],
                                        default_config_files=dcf)
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
+            daiquiri.setup(outputs=[])
+
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..', '..',))
         conf.set_override('paste_config',
@@ -159,8 +159,8 @@ class ConfigFixture(fixture.GabbiFixture):
             shutil.rmtree(self.tmp_dir)
 
         self.conf.reset()
-        self.output.cleanUp()
-        self.log.cleanUp()
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
+            self.output.cleanUp()
 
 
 class MetricdThread(threading.Thread):
