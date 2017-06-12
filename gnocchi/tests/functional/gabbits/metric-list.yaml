@@ -3,17 +3,17 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-      x-roles: admin
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
     - name: create archive policy 1
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: first_archive
           definition:
@@ -24,8 +24,8 @@ tests:
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: second_archive
           definition:
@@ -34,8 +34,6 @@ tests:
 
     - name: create metric 1
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "disk.io.rate"
           unit: "B/s"
@@ -49,9 +47,8 @@ tests:
     - name: create metric 2
       POST: /v1/metric
       request_headers:
-          content-type: application/json
-          x-user-id: 4fff6179c2fc414dbedfc8cc82d6ada7
-          x-project-id: f3ca498a61c84422b953133adb71cff8
+        # User foobaz
+        authorization: "basic Zm9vYmF6Og=="
       data:
           name: "disk.io.rate"
           unit: "B/s"
@@ -65,9 +62,8 @@ tests:
     - name: create metric 3
       POST: /v1/metric
       request_headers:
-          content-type: application/json
-          x-user-id: faf30294217c4e1a91387d9c8f1fb1fb
-          x-project-id: f3ca498a61c84422b953133adb71cff8
+        # User jd
+        authorization: "basic amQ6"
       data:
           name: "cpu_util"
           unit: "%"
@@ -80,8 +76,6 @@ tests:
 
     - name: create metric 4
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "cpu"
           unit: "ns"
@@ -131,12 +125,18 @@ tests:
           $[1].archive_policy.name: first_archive
           $[2].archive_policy.name: first_archive
 
-    - name: list metrics by user_id
-      GET: /v1/metric?user_id=faf30294217c4e1a91387d9c8f1fb1fb
+    - name: list metrics by creator jd
+      GET: /v1/metric?creator=jd
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
       response_json_paths:
           $.`len`: 1
 
-    - name: list metrics by project_id
-      GET: /v1/metric?project_id=f3ca498a61c84422b953133adb71cff8
+    - name: list metrics by creator foobaz
+      GET: /v1/metric?creator=foobaz
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
       response_json_paths:
-          $.`len`: 2
+          $.`len`: 1

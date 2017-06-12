@@ -3,8 +3,10 @@ fixtures:
 
 defaults:
   request_headers:
-      x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-      x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
 
 tests:
     - name: wrong metric
@@ -16,8 +18,8 @@ tests:
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: cookies
           definition:
@@ -27,8 +29,8 @@ tests:
     - name: create archive policy rule
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_rule
         metric_pattern: "disk.io.*"
@@ -38,8 +40,8 @@ tests:
     - name: create alt archive policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: cream
           definition:
@@ -50,8 +52,8 @@ tests:
       desc: extra rule that won't be matched
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_ignore_rule
         metric_pattern: "disk.*"
@@ -72,8 +74,6 @@ tests:
 
     - name: create metric with name and unit
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "disk.io.rate"
           unit: "B/s"
@@ -85,8 +85,6 @@ tests:
 
     - name: create metric with invalid name
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "disk/io/rate"
           unit: "B/s"
@@ -96,8 +94,6 @@ tests:
 
     - name: create metric with name and over length unit
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "disk.io.rate"
           unit: "over_length_unit_over_length_unit"
@@ -109,8 +105,6 @@ tests:
 
     - name: create metric with name no rule
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           name: "volume.io.rate"
       status: 400
@@ -119,8 +113,6 @@ tests:
 
     - name: create metric bad archive policy
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: bad-cookie
       status: 400
@@ -136,8 +128,6 @@ tests:
 
     - name: create valid metric
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: cookies
       status: 201
@@ -152,8 +142,6 @@ tests:
 
     - name: push measurements to metric before epoch
       POST: /v1/metric/$RESPONSE['$.id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "1915-03-06T14:33:57"
             value: 43.1
@@ -168,8 +156,6 @@ tests:
 
     - name: push measurements to metric with bad timestamp
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "1915-100-06T14:33:57"
             value: 43.1
@@ -177,8 +163,6 @@ tests:
 
     - name: push measurements to metric epoch format
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: 1425652437.0
             value: 43.1
@@ -186,8 +170,6 @@ tests:
 
     - name: push measurements to metric
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "2015-03-06T14:34:12"
             value: 12
@@ -214,8 +196,6 @@ tests:
 
     - name: push measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "2015-03-06T14:34:15"
             value: 16
@@ -245,8 +225,6 @@ tests:
 
     - name: create valid metric two
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: cookies
       status: 201
@@ -255,8 +233,6 @@ tests:
 
     - name: push invalid measurements to metric
       POST: /v1/metric/$RESPONSE['$.id']/measures
-      request_headers:
-           content-type: application/json
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 12
@@ -266,8 +242,6 @@ tests:
 
     - name: create valid metric three
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
       data:
           archive_policy_name: cookies
       status: 201
@@ -276,15 +250,11 @@ tests:
 
     - name: push invalid measurements to metric bis
       POST: /v1/metric/$RESPONSE['$.id']/measures
-      request_headers:
-           content-type: application/json
       data: 1
       status: 400
 
     - name: add measure unknown metric
       POST: /v1/metric/fake/measures
-      request_headers:
-          content-type: application/json
       data:
           - timestamp: "2015-03-06T14:33:57"
             value: 43.1
@@ -292,8 +262,8 @@ tests:
 
     - name: get metric list for authenticated user
       request_headers:
-          x-user-id: foo
-          x-project-id: bar
+        # User foobaz
+        authorization: "basic Zm9vYmF6Og=="
       GET: /v1/metric
 
     - name: get measures unknown metric

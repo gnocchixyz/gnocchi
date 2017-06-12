@@ -5,12 +5,18 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+
 tests:
     - name: create archive policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: low
           definition:
@@ -23,10 +29,6 @@ tests:
 
     - name: post generic resource
       POST: /v1/resource/generic
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           id: f93450f2-d8a5-4d67-9985-02511241e7d1
           started_at: "2014-01-03T02:02:02.000000"
@@ -37,17 +39,12 @@ tests:
           location: $SCHEME://$NETLOC/v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
           content-type: /^application\/json/
       response_json_paths:
-          $.created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          $.created_by_user_id: 0fbb231484614b1a80131fc22f6afc9c
+          $.creator: foobar
           $.user_id: 0fbb231484614b1a80131fc22f6afc9c
 
 # Update it twice
     - name: patch resource user_id
       PATCH: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           user_id: f53c58a4-fdea-4c09-aac4-02135900be67
       status: 200
@@ -57,10 +54,6 @@ tests:
 
     - name: patch resource project_id
       PATCH: $LAST_URL
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           project_id: fe20a931-1012-4cc6-addc-39556ec60907
           metrics:
@@ -75,9 +68,6 @@ tests:
 
     - name: list all resources without history
       GET: /v1/resource/generic
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $[0].user_id: f53c58a4-fdea-4c09-aac4-02135900be67
           $[0].project_id: fe20a931-1012-4cc6-addc-39556ec60907
@@ -86,8 +76,6 @@ tests:
       GET: $LAST_URL
       request_headers:
           accept: application/json; details=True; history=True
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
@@ -102,10 +90,6 @@ tests:
 
     - name: patch resource metrics
       PATCH: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
           metrics:
             foo:
@@ -116,8 +100,6 @@ tests:
       GET: /v1/resource/generic
       request_headers:
           accept: application/json; details=True; history=True
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
@@ -132,10 +114,6 @@ tests:
 
     - name: create new metrics
       POST: /v1/resource/generic/f93450f2-d8a5-4d67-9985-02511241e7d1/metric
-      request_headers:
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
-          content-type: application/json
       data:
         foobar:
           archive_policy_name: low
@@ -148,8 +126,6 @@ tests:
       GET: /v1/resource/generic
       request_headers:
           accept: application/json; details=True; history=True
-          x-user-id: 0fbb231484614b1a80131fc22f6afc9c
-          x-project-id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1

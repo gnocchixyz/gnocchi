@@ -5,13 +5,19 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
 tests:
 
     - name: create archive policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: moderate
           definition:
@@ -20,10 +26,6 @@ tests:
 
     - name: make a generic resource
       POST: /v1/resource/generic
-      request_headers:
-          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
-          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
-          content-type: application/json
       data:
           id: 41937416-1644-497d-a0ed-b43d55a2b0ea
           started_at: "2015-06-06T02:02:02.000000"
@@ -34,19 +36,11 @@ tests:
 
     - name: confirm no metrics yet
       GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
-      request_headers:
-          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
-          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
-          content-type: application/json
       response_json_paths:
           $: []
 
     - name: post some measures
       POST: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
-      request_headers:
-          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
-          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
-          content-type: application/json
       data:
           - timestamp: "2015-06-06T14:33:00"
             value: 11
@@ -59,9 +53,6 @@ tests:
 
     - name: get some measures
       GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures
-      request_headers:
-          x-user-id: edca16f4-684e-4a91-85e9-0c1ceecdd147
-          x-project-id: e8459971-fae4-4670-8ed3-55dd9139d26d
       poll:
           count: 50
           delay: .1

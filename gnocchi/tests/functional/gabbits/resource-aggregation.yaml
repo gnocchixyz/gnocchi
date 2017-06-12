@@ -1,13 +1,19 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
 tests:
     - name: create archive policy
       desc: for later use
       POST: /v1/archive_policy
       request_headers:
-        content-type: application/json
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: low
         definition:
@@ -17,10 +23,6 @@ tests:
 
     - name: create resource 1
       POST: /v1/resource/generic
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         id: 4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
@@ -32,10 +34,6 @@ tests:
 
     - name: post cpuutil measures 1
       POST: /v1/resource/generic/4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4/metric/cpu.util/measures
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 43.1
@@ -61,10 +59,6 @@ tests:
 
     - name: create resource 2
       POST: /v1/resource/generic
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         id: 1447CD7E-48A6-4C50-A991-6677CC0D00E6
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
@@ -76,10 +70,6 @@ tests:
 
     - name: post cpuutil measures 2
       POST: /v1/resource/generic/1447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 23
@@ -89,10 +79,6 @@ tests:
 
     - name: create resource 3
       POST: /v1/resource/generic
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         id: 33333BC5-5948-4F29-B7DF-7DE607660452
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
@@ -104,10 +90,6 @@ tests:
 
     - name: post cpuutil measures 3
       POST: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 230
@@ -117,10 +99,6 @@ tests:
 
     - name: aggregate metric with groupby on project_id
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         =:
           user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
@@ -144,10 +122,6 @@ tests:
 
     - name: aggregate metric with groupby on project_id and invalid group
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=thisisdumb
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         =:
           user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
@@ -157,10 +131,6 @@ tests:
 
     - name: aggregate metric with groupby on project_id and user_id
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id
-      request_headers:
-        x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
-        x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
-        content-type: application/json
       data:
         =:
           user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667

@@ -6,6 +6,12 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
 tests:
 
 # Retrieve the empty list when there are no archive policies.
@@ -49,7 +55,8 @@ tests:
       POST: /v1/archive_policy
       request_headers:
           content-type: text/plain
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       status: 415
       response_strings:
           - Unsupported Media Type
@@ -57,15 +64,12 @@ tests:
     - name: wrong method
       PUT: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       status: 405
 
     - name: wrong authZ
       POST: /v1/archive_policy
-      request_headers:
-          content-type: application/json
-          x-roles: clancy
       data:
           name: medium
           definition:
@@ -75,18 +79,18 @@ tests:
     - name: missing authZ
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
+        authorization: ""
       data:
           name: medium
           definition:
               - granularity: 1 second
-      status: 403
+      status: 401
 
     - name: bad request body
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           cowsay: moo
       status: 400
@@ -96,8 +100,8 @@ tests:
     - name: missing definition
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: medium
       status: 400
@@ -107,8 +111,8 @@ tests:
     - name: empty definition
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: medium
           definition: []
@@ -119,8 +123,8 @@ tests:
     - name: wrong value definition
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: somename
           definition: foobar
@@ -131,8 +135,8 @@ tests:
     - name: useless definition
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: medium
           definition:
@@ -146,8 +150,8 @@ tests:
     - name: create archive policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: medium
           definition:
@@ -184,8 +188,8 @@ tests:
     - name: patch archive policy with bad definition
       PATCH: $LAST_URL
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           definition:
               - granularity: 1 second
@@ -199,8 +203,8 @@ tests:
     - name: patch archive policy with missing granularity
       PATCH: $LAST_URL
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           definition:
               - granularity: 1 second
@@ -212,8 +216,8 @@ tests:
     - name: patch archive policy with non-matching granularity
       PATCH: $LAST_URL
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           definition:
               - granularity: 5 second
@@ -226,8 +230,8 @@ tests:
     - name: patch archive policy
       PATCH: $LAST_URL
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           definition:
               - granularity: 1 second
@@ -265,8 +269,8 @@ tests:
     - name: create second policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: large
           definition:
@@ -278,8 +282,8 @@ tests:
     - name: create duplicate policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: large
           definition:
@@ -293,8 +297,8 @@ tests:
     - name: post unicode policy name
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: ✔éñ☃
           definition:
@@ -314,8 +318,8 @@ tests:
     - name: post small unicode policy name
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: æ
           definition:
@@ -354,7 +358,8 @@ tests:
     - name: delete single archive
       DELETE: /v1/archive_policy/medium
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 204
 
 # It really is gone
@@ -368,7 +373,8 @@ tests:
     - name: delete missing archive
       DELETE: /v1/archive_policy/grandiose
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 404
       response_strings:
           - Archive policy grandiose does not exist
@@ -376,13 +382,15 @@ tests:
     - name: delete archive utf8
       DELETE: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 204
 
     - name: delete missing archive utf8 again
       DELETE: /v1/archive_policy/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 404
       response_strings:
           - Archive policy ✔éñ☃ does not exist
@@ -391,10 +399,6 @@ tests:
 
     - name: create metric
       POST: /v1/metric
-      request_headers:
-          content-type: application/json
-          x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
-          x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
       data:
           archive_policy_name: large
       status: 201
@@ -402,7 +406,8 @@ tests:
     - name: delete in use policy
       DELETE: /v1/archive_policy/large
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 400
       response_strings:
           - Archive policy large is still in use
@@ -412,8 +417,8 @@ tests:
     - name: create illogical policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: complex
           definition:
@@ -427,8 +432,8 @@ tests:
     - name: create invalid points policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: complex
           definition:
@@ -441,8 +446,8 @@ tests:
     - name: create invalid granularity policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: complex
           definition:
@@ -455,8 +460,8 @@ tests:
     - name: create identical granularities policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: complex
           definition:
@@ -471,8 +476,8 @@ tests:
     - name: policy invalid unit
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: 227d0e1f-4295-4e4b-8515-c296c47d71d3
           definition:
@@ -483,8 +488,8 @@ tests:
     - name: create policy when granularity is larger than timespan
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: should-have-failed
           definition:
@@ -496,10 +501,6 @@ tests:
 
     - name: fail to create policy non-admin
       POST: /v1/archive_policy
-      request_headers:
-          content-type: application/json
-          x-user-id: b45187c5-150b-4730-bcb2-b5e04e234220
-          x-project-id: 16764ee0-bffe-4843-aa36-04b002cdbc7c
       data:
           name: f1d150d9-02ad-4fe7-8872-c64b2bcaaa97
           definition:
@@ -514,8 +515,8 @@ tests:
     - name: policy with back window
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           name: 7720a99d-cd3b-4aa4-8a6f-935bf0d46ded
           back_window: 1
@@ -531,8 +532,8 @@ tests:
       desc: and default seconds on int granularity
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: 22f2b99f-e629-4170-adc4-09b65635e056
           back_window: 0
@@ -550,8 +551,8 @@ tests:
     - name: policy float granularity
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: 595228db-ea29-4415-9d5b-ecb5366abb1b
           definition:
@@ -566,8 +567,8 @@ tests:
     - name: policy float timespan
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: 6bc72791-a27e-4417-a589-afc6d2067a38
           definition:

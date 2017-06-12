@@ -6,14 +6,20 @@
 fixtures:
     - ConfigFixture
 
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
 tests:
 
 # create dependent policy
     - name: create archive policy
       POST: /v1/archive_policy
       request_headers:
-          content-type: application/json
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       data:
           name: low
           definition:
@@ -27,8 +33,8 @@ tests:
     - name: create archive policy rule1
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_rule1
         metric_pattern: "*"
@@ -42,8 +48,8 @@ tests:
     - name: create archive policy rule 2
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_rule2
         metric_pattern: "disk.foo.*"
@@ -57,8 +63,8 @@ tests:
     - name: create archive policy rule 3
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_rule3
         metric_pattern: "disk.*"
@@ -75,8 +81,8 @@ tests:
     - name: create invalid archive policy rule
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
         name: test_rule
         metric_pattern: "disk.foo.*"
@@ -96,16 +102,14 @@ tests:
       POST: /v1/archive_policy_rule
       request_headers:
           content-type: text/plain
-          x-roles: admin
+          # User admin
+          authorization: "basic YWRtaW46"
       status: 415
       response_strings:
           - Unsupported Media Type
 
     - name: wrong auth create rule
       POST: /v1/archive_policy_rule
-      request_headers:
-          content-type: application/json
-          x-roles: foo
       data:
           name: test_rule_wrong_auth
           metric_pattern: "disk.foo.*"
@@ -125,8 +129,8 @@ tests:
     - name: bad request body
       POST: /v1/archive_policy_rule
       request_headers:
-          content-type: application/json
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       data:
           whaa: foobar
       status: 400
@@ -150,7 +154,8 @@ tests:
     - name: delete used archive policy
       DELETE: /v1/archive_policy/low
       request_headers:
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 400
 
 # delete rule as non admin
@@ -164,20 +169,23 @@ tests:
     - name: delete archive policy rule1
       DELETE: /v1/archive_policy_rule/test_rule1
       request_headers:
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 204
 
     - name: delete archive policy rule2
       DELETE: /v1/archive_policy_rule/test_rule2
       request_headers:
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 204
 
 
     - name: delete archive policy rule3
       DELETE: /v1/archive_policy_rule/test_rule3
       request_headers:
-          x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 204
 
 # delete again
@@ -185,13 +193,15 @@ tests:
     - name: confirm delete archive policy rule
       DELETE: /v1/archive_policy_rule/test_rule1
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 404
 
     - name: delete missing archive policy rule utf8
       DELETE: /v1/archive_policy_rule/%E2%9C%94%C3%A9%C3%B1%E2%98%83
       request_headers:
-        x-roles: admin
+        # User admin
+        authorization: "basic YWRtaW46"
       status: 404
       response_strings:
           - Archive policy rule ✔éñ☃ does not exist
