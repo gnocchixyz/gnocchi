@@ -18,7 +18,6 @@ import uuid
 
 import iso8601
 import mock
-from oslotest import base
 import six.moves
 
 from gnocchi import archive_policy
@@ -971,7 +970,7 @@ class TestStorageDriver(tests_base.TestCase):
                              resample=3600))
 
 
-class TestMeasureQuery(base.BaseTestCase):
+class TestMeasureQuery(tests_base.TestCase):
     def test_equal(self):
         q = storage.MeasureQuery({"=": 4})
         self.assertTrue(q(4))

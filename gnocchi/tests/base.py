@@ -20,10 +20,8 @@ import subprocess
 import threading
 import uuid
 
+import daiquiri
 import fixtures
-from oslotest import base
-from oslotest import log
-from oslotest import output
 import six
 from six.moves.urllib.parse import unquote
 try:
@@ -175,8 +173,40 @@ class FakeSwiftClient(object):
         return {}, None
 
 
+class CaptureOutput(fixtures.Fixture):
+    """Optionally capture the output streams.
+
+    .. py:attribute:: stdout
+
+       The ``stream`` attribute from a :class:`StringStream` instance
+       replacing stdout.
+
+    .. py:attribute:: stderr
+
+       The ``stream`` attribute from a :class:`StringStream` instance
+       replacing stderr.
+
+    """
+
+    def setUp(self):
+        super(CaptureOutput, self).setUp()
+        self._stdout_fixture = fixtures.StringStream('stdout')
+        self.stdout = self.useFixture(self._stdout_fixture).stream
+        self.useFixture(fixtures.MonkeyPatch('sys.stdout', self.stdout))
+        self._stderr_fixture = fixtures.StringStream('stderr')
+        self.stderr = self.useFixture(self._stderr_fixture).stream
+        self.useFixture(fixtures.MonkeyPatch('sys.stderr', self.stderr))
+
+
+class BaseTestCase(testcase.TestCase):
+    def setUp(self):
+        super(BaseTestCase, self).setUp()
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
+            self.useFixture(CaptureOutput())
+
+
 @six.add_metaclass(SkipNotImplementedMeta)
-class TestCase(base.BaseTestCase):
+class TestCase(BaseTestCase):
 
     REDIS_DB_INDEX = 0
     REDIS_DB_LOCK = threading.Lock()
@@ -234,16 +264,11 @@ class TestCase(base.BaseTestCase):
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
-
-        # NOTE(sileht): oslotest does this in setUp() but we
-        # need it here
-        self.output = output.CaptureOutput()
-        self.output.setUp()
-        self.log = log.ConfigureLogging()
-        self.log.setUp()
-
         self.conf = service.prepare_service([],
                                             default_config_files=[])
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
+            daiquiri.setup(outputs=[])
+
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..',))
         self.conf.set_override('paste_config',

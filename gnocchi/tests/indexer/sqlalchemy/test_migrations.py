@@ -37,11 +37,9 @@ class ModelsMigrationsSync(
                            base.TestCase,
                            test_migrations.ModelsMigrationsSync)):
 
-    def _set_timeout(self):
-        self.useFixture(fixtures.Timeout(120, gentle=True))
-
     def setUp(self):
         super(ModelsMigrationsSync, self).setUp()
+        self.useFixture(fixtures.Timeout(120, gentle=True))
         self.db = mock.Mock()
         self.conf.set_override(
             'url',

@@ -19,11 +19,11 @@ import math
 
 import fixtures
 import iso8601
-from oslotest import base
 import pandas
 import six
 
 from gnocchi import carbonara
+from gnocchi.tests import base
 
 
 class TestBoundTimeSerie(base.BaseTestCase):
