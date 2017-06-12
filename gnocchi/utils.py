@@ -23,16 +23,18 @@ import numbers
 import os
 import uuid
 
+import daiquiri
 import iso8601
 import monotonic
 import numpy
-from oslo_log import log
 import pandas as pd
 import six
 import tenacity
 from tooz import coordination
 
-LOG = log.getLogger(__name__)
+
+LOG = daiquiri.getLogger(__name__)
+
 
 # uuid5 namespace for id transformation.
 # NOTE(chdent): This UUID must stay the same, forever, across all

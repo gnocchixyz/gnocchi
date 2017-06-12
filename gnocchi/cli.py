@@ -19,9 +19,9 @@ import time
 
 import cotyledon
 from cotyledon import oslo_config_glue
+import daiquiri
 from futurist import periodics
 from oslo_config import cfg
-from oslo_log import log
 import six
 import tenacity
 import tooz
@@ -36,7 +36,7 @@ from gnocchi.storage import incoming
 from gnocchi import utils
 
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 def config_generator():

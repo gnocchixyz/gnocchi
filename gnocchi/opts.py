@@ -58,8 +58,50 @@ for opt in _INCOMING_OPTS:
     opt.default = '${storage.%s}' % opt.name
 
 
+_cli_options = (
+    cfg.BoolOpt(
+        'debug',
+        short='d',
+        default=False,
+        help='If set to true, the logging level will be set to DEBUG.'),
+    cfg.BoolOpt(
+        'verbose',
+        short='v',
+        default=True,
+        help='If set to true, the logging level will be set to INFO.'),
+    cfg.StrOpt(
+        "log-dir",
+        help="Base directory for log files. "
+        "If not set, logging will go to stderr."),
+    cfg.StrOpt(
+        'log-file',
+        metavar='PATH',
+        help='(Optional) Name of log file to send logging output to. '
+        'If no default is set, logging will go to stderr as '
+        'defined by use_stderr.'),
+)
+
+
 def list_opts():
     return [
+        ("DEFAULT", _cli_options + (
+            cfg.BoolOpt(
+                'use-syslog',
+                default=False,
+                help='Use syslog for logging.'),
+            cfg.BoolOpt(
+                'use-journal',
+                default=False,
+                help='Enable journald for logging. '
+                'If running in a systemd environment you may wish '
+                'to enable journal support. Doing so will use the '
+                'journal native protocol which includes structured '
+                'metadata in addition to log messages.'),
+            cfg.StrOpt(
+                'syslog-log-facility',
+                default='user',
+                help='Syslog facility to receive log lines.')
+        )),
         ("indexer", gnocchi.indexer.OPTS),
         ("metricd", (
             cfg.IntOpt('workers', min=1,

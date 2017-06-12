@@ -18,14 +18,14 @@ from concurrent import futures
 import itertools
 import struct
 
-from oslo_log import log
+import daiquiri
 import pandas
 import six
 
 from gnocchi.storage import incoming
 from gnocchi import utils
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 _NUM_WORKERS = utils.get_default_workers()
 
