@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The logging library oslo.log has been removed for daiquiri. Some
+    superfluous configuration options have been removed.

@@ -13,8 +13,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import daiquiri
 
-from oslo_log import log
 import tenacity
 try:
     import boto3
@@ -25,7 +25,7 @@ except ImportError:
 
 from gnocchi import utils
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 def retry_if_operationaborted(exception):

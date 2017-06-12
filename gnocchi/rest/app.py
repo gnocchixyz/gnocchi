@@ -18,7 +18,7 @@ import pkg_resources
 import uuid
 import warnings
 
-from oslo_log import log
+import daiquiri
 from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
@@ -34,7 +34,7 @@ from gnocchi import service
 from gnocchi import storage as gnocchi_storage
 
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 # Register our encoder by default for everything

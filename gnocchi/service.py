@@ -14,11 +14,12 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import logging
 import os
 
+import daiquiri
 from oslo_config import cfg
 from oslo_db import options as db_options
-from oslo_log import log
 from oslo_policy import opts as policy_opts
 import pbr.version
 from six.moves.urllib import parse as urlparse
@@ -27,7 +28,7 @@ from gnocchi import archive_policy
 from gnocchi import opts
 from gnocchi import utils
 
-LOG = log.getLogger(__name__)
+LOG = daiquiri.getLogger(__name__)
 
 
 def prepare_service(args=None, conf=None,
@@ -36,7 +37,6 @@ def prepare_service(args=None, conf=None,
         conf = cfg.ConfigOpts()
     opts.set_defaults()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
-    log.register_options(conf)
     db_options.set_defaults(conf)
     policy_opts.set_defaults(conf)
 
@@ -45,11 +45,35 @@ def prepare_service(args=None, conf=None,
         conf.register_opts(list(options),
                            group=None if group == "DEFAULT" else group)
 
+    conf.register_cli_opts(opts._cli_options)
+
     conf.set_default("workers", utils.get_default_workers(), group="metricd")
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
+
+    if conf.log_dir or conf.log_file:
+        outputs = [daiquiri.output.File(filename=conf.log_file,
+                                        directory=conf.log_dir)]
+    else:
+        outputs = [daiquiri.output.STDERR]
+
+    if conf.use_syslog:
+        outputs.append(
+            daiquiri.output.Syslog(facilty=conf.syslog_log_faciltity))
+
+    if conf.use_journal:
+        outputs.append(daiquiri.output.Journal())
+
+    daiquiri.setup(outputs=outputs)
+    if conf.debug:
+        level = logging.DEBUG
+    elif conf.verbose:
+        level = logging.INFO
+    else:
+        level = logging.WARNING
+    logging.getLogger("gnocchi").setLevel(level)
 
     # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
     archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
@@ -85,9 +109,6 @@ def prepare_service(args=None, conf=None,
                                                 'rest', 'policy.json'))
     conf.set_default('policy_file', cfg_path, group='oslo_policy')
 
-    log.set_defaults(default_log_levels=log.get_default_log_levels() +
-                     ["passlib.utils.compat=INFO"])
-    log.setup(conf, 'gnocchi')
-    conf.log_opt_values(LOG, log.DEBUG)
+    conf.log_opt_values(LOG, logging.DEBUG)
 
     return conf
