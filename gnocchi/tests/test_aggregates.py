@@ -20,6 +20,7 @@ from stevedore import extension
 
 from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
+from gnocchi import notifier
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
@@ -59,7 +60,7 @@ class TestAggregates(tests_base.TestCase):
             utils.dt_in_unix_ns(start_time + incr * n), val)
             for n, val in enumerate(data)]
         self.index.create_metric(metric.id, str(uuid.uuid4()), 'medium')
-        self.incoming.add_measures(metric, measures)
+        self.incoming.add_measures(metric, measures, notifier.Notifier(None))
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.storage.process_background_tasks(
             self.index, self.incoming, metrics, sync=True)

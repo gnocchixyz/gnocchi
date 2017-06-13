@@ -37,20 +37,22 @@ class StorageDriver(object):
     def upgrade():
         pass
 
-    def add_measures(self, metric, measures):
+    def add_measures(self, metric, measures, notifier):
         """Add a measure to a metric.
 
         :param metric: The metric measured.
         :param measures: The actual measures.
+        :param notifier: The notifier object to use to notify workers.
         """
-        self.add_measures_batch({metric: measures})
+        self.add_measures_batch({metric: measures}, notifier)
 
     @staticmethod
-    def add_measures_batch(metrics_and_measures):
+    def add_measures_batch(metrics_and_measures, notifier):
         """Add a batch of measures for some metrics.
 
         :param metrics_and_measures: A dict where keys
         are metrics and value are measure.
+        :param notifier: The notifier object to use to notify workers.
         """
         raise exceptions.NotImplementedError
 

@@ -68,7 +68,10 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         return os.path.join(self._sack_path(sack), six.text_type(metric_id))
 
     def _build_measure_path(self, metric_id, random_id=None):
-        sack = self.sack_for_metric(metric_id)
+        return self._build_measure_path_with_sack(
+            self.sack_for_metric(metric_id), metric_id, random_id)
+
+    def _build_measure_path_with_sack(self, sack, metric_id, random_id=None):
         path = self._measure_path(sack, metric_id)
         if random_id:
             if random_id is True:
@@ -77,13 +80,13 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
             return os.path.join(path, random_id)
         return path
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, sack, metric, data):
         tmpfile = tempfile.NamedTemporaryFile(
             prefix='gnocchi', dir=self.basepath_tmp,
             delete=False)
         tmpfile.write(data)
         tmpfile.close()
-        path = self._build_measure_path(metric.id, True)
+        path = self._build_measure_path_with_sack(sack, metric.id, True)
         while True:
             try:
                 os.rename(tmpfile.name, path)
@@ -92,7 +95,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 if e.errno != errno.ENOENT:
                     raise
                 try:
-                    os.mkdir(self._build_measure_path(metric.id))
+                    os.mkdir(
+                        self._build_measure_path_with_sack(sack, metric.id))
                 except OSError as e:
                     # NOTE(jd) It's possible that another process created the
                     # path just before us! In this case, good for us, let's do

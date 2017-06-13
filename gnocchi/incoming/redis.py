@@ -41,17 +41,25 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
         # NOTE(gordc): redis doesn't maintain keys with empty values
         pass
 
-    def _build_measure_path(self, metric_id):
+    def _build_measure_path_with_sack(self, sack, metric_id):
         return redis.SEP.join([
-            self.get_sack_name(self.sack_for_metric(metric_id)),
+            self.get_sack_name(sack),
             six.text_type(metric_id)])
 
-    def add_measures_batch(self, metrics_and_measures):
+    def _build_measure_path(self, metric_id):
+        return self._build_measure_path_with_sack(
+            self.sack_for_metric(metric_id), metric_id)
+
+    def _add_measures_batch(self, metrics_and_measures):
         pipe = self._client.pipeline(transaction=False)
+        sacks = set()
         for metric, measures in six.iteritems(metrics_and_measures):
-            path = self._build_measure_path(metric.id)
+            sack = self.sack_for_metric(metric.id)
+            sacks.add(sack)
+            path = self._build_measure_path_with_sack(sack, metric.id)
             pipe.rpush(path, self._encode_measures(measures))
         pipe.execute()
+        return sacks
 
     def _build_report(self, details):
         report_vars = {'measures': 0, 'metric_details': {}}

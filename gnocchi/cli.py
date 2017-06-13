@@ -34,6 +34,7 @@ from gnocchi import archive_policy
 from gnocchi import genconfig
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi import notifier
 from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
@@ -202,6 +203,10 @@ class MetricProcessor(MetricProcessBase):
             conf.storage.coordination_url)
         self._tasks = []
         self.group_state = None
+        self.sacks_with_measures_to_process = set()
+        # This stores the last time the processor did a scan on all the sack it
+        # is responsible for
+        self._last_full_sack_scan = utils.StopWatch().start()
 
     @utils.retry
     def _configure(self):
@@ -236,6 +241,34 @@ class MetricProcessor(MetricProcessBase):
                       'partitioning. Retrying: %s', e)
             raise tenacity.TryAgain(e)
 
+        filler = threading.Thread(target=self._fill_sacks_to_process)
+        filler.daemon = True
+        filler.start()
+
+    @utils.retry
+    def _fill_sacks_to_process(self):
+        n = notifier.get_driver(self.conf.notifier)
+        if not n:
+            LOG.warning("Notifier not configured. "
+                        "Metric processing will not be real-time.")
+            # Terminate the thread
+            return
+
+        try:
+            for sack in n.iter_on_sacks_to_process():
+                if sack in self._get_sacks_to_process():
+                    LOG.debug(
+                        "Got notification for sack %s, waking up processing",
+                        sack)
+                    self.sacks_with_measures_to_process.add(sack)
+                    self.wakeup()
+        except Exception as e:
+            LOG.error(
+                "Error while listening for new measures notification, "
+                "retrying",
+                exc_info=True)
+            raise tenacity.TryAgain(e)
+
     def _get_sacks_to_process(self):
         try:
             if (not self._tasks or
@@ -251,7 +284,16 @@ class MetricProcessor(MetricProcessBase):
     def _run_job(self):
         m_count = 0
         s_count = 0
-        for s in self._get_sacks_to_process():
+        # We are going to process the sacks we got notified for, and if we got
+        # no notification, then we'll just try to process them all, just to be
+        # sure we don't miss anything. In case we did not do a full scan for
+        # more than `metric_processing_delay`, we do that instead.
+        if self._last_full_sack_scan.elapsed() >= self.interval_delay:
+            sacks = self._get_sacks_to_process()
+        else:
+            sacks = (self.sacks_with_measures_to_process.copy()
+                     or self._get_sacks_to_process())
+        for s in sacks:
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
             lock = self.incoming.get_sack_lock(self.coord, s)
@@ -268,7 +310,13 @@ class MetricProcessor(MetricProcessBase):
                           exc_info=True)
             finally:
                 lock.release()
+            # Discard the sack from the sacks since we just did it.
+            self.sacks_with_measures_to_process.discard(s)
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
+        if sacks == self._get_sacks_to_process():
+            # We just did a full scan of all sacks, reset the timer
+            self._last_full_sack_scan.reset()
+            LOG.debug("Full scan of sacks has been done")
 
     def close_services(self):
         self.coord.stop()

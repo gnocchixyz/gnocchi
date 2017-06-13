@@ -31,6 +31,7 @@ from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
+from gnocchi import notifier as gnocchi_notifier
 from gnocchi import service
 from gnocchi import storage as gnocchi_storage
 
@@ -54,10 +55,11 @@ jsonify.jsonify.register(object)(json.to_primitive)
 
 class GnocchiHook(pecan.hooks.PecanHook):
 
-    def __init__(self, storage, indexer, incoming, conf):
+    def __init__(self, storage, indexer, incoming, notifier, conf):
         self.storage = storage
         self.indexer = indexer
         self.incoming = incoming
+        self.notifier = notifier
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
@@ -68,6 +70,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
         state.request.incoming = self.incoming
+        state.request.notifier = self.notifier
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
@@ -95,7 +98,7 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, indexer=None, storage=None, incoming=None,
+def load_app(conf, indexer=None, storage=None, incoming=None, notifier=None,
              not_implemented_middleware=True):
     global APPCONFIGS
 
@@ -108,6 +111,8 @@ def load_app(conf, indexer=None, storage=None, incoming=None,
     if not indexer:
         indexer = gnocchi_indexer.get_driver(conf)
         indexer.connect()
+    if not notifier:
+        notifier = gnocchi_notifier.get_driver(conf)
 
     # Build the WSGI app
     cfg_path = conf.api.paste_config
@@ -120,7 +125,7 @@ def load_app(conf, indexer=None, storage=None, incoming=None,
             __name__, "api-paste.ini"))
 
     config = dict(conf=conf, indexer=indexer, storage=storage,
-                  incoming=incoming,
+                  incoming=incoming, notifier=notifier,
                   not_implemented_middleware=not_implemented_middleware)
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
@@ -133,11 +138,11 @@ def load_app(conf, indexer=None, storage=None, incoming=None,
     return cors.CORS(app, conf=conf)
 
 
-def _setup_app(root, conf, indexer, storage, incoming,
+def _setup_app(root, conf, indexer, storage, incoming, notifier,
                not_implemented_middleware):
     app = pecan.make_app(
         root,
-        hooks=(GnocchiHook(storage, indexer, incoming, conf),),
+        hooks=(GnocchiHook(storage, indexer, incoming, notifier, conf),),
         guess_content_type_from_ext=False,
     )
 

@@ -21,6 +21,7 @@ from oslo_config import cfg
 import six
 
 from gnocchi import indexer
+from gnocchi import notifier
 from gnocchi import service
 from gnocchi import storage
 from gnocchi import utils
@@ -39,6 +40,7 @@ def injector():
     index = indexer.get_driver(conf)
     index.connect()
     s = storage.get_driver(conf)
+    n = notifier.get_driver(conf)
 
     def todo():
         metric = index.create_metric(
@@ -51,7 +53,7 @@ def injector():
                 storage.Measure(
                     utils.dt_in_unix_ns(utils.utcnow()), random.random())
                 for __ in six.moves.range(conf.measures_per_batch)]
-            s.incoming.add_measures(metric, measures)
+            s.incoming.add_measures(metric, measures, n)
 
     with futures.ThreadPoolExecutor(max_workers=conf.metrics) as executor:
         for m in six.moves.range(conf.metrics):

@@ -79,11 +79,11 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         # need to create bucket first to store storage settings object
         super(S3Storage, self).upgrade(num_sacks)
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, sack, metric, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.s3.put_object(
             Bucket=self._bucket_name_measures,
-            Key=(self.get_sack_name(self.sack_for_metric(metric.id))
+            Key=(self.get_sack_name(sack)
                  + six.text_type(metric.id) + "/"
                  + six.text_type(uuid.uuid4()) + now),
             Body=data)

@@ -402,7 +402,8 @@ class MetricController(rest.RestController):
             abort(400, "Invalid input for measures")
         if params:
             pecan.request.incoming.add_measures(
-                self.metric, MeasuresListSchema(params))
+                self.metric, MeasuresListSchema(params),
+                pecan.request.notifier)
         pecan.response.status = 202
 
     @pecan.expose('json')
@@ -1465,7 +1466,8 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         pecan.request.incoming.add_measures_batch(
             dict((metric,
                  body_by_rid[metric.resource_id][metric.name])
-                 for metric in known_metrics))
+                 for metric in known_metrics),
+            pecan.request.notifier)
 
         pecan.response.status = 202
 
@@ -1496,7 +1498,8 @@ class MetricsMeasuresBatchController(rest.RestController):
 
         pecan.request.incoming.add_measures_batch(
             dict((metric, body[metric.id]) for metric in
-                 metrics))
+                 metrics),
+            pecan.request.notifier)
 
         pecan.response.status = 202
 

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Gnocchi can now leverage a new notifier system. This allows metricd to be
+    notified as soon as new measures are ready to be processed, rather than
+    waiting `metric_processing_delay` second before checking for new measures.

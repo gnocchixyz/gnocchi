@@ -25,6 +25,7 @@ import six
 
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi import notifier
 from gnocchi import service
 from gnocchi import storage
 from gnocchi import utils
@@ -37,6 +38,7 @@ class Stats(object):
     def __init__(self, conf):
         self.conf = conf
         self.incoming = incoming.get_driver(self.conf)
+        self.notifier = notifier.get_driver(self.conf)
         self.indexer = indexer.get_driver(self.conf)
         self.indexer.connect()
         try:
@@ -111,7 +113,7 @@ class Stats(object):
                         archive_policy_name=ap_name,
                         name=metric_name,
                         resource_id=self.conf.statsd.resource_id)
-                self.incoming.add_measures(metric, (measure,))
+                self.incoming.add_measures(metric, (measure,), self.notifier)
             except Exception as e:
                 LOG.error("Unable to add measure %s: %s",
                           metric_name, e)

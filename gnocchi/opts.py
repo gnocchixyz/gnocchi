@@ -22,6 +22,7 @@ from oslo_middleware import cors
 
 import gnocchi.archive_policy
 import gnocchi.indexer
+import gnocchi.notifier
 import gnocchi.rest.app
 import gnocchi.storage
 import gnocchi.storage.ceph
@@ -104,6 +105,7 @@ def list_opts():
                 help='Syslog facility to receive log lines.')
         )),
         ("indexer", gnocchi.indexer.OPTS),
+        ("notifier", gnocchi.notifier.OPTS),
         ("metricd", (
             cfg.IntOpt('workers', min=1,
                        required=True,

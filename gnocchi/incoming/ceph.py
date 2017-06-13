@@ -80,7 +80,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             except rados.ObjectNotFound:
                 pass
 
-    def add_measures_batch(self, metrics_and_measures):
+    def _add_measures_batch(self, metrics_and_measures):
         data_by_sack = defaultdict(lambda: defaultdict(list))
         for metric, measures in six.iteritems(metrics_and_measures):
             name = "_".join((
@@ -88,7 +88,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 str(metric.id),
                 str(uuid.uuid4()),
                 datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-            sack = self.get_sack_name(self.sack_for_metric(metric.id))
+            sack = self.sack_for_metric(metric.id)
             data_by_sack[sack]['names'].append(name)
             data_by_sack[sack]['measures'].append(
                 self._encode_measures(measures))
@@ -105,10 +105,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 self.ioctx.set_omap(op, tuple(data['names']),
                                     tuple(data['measures']))
                 ops.append(self.ioctx.operate_aio_write_op(
-                    op, sack, flags=self.OMAP_WRITE_FLAGS))
+                    op, self.get_sack_name(sack), flags=self.OMAP_WRITE_FLAGS))
         while ops:
             op = ops.pop()
             op.wait_for_complete()
+
+        return set(data_by_sack.keys())
 
     def _build_report(self, details):
         metrics = set()

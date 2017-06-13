@@ -18,11 +18,12 @@ import uuid
 
 import iso8601
 import mock
-import six.moves
+import six
 
 from gnocchi import archive_policy
 from gnocchi import carbonara
 from gnocchi import indexer
+from gnocchi import notifier
 from gnocchi import storage
 from gnocchi.storage import _carbonara
 from gnocchi.storage import ceph
@@ -40,6 +41,7 @@ class TestStorageDriver(tests_base.TestCase):
         super(TestStorageDriver, self).setUp()
         # A lot of tests wants a metric, create one
         self.metric, __ = self._create_metric()
+        self.notifier = notifier.get_driver(self.conf)
 
     def _create_metric(self, archive_policy_name="low"):
         m = storage.Metric(uuid.uuid4(),
@@ -81,12 +83,12 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 13, 0, 1), 1),
-        ])
+        ], self.notifier)
 
         with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.unserialize',
                         side_effect=carbonara.InvalidData()):
@@ -102,7 +104,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_aborted_initial_processing(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 5),
-        ])
+        ], self.notifier)
         with mock.patch.object(self.storage, '_store_unaggregated_timeserie',
                                side_effect=Exception):
             try:
@@ -124,7 +126,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(set(), metrics)
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.assertEqual(set([str(self.metric.id)]), metrics)
         self.trigger_processing()
@@ -134,7 +136,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_delete_nonempty_metric(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         self.trigger_processing()
         self.storage.delete_metric(self.incoming, self.metric, sync=True)
         self.trigger_processing()
@@ -146,7 +148,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_delete_nonempty_metric_unprocessed(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         self.index.delete_metric(self.metric.id)
         self.trigger_processing()
         __, __, details = self.incoming._build_report(True)
@@ -158,7 +160,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_delete_expunge_metric(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         self.trigger_processing()
         self.index.delete_metric(self.metric.id)
         self.storage.expunge_metrics(self.incoming, self.index, sync=True)
@@ -185,10 +187,10 @@ class TestStorageDriver(tests_base.TestCase):
         for i in six.moves.range(60):
             self.incoming.add_measures(self.metric, [
                 storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, i), 69),
-            ])
+            ], self.notifier)
             self.incoming.add_measures(m2, [
                 storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, i), 69),
-            ])
+            ], self.notifier)
         report = self.incoming.measures_report(True)
         self.assertIsInstance(report, dict)
         self.assertEqual(2, report['summary']['metrics'])
@@ -202,12 +204,22 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
-        self.incoming.add_measures(m, [
-            storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, i, j), 100)
-            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+        self.incoming.add_measures(
+            m,
+            [storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, i, j), 100)
+             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)],
+            self.notifier)
         self.trigger_processing([str(m.id)])
 
         self.assertEqual(3661, len(self.storage.get_measures(m)))
+
+    def test_add_measures_batch_return_new_sacks(self):
+        sacks = self.incoming._add_measures_batch({self.metric: [
+            storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
+        ]})
+        self.assertEqual(1, len(sacks))
+        self.assertIsInstance(sacks, set)
+        self.assertIsInstance(sacks.pop(), six.integer_types)
 
     @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
@@ -215,12 +227,14 @@ class TestStorageDriver(tests_base.TestCase):
         measures = [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
-        self.incoming.add_measures(m, measures)
+        self.incoming.add_measures(m, measures, self.notifier)
         self.trigger_processing([str(m.id)])
 
         # add measure to end, in same aggregate time as last point.
-        self.incoming.add_measures(m, [
-            storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, 1, 58, 1), 100)])
+        self.incoming.add_measures(
+            m,
+            [storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, 1, 58, 1), 100)],
+            self.notifier)
 
         with mock.patch.object(self.storage, '_store_metric_measures') as c:
             # should only resample last aggregate
@@ -238,13 +252,13 @@ class TestStorageDriver(tests_base.TestCase):
         measures = [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
-        self.incoming.add_measures(m, measures)
+        self.incoming.add_measures(m, measures, self.notifier)
         self.trigger_processing([str(m.id)])
 
         # add measure to end, in same aggregate time as last point.
         new_point = utils.dt_to_unix_ns(2014, 1, 6, 1, 58, 1)
         self.incoming.add_measures(
-            m, [storage.Measure(new_point, 100)])
+            m, [storage.Measure(new_point, 100)], self.notifier)
 
         with mock.patch.object(self.incoming, 'add_measures') as c:
             self.trigger_processing([str(m.id)])
@@ -259,7 +273,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual([
@@ -273,7 +287,7 @@ class TestStorageDriver(tests_base.TestCase):
         # One year later…
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2015, 1, 1, 12, 0, 1), 69),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual([
@@ -309,7 +323,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 2, 13, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 4, 14, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 6, 15, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
@@ -347,7 +361,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 16, 18, 45), 45),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 17, 12, 45), 46),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual({'1452384000.0', '1451736000.0',
@@ -395,7 +409,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 2, 13, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 4, 14, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 6, 15, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
@@ -435,7 +449,7 @@ class TestStorageDriver(tests_base.TestCase):
         # be 2016-01-10TOO:OO:OO = 1452384000.0, our new split key.
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 0, 12), 45),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual({'1452384000.0', '1451736000.0',
@@ -481,7 +495,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 2, 13, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 4, 14, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 6, 15, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
@@ -525,7 +539,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 16, 18, 45), 45),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 17, 12, 45), 46),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
     def test_rewrite_measures_corruption_bad_data(self):
@@ -544,7 +558,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 2, 13, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 4, 14, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 6, 15, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
@@ -586,14 +600,14 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 16, 18, 45), 45),
             storage.Measure(utils.dt_to_unix_ns(2016, 1, 10, 17, 12, 45), 46),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
     def test_updated_measures(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual([
@@ -606,7 +620,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual([
@@ -639,7 +653,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.trigger_processing()
 
         self.assertEqual([
@@ -729,7 +743,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.assertRaises(storage.AggregationDoesNotExist,
                           self.storage.get_measures,
                           self.metric, aggregation='last')
@@ -742,13 +756,13 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.assertRaises(storage.AggregationDoesNotExist,
                           self.storage.get_cross_metric_measures,
                           [self.metric, metric2],
@@ -762,13 +776,13 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.assertRaises(storage.GranularityDoesNotExist,
                           self.storage.get_cross_metric_measures,
                           [self.metric, metric2],
@@ -782,13 +796,13 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 1), 69),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
 
         self.assertRaises(storage.MetricUnaggregatable,
                           self.storage.get_cross_metric_measures,
@@ -801,13 +815,13 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 42),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 44),
-        ])
+        ], self.notifier)
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 5), 9),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 41), 2),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 10, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 13, 10), 4),
-        ])
+        ], self.notifier)
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
@@ -887,13 +901,13 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 5, 31), 8),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 42),
-        ])
+        ], self.notifier)
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 5), 9),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 2),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 6),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 13, 10), 2),
-        ])
+        ], self.notifier)
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
@@ -913,14 +927,14 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 5, 31), 8),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 4),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 12, 45), 42),
-        ])
+        ], self.notifier)
 
         self.incoming.add_measures(metric2, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 5), 9),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 7, 31), 2),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 9, 31), 6),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 13, 10), 2),
-        ])
+        ], self.notifier)
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
         self.assertEqual(
@@ -952,7 +966,7 @@ class TestStorageDriver(tests_base.TestCase):
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 0), 1),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 5), 1),
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 10), 1),
-        ])
+        ], self.notifier)
         self.trigger_processing([str(m.id)])
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
@@ -965,7 +979,7 @@ class TestStorageDriver(tests_base.TestCase):
         m = self.index.list_metrics(ids=[m.id])[0]
         self.incoming.add_measures(m, [
             storage.Measure(utils.dt_to_unix_ns(2014, 1, 1, 12, 0, 15), 1),
-        ])
+        ], self.notifier)
         self.trigger_processing([str(m.id)])
         self.assertEqual([
             (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),

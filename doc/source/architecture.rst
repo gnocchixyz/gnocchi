@@ -20,9 +20,14 @@ are scalable. Additional workers can be added depending on load.
 Back-ends
 ---------
 
-Gnocchi uses three different back-ends for storing data: one for storing new
-incoming measures (the incoming driver), one for storing the time series (the
-storage driver) and one for indexing the data (the index driver).
+Gnocchi uses five different back-ends that you will have to configure. They are
+used to:
+
+- Store incoming measures (incoming section)
+- Store archived measures (storage section)
+- Store resource index (indexer section)
+- Coordinate workers (coordination_url in storage sections)
+- Notify workers (notifier section)
 
 The *incoming* storage is responsible for storing new measures sent to metrics.
 It is by default – and usually – the same driver as the *storage* one.
@@ -34,6 +39,11 @@ defined archive policies.
 The *indexer* is responsible for storing the index of all resources, archive
 policies and metrics, along with their definitions, types and properties. The
 indexer is also responsible for linking resources with metrics.
+
+The *coordinator* is responsible for the division of jobs between *metricd*
+workers.
+
+The *notifier* is responsible for event-driven processing of incoming metrics.
 
 Available incoming and storage back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,3 +90,29 @@ duration computing).
 
 .. _PostgreSQL: http://postgresql.org
 .. _MySQL: http://mysql.org
+
+
+Available coordination back-ends
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Gnocchi leverages the `tooz`_ library to handle the coordination. It currently
+supports:
+
+* `Redis`_
+* `etcd`_
+* `Consul`_
+* `memcached`_
+* `ZooKeeper`_
+
+.. _tooz: https://docs.openstack.org/tooz/
+.. _etcd: https://coreos.com/etcd
+.. _Redis: https://redis.io
+.. _Consul: https://www.consul.io
+.. _memcached: https://memcached.org
+.. _ZooKeeper: https://zookeeper.apache.org/
+
+Available notification back-ends
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to notify worker of new jobs, it's advised (but optional) to use a
+notifier. There is no driver currently.

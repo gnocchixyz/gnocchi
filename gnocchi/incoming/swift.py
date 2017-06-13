@@ -54,10 +54,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         for i in six.moves.xrange(num_sacks):
             self.swift.delete_container(prefix % i)
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, sack, metric, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
-            self.get_sack_name(self.sack_for_metric(metric.id)),
+            self.get_sack_name(sack),
             six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
             data)
 

@@ -266,6 +266,11 @@ class StopWatch(object):
         self._state = self._STARTED
         return self
 
+    def reset(self):
+        """Stop and re-start the watch."""
+        self.stop()
+        return self.start()
+
     @staticmethod
     def _delta_seconds(earlier, later):
         # Uses max to avoid the delta/time going backwards (and thus negative).

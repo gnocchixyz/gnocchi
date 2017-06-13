@@ -96,16 +96,22 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
             "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
             *list(itertools.chain.from_iterable(measures)))
 
-    def add_measures_batch(self, metrics_and_measures):
+    def add_measures_batch(self, metrics_and_measures, notifier):
+        sacks = self._add_measures_batch(metrics_and_measures)
+        notifier.notify_new_measures_for_sacks(sacks)
+
+    def _add_measures_batch(self, metrics_and_measures):
         with futures.ThreadPoolExecutor(max_workers=_NUM_WORKERS) as executor:
-            list(executor.map(
-                lambda args: self._store_new_measures(*args),
-                ((metric, self._encode_measures(measures))
-                 for metric, measures
-                 in six.iteritems(metrics_and_measures))))
+            sacks = set()
+            for metric, measures in six.iteritems(metrics_and_measures):
+                sack = self.sack_for_metric(metric.id)
+                executor.submit(self._store_new_measures,
+                                sack, metric, self._encode_measures(measures))
+                sacks.add(sack)
+            return sacks
 
     @staticmethod
-    def _store_new_measures(metric, data):
+    def _store_new_measures(sack, metric, data):
         raise NotImplementedError
 
     def measures_report(self, details=True):
