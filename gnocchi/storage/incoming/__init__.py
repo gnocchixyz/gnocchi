@@ -22,6 +22,10 @@ class ReportGenerationError(Exception):
     pass
 
 
+class SackDetectionError(Exception):
+    pass
+
+
 class StorageDriver(object):
 
     @staticmethod
