@@ -123,8 +123,12 @@ class MetricProcessBase(cotyledon.Service):
         self.conf = conf
         self.startup_delay = worker_id
         self.interval_delay = interval_delay
+        self._wake_up = threading.Event()
         self._shutdown = threading.Event()
         self._shutdown_done = threading.Event()
+
+    def wakeup(self):
+        self._wake_up.set()
 
     def _configure(self):
         self.store = storage.get_driver(self.conf)
@@ -140,11 +144,13 @@ class MetricProcessBase(cotyledon.Service):
         while not self._shutdown.is_set():
             with utils.StopWatch() as timer:
                 self._run_job()
-            self._shutdown.wait(max(0, self.interval_delay - timer.elapsed()))
+            self._wake_up.wait(max(0, self.interval_delay - timer.elapsed()))
+            self._wake_up.clear()
         self._shutdown_done.set()
 
     def terminate(self):
         self._shutdown.set()
+        self.wakeup()
         LOG.info("Waiting ongoing metric processing to finish")
         self._shutdown_done.wait()
         self.close_services()
