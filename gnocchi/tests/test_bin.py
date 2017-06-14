@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import os
 import subprocess
 
 from gnocchi.tests import base
@@ -20,5 +21,6 @@ from gnocchi.tests import base
 
 class BinTestCase(base.BaseTestCase):
     def test_gnocchi_config_generator_run(self):
-        subp = subprocess.Popen(['gnocchi-config-generator'])
+        with open(os.devnull, 'w') as f:
+            subp = subprocess.Popen(['gnocchi-config-generator'], stdout=f)
         self.assertEqual(0, subp.wait())
