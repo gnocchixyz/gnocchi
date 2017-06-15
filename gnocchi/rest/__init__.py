@@ -535,21 +535,41 @@ class MetricsController(rest.RestController):
         return definition
 
     @pecan.expose('json')
-    def post(self):
+    def post(self, source=None):
         creator = pecan.request.auth_helper.get_current_user(
             pecan.request)
         body = deserialize_and_validate(self.MetricSchema)
-        try:
-            m = pecan.request.indexer.create_metric(
-                uuid.uuid4(),
-                creator,
-                name=body.get('name'),
-                unit=body.get('unit'),
-                archive_policy_name=body['archive_policy_name'])
-        except indexer.NoSuchArchivePolicy as e:
-            abort(400, e)
+
+        if not source:
+            try:
+                m = pecan.request.indexer.create_metric(
+                    uuid.uuid4(),
+                    creator,
+                    name=body.get('name'),
+                    unit=body.get('unit'),
+                    archive_policy_name=body['archive_policy_name'])
+            except indexer.NoSuchArchivePolicy as e:
+                abort(400, e)
+        else:
+            source_metric = pecan.request.indexer.list_metrics(
+                id=source, details=True)[0]
+
+            if not source_metric:
+                abort(404, indexer.NoSuchMetric(source_metric.id))
+
+            # Copy the metric
+            try:
+                m = pecan.request.indexer.copy_metric(
+                    uuid.uuid4(),
+                    creator,
+                    archive_policy_name=body['archive_policy_name'],
+                    source_metric=source_metric)
+            except indexer.NoSuchArchivePolicy as e:
+                abort(400, e)
+
         set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
+
         return m
 
     MetricListSchema = voluptuous.Schema({
