@@ -187,6 +187,15 @@ Run the following:
    and `gnocchi-statsd` daemons
 
 
+Installation using Docker
+=========================
+The `gnocchi-docker repository`_ contains the needed Dockerfile and script to
+build a Docker image containing Gnocchi latest version (fetched from PyPI). It
+also provides an example of docker-compose file in order to run a full
+deployment on Gnocchi (indexer and storage included).
+
+.. _gnocchi-docker repository: https://github.com/gnocchixyz/gnocchi-docker
+
 Installation Using Devstack
 ===========================
 
