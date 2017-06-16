@@ -11,3 +11,4 @@ releasenotes/build
 cover
 .coverage
 dist
+upgrade/
