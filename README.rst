@@ -11,10 +11,10 @@
 
 .. image:: doc/source/_static/gnocchi-logo.png
 
-Gnocchi is a multi-tenant timeseries, metrics and resources database. It
-provides an `HTTP REST`_ interface to create and manipulate the data. It is
-designed to store metrics at a very large scale while providing access to
-metrics and resources information and history.
+Gnocchi is an open-source, multi-tenant timeseries, metrics and resources
+database. It provides an `HTTP REST`_ interface to create and manipulate the
+data. It is designed to store metrics at a very large scale while providing
+access to metrics and resources information and history.
 
 You can read the full documentation online at http://gnocchi.xyz.
 
