@@ -335,6 +335,10 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+    def copy_metric(id, creator, archive_policy_name, source_metric):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
     def list_metrics(names=None, ids=None, details=False, status='active',
                      limit=None, marker=None, sorts=None, **kwargs):
         raise exceptions.NotImplementedError

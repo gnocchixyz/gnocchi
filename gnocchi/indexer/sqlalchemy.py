@@ -664,6 +664,35 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise
         return m
 
+    def copy_metric(self, id, creator, archive_policy_name, source_metric):
+        m = Metric(id=id,
+                    creator=creator,
+                    archive_policy_name=archive_policy_name,
+                    name=source_metric.name,
+                    unit=source_metric.unit,
+                    resource_id=source_metric.resource_id)
+
+        source_ap = source_metric.archive_policy
+        new_ap = self.get_archive_policy(archive_policy_name)
+
+        # TODO: Validate archive policy definitions
+        # "We are not going to be able to copy to an archive policy that is
+        # smaller grained in its definition (e.g. 1h -> 5min)"
+
+        try:
+            with self.facade.writer() as session:
+                session.add(m)
+        except exception.DBDuplicateEntry:
+            raise indexer.NamedMetricAlreadyExists(source_metric.name)
+        except exception.DBReferenceError as e:
+            if e.constraint == 'fk_metric_ap_name_ap_name':
+                raise indexer.NoSuchArchivePolicy(archive_policy_name)
+            if e.constraint == 'fk_metric_resource_id_resource_id':
+                raise indexer.NoSuchResource(source_metric.resource_id)
+            raise
+
+        return m
+
     @retry_on_deadlock
     def list_metrics(self, names=None, ids=None, details=False,
                      status='active', limit=None, marker=None, sorts=None,
