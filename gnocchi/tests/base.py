@@ -336,8 +336,10 @@ class TestCase(BaseTestCase):
                                    'storage')
         elif self.conf.storage.driver == 'ceph':
             pool_name = uuid.uuid4().hex
-            subprocess.call("rados -c %s mkpool %s" % (
-                os.getenv("CEPH_CONF"), pool_name), shell=True)
+            with open(os.devnull, 'w') as f:
+                subprocess.call("rados -c %s mkpool %s" % (
+                    os.getenv("CEPH_CONF"), pool_name), shell=True,
+                    stdout=f, stderr=subprocess.STDOUT)
             self.conf.set_override('ceph_pool', pool_name, 'storage')
 
         # Override the bucket prefix to be unique to avoid concurrent access
