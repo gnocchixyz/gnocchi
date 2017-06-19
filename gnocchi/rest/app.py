@@ -101,7 +101,8 @@ def load_app(conf, indexer=None, storage=None,
 
     if cfg_path is None or not os.path.exists(cfg_path):
         LOG.debug("No api-paste configuration file found! Using default.")
-        cfg_path = pkg_resources.resource_filename(__name__, "api-paste.ini")
+        cfg_path = os.path.abspath(pkg_resources.resource_filename(
+            __name__, "api-paste.ini"))
 
     config = dict(conf=conf, indexer=indexer, storage=storage,
                   not_implemented_middleware=not_implemented_middleware)
