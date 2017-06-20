@@ -33,14 +33,6 @@ from gnocchi.tests import test_rest
 _RUN = False
 
 
-def _setup_test_app():
-    t = test_rest.RestTest()
-    t.auth_mode = "basic"
-    t.setUpClass()
-    t.setUp()
-    return t.app
-
-
 def _format_json(txt):
     return json.dumps(json.loads(txt),
                       sort_keys=True,
@@ -172,33 +164,44 @@ def setup(app):
         _RUN = True
         return
 
-    webapp = _setup_test_app()
     # TODO(jd) Do not hardcode doc/source
     with open("doc/source/rest.yaml") as f:
         scenarios = ScenarioList(yaml.load(f))
-    for entry in scenarios:
-        template = jinja2.Template(entry['request'])
-        fake_file = six.moves.cStringIO()
-        fake_file.write(template.render(scenarios=scenarios).encode('utf-8'))
-        fake_file.seek(0)
-        request = webapp.RequestClass.from_file(fake_file)
 
-        # TODO(jd) Fix this lame bug in webob < 1.7
-        if (hasattr(webob.request, "http_method_probably_has_body")
-           and request.method == "DELETE"):
-            # Webob has a bug it does not read the body for DELETE, l4m3r
-            clen = request.content_length
-            if clen is None:
-                request.body = fake_file.read()
-            else:
-                request.body = fake_file.read(clen)
+    test = test_rest.RestTest()
+    test.auth_mode = "basic"
+    test.setUpClass()
+    test.setUp()
+    webapp = test.app
 
-        app.info("Doing request %s: %s" % (entry['name'],
-                                           six.text_type(request)))
-        with webapp.use_admin_user():
-            response = webapp.request(request)
-        entry['response'] = response
-        entry['doc'] = _format_request_reply(request, response)
+    try:
+        for entry in scenarios:
+            template = jinja2.Template(entry['request'])
+            fake_file = six.moves.cStringIO()
+            fake_file.write(template.render(
+                scenarios=scenarios).encode('utf-8'))
+            fake_file.seek(0)
+            request = webapp.RequestClass.from_file(fake_file)
+
+            # TODO(jd) Fix this lame bug in webob < 1.7
+            if (hasattr(webob.request, "http_method_probably_has_body")
+               and request.method == "DELETE"):
+                # Webob has a bug it does not read the body for DELETE, l4m3r
+                clen = request.content_length
+                if clen is None:
+                    request.body = fake_file.read()
+                else:
+                    request.body = fake_file.read(clen)
+
+            app.info("Doing request %s: %s" % (entry['name'],
+                                               six.text_type(request)))
+            with webapp.use_admin_user():
+                response = webapp.request(request)
+            entry['response'] = response
+            entry['doc'] = _format_request_reply(request, response)
+    finally:
+        test.tearDown()
+        test.tearDownClass()
     with open("doc/source/rest.j2", "r") as f:
         template = jinja2.Template(f.read().decode('utf-8'))
     with open("doc/source/rest.rst", "w") as f:
