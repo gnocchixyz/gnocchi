@@ -35,6 +35,9 @@ before_script:
     esac
 install:
   - docker pull gnocchixyz/ci-tools:latest
+  # Allow docker to write in home directory
+  - chmod -R o+w ~/
+  - find ~/ -type d -exec chmod o+x {} \;
 script:
   - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
