@@ -143,7 +143,7 @@ class MetricProcessor(MetricProcessBase):
                       'partitioning. Retrying: %s', e)
             raise tenacity.TryAgain(e)
 
-    def _get_tasks(self):
+    def _get_sacks_to_process(self):
         try:
             self.coord.run_watchers()
             if (not self._tasks or
@@ -161,7 +161,7 @@ class MetricProcessor(MetricProcessBase):
     def _run_job(self):
         m_count = 0
         s_count = 0
-        for s in self._get_tasks():
+        for s in self._get_sacks_to_process():
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
             lock = self.incoming.get_sack_lock(self.coord, s)
