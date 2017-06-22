@@ -133,9 +133,9 @@ class MetricProcessBase(cotyledon.Service):
 
     def terminate(self):
         self._shutdown.set()
-        self.close_services()
         LOG.info("Waiting ongoing metric processing to finish")
         self._shutdown_done.wait()
+        self.close_services()
 
     @staticmethod
     def close_services():
