@@ -17,10 +17,10 @@ import operator
 
 import daiquiri
 from oslo_config import cfg
-from stevedore import driver
 
 from gnocchi import exceptions
 from gnocchi import indexer
+from gnocchi import utils
 
 
 OPTS = [
@@ -142,26 +142,9 @@ class LockedMetric(StorageError):
         super(LockedMetric, self).__init__("Metric %s is locked" % metric)
 
 
-def get_driver_class(namespace, conf):
-    """Return the storage driver class.
-
-    :param conf: The conf to use to determine the driver.
-    """
-    return driver.DriverManager(namespace,
-                                conf.driver).driver
-
-
-def get_incoming_driver(conf):
-    """Return configured incoming driver only
-
-    :param conf: incoming configuration only (not global)
-    """
-    return get_driver_class('gnocchi.incoming', conf.incoming)(conf.incoming)
-
-
 def get_driver(conf, coord=None):
     """Return the configured driver."""
-    return get_driver_class('gnocchi.storage', conf.storage)(
+    return utils.get_driver_class('gnocchi.storage', conf.storage)(
         conf.storage, coord)
 
 

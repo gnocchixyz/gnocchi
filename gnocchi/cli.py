@@ -28,11 +28,11 @@ import tooz
 
 from gnocchi import archive_policy
 from gnocchi import genconfig
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
-from gnocchi.storage import incoming
 from gnocchi import utils
 
 
@@ -69,7 +69,7 @@ def upgrade():
         LOG.info("Upgrading storage %s", s)
         s.upgrade()
     if not conf.skip_incoming:
-        i = storage.get_incoming_driver(conf)
+        i = incoming.get_driver(conf)
         LOG.info("Upgrading incoming storage %s", i)
         i.upgrade(conf.sacks_number)
 
@@ -91,7 +91,7 @@ def change_sack_size():
                    help="Number of storage sacks."),
     ])
     conf = service.prepare_service(conf=conf, log_to_std=True)
-    s = storage.get_incoming_driver(conf)
+    s = incoming.get_driver(conf)
     try:
         report = s.measures_report(details=False)
     except incoming.SackDetectionError:
@@ -123,7 +123,7 @@ class MetricProcessBase(cotyledon.Service):
 
     def _configure(self):
         self.store = storage.get_driver(self.conf)
-        self.incoming = storage.get_incoming_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
@@ -161,7 +161,7 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = storage.get_incoming_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
 
     def _run_job(self):
         try:
@@ -193,7 +193,7 @@ class MetricProcessor(MetricProcessBase):
     @utils.retry
     def _configure(self):
         self.store = storage.get_driver(self.conf, self.coord)
-        self.incoming = storage.get_incoming_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
@@ -308,14 +308,14 @@ def metricd_tester(conf):
     index = indexer.get_driver(conf)
     index.connect()
     s = storage.get_driver(conf)
-    incoming = storage.get_incoming_driver(conf)
+    inc = incoming.get_driver(conf)
     metrics = set()
-    for i in six.moves.range(incoming.NUM_SACKS):
-        metrics.update(incoming.list_metric_with_measures_to_process(i))
+    for i in six.moves.range(inc.NUM_SACKS):
+        metrics.update(inc.list_metric_with_measures_to_process(i))
         if len(metrics) >= conf.stop_after_processing_metrics:
             break
     s.process_new_measures(
-        index, incoming,
+        index, inc,
         list(metrics)[:conf.stop_after_processing_metrics], True)
 
 

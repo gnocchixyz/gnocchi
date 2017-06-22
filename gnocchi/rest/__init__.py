@@ -32,11 +32,11 @@ import werkzeug.http
 
 from gnocchi import aggregates
 from gnocchi import archive_policy
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
 from gnocchi import storage
-from gnocchi.storage import incoming
 from gnocchi import utils
 
 

@@ -28,6 +28,7 @@ from oslo_config import cfg
 from oslo_middleware import cors
 import sqlalchemy_utils
 
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
 from gnocchi.rest import app
@@ -128,7 +129,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         s = storage.get_driver(conf)
         s.upgrade()
-        i = storage.get_incoming_driver(conf)
+        i = incoming.get_driver(conf)
         i.upgrade(128)
 
         LOAD_APP_KWARGS = {

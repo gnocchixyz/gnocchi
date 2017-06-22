@@ -22,7 +22,7 @@ import uuid
 
 import six
 
-from gnocchi.storage.incoming import _carbonara
+from gnocchi.incoming import _carbonara
 from gnocchi import utils
 
 

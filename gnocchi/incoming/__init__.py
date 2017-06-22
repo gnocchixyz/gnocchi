@@ -16,6 +16,7 @@
 # under the License.
 
 from gnocchi import exceptions
+from gnocchi import utils
 
 
 class ReportGenerationError(Exception):
@@ -66,3 +67,12 @@ class StorageDriver(object):
     @staticmethod
     def list_metric_with_measures_to_process(sack):
         raise NotImplementedError
+
+
+def get_driver(conf):
+    """Return configured incoming driver only
+
+    :param conf: incoming configuration only (not global)
+    """
+    return utils.get_driver_class('gnocchi.incoming', conf.incoming)(
+        conf.incoming)
