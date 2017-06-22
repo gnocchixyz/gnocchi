@@ -352,6 +352,8 @@ class TestCase(BaseTestCase):
         if self.conf.storage.driver == 'redis':
             # Create one prefix per test
             self.storage.STORAGE_PREFIX = str(uuid.uuid4())
+
+        if self.conf.incoming.driver == 'redis':
             self.storage.incoming.SACK_PREFIX = str(uuid.uuid4())
 
         self.storage.upgrade(128)
