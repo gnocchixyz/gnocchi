@@ -40,6 +40,9 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             self._bucket_prefix + "-" + self.MEASURE_PREFIX
         )
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self._bucket_name_measures)
+
     def get_storage_sacks(self):
         try:
             response = self.s3.get_object(Bucket=self._bucket_name_measures,

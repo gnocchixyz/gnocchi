@@ -33,8 +33,8 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     STORAGE_PREFIX = "timeseries"
     FIELD_SEP = '_'
 
-    def __init__(self, conf, incoming, coord=None):
-        super(RedisStorage, self).__init__(conf, incoming, coord)
+    def __init__(self, conf, coord=None):
+        super(RedisStorage, self).__init__(conf, coord)
         self._client = redis.get_client(conf)
 
     def __str__(self):

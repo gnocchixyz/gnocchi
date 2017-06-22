@@ -53,6 +53,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         # we are safe and good.
         self.OMAP_WRITE_FLAGS = rados.LIBRADOS_OPERATION_SKIPRWLOCKS
 
+    def __str__(self):
+        # Use cluster ID for now
+        return "%s: %s" % (self.__class__.__name__, self.rados.get_fsid())
+
     def stop(self):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()

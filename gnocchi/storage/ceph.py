@@ -43,8 +43,8 @@ rados = ceph.rados
 class CephStorage(_carbonara.CarbonaraBasedStorage):
     WRITE_FULL = False
 
-    def __init__(self, conf, incoming, coord=None):
-        super(CephStorage, self).__init__(conf, incoming, coord)
+    def __init__(self, conf, coord=None):
+        super(CephStorage, self).__init__(conf, coord)
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
 
     def __str__(self):

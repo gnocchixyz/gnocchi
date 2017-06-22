@@ -42,9 +42,10 @@ jsonify.jsonify.register(object)(json.to_primitive)
 
 class GnocchiHook(pecan.hooks.PecanHook):
 
-    def __init__(self, storage, indexer, conf):
+    def __init__(self, storage, indexer, incoming, conf):
         self.storage = storage
         self.indexer = indexer
+        self.incoming = incoming
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
@@ -54,6 +55,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
     def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
+        state.request.incoming = self.incoming
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
@@ -81,7 +83,7 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, indexer=None, storage=None,
+def load_app(conf, indexer=None, storage=None, incoming=None,
              not_implemented_middleware=True):
     global APPCONFIGS
 
@@ -89,6 +91,8 @@ def load_app(conf, indexer=None, storage=None,
     # so all
     if not storage:
         storage = gnocchi_storage.get_driver(conf)
+    if not incoming:
+        incoming = gnocchi_storage.get_incoming_driver(conf)
     if not indexer:
         indexer = gnocchi_indexer.get_driver(conf)
         indexer.connect()
@@ -104,6 +108,7 @@ def load_app(conf, indexer=None, storage=None,
             __name__, "api-paste.ini"))
 
     config = dict(conf=conf, indexer=indexer, storage=storage,
+                  incoming=incoming,
                   not_implemented_middleware=not_implemented_middleware)
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
@@ -116,10 +121,11 @@ def load_app(conf, indexer=None, storage=None,
     return cors.CORS(app, conf=conf)
 
 
-def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
+def _setup_app(root, conf, indexer, storage, incoming,
+               not_implemented_middleware):
     app = pecan.make_app(
         root,
-        hooks=(GnocchiHook(storage, indexer, conf),),
+        hooks=(GnocchiHook(storage, indexer, incoming, conf),),
         guess_content_type_from_ext=False,
     )
 
