@@ -27,6 +27,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}; do
         unset STORAGE_URL
         unset INDEXER_URL
+        unset GNOCCHI_NOTIFIER_URL
         case $storage in
             ceph)
                 eval $(pifpaf -e STORAGE run ceph)
@@ -48,9 +49,14 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                 STORAGE_URL=file://
                 ;;
 
-            swift|redis)
+            redis)
+                eval $(pifpaf -e STORAGE run $storage)
+                export GNOCCHI_NOTIFIER_URL=$STORAGE_URL
+                ;;
+            swift)
                 eval $(pifpaf -e STORAGE run $storage)
                 ;;
+
             *)
                 echo "Unsupported storage backend by functional tests: $storage"
                 exit 1

@@ -342,6 +342,12 @@ class TestCase(BaseTestCase):
                     os.getenv("CEPH_CONF"), pool_name), shell=True,
                     stdout=f, stderr=subprocess.STDOUT)
             self.conf.set_override('ceph_pool', pool_name, 'storage')
+        elif self.conf.storage.driver == 'redis':
+            # When testing storage/incoming with Redis,
+            # also use it as notifier
+            self.conf.set_override("url",
+                                   self.conf.storage.redis_url,
+                                   "notifier")
 
         # Override the bucket prefix to be unique to avoid concurrent access
         # with any other test

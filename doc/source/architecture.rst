@@ -115,4 +115,8 @@ Available notification back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to notify worker of new jobs, it's advised (but optional) to use a
-notifier. There is no driver currently.
+notifier. Currently, this driver is supported:
+
+* `Redis`_
+
+.. _`Redis`: https://redis.io
