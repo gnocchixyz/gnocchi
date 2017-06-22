@@ -29,6 +29,7 @@ import monotonic
 import numpy
 import pandas as pd
 import six
+from stevedore import driver
 import tenacity
 from tooz import coordination
 
@@ -299,3 +300,12 @@ class StopWatch(object):
         self._stopped_at = monotonic.monotonic()
         self._state = self._STOPPED
         return self
+
+
+def get_driver_class(namespace, conf):
+    """Return the storage driver class.
+
+    :param conf: The conf to use to determine the driver.
+    """
+    return driver.DriverManager(namespace,
+                                conf.driver).driver

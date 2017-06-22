@@ -23,6 +23,7 @@ import daiquiri
 from oslo_config import cfg
 import six
 
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
@@ -35,7 +36,7 @@ LOG = daiquiri.getLogger(__name__)
 class Stats(object):
     def __init__(self, conf):
         self.conf = conf
-        self.incoming = storage.get_incoming_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
         self.indexer = indexer.get_driver(self.conf)
         self.indexer.connect()
         try:

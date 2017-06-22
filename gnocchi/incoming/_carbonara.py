@@ -22,7 +22,7 @@ import daiquiri
 import pandas
 import six
 
-from gnocchi.storage import incoming
+from gnocchi import incoming
 from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)

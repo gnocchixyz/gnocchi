@@ -28,6 +28,7 @@ from stevedore import driver
 import webob.exc
 
 from gnocchi import exceptions
+from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi import service
@@ -103,7 +104,7 @@ def load_app(conf, indexer=None, storage=None, incoming=None,
     if not storage:
         storage = gnocchi_storage.get_driver(conf)
     if not incoming:
-        incoming = gnocchi_storage.get_incoming_driver(conf)
+        incoming = gnocchi_incoming.get_driver(conf)
     if not indexer:
         indexer = gnocchi_indexer.get_driver(conf)
         indexer.connect()
