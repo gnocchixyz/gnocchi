@@ -401,7 +401,7 @@ class MetricController(rest.RestController):
         if not isinstance(params, list):
             abort(400, "Invalid input for measures")
         if params:
-            pecan.request.storage.incoming.add_measures(
+            pecan.request.incoming.add_measures(
                 self.metric, MeasuresListSchema(params))
         pecan.response.status = 202
 
@@ -440,10 +440,10 @@ class MetricController(rest.RestController):
                 abort(400, e)
 
         if (strtobool("refresh", refresh) and
-                pecan.request.storage.incoming.has_unprocessed(self.metric)):
+                pecan.request.incoming.has_unprocessed(self.metric)):
             try:
                 pecan.request.storage.refresh_metric(
-                    pecan.request.indexer, self.metric,
+                    pecan.request.indexer, pecan.request.incoming, self.metric,
                     pecan.request.conf.api.refresh_timeout)
             except storage.SackLockTimeoutError as e:
                 abort(503, e)
@@ -1462,7 +1462,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
-        pecan.request.storage.incoming.add_measures_batch(
+        pecan.request.incoming.add_measures_batch(
             dict((metric,
                  body_by_rid[metric.resource_id][metric.name])
                  for metric in known_metrics))
@@ -1494,7 +1494,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         for metric in metrics:
             enforce("post measures", metric)
 
-        pecan.request.storage.incoming.add_measures_batch(
+        pecan.request.incoming.add_measures_batch(
             dict((metric, body[metric.id]) for metric in
                  metrics))
 
@@ -1699,13 +1699,13 @@ class AggregationController(rest.RestController):
 
         try:
             if strtobool("refresh", refresh):
-                store = pecan.request.storage
                 metrics_to_update = [
-                    m for m in metrics if store.incoming.has_unprocessed(m)]
+                    m for m in metrics
+                    if pecan.request.incoming.has_unprocessed(m)]
                 for m in metrics_to_update:
                     try:
                         pecan.request.storage.refresh_metric(
-                            pecan.request.indexer, m,
+                            pecan.request.indexer, pecan.request.incoming, m,
                             pecan.request.conf.api.refresh_timeout)
                     except storage.SackLockTimeoutError as e:
                         abort(503, e)
@@ -1768,7 +1768,7 @@ class StatusController(rest.RestController):
     def get(details=True):
         enforce("get status", {})
         try:
-            report = pecan.request.storage.incoming.measures_report(
+            report = pecan.request.incoming.measures_report(
                 strtobool("details", details))
         except incoming.ReportGenerationError:
             abort(503, 'Unable to generate status. Please retry.')

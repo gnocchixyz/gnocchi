@@ -31,6 +31,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
 
+    def __str__(self):
+        return self.__class__.__name__
+
     def get_storage_sacks(self):
         try:
             __, data = self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)

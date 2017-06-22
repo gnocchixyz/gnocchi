@@ -42,7 +42,7 @@ class TestStatsd(tests_base.TestCase):
 
         self.stats = statsd.Stats(self.conf)
         # Replace storage/indexer with correct ones that have been upgraded
-        self.stats.storage = self.storage
+        self.stats.incoming = self.incoming
         self.stats.indexer = self.index
         self.server = statsd.StatsdServer(self.stats)
 
@@ -65,10 +65,11 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
-        self.stats.storage.process_background_tasks(
-            self.stats.indexer, [str(metric.id)], sync=True)
+        self.storage.process_background_tasks(
+            self.stats.indexer, self.stats.incoming,
+            [str(metric.id)], sync=True)
 
-        measures = self.stats.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric)
         self.assertEqual([
             (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
             (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
@@ -85,10 +86,11 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.stats.storage.process_background_tasks(
-            self.stats.indexer, [str(metric.id)], sync=True)
+        self.storage.process_background_tasks(
+            self.stats.indexer, self.stats.incoming,
+            [str(metric.id)], sync=True)
 
-        measures = self.stats.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric)
         self.assertEqual([
             (utils.datetime_utc(2015, 1, 7), 86400.0, 1.5),
             (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.5),
@@ -118,10 +120,11 @@ class TestStatsd(tests_base.TestCase):
         metric = r.get_metric(metric_key)
         self.assertIsNotNone(metric)
 
-        self.stats.storage.process_background_tasks(
-            self.stats.indexer, [str(metric.id)], sync=True)
+        self.storage.process_background_tasks(
+            self.stats.indexer, self.stats.incoming,
+            [str(metric.id)], sync=True)
 
-        measures = self.stats.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric)
         self.assertEqual([
             (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
             (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
@@ -136,10 +139,11 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.stats.storage.process_background_tasks(
-            self.stats.indexer, [str(metric.id)], sync=True)
+        self.storage.process_background_tasks(
+            self.stats.indexer, self.stats.incoming,
+            [str(metric.id)], sync=True)
 
-        measures = self.stats.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric)
         self.assertEqual([
             (utils.datetime_utc(2015, 1, 7), 86400.0, 28),
             (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 28),

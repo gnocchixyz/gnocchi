@@ -60,9 +60,10 @@ class TestAggregates(tests_base.TestCase):
             utils.dt_in_unix_ns(start_time + incr * n), val)
             for n, val in enumerate(data)]
         self.index.create_metric(metric.id, str(uuid.uuid4()), 'medium')
-        self.storage.incoming.add_measures(metric, measures)
-        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
-        self.storage.process_background_tasks(self.index, metrics, sync=True)
+        self.incoming.add_measures(metric, measures)
+        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
+        self.storage.process_background_tasks(
+            self.index, self.incoming, metrics, sync=True)
 
         return metric
 
@@ -87,7 +88,7 @@ class TestAggregates(tests_base.TestCase):
             self.assertEqual(39.0, result[datetime.datetime(2014, 1, 1, 12)])
             self.assertEqual(25.5,
                              result[datetime.datetime(2014, 1, 1, 12, 1)])
-        self.storage.delete_metric(metric)
+        self.storage.delete_metric(self.incoming, metric)
 
     def test_compute_moving_average(self):
         metric = self._test_create_metric_and_data([69, 42, 6, 44, 7],
@@ -113,4 +114,4 @@ class TestAggregates(tests_base.TestCase):
         # there are only two points in the retrieved data seems weird.
         # better to raise an error or return nan in this case?
 
-        self.storage.delete_metric(metric)
+        self.storage.delete_metric(self.incoming, metric)

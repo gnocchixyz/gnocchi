@@ -63,8 +63,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     _consistency_wait = tenacity.wait_exponential(multiplier=0.1)
 
-    def __init__(self, conf, incoming, coord=None):
-        super(S3Storage, self).__init__(conf, incoming, coord)
+    def __init__(self, conf, coord=None):
+        super(S3Storage, self).__init__(conf, coord)
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )
@@ -78,8 +78,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._bucket_name)
 
-    def upgrade(self, num_sacks):
-        super(S3Storage, self).upgrade(num_sacks)
+    def upgrade(self):
+        super(S3Storage, self).upgrade()
         try:
             s3.create_bucket(self.s3, self._bucket_name, self._region_name)
         except botocore.exceptions.ClientError as e:

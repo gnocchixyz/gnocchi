@@ -55,10 +55,12 @@ def upgrade():
                     help="Skip index upgrade."),
         cfg.BoolOpt("skip-storage", default=False,
                     help="Skip storage upgrade."),
+        cfg.BoolOpt("skip-incoming", default=False,
+                    help="Skip incoming storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
         cfg.IntOpt("sacks-number", default=128, min=1,
-                   help="Number of storage sacks to create."),
+                   help="Number of incoming storage sacks to create."),
 
     ])
     conf = service.prepare_service(conf=conf, log_to_std=True)
@@ -70,7 +72,11 @@ def upgrade():
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(conf.sacks_number)
+        s.upgrade()
+    if not conf.skip_incoming:
+        i = storage.get_incoming_driver(conf)
+        LOG.info("Upgrading incoming storage %s", i)
+        i.upgrade(conf.sacks_number)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()
@@ -90,7 +96,7 @@ def change_sack_size():
                    help="Number of storage sacks."),
     ])
     conf = service.prepare_service(conf=conf, log_to_std=True)
-    s = storage.get_incoming_driver(conf.incoming)
+    s = storage.get_incoming_driver(conf)
     try:
         report = s.measures_report(details=False)
     except incoming.SackDetectionError:
@@ -122,6 +128,7 @@ class MetricProcessBase(cotyledon.Service):
 
     def _configure(self):
         self.store = storage.get_driver(self.conf)
+        self.incoming = storage.get_incoming_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
@@ -159,7 +166,7 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = storage.get_incoming_driver(self.conf.incoming)
+        self.incoming = storage.get_incoming_driver(self.conf)
 
     def _run_job(self):
         try:
@@ -191,12 +198,13 @@ class MetricProcessor(MetricProcessBase):
     @utils.retry
     def _configure(self):
         self.store = storage.get_driver(self.conf, self.coord)
+        self.incoming = storage.get_incoming_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
-            six.moves.range(self.store.incoming.NUM_SACKS))
+            six.moves.range(self.incoming.NUM_SACKS))
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
@@ -226,7 +234,7 @@ class MetricProcessor(MetricProcessBase):
                     self.group_state != self.partitioner.ring.nodes):
                 self.group_state = self.partitioner.ring.nodes.copy()
                 self._tasks = [
-                    i for i in six.moves.range(self.store.incoming.NUM_SACKS)
+                    i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
         finally:
@@ -235,17 +243,17 @@ class MetricProcessor(MetricProcessBase):
     def _run_job(self):
         m_count = 0
         s_count = 0
-        in_store = self.store.incoming
         for s in self._get_tasks():
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
-            lock = in_store.get_sack_lock(self.coord, s)
+            lock = self.incoming.get_sack_lock(self.coord, s)
             if not lock.acquire(blocking=False):
                 continue
             try:
-                metrics = in_store.list_metric_with_measures_to_process(s)
+                metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(self.index, metrics)
+                self.store.process_background_tasks(
+                    self.index, self.incoming, metrics)
                 s_count += 1
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
@@ -267,7 +275,7 @@ class MetricJanitor(MetricProcessBase):
 
     def _run_job(self):
         try:
-            self.store.expunge_metrics(self.index)
+            self.store.expunge_metrics(self.incoming, self.index)
             LOG.debug("Metrics marked for deletion removed from backend")
         except Exception:
             LOG.error("Unexpected error during metric cleanup", exc_info=True)
@@ -305,13 +313,15 @@ def metricd_tester(conf):
     index = indexer.get_driver(conf)
     index.connect()
     s = storage.get_driver(conf)
+    incoming = storage.get_incoming_driver(conf)
     metrics = set()
-    for i in six.moves.range(s.incoming.NUM_SACKS):
-        metrics.update(s.incoming.list_metric_with_measures_to_process(i))
+    for i in six.moves.range(incoming.NUM_SACKS):
+        metrics.update(incoming.list_metric_with_measures_to_process(i))
         if len(metrics) >= conf.stop_after_processing_metrics:
             break
     s.process_new_measures(
-        index, list(metrics)[:conf.stop_after_processing_metrics], True)
+        index, incoming,
+        list(metrics)[:conf.stop_after_processing_metrics], True)
 
 
 def api():

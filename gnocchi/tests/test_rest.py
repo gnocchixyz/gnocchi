@@ -62,6 +62,7 @@ class TestingApp(webtest.TestApp):
         self.auth_mode = kwargs.pop('auth_mode')
         self.storage = kwargs.pop('storage')
         self.indexer = kwargs.pop('indexer')
+        self.incoming = kwargs.pop('incoming')
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.token = self.VALID_TOKEN
@@ -127,8 +128,9 @@ class TestingApp(webtest.TestApp):
         elif self.auth_mode == "remoteuser":
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
-        self.storage.process_background_tasks(self.indexer, metrics, sync=True)
+        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
+        self.storage.process_background_tasks(
+            self.indexer, self.incoming, metrics, sync=True)
         return response
 
 
@@ -173,9 +175,11 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            indexer=self.index,
                                            storage=self.storage,
+                                           incoming=self.incoming,
                                            not_implemented_middleware=False),
                               storage=self.storage,
                               indexer=self.index,
+                              incoming=self.incoming,
                               auth_mode=self.auth_mode)
 
     # NOTE(jd) Used at least by docs
