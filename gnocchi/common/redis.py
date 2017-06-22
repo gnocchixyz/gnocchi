@@ -104,8 +104,6 @@ def get_client(conf):
         else:
             v = options[a][-1]
         kwargs[a] = v
-    if 'socket_timeout' not in kwargs:
-        kwargs['socket_timeout'] = CLIENT_DEFAULT_SOCKET_TO
 
     # Ask the sentinel for the current master if there is a
     # sentinel arg.
