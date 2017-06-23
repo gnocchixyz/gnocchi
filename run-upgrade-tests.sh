@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
@@ -30,7 +31,7 @@ inject_data() {
     # situation
 
     for resource_id in ${RESOURCE_IDS[@]}; do
-        gnocchi resource create generic --attribute id:$resource_id -n metric:high > /dev/null
+        gnocchi --debug resource create generic --attribute id:$resource_id -n metric:high > /dev/null
     done
 
     {
@@ -67,10 +68,11 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
+wget -v http://localhost:8041/v1 || true
 inject_data $GNOCCHI_DATA
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
