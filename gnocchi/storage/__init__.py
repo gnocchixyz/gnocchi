@@ -32,6 +32,10 @@ OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
+class SackLockTimeoutError(Exception):
+        pass
+
+
 class Measure(object):
     def __init__(self, timestamp, value):
         self.timestamp = timestamp
