@@ -19,8 +19,8 @@ import uuid
 
 import six
 
+from gnocchi.common import swift
 from gnocchi.incoming import _carbonara
-from gnocchi.storage.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils

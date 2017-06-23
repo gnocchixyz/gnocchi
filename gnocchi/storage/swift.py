@@ -16,9 +16,9 @@
 
 from oslo_config import cfg
 
+from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils

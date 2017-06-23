@@ -18,9 +18,9 @@ import os
 from oslo_config import cfg
 import tenacity
 
+from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.common import s3
 
 boto3 = s3.boto3
 botocore = s3.botocore

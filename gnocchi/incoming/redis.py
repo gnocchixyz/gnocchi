@@ -17,8 +17,8 @@ import contextlib
 
 import six
 
+from gnocchi.common import redis
 from gnocchi.incoming import _carbonara
-from gnocchi.storage.common import redis
 
 
 class RedisStorage(_carbonara.CarbonaraBasedStorage):
