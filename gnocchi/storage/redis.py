@@ -15,9 +15,9 @@
 # under the License.
 from oslo_config import cfg
 
+from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.common import redis
 
 
 OPTS = [

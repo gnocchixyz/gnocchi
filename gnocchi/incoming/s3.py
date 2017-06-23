@@ -21,8 +21,8 @@ import uuid
 
 import six
 
+from gnocchi.common import s3
 from gnocchi.incoming import _carbonara
-from gnocchi.storage.common import s3
 
 boto3 = s3.boto3
 botocore = s3.botocore

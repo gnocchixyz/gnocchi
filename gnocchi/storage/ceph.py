@@ -16,9 +16,9 @@
 
 from oslo_config import cfg
 
+from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.common import ceph
 
 
 OPTS = [

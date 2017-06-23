@@ -19,8 +19,8 @@ import uuid
 
 import six
 
+from gnocchi.common import ceph
 from gnocchi.incoming import _carbonara
-from gnocchi.storage.common import ceph
 
 rados = ceph.rados
 
