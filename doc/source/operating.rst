@@ -13,14 +13,15 @@ To run Gnocchi, simply run the HTTP server and metric daemon:
 Running API As A WSGI Application
 =================================
 
-The Gnocchi API tier runs using WSGI. This means it can be run using `Apache
-httpd`_ and `mod_wsgi`_, or other HTTP daemon such as `uwsgi`_. You should
-configure the number of process and threads according to the number of CPU you
-have, usually around 1.5 × number of CPU. If one server is not enough, you can
-spawn any number of new API server to scale Gnocchi out, even on different
-machines.
+To run Gnocchi API, you can use the provided `gnocchi-api`. It wraps around
+`uwsgi` – makes sure that `uwsgi`_ is installed. If one Gnocchi API server is
+not enough, you can spawn any number of new API server to scale Gnocchi out,
+even on different machines.
 
-The following uwsgi configuration file can be used::
+Since Gnocchi API tier runs using WSGI, it can alternatively be run using
+`Apache httpd`_ and `mod_wsgi`_, or any other HTTP daemon. If you want to
+deploy using `uwsgi`_ yourself, the following uwsgi configuration file can be
+used as a base::
 
   [uwsgi]
   http = localhost:8041
@@ -36,6 +37,10 @@ The following uwsgi configuration file can be used::
   plugins = python
   buffer-size = 65535
   lazy-apps = true
+  add-header = Connection: close
+
+You should configure the number of processes according to the number of CPU you
+have, usually around 1.5 × number of CPU.
 
 Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
 
