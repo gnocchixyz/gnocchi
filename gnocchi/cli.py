@@ -194,7 +194,7 @@ class MetricProcessor(MetricProcessBase):
             six.moves.range(self.store.incoming.NUM_SACKS))
         try:
             self.partitioner = self.coord.join_partitioned_group(
-                self.GROUP_ID, partitions=200)
+                self.GROUP_ID, partitions=self.store.incoming.NUM_SACKS)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
 
             @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
