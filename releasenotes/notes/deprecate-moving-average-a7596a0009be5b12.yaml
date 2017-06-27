@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    ``moving_average`` aggregate is deprecated.
