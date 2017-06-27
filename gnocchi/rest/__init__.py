@@ -17,6 +17,7 @@
 import functools
 import itertools
 import uuid
+import warnings
 
 import jsonpatch
 import pecan
@@ -448,6 +449,8 @@ class MetricController(rest.RestController):
                 abort(503, e)
         try:
             if aggregation in self.custom_agg:
+                warnings.warn("moving_average aggregation is deprecated.",
+                              category=DeprecationWarning)
                 measures = self.custom_agg[aggregation].compute(
                     pecan.request.storage, self.metric,
                     start, stop, **param)
