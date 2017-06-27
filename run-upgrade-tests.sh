@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
@@ -30,9 +31,10 @@ inject_data() {
     # situation
 
     for resource_id in ${RESOURCE_IDS[@]}; do
-        gnocchi resource create generic --attribute id:$resource_id -n metric:high > /dev/null
+        gnocchi --debug resource create generic --attribute id:$resource_id -n metric:high > /dev/null
     done
 
+    set +x
     {
         measures_sep=""
         MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
@@ -44,6 +46,7 @@ inject_data() {
         done
         echo -n '}'
     } | gnocchi measures batch-resources-metrics -
+    set -x
 
     echo "* Waiting for measures computation"
     while [ $(gnocchi status -f value -c "storage/total number of measures to process") -gt 0 ]; do sleep 1 ; done
@@ -67,7 +70,7 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
