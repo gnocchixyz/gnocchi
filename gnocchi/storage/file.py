@@ -42,6 +42,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
         utils.ensure_paths([self.basepath_tmp])
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, str(self.basepath))
+
     def _atomic_file_store(self, dest, data):
         tmpfile = tempfile.NamedTemporaryFile(
             prefix='gnocchi', dir=self.basepath_tmp,

@@ -25,6 +25,11 @@ from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi.storage import ceph
+from gnocchi.storage import file
+from gnocchi.storage import redis
+from gnocchi.storage import s3
+from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
@@ -42,6 +47,23 @@ class TestStorageDriver(tests_base.TestCase):
         m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),
                                          archive_policy_name)
         return m, m_sql
+
+    def test_driver_str(self):
+        driver = storage.get_driver(self.conf)
+
+        if isinstance(driver, file.FileStorage):
+            s = driver.basepath
+        elif isinstance(driver, ceph.CephStorage):
+            s = driver.rados.get_fsid()
+        elif isinstance(driver, redis.RedisStorage):
+            s = driver._client
+        elif isinstance(driver, s3.S3Storage):
+            s = driver._bucket_name
+        elif isinstance(driver, swift.SwiftStorage):
+            s = driver._container_prefix
+
+        self.assertEqual(str(driver), "%s: %s" % (
+                         driver.__class__.__name__, s))
 
     def trigger_processing(self, metrics=None):
         if metrics is None:
