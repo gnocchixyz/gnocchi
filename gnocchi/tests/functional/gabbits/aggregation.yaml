@@ -70,8 +70,20 @@ tests:
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=foobar
       status: 400
 
-    - name: get measure aggregates by granularity with refresh
+    - name: GET measure aggregates by granularity with refresh
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&refresh=true
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+
+    - name: POST measure aggregates by granularity with refresh
+      POST: /v1/aggregation/metric?granularity=1&refresh=true
+      request_headers:
+          content-type: application/json
+      data:
+        - $HISTORY['get metric list'].$RESPONSE['$[0].id']
+        - $HISTORY['get metric list'].$RESPONSE['$[1].id']
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
