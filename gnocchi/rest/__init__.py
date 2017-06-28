@@ -1557,7 +1557,7 @@ class AggregationResourceController(rest.RestController):
 
 class AggregationController(rest.RestController):
     _custom_actions = {
-        'metric': ['GET'],
+        'metric': ['POST', 'GET'],
     }
 
     @pecan.expose()
@@ -1668,13 +1668,20 @@ class AggregationController(rest.RestController):
         except storage.AggregationDoesNotExist as e:
             abort(404, e)
 
+    MetricIDsSchema = [utils.UUID]
+
     @pecan.expose('json')
     def get_metric(self, metric=None, start=None, stop=None,
                    aggregation='mean', reaggregation=None, granularity=None,
                    needed_overlap=100.0, fill=None,
                    refresh=False, resample=None):
+        if pecan.request.method == 'GET':
+            metric_ids = arg_to_list(metric)
+        else:
+            self._workaround_pecan_issue_88()
+            body = deserialize_and_validate(self.MetricIDsSchema)
+            metric_ids = [six.text_type(m) for m in body]
         # Check RBAC policy
-        metric_ids = arg_to_list(metric)
         metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
         missing_metric_ids = (set(metric_ids)
                               - set(six.text_type(m.id) for m in metrics))
@@ -1685,6 +1692,13 @@ class AggregationController(rest.RestController):
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
             granularity, needed_overlap, fill, refresh, resample)
+
+    post_metric = get_metric
+
+    def _workaround_pecan_issue_88(self):
+        # FIXME(sileht): https://github.com/pecan/pecan/pull/88
+        if pecan.request.path_info.startswith("/aggregation/resource"):
+            pecan.abort(405)
 
 
 class CapabilityController(rest.RestController):
