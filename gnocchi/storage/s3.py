@@ -75,6 +75,9 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         else:
             self._consistency_stop = None
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self._bucket_name)
+
     def upgrade(self, num_sacks):
         super(S3Storage, self).upgrade(num_sacks)
         try:
