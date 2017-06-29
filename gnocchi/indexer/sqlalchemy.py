@@ -288,6 +288,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         self.conf = conf
         self.facade = PerInstanceFacade(conf)
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self.conf.indexer.url)
+
     def disconnect(self):
         self.facade.dispose()
 

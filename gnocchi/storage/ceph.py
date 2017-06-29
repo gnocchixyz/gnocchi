@@ -47,6 +47,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         super(CephStorage, self).__init__(conf, incoming, coord)
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
 
+    def __str__(self):
+        # Use cluster ID for now
+        return "%s: %s" % (self.__class__.__name__, self.rados.get_fsid())
+
     def stop(self):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()

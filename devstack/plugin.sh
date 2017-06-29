@@ -40,13 +40,6 @@ if [ -z "$GNOCCHI_DEPLOY" ]; then
     # Fallback to common wsgi devstack configuration
     if [ "$ENABLE_HTTPD_MOD_WSGI_SERVICES" == "True" ]; then
         GNOCCHI_DEPLOY=mod_wsgi
-
-    # Deprecated config
-    elif [ -n "$GNOCCHI_USE_MOD_WSGI" ] ; then
-        echo_summary "GNOCCHI_USE_MOD_WSGI is deprecated, use GNOCCHI_DEPLOY instead"
-        if [ "$GNOCCHI_USE_MOD_WSGI" == True ]; then
-            GNOCCHI_DEPLOY=mod_wsgi
-        fi
     fi
 fi
 
@@ -233,8 +226,7 @@ function configure_gnocchi {
 
     if is_service_enabled gnocchi-statsd ; then
         iniset $GNOCCHI_CONF statsd resource_id $GNOCCHI_STATSD_RESOURCE_ID
-        iniset $GNOCCHI_CONF statsd project_id $GNOCCHI_STATSD_PROJECT_ID
-        iniset $GNOCCHI_CONF statsd user_id $GNOCCHI_STATSD_USER_ID
+        iniset $GNOCCHI_CONF statsd creator $GNOCCHI_STATSD_CREATOR
     fi
 
     # Configure the storage driver
