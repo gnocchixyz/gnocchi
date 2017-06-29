@@ -35,11 +35,10 @@ before_script:
     esac
 install:
   - docker pull gnocchixyz/ci-tools:latest
-  # Allow docker to write in home directory
-  - chmod -R o+w ~/
-  - find ~/ -type d -exec chmod o+x {} \;
+  - chown -R 1000: .
+  - chown -R 1000: ~/.cache/pip
 script:
-  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
+  - docker run --user 1000 -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
 notifications:
   email: false
