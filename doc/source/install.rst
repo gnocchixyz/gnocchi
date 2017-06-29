@@ -196,6 +196,13 @@ deployment on Gnocchi (indexer and storage included).
 
 .. _gnocchi-docker repository: https://github.com/gnocchixyz/gnocchi-docker
 
+Installation using OpenShift
+============================
+The `gnocchi-openshift repository`_ contains the needed Dockerfile and script
+to build a Docker image containing Gnocchi latest version (fetched from PyPI).
+
+.. _gnocchi-openshift repository: https://github.com/gnocchixyz/gnocchi-openshift
+
 Installation Using Devstack
 ===========================
 
