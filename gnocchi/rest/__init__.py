@@ -1738,11 +1738,16 @@ class AggregationController(rest.RestController):
                    needed_overlap=100.0, fill=None,
                    refresh=False, resample=None):
         if pecan.request.method == 'GET':
-            metric_ids = arg_to_list(metric)
+            try:
+                metric_ids = voluptuous.Schema(
+                    self.MetricIDsSchema, required=True)(arg_to_list(metric))
+            except voluptuous.Error as e:
+                abort(400, "Invalid input: %s" % e)
         else:
             self._workaround_pecan_issue_88()
-            body = deserialize_and_validate(self.MetricIDsSchema)
-            metric_ids = [six.text_type(m) for m in body]
+            metric_ids = deserialize_and_validate(self.MetricIDsSchema)
+
+        metric_ids = [six.text_type(m) for m in metric_ids]
         # Check RBAC policy
         metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
         missing_metric_ids = (set(metric_ids)
