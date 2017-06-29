@@ -73,6 +73,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self._container_prefix)
+
     def _container_name(self, metric):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 

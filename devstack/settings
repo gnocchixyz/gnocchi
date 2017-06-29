@@ -17,7 +17,7 @@ GNOCCHI_METRICD_PROCESSING_DELAY=${GNOCCHI_METRICD_PROCESSING_DELAY:-5}
 # - mod_wsgi : Run Gnocchi under Apache HTTPd mod_wsgi
 # - simple : Run gnocchi-api
 # - uwsgi : Run Gnocchi under uwsgi
-# - <empty>: Fallback to GNOCCHI_USE_MOD_WSGI or ENABLE_HTTPD_MOD_WSGI_SERVICES
+# - <empty>: Fallback to ENABLE_HTTPD_MOD_WSGI_SERVICES
 GNOCCHI_DEPLOY=${GNOCCHI_DEPLOY}
 
 # Toggle for deploying Gnocchi with/without Keystone

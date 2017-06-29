@@ -40,13 +40,6 @@ if [ -z "$GNOCCHI_DEPLOY" ]; then
     # Fallback to common wsgi devstack configuration
     if [ "$ENABLE_HTTPD_MOD_WSGI_SERVICES" == "True" ]; then
         GNOCCHI_DEPLOY=mod_wsgi
-
-    # Deprecated config
-    elif [ -n "$GNOCCHI_USE_MOD_WSGI" ] ; then
-        echo_summary "GNOCCHI_USE_MOD_WSGI is deprecated, use GNOCCHI_DEPLOY instead"
-        if [ "$GNOCCHI_USE_MOD_WSGI" == True ]; then
-            GNOCCHI_DEPLOY=mod_wsgi
-        fi
     fi
 fi
 
