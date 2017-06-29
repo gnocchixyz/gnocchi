@@ -39,7 +39,7 @@ install:
   - chmod -R o+w ~/
   - find ~/ -type d -exec chmod o+x {} \;
 script:
-  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
+  - docker run --user $UID -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
 notifications:
   email: false
