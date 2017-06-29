@@ -118,6 +118,17 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 2.0]
 
+
+    - name: get metric list to push metric 5
+      GET: /v1/metric
+
+    - name: get measure aggregates non existing granularity
+      desc: https://github.com/gnocchixyz/gnocchi/issues/148
+      GET: /v1/aggregation/metric?metric=$RESPONSE['$[0].id']&granularity=42
+      status: 404
+      response_strings:
+        - Granularity '42.0' for metric
+
 # Aggregation by resource and metric_name
 
     - name: post a resource
