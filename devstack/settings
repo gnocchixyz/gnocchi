@@ -17,7 +17,7 @@ GNOCCHI_METRICD_PROCESSING_DELAY=${GNOCCHI_METRICD_PROCESSING_DELAY:-5}
 # - mod_wsgi : Run Gnocchi under Apache HTTPd mod_wsgi
 # - simple : Run gnocchi-api
 # - uwsgi : Run Gnocchi under uwsgi
-# - <empty>: Fallback to GNOCCHI_USE_MOD_WSGI or ENABLE_HTTPD_MOD_WSGI_SERVICES
+# - <empty>: Fallback to ENABLE_HTTPD_MOD_WSGI_SERVICES
 GNOCCHI_DEPLOY=${GNOCCHI_DEPLOY}
 
 # Toggle for deploying Gnocchi with/without Keystone
@@ -41,8 +41,7 @@ GNOCCHI_SERVICE_HOST=${GNOCCHI_SERVICE_HOST:-${SERVICE_HOST}}
 
 # Gnocchi statsd info
 GNOCCHI_STATSD_RESOURCE_ID=${GNOCCHI_STATSD_RESOURCE_ID:-$(uuidgen)}
-GNOCCHI_STATSD_USER_ID=${GNOCCHI_STATSD_USER_ID:-$(uuidgen)}
-GNOCCHI_STATSD_PROJECT_ID=${GNOCCHI_STATSD_PROJECT_ID:-$(uuidgen)}
+GNOCCHI_STATSD_CREATOR=${GNOCCHI_STATSD_CREATOR:-admin}
 
 # Ceph gnocchi info
 GNOCCHI_CEPH_USER=${GNOCCHI_CEPH_USER:-gnocchi}
