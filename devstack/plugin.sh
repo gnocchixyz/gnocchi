@@ -226,8 +226,7 @@ function configure_gnocchi {
 
     if is_service_enabled gnocchi-statsd ; then
         iniset $GNOCCHI_CONF statsd resource_id $GNOCCHI_STATSD_RESOURCE_ID
-        iniset $GNOCCHI_CONF statsd project_id $GNOCCHI_STATSD_PROJECT_ID
-        iniset $GNOCCHI_CONF statsd user_id $GNOCCHI_STATSD_USER_ID
+        iniset $GNOCCHI_CONF statsd creator $GNOCCHI_STATSD_CREATOR
     fi
 
     # Configure the storage driver
