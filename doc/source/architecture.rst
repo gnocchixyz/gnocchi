@@ -35,10 +35,10 @@ The *indexer* is responsible for storing the index of all resources, archive
 policies and metrics, along with their definitions, types and properties. The
 indexer is also responsible for linking resources with metrics.
 
-Available storage back-ends
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Available incoming and storage back-ends
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Gnocchi currently offers different storage drivers:
+Gnocchi currently offers different incoming and storage drivers:
 
 * File (default)
 * `Ceph`_ (preferred)

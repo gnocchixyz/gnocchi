@@ -48,7 +48,10 @@ Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
 How to define archive policies
 ==============================
 
-In Gnocchi, the archive policy definitions are expressed in number of points.
+In Gnocchi, the archive policies define how the metrics are aggregated and how
+long they are stored. Each archive policy definition is expressed as the number
+of points over a timespan.
+
 If your archive policy defines a policy of 10 points with a granularity of 1
 second, the time series archive will keep up to 10 seconds, each representing
 an aggregation over 1 second. This means the time series will at maximum retain
@@ -77,13 +80,16 @@ it will consume. Therefore, creating an archive policy with 2 definitons (e.g.
 consume twice CPU than just one definition (e.g. just 1 second granularity for
 1 day).
 
+Each archive policy also defines which aggregation methods will be used. The
+default is set to `default_aggregation_methods` which is by default set to
+*mean*, *min*, *max*, *sum*, *std*, *count*.
+
 Default archive policies
 ========================
 
 By default, 3 archive policies are created when calling `gnocchi-upgrade`:
 *low*, *medium* and *high*. The name both describes the storage space and CPU
-usage needs. They use `default_aggregation_methods` which is by default set to
-*mean*, *min*, *max*, *sum*, *std*, *count*.
+usage needs.
 
 A fourth archive policy named `bool` is also provided by default and is
 designed to store only boolean values (i.e. 0 and 1). It only stores one data
@@ -228,9 +234,12 @@ How to monitor Gnocchi
 
 The `/v1/status` endpoint of the HTTP API returns various information, such as
 the number of measures to process (measures backlog), which you can easily
-monitor (see `How many metricd workers do we need to run`_). Making sure that
-the HTTP server and `gnocchi-metricd` daemon are running and are not writing
-anything alarming in their logs is a sign of good health of the overall system.
+monitor (see `How many metricd workers do we need to run`_). The Gnocchi client
+can show this output by running `gnocchi status`.
+
+Making sure that the HTTP server and `gnocchi-metricd` daemon are running and
+are not writing anything alarming in their logs is a sign of good health of the
+overall system.
 
 Total measures for backlog status may not accurately reflect the number of
 points to be processed when measures are submitted via batch.

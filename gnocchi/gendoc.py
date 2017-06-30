@@ -107,12 +107,39 @@ class ScenarioList(list):
 
 
 multiversion_hack = """
+import subprocess
 import sys
 import os
 
 srcdir = os.path.join("%s", "..", "..")
 os.chdir(srcdir)
 sys.path.insert(0, srcdir)
+
+version = sys.argv[1]
+
+# NOTE(sileht): We delete releasenotes from old documentation
+# only master will have it.
+if os.path.exists("doc/source/releasenotes/index.rst.backup"):
+    os.remove("doc/source/releasenotes/index.rst")
+    os.rename("doc/source/releasenotes/index.rst.backup",
+        "doc/source/releasenotes/index.rst")
+
+if version not in ["<local>", "master"] and os.path.exists("releasenotes"):
+    os.rename("doc/source/releasenotes/index.rst",
+        "doc/source/releasenotes/index.rst.backup")
+    with open("doc/source/releasenotes/index.rst", "w") as f:
+        f.write(\"\"\"
+Release Notes
+=============
+
+Releases notes can be found `here </releasenotes/index.html>`_
+
+.. raw:: html
+
+    <meta http-equiv="refresh" content="0; url=/releasenotes/index.html">
+
+
+\"\"\")
 
 class FakeApp(object):
     def info(self, *args, **kwasrgs):
@@ -136,11 +163,12 @@ def setup(app):
     if sys.argv[0].endswith("sphinx-versioning"):
         subprocess.call(["dropdb", os.environ['PGDATABASE']])
         subprocess.call(["createdb", os.environ['PGDATABASE']])
-
+        from sphinxcontrib.versioning import sphinx_
+        version = sphinx_.EventHandlers.CURRENT_VERSION
         with tempfile.NamedTemporaryFile() as f:
             f.write(multiversion_hack % app.confdir)
             f.flush()
-            subprocess.call(['python', f.name])
+            subprocess.call(['python', f.name, version])
         _RUN = True
         return
 

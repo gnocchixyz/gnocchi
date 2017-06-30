@@ -40,13 +40,6 @@ if [ -z "$GNOCCHI_DEPLOY" ]; then
     # Fallback to common wsgi devstack configuration
     if [ "$ENABLE_HTTPD_MOD_WSGI_SERVICES" == "True" ]; then
         GNOCCHI_DEPLOY=mod_wsgi
-
-    # Deprecated config
-    elif [ -n "$GNOCCHI_USE_MOD_WSGI" ] ; then
-        echo_summary "GNOCCHI_USE_MOD_WSGI is deprecated, use GNOCCHI_DEPLOY instead"
-        if [ "$GNOCCHI_USE_MOD_WSGI" == True ]; then
-            GNOCCHI_DEPLOY=mod_wsgi
-        fi
     fi
 fi
 
@@ -157,14 +150,11 @@ function _gnocchi_install_grafana {
 }
 
 function _cleanup_gnocchi_apache_wsgi {
-    sudo rm -f $GNOCCHI_WSGI_DIR/*.wsgi
     sudo rm -f $(apache_site_config_for gnocchi)
 }
 
 # _config_gnocchi_apache_wsgi() - Set WSGI config files of Gnocchi
 function _config_gnocchi_apache_wsgi {
-    sudo mkdir -p $GNOCCHI_WSGI_DIR
-
     local gnocchi_apache_conf=$(apache_site_config_for gnocchi)
     local venv_path=""
     local script_name=$GNOCCHI_SERVICE_PREFIX
@@ -172,9 +162,6 @@ function _config_gnocchi_apache_wsgi {
     if [[ ${USE_VENV} = True ]]; then
         venv_path="python-path=${PROJECT_VENV["gnocchi"]}/lib/$(python_version)/site-packages"
     fi
-
-    # copy wsgi file
-    sudo cp $GNOCCHI_DIR/gnocchi/rest/app.wsgi $GNOCCHI_WSGI_DIR/
 
     # Only run the API on a custom PORT if it has been specifically
     # asked for.
@@ -191,7 +178,7 @@ function _config_gnocchi_apache_wsgi {
     fi
     sudo sed -e "
             s|%APACHE_NAME%|$APACHE_NAME|g;
-            s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
+            s|%WSGI%|$GNOCCHI_BIN_DIR/gnocchi-api|g;
             s|%USER%|$STACK_USER|g
             s|%APIWORKERS%|$API_WORKERS|g
             s|%VIRTUALENV%|$venv_path|g
@@ -233,8 +220,7 @@ function configure_gnocchi {
 
     if is_service_enabled gnocchi-statsd ; then
         iniset $GNOCCHI_CONF statsd resource_id $GNOCCHI_STATSD_RESOURCE_ID
-        iniset $GNOCCHI_CONF statsd project_id $GNOCCHI_STATSD_PROJECT_ID
-        iniset $GNOCCHI_CONF statsd user_id $GNOCCHI_STATSD_USER_ID
+        iniset $GNOCCHI_CONF statsd creator $GNOCCHI_STATSD_CREATOR
     fi
 
     # Configure the storage driver
@@ -283,7 +269,7 @@ function configure_gnocchi {
         rm -f "$GNOCCHI_UWSGI_FILE"
 
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi http $GNOCCHI_SERVICE_HOST:$GNOCCHI_SERVICE_PORT
-        iniset "$GNOCCHI_UWSGI_FILE" uwsgi wsgi-file "/usr/local/bin/gnocchi-api"
+        iniset "$GNOCCHI_UWSGI_FILE" uwsgi wsgi-file "$GNOCCHI_BIN_DIR/gnocchi-api"
         # This is running standalone
         iniset "$GNOCCHI_UWSGI_FILE" uwsgi master true
         # Set die-on-term & exit-on-reload so that uwsgi shuts down

@@ -53,10 +53,6 @@ class CorruptionError(ValueError):
         super(CorruptionError, self).__init__(message)
 
 
-class SackLockTimeoutError(Exception):
-        pass
-
-
 class CarbonaraBasedStorage(storage.StorageDriver):
 
     def __init__(self, conf, incoming, coord=None):
@@ -361,7 +357,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         s = self.incoming.sack_for_metric(metric.id)
         lock = self.incoming.get_sack_lock(self.coord, s)
         if not lock.acquire(blocking=timeout):
-            raise SackLockTimeoutError(
+            raise storage.SackLockTimeoutError(
                 'Unable to refresh metric: %s. Metric is locked. '
                 'Please try again.' % metric.id)
         try:
