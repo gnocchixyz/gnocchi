@@ -406,7 +406,8 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
-                     granularity=None, resample=None, refresh=False, **param):
+                     granularity=None, resample=None, refresh=False,
+                     derive=False, **param):
         self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
@@ -455,7 +456,7 @@ class MetricController(rest.RestController):
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
                     Timespan(granularity) if granularity is not None else None,
-                    resample)
+                    resample, derive)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -1541,12 +1542,13 @@ class MetricsMeasuresBatchController(rest.RestController):
                 granularity = Timespan(granularity)
             except ValueError as e:
                 abort(400, e)
+        derive = kwargs.get('derive', False)
 
         metric_batch = {}
         try:
             for metric in metrics:
                 measures = pecan.request.storage.get_measures(
-                    metric, start, stop, aggregation, granularity)
+                    metric, start, stop, aggregation, granularity, derive)
                 metric_batch[str(metric.id)] = [
                     (timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -1570,7 +1572,8 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
-             groupby=None, fill=None, refresh=False, resample=None):
+             groupby=None, fill=None, refresh=False, resample=None,
+             derive=False):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1594,7 +1597,7 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
-                granularity, needed_overlap, fill, refresh, resample)
+                granularity, needed_overlap, fill, refresh, resample, derive)
 
         def groupper(r):
             return tuple((attr, r[attr]) for attr in groupby)
@@ -1608,7 +1611,8 @@ class AggregationResourceController(rest.RestController):
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation, reaggregation,
-                    granularity, needed_overlap, fill, refresh, resample)
+                    granularity, needed_overlap, fill, refresh, resample,
+                    derive)
             })
 
         return results
@@ -1639,7 +1643,8 @@ class AggregationController(rest.RestController):
                                             reaggregation=None,
                                             granularity=None,
                                             needed_overlap=100.0, fill=None,
-                                            refresh=False, resample=None):
+                                            refresh=False, resample=None,
+                                            derive=False):
         try:
             needed_overlap = float(needed_overlap)
         except ValueError:
@@ -1711,11 +1716,12 @@ class AggregationController(rest.RestController):
                 # metric
                 measures = pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
-                    granularity, resample)
+                    granularity, resample, derive)
             else:
                 measures = pecan.request.storage.get_cross_metric_measures(
                     metrics, start, stop, aggregation,
-                    reaggregation, resample, granularity, needed_overlap, fill)
+                    reaggregation, resample, granularity, needed_overlap, fill,
+                    derive)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -1731,7 +1737,7 @@ class AggregationController(rest.RestController):
     def get_metric(self, metric=None, start=None, stop=None,
                    aggregation='mean', reaggregation=None, granularity=None,
                    needed_overlap=100.0, fill=None,
-                   refresh=False, resample=None):
+                   refresh=False, resample=None, derive=False):
         # Check RBAC policy
         metric_ids = arg_to_list(metric)
         metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
@@ -1743,7 +1749,7 @@ class AggregationController(rest.RestController):
                 missing_metric_ids.pop()))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
-            granularity, needed_overlap, fill, refresh, resample)
+            granularity, needed_overlap, fill, refresh, resample, derive)
 
 
 class CapabilityController(rest.RestController):

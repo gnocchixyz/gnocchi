@@ -172,27 +172,33 @@ tests:
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       data:
           - timestamp: "2015-03-06T14:34:12"
-            value: 12
+            value: 52
       status: 202
 
     - name: get measurements by start
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34
       response_json_paths:
         $:
-          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 52.0]
 
     - name: get measurements by start with epoch
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=1425652440
       response_json_paths:
         $:
-          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 52.0]
 
     - name: get measurements from metric
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
       response_json_paths:
         $:
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
-          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 52.0]
+
+    - name: get measurements from metric with derive
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&derive=true
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 8.899999999999999]
 
     - name: push measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
@@ -210,7 +216,7 @@ tests:
       response_json_paths:
         $:
           - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
-          - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 34.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
     - name: get measurements from metric and resample no granularity

@@ -131,7 +131,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, resample=None):
+                     aggregation='mean', granularity=None, resample=None,
+                     derive=False):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
         if granularity is None:
@@ -147,6 +148,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             if resample:
                 agg_timeseries = agg_timeseries.resample(resample)
             agg_timeseries = [agg_timeseries]
+
+        if derive:
+            for i, agg in enumerate(agg_timeseries):
+                agg_timeseries[i] = agg.derive()
 
         return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
                 for ts in agg_timeseries
@@ -468,7 +473,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                   to_timestamp=None, aggregation='mean',
                                   reaggregation=None, resample=None,
                                   granularity=None, needed_overlap=100.0,
-                                  fill=None):
+                                  fill=None, derive=False):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
             aggregation, reaggregation, resample, granularity, needed_overlap)
@@ -508,6 +513,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                         from_timestamp, to_timestamp)
                                        for metric in metrics
                                        for g in granularities_in_common])
+        if derive:
+            for i, ts in enumerate(tss):
+                tss[i] = ts.derive()
 
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
