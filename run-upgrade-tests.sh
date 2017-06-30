@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+pip install -U git+https://github.com/sileht/pifpaf@sileht/ensure_kill#egg=pifpaf
+
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
@@ -75,6 +77,7 @@ inject_data $GNOCCHI_DATA
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
+ps aux
 new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
 pip install -q -U .[${GNOCCHI_VARIANT}]
