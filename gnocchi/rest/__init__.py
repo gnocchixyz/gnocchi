@@ -1722,9 +1722,9 @@ class AggregationController(rest.RestController):
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        except storage.AggregationDoesNotExist as e:
+        except (storage.MetricDoesNotExist,
+                storage.GranularityDoesNotExist,
+                storage.AggregationDoesNotExist) as e:
             abort(404, e)
 
     @pecan.expose('json')
