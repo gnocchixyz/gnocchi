@@ -150,14 +150,11 @@ function _gnocchi_install_grafana {
 }
 
 function _cleanup_gnocchi_apache_wsgi {
-    sudo rm -f $GNOCCHI_WSGI_DIR/*.wsgi
     sudo rm -f $(apache_site_config_for gnocchi)
 }
 
 # _config_gnocchi_apache_wsgi() - Set WSGI config files of Gnocchi
 function _config_gnocchi_apache_wsgi {
-    sudo mkdir -p $GNOCCHI_WSGI_DIR
-
     local gnocchi_apache_conf=$(apache_site_config_for gnocchi)
     local venv_path=""
     local script_name=$GNOCCHI_SERVICE_PREFIX
@@ -165,9 +162,6 @@ function _config_gnocchi_apache_wsgi {
     if [[ ${USE_VENV} = True ]]; then
         venv_path="python-path=${PROJECT_VENV["gnocchi"]}/lib/$(python_version)/site-packages"
     fi
-
-    # copy wsgi file
-    sudo cp $GNOCCHI_DIR/gnocchi/rest/app.wsgi $GNOCCHI_WSGI_DIR/
 
     # Only run the API on a custom PORT if it has been specifically
     # asked for.
@@ -184,7 +178,7 @@ function _config_gnocchi_apache_wsgi {
     fi
     sudo sed -e "
             s|%APACHE_NAME%|$APACHE_NAME|g;
-            s|%WSGI%|$GNOCCHI_WSGI_DIR/app.wsgi|g;
+            s|%WSGI%|$GNOCCHI_BIN_DIR/gnocchi-api|g;
             s|%USER%|$STACK_USER|g
             s|%APIWORKERS%|$API_WORKERS|g
             s|%VIRTUALENV%|$venv_path|g
