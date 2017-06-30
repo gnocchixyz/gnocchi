@@ -139,6 +139,12 @@ tests:
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=asdf
       status: 400
 
+    - name: get measure aggregates non existing granularity
+      desc: https://github.com/gnocchixyz/gnocchi/issues/148
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&granularity=42
+      status: 404
+      response_strings:
+        - Granularity '42.0' for metric
 
 # Aggregation by resource and metric_name
 
