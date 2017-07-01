@@ -9,4 +9,9 @@ do
     do
         pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
     done
+    # NOTE(sileht): Wait all storage tests
+    wait
+    # TODO(sileht): the output can be a mess with this
+    # Create a less verbose testrun output (with dot like nose ?)
+    # merge all subunit output and print it in after_script in travis
 done
