@@ -16,7 +16,6 @@
 import os
 import pkg_resources
 import uuid
-import warnings
 
 import daiquiri
 from oslo_middleware import cors
@@ -110,10 +109,6 @@ def load_app(conf, indexer=None, storage=None,
     APPCONFIGS[configkey] = config
 
     LOG.info("WSGI config used: %s", cfg_path)
-
-    if conf.api.auth_mode == "noauth":
-        warnings.warn("The `noauth' authentication mode is deprecated",
-                      category=DeprecationWarning)
 
     appname = "gnocchi+" + conf.api.auth_mode
     app = deploy.loadapp("config:" + cfg_path, name=appname,

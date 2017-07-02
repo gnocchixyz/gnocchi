@@ -7,6 +7,14 @@ cleanup(){
 }
 trap cleanup EXIT
 
+check_empty_var() {
+    local x=$(eval echo `echo \\$${1}`)
+    if [ -z "$x" ]; then
+        echo "Variable \$${1} is unset"
+        exit 15
+    fi
+}
+
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
 for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
@@ -14,6 +22,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
         case $storage in
             ceph)
                 eval $(pifpaf -e STORAGE run ceph)
+                check_empty_var STORAGE_URL
                 rados -c $STORAGE_CEPH_CONF mkpool gnocchi
                 STORAGE_URL=ceph://$STORAGE_CEPH_CONF
                 ;;
@@ -40,7 +49,10 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                 ;;
         esac
 
+        check_empty_var STORAGE_URL
+
         eval $(pifpaf -e INDEXER run $indexer)
+        check_empty_var INDEXER_URL
 
         export GNOCCHI_SERVICE_TOKEN="" # Just make gabbi happy
         export GNOCCHI_AUTHORIZATION="basic YWRtaW46" # admin in base64

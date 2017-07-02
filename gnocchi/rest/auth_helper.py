@@ -86,21 +86,6 @@ class KeystoneAuthHelper(object):
             return {"or": policy_filter}
 
 
-class NoAuthHelper(KeystoneAuthHelper):
-    @staticmethod
-    def get_current_user(request):
-        # FIXME(jd) Should be a single header
-        user_id = request.headers.get("X-User-Id")
-        project_id = request.headers.get("X-Project-Id")
-        if user_id:
-            if project_id:
-                return user_id + ":" + project_id
-            return user_id
-        if project_id:
-            return project_id
-        rest.abort(401, "Unable to determine current user")
-
-
 class BasicAuthHelper(object):
     @staticmethod
     def get_current_user(request):

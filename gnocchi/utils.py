@@ -90,7 +90,7 @@ def _enable_coordination(coord):
 
 
 def get_coordinator_and_start(url):
-    my_id = uuid.uuid4().bytes
+    my_id = str(uuid.uuid4()).encode()
     coord = coordination.get_coordinator(url, my_id)
     _enable_coordination(coord)
     return coord, my_id
