@@ -1,5 +1,6 @@
 #!/bin/bash -x
 set -e
+pip install -U git+https://github.com/sileht/pifpaf@sileht/ensure_kill#egg=pifpaf
 PIDS=""
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
