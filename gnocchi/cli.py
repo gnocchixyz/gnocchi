@@ -56,7 +56,7 @@ def upgrade():
                    help="Number of storage sacks to create."),
 
     ])
-    conf = service.prepare_service(conf=conf)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
     if not conf.skip_index:
         index = indexer.get_driver(conf)
         index.connect()
@@ -84,7 +84,7 @@ def change_sack_size():
         cfg.IntOpt("sacks-number", required=True, min=1,
                    help="Number of storage sacks."),
     ])
-    conf = service.prepare_service(conf=conf)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
     s = storage.get_incoming_driver(conf.incoming)
     try:
         report = s.measures_report(details=False)
