@@ -79,13 +79,23 @@ def round_timestamp(ts, freq):
 
 
 class GroupedTimeSeries(object):
-    def __init__(self, ts, granularity):
+    def __init__(self, ts, granularity, start=None):
         # NOTE(sileht): The whole class assumes ts is ordered and don't have
         # duplicate timestamps, it uses numpy.unique that sorted list, but
         # we always assume the orderd to be the same as the input.
+        self.granularity = granularity
         freq = granularity * 10e8
-        self._ts = ts
-        self.indexes = (numpy.array(ts.index, numpy.float) // freq) * freq
+        self.start = start
+        if start is None:
+            self._ts = ts
+            self._ts_for_derive = ts
+        else:
+            self._ts = ts[start:]
+            start_derive = start - pandas.Timedelta(freq, unit='ns')
+            self._ts_for_derive = ts[start_derive:]
+
+        self.indexes = (numpy.array(self._ts.index,
+                                    numpy.float) // freq) * freq
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
@@ -125,6 +135,7 @@ class GroupedTimeSeries(object):
         counts, timestamps = self._count()
         cumcounts = numpy.cumsum(counts) - 1
         values = self._ts.values[cumcounts]
+
         return pandas.Series(values, pandas.to_datetime(timestamps))
 
     def first(self):
@@ -156,6 +167,14 @@ class GroupedTimeSeries(object):
                         *args, **kwargs)
         timestamps = tstamps.astype('datetime64[ns]', copy=False)
         return pandas.Series(values, pandas.to_datetime(timestamps))
+
+    def derived(self):
+        timestamps = self._ts_for_derive.index[1:]
+        values = numpy.diff(self._ts_for_derive.values)
+        # FIXME(sileht): create some alternative __init__ to avoid creating
+        # useless Pandas object, recounting, timestamps convertion, ...
+        return GroupedTimeSeries(pandas.Series(values, timestamps),
+                                 self.granularity, self.start)
 
 
 class TimeSerie(object):
@@ -220,14 +239,14 @@ class TimeSerie(object):
         except IndexError:
             return
 
-    def group_serie(self, granularity, start=0):
+    def group_serie(self, granularity, start=None):
         # NOTE(jd) Our whole serialization system is based on Epoch, and we
         # store unsigned integer, so we can't store anything before Epoch.
         # Sorry!
         if not self.ts.empty and self.ts.index[0].value < 0:
             raise BeforeEpochError(self.ts.index[0])
 
-        return GroupedTimeSeries(self.ts[start:], granularity)
+        return GroupedTimeSeries(self.ts, granularity, start)
 
     @staticmethod
     def _compress(payload):
