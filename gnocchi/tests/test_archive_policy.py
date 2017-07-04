@@ -73,6 +73,15 @@ class TestArchivePolicy(base.BaseTestCase):
              .union(set(["12pct"]))),
             ap.aggregation_methods)
 
+        ap = archive_policy.ArchivePolicy("foobar",
+                                          0,
+                                          [],
+                                          ["+rate:last"])
+        self.assertEqual(
+            (set(conf.archive_policy.default_aggregation_methods)
+             .union(set(["rate:last"]))),
+            ap.aggregation_methods)
+
     def test_max_block_size(self):
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,

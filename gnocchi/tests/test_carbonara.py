@@ -158,10 +158,60 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                           ts.group_serie, 60)
 
     @staticmethod
-    def _resample(ts, sampling, agg, max_size=None):
+    def _resample(ts, sampling, agg, max_size=None, derived=False):
         grouped = ts.group_serie(sampling)
+        if derived:
+            grouped = grouped.derived()
         return carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped, sampling, agg, max_size=max_size)
+
+    def test_derived_mean(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 50),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 55),
+             (datetime.datetime(2014, 1, 1, 12, 1, 2), 65),
+             (datetime.datetime(2014, 1, 1, 12, 1, 14), 66),
+             (datetime.datetime(2014, 1, 1, 12, 1, 24), 70),
+             (datetime.datetime(2014, 1, 1, 12, 2, 4), 83),
+             (datetime.datetime(2014, 1, 1, 12, 2, 35), 92),
+             (datetime.datetime(2014, 1, 1, 12, 2, 42), 103),
+             (datetime.datetime(2014, 1, 1, 12, 3, 2), 105),
+             (datetime.datetime(2014, 1, 1, 12, 3, 22), 5),  # Counter reset
+             (datetime.datetime(2014, 1, 1, 12, 3, 42), 7),
+             (datetime.datetime(2014, 1, 1, 12, 4, 9), 23)])
+        ts = self._resample(ts, 60, 'mean', derived=True)
+
+        self.assertEqual(5, len(ts))
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 60, 5),
+             (datetime.datetime(2014, 1, 1, 12, 1, 0), 60, 5),
+             (datetime.datetime(2014, 1, 1, 12, 2, 0), 60, 11),
+             (datetime.datetime(2014, 1, 1, 12, 3, 0), 60, -32),
+             (datetime.datetime(2014, 1, 1, 12, 4, 0), 60, 16)],
+            list(ts.fetch(
+                from_timestamp=datetime.datetime(2014, 1, 1, 12))))
+
+    def test_derived_hole(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 50),
+             (datetime.datetime(2014, 1, 1, 12, 0, 4), 55),
+             (datetime.datetime(2014, 1, 1, 12, 1, 2), 65),
+             (datetime.datetime(2014, 1, 1, 12, 1, 14), 66),
+             (datetime.datetime(2014, 1, 1, 12, 1, 24), 70),
+             (datetime.datetime(2014, 1, 1, 12, 3, 2), 105),
+             (datetime.datetime(2014, 1, 1, 12, 3, 22), 108),
+             (datetime.datetime(2014, 1, 1, 12, 3, 42), 200),
+             (datetime.datetime(2014, 1, 1, 12, 4, 9), 202)])
+        ts = self._resample(ts, 60, 'last', derived=True)
+
+        self.assertEqual(4, len(ts))
+        self.assertEqual(
+            [(datetime.datetime(2014, 1, 1, 12, 0, 0), 60, 5),
+             (datetime.datetime(2014, 1, 1, 12, 1, 0), 60, 4),
+             (datetime.datetime(2014, 1, 1, 12, 3, 0), 60, 92),
+             (datetime.datetime(2014, 1, 1, 12, 4, 0), 60, 2)],
+            list(ts.fetch(
+                from_timestamp=datetime.datetime(2014, 1, 1, 12))))
 
     def test_74_percentile_serialized(self):
         ts = carbonara.TimeSerie.from_tuples(
