@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    New aggregation methods are available for archive policy; rate:mean, rate:last, .... These new methods
+    allow to compute the timeseries rate of change before applying the selected aggregation method.

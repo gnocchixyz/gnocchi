@@ -35,6 +35,10 @@ class ArchivePolicy(object):
          'std', 'median', 'first', 'count')).union(
              set((str(i) + 'pct' for i in six.moves.range(1, 100))))
 
+    VALID_AGGREGATION_METHODS = VALID_AGGREGATION_METHODS.union(
+        set(map(lambda s: "rate:" + s,
+                VALID_AGGREGATION_METHODS)))
+
     # Set that contains all the above values + their minus equivalent (-mean)
     # and the "*" entry.
     VALID_AGGREGATION_METHODS_VALUES = VALID_AGGREGATION_METHODS.union(

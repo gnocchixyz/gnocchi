@@ -579,3 +579,25 @@ tests:
           $.definition[0].points: 514
           $.definition[0].granularity: "0:00:07"
           $.definition[0].timespan: "0:59:58"
+
+    - name: policy rated
+      POST: /v1/archive_policy
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: 595228db-ea29-4415-9d5b-ecb5366abb1c
+          aggregation_methods:
+            - rate:mean
+            - rate:last
+          definition:
+              - timespan: 1 hour
+                points: 1000
+      status: 201
+      response_json_paths:
+          $.aggregation_methods.`sorted`:
+            - rate:last
+            - rate:mean
+          $.definition[0].points: 1000
+          $.definition[0].granularity: "0:00:04"
+          $.definition[0].timespan: "1:06:40"

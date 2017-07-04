@@ -1,0 +1,199 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: carrot-cake
+          aggregation_methods:
+              - rate:mean
+              - rate:max
+              - rate:95pct
+              - max
+          definition:
+              - granularity: 1 minute
+      status: 201
+
+    - name: create valid metric
+      POST: /v1/metric
+      data:
+          archive_policy_name: carrot-cake
+      status: 201
+
+    - name: push measurements to metric
+      POST: /v1/metric/$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2015-03-06T14:33:00"
+            value: 10
+          - timestamp: "2015-03-06T14:34:10"
+            value: 13
+          - timestamp: "2015-03-06T14:34:20"
+            value: 13
+          - timestamp: "2015-03-06T14:34:30"
+            value: 15
+          - timestamp: "2015-03-06T14:34:40"
+            value: 18
+          - timestamp: "2015-03-06T14:34:50"
+            value: 20
+          - timestamp: "2015-03-06T14:35:00"
+            value: 22
+          - timestamp: "2015-03-06T14:35:10"
+            value: 26
+          - timestamp: "2015-03-06T14:35:20"
+            value: 30
+          - timestamp: "2015-03-06T14:35:30"
+            value: 31
+          - timestamp: "2015-03-06T14:35:40"
+            value: 37
+          - timestamp: "2015-03-06T14:35:50"
+            value: 55
+          - timestamp: "2015-03-06T14:36:00"
+            value: 62
+          - timestamp: "2015-03-06T14:36:10"
+            value: 100
+          - timestamp: "2015-03-06T14:36:20"
+            value: 102
+          - timestamp: "2015-03-06T14:36:30"
+            value: 103
+          - timestamp: "2015-03-06T14:36:40"
+            value: 104
+          - timestamp: "2015-03-06T14:36:50"
+            value: 110
+      status: 202
+
+    - name: get measurements rate:mean
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=rate:mean&refresh=true
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 2.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 5.833333333333333]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 9.166666666666666]
+
+    - name: get measurements rate:95pct
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=rate:95pct
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 3.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 15.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 30.25]
+
+    - name: get measurements rate:max
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=rate:max
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 3.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 18.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 38.0]
+
+    - name: get measurements max
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=max
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:33:00+00:00', 60.0, 10.0]
+            - ['2015-03-06T14:34:00+00:00', 60.0, 20.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 55.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 110.0]
+
+    - name: create a second metric
+      POST: /v1/metric
+      data:
+          archive_policy_name: carrot-cake
+      status: 201
+
+    - name: push measurements to the second metric
+      POST: /v1/metric/$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2015-03-06T14:33:00"
+            value: 10
+          - timestamp: "2015-03-06T14:34:10"
+            value: 13
+          - timestamp: "2015-03-06T14:34:20"
+            value: 13
+          - timestamp: "2015-03-06T14:34:30"
+            value: 15
+          - timestamp: "2015-03-06T14:34:40"
+            value: 18
+          - timestamp: "2015-03-06T14:34:50"
+            value: 20
+          - timestamp: "2015-03-06T14:35:00"
+            value: 22
+          - timestamp: "2015-03-06T14:35:10"
+            value: 26
+      status: 202
+
+    - name: push other measurements to the second metric
+      POST: /v1/metric/$HISTORY['create a second metric'].$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2015-03-06T14:35:20"
+            value: 30
+          - timestamp: "2015-03-06T14:35:30"
+            value: 31
+          - timestamp: "2015-03-06T14:35:40"
+            value: 37
+          - timestamp: "2015-03-06T14:35:50"
+            value: 55
+          - timestamp: "2015-03-06T14:36:00"
+            value: 62
+          - timestamp: "2015-03-06T14:36:10"
+            value: 100
+          - timestamp: "2015-03-06T14:36:20"
+            value: 102
+          - timestamp: "2015-03-06T14:36:30"
+            value: 103
+          - timestamp: "2015-03-06T14:36:40"
+            value: 104
+          - timestamp: "2015-03-06T14:36:50"
+            value: 110
+      status: 202
+
+    - name: get measurements rate:mean second metric
+      GET: /v1/metric/$HISTORY['create a second metric'].$RESPONSE['id']/measures?aggregation=rate:mean&refresh=true
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 2.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 5.833333333333333]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 9.166666666666666]
+
+    - name: get measurements rate:95pct second metric
+      GET: /v1/metric/$HISTORY['create a second metric'].$RESPONSE['id']/measures?aggregation=rate:95pct
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 3.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 15.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 30.25]
+
+    - name: get measurements rate:max second metric
+      GET: /v1/metric/$HISTORY['create a second metric'].$RESPONSE['id']/measures?aggregation=rate:max
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:34:00+00:00', 60.0, 3.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 18.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 38.0]
+
+    - name: get measurements max second metric
+      GET: /v1/metric/$HISTORY['create a second metric'].$RESPONSE['id']/measures?aggregation=max
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:33:00+00:00', 60.0, 10.0]
+            - ['2015-03-06T14:34:00+00:00', 60.0, 20.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 55.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 110.0]

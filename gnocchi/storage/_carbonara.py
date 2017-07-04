@@ -260,9 +260,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                       metric, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
+
+        if aggregation.startswith("rate:"):
+            grouped_serie = grouped_serie.derived()
+            aggregation_to_compute = aggregation[5:]
+        else:
+            aggregation_to_compute = aggregation
+
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped_serie, archive_policy_def.granularity,
-            aggregation, max_size=archive_policy_def.points)
+            aggregation_to_compute, max_size=archive_policy_def.points)
 
         # Don't do anything if the timeserie is empty
         if not ts:
@@ -398,6 +405,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         block_size = metric.archive_policy.max_block_size
         back_window = metric.archive_policy.back_window
         definition = metric.archive_policy.definition
+        # NOTE(sileht): We keep one more blocks to calculate rate of change
+        # correctly
+        if list(filter(lambda x: x.startswith("rate:"), agg_methods)):
+            back_window += 1
 
         try:
             ts = self._get_unaggregated_timeserie_and_unserialize(
