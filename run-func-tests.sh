@@ -15,9 +15,15 @@ check_empty_var() {
     fi
 }
 
+PYTHON_VERSION_MAJOR=$(python --version 2>&1 | awk '{print $2}' | awk -F. '{print $1}')
+
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
 for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
+    if [ "$storage" == "swift" ] && [ "$PYTHON_VERSION_MAJOR" == "3" ]; then
+        echo "WARNING: swift does not support python 3 skipping"
+        continue
+    fi
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}; do
         case $storage in
             ceph)
