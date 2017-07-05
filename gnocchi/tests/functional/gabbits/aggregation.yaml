@@ -77,6 +77,12 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
+    - name: get measure aggregates by granularity with derive
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&refresh=true&derive=true
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:34:12+00:00', 1.0, -16.1]
+
     - name: get measure aggregates by granularity
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1
       poll:

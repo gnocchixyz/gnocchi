@@ -490,6 +490,11 @@ class AggregatedTimeSerie(TimeSerie):
         return AggregatedTimeSerie.from_grouped_serie(
             self.group_serie(sampling), sampling, self.aggregation_method)
 
+    def derive(self):
+        return AggregatedTimeSerie.from_data(
+            self.sampling, self.aggregation_method,
+            self.ts.index[1:], numpy.diff(self.ts.values))
+
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps=None,
                   values=None, max_size=None):
