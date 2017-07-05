@@ -13,6 +13,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
+from distutils import spawn
+import math
+import os
 import sys
 import threading
 import time
@@ -30,6 +34,7 @@ from gnocchi import archive_policy
 from gnocchi import genconfig
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
@@ -317,6 +322,57 @@ def metricd_tester(conf):
     s.process_new_measures(
         index, inc,
         list(metrics)[:conf.stop_after_processing_metrics], True)
+
+
+def api():
+    # Compat with previous pbr script
+    try:
+        double_dash = sys.argv.index("--")
+    except ValueError:
+        double_dash = None
+    else:
+        sys.argv.pop(double_dash)
+
+    conf = cfg.ConfigOpts()
+    for opt in app.API_OPTS:
+        # NOTE(jd) Register the API options without a default, so they are only
+        # used to override the one in the config file
+        c = copy.copy(opt)
+        c.default = None
+        conf.register_cli_opt(c)
+    conf = service.prepare_service(conf=conf)
+
+    if double_dash is not None:
+        # NOTE(jd) Wait to this stage to log so we're sure the logging system
+        # is in place
+        LOG.warning(
+            "No need to pass `--' in gnocchi-api command line anymore, "
+            "please remove")
+
+    uwsgi = spawn.find_executable("uwsgi")
+    if not uwsgi:
+        LOG.error("Unable to find `uwsgi'.\n"
+                  "Be sure it is installed and in $PATH.")
+        return 1
+
+    workers = utils.get_default_workers()
+
+    return os.execl(
+        uwsgi, uwsgi,
+        "--http", "%s:%d" % (conf.host or conf.api.host,
+                             conf.port or conf.api.port),
+        "--master",
+        "--enable-threads",
+        "--die-on-term",
+        # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
+        "--add-header", "Connection: close",
+        "--processes", str(math.floor(workers * 1.5)),
+        "--threads", str(workers),
+        "--lazy-apps",
+        "--chdir", "/",
+        "--wsgi", "gnocchi.rest.wsgi",
+        "--pyargv", " ".join(sys.argv[1:]),
+    )
 
 
 def metricd():

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The `gnocchi-api` script is now a wrapper around uWSGI. Using a
+    WSGI-compliant HTTP server always have been recommended, but since most
+    users want to just run gnocchi-api, it'll now be fast and efficient by
+    default.
