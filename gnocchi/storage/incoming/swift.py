@@ -43,7 +43,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self.swift.put_container(self.CFG_PREFIX)
         self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
-        for i in six.moves.range(self.NUM_SACKS):
+        for i in six.moves.range(num_sacks):
             self.swift.put_container(self.get_sack_name(i))
 
     def remove_sack_group(self, num_sacks):
