@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    The deprecated `noauth` authentication mode has been removed.
