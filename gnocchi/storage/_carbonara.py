@@ -347,6 +347,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         lock.release()
         self._delete_metric(metric)
         self.incoming.delete_unprocessed_measures_for_metric_id(metric.id)
+        LOG.debug("Deleted metric %s", metric)
 
     @staticmethod
     def _delete_metric_measures(metric, timestamp_key,
