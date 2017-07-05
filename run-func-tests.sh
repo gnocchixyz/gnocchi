@@ -25,6 +25,8 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
         continue
     fi
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}; do
+        unset STORAGE_URL
+        unset INDEXER_URL
         case $storage in
             ceph)
                 eval $(pifpaf -e STORAGE run ceph)
