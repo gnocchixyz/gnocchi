@@ -39,21 +39,21 @@ class MovingAverage(aggregates.CustomAggregator):
     @staticmethod
     def retrieve_data(storage_obj, metric, start, stop, window):
         """Retrieves finest-res data available from storage."""
-        all_data = storage_obj.get_measures(metric, start, stop)
-
         try:
-            min_grain = min(set([row[1] for row in all_data if row[1] == 0
-                                 or window % row[1] == 0]))
-        except Exception:
+            min_grain = min(
+                ap.granularity for ap in metric.archive_policy.definition
+                if window % ap.granularity == 0)
+        except ValueError:
             msg = ("No data available that is either full-res or "
                    "of a granularity that factors into the window size "
                    "you specified.")
             raise aggregates.CustomAggFailure(msg)
 
-        return min_grain, pandas.Series([r[2] for r in all_data
-                                         if r[1] == min_grain],
-                                        [r[0] for r in all_data
-                                         if r[1] == min_grain])
+        data = list(zip(*storage_obj.get_measures(metric, start, stop,
+                                                  granularity=min_grain)))
+
+        return (min_grain,
+                pandas.Series(data[2], data[0]) if data else pandas.Series())
 
     @staticmethod
     def aggregate_data(data, func, window, min_grain, center=False,

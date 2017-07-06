@@ -62,6 +62,7 @@ class TestingApp(webtest.TestApp):
         self.auth_mode = kwargs.pop('auth_mode')
         self.storage = kwargs.pop('storage')
         self.indexer = kwargs.pop('indexer')
+        self.incoming = kwargs.pop('incoming')
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.token = self.VALID_TOKEN
@@ -91,8 +92,6 @@ class TestingApp(webtest.TestApp):
                 yield
             finally:
                 self.user = old_user
-        elif self.auth_mode == "noauth":
-            raise testcase.TestSkipped("auth mode is noauth")
         else:
             raise RuntimeError("Unknown auth_mode")
 
@@ -128,12 +127,10 @@ class TestingApp(webtest.TestApp):
             )
         elif self.auth_mode == "remoteuser":
             req.remote_user = self.user
-        elif self.auth_mode == "noauth":
-            req.headers['X-User-Id'] = self.USER_ID
-            req.headers['X-Project-Id'] = self.PROJECT_ID
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = tests_utils.list_all_incoming_metrics(self.storage.incoming)
-        self.storage.process_background_tasks(self.indexer, metrics, sync=True)
+        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
+        self.storage.process_background_tasks(
+            self.indexer, self.incoming, metrics, sync=True)
         return response
 
 
@@ -142,7 +139,6 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
     scenarios = [
         ('basic', dict(auth_mode="basic")),
         ('keystone', dict(auth_mode="keystone")),
-        ('noauth', dict(auth_mode="noauth")),
         ('remoteuser', dict(auth_mode="remoteuser")),
     ]
 
@@ -179,9 +175,11 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            indexer=self.index,
                                            storage=self.storage,
+                                           incoming=self.incoming,
                                            not_implemented_middleware=False),
                               storage=self.storage,
                               indexer=self.index,
+                              incoming=self.incoming,
                               auth_mode=self.auth_mode)
 
     # NOTE(jd) Used at least by docs
@@ -650,7 +648,7 @@ class ResourceTest(RestTest):
         # Set original_resource_id
         self.resource['original_resource_id'] = self.resource['id']
         self.resource['created_by_user_id'] = TestingApp.USER_ID
-        if self.auth_mode in ("keystone", "noauth"):
+        if self.auth_mode == "keystone":
             self.resource['created_by_project_id'] = TestingApp.PROJECT_ID
             self.resource['creator'] = (
                 TestingApp.USER_ID + ":" + TestingApp.PROJECT_ID

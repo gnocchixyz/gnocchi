@@ -21,8 +21,8 @@ import uuid
 
 import six
 
-from gnocchi.storage.common import s3
-from gnocchi.storage.incoming import _carbonara
+from gnocchi.common import s3
+from gnocchi.incoming import _carbonara
 
 boto3 = s3.boto3
 botocore = s3.botocore
@@ -39,6 +39,9 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         self._bucket_name_measures = (
             self._bucket_prefix + "-" + self.MEASURE_PREFIX
         )
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self._bucket_name_measures)
 
     def get_storage_sacks(self):
         try:

@@ -28,6 +28,7 @@ from oslo_config import cfg
 from oslo_middleware import cors
 import sqlalchemy_utils
 
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
 from gnocchi.rest import app
@@ -127,7 +128,9 @@ class ConfigFixture(fixture.GabbiFixture):
         self.index = index
 
         s = storage.get_driver(conf)
-        s.upgrade(128)
+        s.upgrade()
+        i = incoming.get_driver(conf)
+        i.upgrade(128)
 
         LOAD_APP_KWARGS = {
             'storage': s,
@@ -136,7 +139,7 @@ class ConfigFixture(fixture.GabbiFixture):
         }
 
         # start up a thread to async process measures
-        self.metricd_thread = MetricdThread(index, s)
+        self.metricd_thread = MetricdThread(index, s, i)
         self.metricd_thread.start()
 
     def stop_fixture(self):
@@ -166,16 +169,18 @@ class ConfigFixture(fixture.GabbiFixture):
 class MetricdThread(threading.Thread):
     """Run metricd in a naive thread to process measures."""
 
-    def __init__(self, index, storer, name='metricd'):
+    def __init__(self, index, storer, incoming, name='metricd'):
         super(MetricdThread, self).__init__(name=name)
         self.index = index
         self.storage = storer
+        self.incoming = incoming
         self.flag = True
 
     def run(self):
         while self.flag:
-            metrics = utils.list_all_incoming_metrics(self.storage.incoming)
-            self.storage.process_background_tasks(self.index, metrics)
+            metrics = utils.list_all_incoming_metrics(self.incoming)
+            self.storage.process_background_tasks(
+                self.index, self.incoming, metrics)
             time.sleep(0.1)
 
     def stop(self):

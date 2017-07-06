@@ -17,10 +17,10 @@ import operator
 
 import daiquiri
 from oslo_config import cfg
-from stevedore import driver
 
 from gnocchi import exceptions
 from gnocchi import indexer
+from gnocchi import utils
 
 
 OPTS = [
@@ -142,64 +142,49 @@ class LockedMetric(StorageError):
         super(LockedMetric, self).__init__("Metric %s is locked" % metric)
 
 
-def get_driver_class(namespace, conf):
-    """Return the storage driver class.
-
-    :param conf: The conf to use to determine the driver.
-    """
-    return driver.DriverManager(namespace,
-                                conf.driver).driver
-
-
-def get_incoming_driver(conf):
-    """Return configured incoming driver only
-
-    :param conf: incoming configuration only (not global)
-    """
-    return get_driver_class('gnocchi.incoming', conf)(conf)
-
-
 def get_driver(conf, coord=None):
     """Return the configured driver."""
-    incoming = get_driver_class('gnocchi.incoming', conf.incoming)(
-        conf.incoming)
-    return get_driver_class('gnocchi.storage', conf.storage)(
-        conf.storage, incoming, coord)
+    return utils.get_driver_class('gnocchi.storage', conf.storage)(
+        conf.storage, coord)
 
 
 class StorageDriver(object):
-    def __init__(self, conf, incoming, coord=None):
-        self.incoming = incoming
+    @staticmethod
+    def __init__(conf, coord=None):
+        pass
 
     @staticmethod
     def stop():
         pass
 
-    def upgrade(self, num_sacks):
-        self.incoming.upgrade(num_sacks)
+    @staticmethod
+    def upgrade():
+        pass
 
-    def process_background_tasks(self, index, metrics, sync=False):
+    def process_background_tasks(self, index, incoming, metrics, sync=False):
         """Process background tasks for this storage.
 
         This calls :func:`process_new_measures` to process new measures
 
         :param index: An indexer to be used for querying metrics
+        :param incoming: The incoming storage
         :param metrics: The list of metrics waiting for processing
         :param sync: If True, then process everything synchronously and raise
                      on error
         :type sync: bool
         """
         try:
-            self.process_new_measures(index, metrics, sync)
+            self.process_new_measures(index, incoming, metrics, sync)
         except Exception:
             if sync:
                 raise
             LOG.error("Unexpected error during measures processing",
                       exc_info=True)
 
-    def expunge_metrics(self, index, sync=False):
+    def expunge_metrics(self, incoming, index, sync=False):
         """Remove deleted metrics
 
+        :param incoming: The incoming storage
         :param index: An indexer to be used for querying metrics
         :param sync: If True, then delete everything synchronously and raise
                      on error
@@ -209,7 +194,7 @@ class StorageDriver(object):
         metrics_to_expunge = index.list_metrics(status='delete')
         for m in metrics_to_expunge:
             try:
-                self.delete_metric(m, sync)
+                self.delete_metric(incoming, m, sync)
                 index.expunge_metric(m.id)
             except (indexer.NoSuchMetric, LockedMetric):
                 # It's possible another process deleted or is deleting the
@@ -222,7 +207,7 @@ class StorageDriver(object):
                           exc_info=True)
 
     @staticmethod
-    def process_new_measures(indexer, metrics, sync=False):
+    def process_new_measures(indexer, incoming, metrics, sync=False):
         """Process added measures in background.
 
         Some drivers might need to have a background task running that process

@@ -16,9 +16,9 @@
 import os
 import pkg_resources
 import uuid
-import warnings
 
 import daiquiri
+from oslo_config import cfg
 from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
@@ -28,6 +28,7 @@ from stevedore import driver
 import webob.exc
 
 from gnocchi import exceptions
+from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi import service
@@ -37,15 +38,26 @@ from gnocchi import storage as gnocchi_storage
 LOG = daiquiri.getLogger(__name__)
 
 
+API_OPTS = (
+    cfg.HostAddressOpt('host',
+                       default="0.0.0.0",
+                       help="Host to listen on"),
+    cfg.PortOpt('port',
+                default=8041,
+                help="Port to listen on"),
+)
+
+
 # Register our encoder by default for everything
 jsonify.jsonify.register(object)(json.to_primitive)
 
 
 class GnocchiHook(pecan.hooks.PecanHook):
 
-    def __init__(self, storage, indexer, conf):
+    def __init__(self, storage, indexer, incoming, conf):
         self.storage = storage
         self.indexer = indexer
+        self.incoming = incoming
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
@@ -55,6 +67,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
     def on_route(self, state):
         state.request.storage = self.storage
         state.request.indexer = self.indexer
+        state.request.incoming = self.incoming
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
@@ -82,7 +95,7 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, indexer=None, storage=None,
+def load_app(conf, indexer=None, storage=None, incoming=None,
              not_implemented_middleware=True):
     global APPCONFIGS
 
@@ -90,6 +103,8 @@ def load_app(conf, indexer=None, storage=None,
     # so all
     if not storage:
         storage = gnocchi_storage.get_driver(conf)
+    if not incoming:
+        incoming = gnocchi_incoming.get_driver(conf)
     if not indexer:
         indexer = gnocchi_indexer.get_driver(conf)
         indexer.connect()
@@ -105,15 +120,12 @@ def load_app(conf, indexer=None, storage=None,
             __name__, "api-paste.ini"))
 
     config = dict(conf=conf, indexer=indexer, storage=storage,
+                  incoming=incoming,
                   not_implemented_middleware=not_implemented_middleware)
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
 
     LOG.info("WSGI config used: %s", cfg_path)
-
-    if conf.api.auth_mode == "noauth":
-        warnings.warn("The `noauth' authentication mode is deprecated",
-                      category=DeprecationWarning)
 
     appname = "gnocchi+" + conf.api.auth_mode
     app = deploy.loadapp("config:" + cfg_path, name=appname,
@@ -121,10 +133,11 @@ def load_app(conf, indexer=None, storage=None,
     return cors.CORS(app, conf=conf)
 
 
-def _setup_app(root, conf, indexer, storage, not_implemented_middleware):
+def _setup_app(root, conf, indexer, storage, incoming,
+               not_implemented_middleware):
     app = pecan.make_app(
         root,
-        hooks=(GnocchiHook(storage, indexer, conf),),
+        hooks=(GnocchiHook(storage, indexer, incoming, conf),),
         guess_content_type_from_ext=False,
     )
 

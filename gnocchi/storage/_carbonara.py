@@ -55,8 +55,8 @@ class CorruptionError(ValueError):
 
 class CarbonaraBasedStorage(storage.StorageDriver):
 
-    def __init__(self, conf, incoming, coord=None):
-        super(CarbonaraBasedStorage, self).__init__(conf, incoming)
+    def __init__(self, conf, coord=None):
+        super(CarbonaraBasedStorage, self).__init__(conf)
         self.aggregation_workers_number = conf.aggregation_workers_number
         if self.aggregation_workers_number == 1:
             # NOTE(jd) Avoid using futures at all if we don't want any threads.
@@ -335,10 +335,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric(metric):
         raise NotImplementedError
 
-    def delete_metric(self, metric, sync=False):
+    def delete_metric(self, incoming, metric, sync=False):
         LOG.debug("Deleting metric %s", metric)
-        lock = self.incoming.get_sack_lock(
-            self.coord, self.incoming.sack_for_metric(metric.id))
+        lock = incoming.get_sack_lock(
+            self.coord, incoming.sack_for_metric(metric.id))
         if not lock.acquire(blocking=sync):
             raise storage.LockedMetric(metric)
         # NOTE(gordc): no need to hold lock because the metric has been already
@@ -346,26 +346,28 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         #              is going to process it anymore.
         lock.release()
         self._delete_metric(metric)
-        self.incoming.delete_unprocessed_measures_for_metric_id(metric.id)
+        incoming.delete_unprocessed_measures_for_metric_id(metric.id)
+        LOG.debug("Deleted metric %s", metric)
 
     @staticmethod
     def _delete_metric_measures(metric, timestamp_key,
                                 aggregation, granularity, version=3):
         raise NotImplementedError
 
-    def refresh_metric(self, indexer, metric, timeout):
-        s = self.incoming.sack_for_metric(metric.id)
-        lock = self.incoming.get_sack_lock(self.coord, s)
+    def refresh_metric(self, indexer, incoming, metric, timeout):
+        s = incoming.sack_for_metric(metric.id)
+        lock = incoming.get_sack_lock(self.coord, s)
         if not lock.acquire(blocking=timeout):
             raise storage.SackLockTimeoutError(
                 'Unable to refresh metric: %s. Metric is locked. '
                 'Please try again.' % metric.id)
         try:
-            self.process_new_measures(indexer, [six.text_type(metric.id)])
+            self.process_new_measures(indexer, incoming,
+                                      [six.text_type(metric.id)])
         finally:
             lock.release()
 
-    def process_new_measures(self, indexer, metrics_to_process,
+    def process_new_measures(self, indexer, incoming, metrics_to_process,
                              sync=False):
         # process only active metrics. deleted metrics with unprocessed
         # measures will be skipped until cleaned by janitor.
@@ -374,7 +376,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # NOTE(gordc): must lock at sack level
             try:
                 LOG.debug("Processing measures for %s", metric)
-                with self.incoming.process_measure_for_metric(metric) \
+                with incoming.process_measure_for_metric(metric) \
                         as measures:
                     self._compute_and_store_timeseries(metric, measures)
                 LOG.debug("Measures for metric %s processed", metric)

@@ -13,6 +13,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import copy
+from distutils import spawn
+import math
+import os
 import sys
 import threading
 import time
@@ -28,11 +32,12 @@ import tooz
 
 from gnocchi import archive_policy
 from gnocchi import genconfig
+from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
-from gnocchi.storage import incoming
 from gnocchi import utils
 
 
@@ -50,13 +55,15 @@ def upgrade():
                     help="Skip index upgrade."),
         cfg.BoolOpt("skip-storage", default=False,
                     help="Skip storage upgrade."),
+        cfg.BoolOpt("skip-incoming", default=False,
+                    help="Skip incoming storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
         cfg.IntOpt("sacks-number", default=128, min=1,
-                   help="Number of storage sacks to create."),
+                   help="Number of incoming storage sacks to create."),
 
     ])
-    conf = service.prepare_service(conf=conf)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
     if not conf.skip_index:
         index = indexer.get_driver(conf)
         index.connect()
@@ -65,7 +72,11 @@ def upgrade():
     if not conf.skip_storage:
         s = storage.get_driver(conf)
         LOG.info("Upgrading storage %s", s)
-        s.upgrade(conf.sacks_number)
+        s.upgrade()
+    if not conf.skip_incoming:
+        i = incoming.get_driver(conf)
+        LOG.info("Upgrading incoming storage %s", i)
+        i.upgrade(conf.sacks_number)
 
     if (not conf.skip_archive_policies_creation
             and not index.list_archive_policies()
@@ -84,8 +95,8 @@ def change_sack_size():
         cfg.IntOpt("sacks-number", required=True, min=1,
                    help="Number of storage sacks."),
     ])
-    conf = service.prepare_service(conf=conf)
-    s = storage.get_incoming_driver(conf.incoming)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
+    s = incoming.get_driver(conf)
     try:
         report = s.measures_report(details=False)
     except incoming.SackDetectionError:
@@ -117,6 +128,7 @@ class MetricProcessBase(cotyledon.Service):
 
     def _configure(self):
         self.store = storage.get_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
@@ -154,7 +166,7 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = storage.get_incoming_driver(self.conf.incoming)
+        self.incoming = incoming.get_driver(self.conf)
 
     def _run_job(self):
         try:
@@ -186,12 +198,13 @@ class MetricProcessor(MetricProcessBase):
     @utils.retry
     def _configure(self):
         self.store = storage.get_driver(self.conf, self.coord)
+        self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.index.connect()
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
-            six.moves.range(self.store.incoming.NUM_SACKS))
+            six.moves.range(self.incoming.NUM_SACKS))
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
@@ -221,7 +234,7 @@ class MetricProcessor(MetricProcessBase):
                     self.group_state != self.partitioner.ring.nodes):
                 self.group_state = self.partitioner.ring.nodes.copy()
                 self._tasks = [
-                    i for i in six.moves.range(self.store.incoming.NUM_SACKS)
+                    i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
         finally:
@@ -230,17 +243,17 @@ class MetricProcessor(MetricProcessBase):
     def _run_job(self):
         m_count = 0
         s_count = 0
-        in_store = self.store.incoming
         for s in self._get_tasks():
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
-            lock = in_store.get_sack_lock(self.coord, s)
+            lock = self.incoming.get_sack_lock(self.coord, s)
             if not lock.acquire(blocking=False):
                 continue
             try:
-                metrics = in_store.list_metric_with_measures_to_process(s)
+                metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(self.index, metrics)
+                self.store.process_background_tasks(
+                    self.index, self.incoming, metrics)
                 s_count += 1
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
@@ -262,7 +275,7 @@ class MetricJanitor(MetricProcessBase):
 
     def _run_job(self):
         try:
-            self.store.expunge_metrics(self.index)
+            self.store.expunge_metrics(self.incoming, self.index)
             LOG.debug("Metrics marked for deletion removed from backend")
         except Exception:
             LOG.error("Unexpected error during metric cleanup", exc_info=True)
@@ -300,13 +313,66 @@ def metricd_tester(conf):
     index = indexer.get_driver(conf)
     index.connect()
     s = storage.get_driver(conf)
+    inc = incoming.get_driver(conf)
     metrics = set()
-    for i in six.moves.range(s.incoming.NUM_SACKS):
-        metrics.update(s.incoming.list_metric_with_measures_to_process(i))
+    for i in six.moves.range(inc.NUM_SACKS):
+        metrics.update(inc.list_metric_with_measures_to_process(i))
         if len(metrics) >= conf.stop_after_processing_metrics:
             break
     s.process_new_measures(
-        index, list(metrics)[:conf.stop_after_processing_metrics], True)
+        index, inc,
+        list(metrics)[:conf.stop_after_processing_metrics], True)
+
+
+def api():
+    # Compat with previous pbr script
+    try:
+        double_dash = sys.argv.index("--")
+    except ValueError:
+        double_dash = None
+    else:
+        sys.argv.pop(double_dash)
+
+    conf = cfg.ConfigOpts()
+    for opt in app.API_OPTS:
+        # NOTE(jd) Register the API options without a default, so they are only
+        # used to override the one in the config file
+        c = copy.copy(opt)
+        c.default = None
+        conf.register_cli_opt(c)
+    conf = service.prepare_service(conf=conf)
+
+    if double_dash is not None:
+        # NOTE(jd) Wait to this stage to log so we're sure the logging system
+        # is in place
+        LOG.warning(
+            "No need to pass `--' in gnocchi-api command line anymore, "
+            "please remove")
+
+    uwsgi = spawn.find_executable("uwsgi")
+    if not uwsgi:
+        LOG.error("Unable to find `uwsgi'.\n"
+                  "Be sure it is installed and in $PATH.")
+        return 1
+
+    workers = utils.get_default_workers()
+
+    return os.execl(
+        uwsgi, uwsgi,
+        "--http", "%s:%d" % (conf.host or conf.api.host,
+                             conf.port or conf.api.port),
+        "--master",
+        "--enable-threads",
+        "--die-on-term",
+        # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
+        "--add-header", "Connection: close",
+        "--processes", str(math.floor(workers * 1.5)),
+        "--threads", str(workers),
+        "--lazy-apps",
+        "--chdir", "/",
+        "--wsgi", "gnocchi.rest.wsgi",
+        "--pyargv", " ".join(sys.argv[1:]),
+    )
 
 
 def metricd():

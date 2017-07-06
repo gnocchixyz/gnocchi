@@ -33,6 +33,7 @@ from tooz import coordination
 
 from gnocchi import archive_policy
 from gnocchi import exceptions
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
@@ -348,13 +349,17 @@ class TestCase(BaseTestCase):
                                "storage")
 
         self.storage = storage.get_driver(self.conf)
+        self.incoming = incoming.get_driver(self.conf)
 
         if self.conf.storage.driver == 'redis':
             # Create one prefix per test
             self.storage.STORAGE_PREFIX = str(uuid.uuid4())
-            self.storage.incoming.SACK_PREFIX = str(uuid.uuid4())
 
-        self.storage.upgrade(128)
+        if self.conf.incoming.driver == 'redis':
+            self.incoming.SACK_PREFIX = str(uuid.uuid4())
+
+        self.storage.upgrade()
+        self.incoming.upgrade(128)
 
     def tearDown(self):
         self.index.disconnect()

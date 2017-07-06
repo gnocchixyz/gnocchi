@@ -19,8 +19,8 @@ import uuid
 
 import six
 
-from gnocchi.storage.common import ceph
-from gnocchi.storage.incoming import _carbonara
+from gnocchi.common import ceph
+from gnocchi.incoming import _carbonara
 
 rados = ceph.rados
 
@@ -52,6 +52,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         # object with the measure have already been delected by previous, so
         # we are safe and good.
         self.OMAP_WRITE_FLAGS = rados.LIBRADOS_OPERATION_SKIPRWLOCKS
+
+    def __str__(self):
+        # Use cluster ID for now
+        return "%s: %s" % (self.__class__.__name__, self.rados.get_fsid())
 
     def stop(self):
         ceph.close_rados_connection(self.rados, self.ioctx)

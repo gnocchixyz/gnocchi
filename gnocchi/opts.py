@@ -22,6 +22,7 @@ from oslo_middleware import cors
 
 import gnocchi.archive_policy
 import gnocchi.indexer
+import gnocchi.rest.app
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
@@ -161,7 +162,8 @@ def list_opts():
                        default=10, min=0,
                        help='Number of seconds before timeout when attempting '
                             'to force refresh of metric.'),
-        )),
+        ) + gnocchi.rest.app.API_OPTS,
+        ),
         ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS)),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
@@ -176,16 +178,7 @@ def list_opts():
                 type=uuid.UUID,
                 help='Resource UUID to use to identify statsd in Gnocchi'),
             cfg.StrOpt(
-                'user_id',
-                deprecated_for_removal=True,
-                help='User ID to use to identify statsd in Gnocchi'),
-            cfg.StrOpt(
-                'project_id',
-                deprecated_for_removal=True,
-                help='Project ID to use to identify statsd in Gnocchi'),
-            cfg.StrOpt(
                 'creator',
-                default="${statsd.user_id}:${statsd.project_id}",
                 help='Creator value to use to identify statsd in Gnocchi'),
             cfg.StrOpt(
                 'archive_policy_name',

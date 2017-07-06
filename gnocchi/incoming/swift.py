@@ -19,8 +19,8 @@ import uuid
 
 import six
 
-from gnocchi.storage.common import swift
-from gnocchi.storage.incoming import _carbonara
+from gnocchi.common import swift
+from gnocchi.incoming import _carbonara
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -30,6 +30,9 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
+
+    def __str__(self):
+        return self.__class__.__name__
 
     def get_storage_sacks(self):
         try:
@@ -43,7 +46,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         self.swift.put_container(self.CFG_PREFIX)
         self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
-        for i in six.moves.range(self.NUM_SACKS):
+        for i in six.moves.range(num_sacks):
             self.swift.put_container(self.get_sack_name(i))
 
     def remove_sack_group(self, num_sacks):

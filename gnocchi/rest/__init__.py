@@ -17,6 +17,7 @@
 import functools
 import itertools
 import uuid
+import warnings
 
 import jsonpatch
 import pecan
@@ -31,11 +32,11 @@ import werkzeug.http
 
 from gnocchi import aggregates
 from gnocchi import archive_policy
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
 from gnocchi import storage
-from gnocchi.storage import incoming
 from gnocchi import utils
 
 
@@ -400,7 +401,7 @@ class MetricController(rest.RestController):
         if not isinstance(params, list):
             abort(400, "Invalid input for measures")
         if params:
-            pecan.request.storage.incoming.add_measures(
+            pecan.request.incoming.add_measures(
                 self.metric, MeasuresListSchema(params))
         pecan.response.status = 202
 
@@ -439,15 +440,17 @@ class MetricController(rest.RestController):
                 abort(400, e)
 
         if (strtobool("refresh", refresh) and
-                pecan.request.storage.incoming.has_unprocessed(self.metric)):
+                pecan.request.incoming.has_unprocessed(self.metric)):
             try:
                 pecan.request.storage.refresh_metric(
-                    pecan.request.indexer, self.metric,
+                    pecan.request.indexer, pecan.request.incoming, self.metric,
                     pecan.request.conf.api.refresh_timeout)
             except storage.SackLockTimeoutError as e:
                 abort(503, e)
         try:
             if aggregation in self.custom_agg:
+                warnings.warn("moving_average aggregation is deprecated.",
+                              category=DeprecationWarning)
                 measures = self.custom_agg[aggregation].compute(
                     pecan.request.storage, self.metric,
                     start, stop, **param)
@@ -1459,7 +1462,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for metric in known_metrics:
             enforce("post measures", metric)
 
-        pecan.request.storage.incoming.add_measures_batch(
+        pecan.request.incoming.add_measures_batch(
             dict((metric,
                  body_by_rid[metric.resource_id][metric.name])
                  for metric in known_metrics))
@@ -1491,11 +1494,70 @@ class MetricsMeasuresBatchController(rest.RestController):
         for metric in metrics:
             enforce("post measures", metric)
 
-        pecan.request.storage.incoming.add_measures_batch(
+        pecan.request.incoming.add_measures_batch(
             dict((metric, body[metric.id]) for metric in
                  metrics))
 
         pecan.response.status = 202
+
+    @staticmethod
+    @pecan.expose('json')
+    def get_all(**kwargs):
+        # Check RBAC policy
+        metric_ids = arg_to_list(kwargs.get('metric', []))
+        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
+        missing_metric_ids = (set(metric_ids)
+                              - set(six.text_type(m.id) for m in metrics))
+        if missing_metric_ids:
+            abort(400, {"cause": "Unknown metrics",
+                        "detail": list(missing_metric_ids)})
+
+        for metric in metrics:
+            enforce("get metric", metric)
+
+        start = kwargs.get('start')
+        if start is not None:
+            try:
+                start = utils.to_datetime(start)
+            except Exception:
+                abort(400, "Invalid value for start")
+
+        stop = kwargs.get('stop')
+        if stop is not None:
+            try:
+                stop = utils.to_datetime(stop)
+            except Exception:
+                abort(400, "Invalid value for stop")
+
+        aggregation = kwargs.get('aggregation', 'mean')
+        if (aggregation
+           not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
+            abort(
+                400,
+                'Invalid aggregation value %s, must be one of %s'
+                % (aggregation,
+                   archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
+
+        granularity = kwargs.get('granularity')
+        if granularity is not None:
+            try:
+                granularity = Timespan(granularity)
+            except ValueError as e:
+                abort(400, e)
+
+        metric_batch = {}
+        try:
+            for metric in metrics:
+                measures = pecan.request.storage.get_measures(
+                    metric, start, stop, aggregation, granularity)
+                metric_batch[str(metric.id)] = [
+                    (timestamp.isoformat(), offset, v)
+                    for timestamp, offset, v in measures]
+        except (storage.GranularityDoesNotExist,
+                storage.AggregationDoesNotExist) as e:
+            abort(404, e)
+
+        return metric_batch
 
 
 class SearchController(object):
@@ -1637,13 +1699,13 @@ class AggregationController(rest.RestController):
 
         try:
             if strtobool("refresh", refresh):
-                store = pecan.request.storage
                 metrics_to_update = [
-                    m for m in metrics if store.incoming.has_unprocessed(m)]
+                    m for m in metrics
+                    if pecan.request.incoming.has_unprocessed(m)]
                 for m in metrics_to_update:
                     try:
                         pecan.request.storage.refresh_metric(
-                            pecan.request.indexer, m,
+                            pecan.request.indexer, pecan.request.incoming, m,
                             pecan.request.conf.api.refresh_timeout)
                     except storage.SackLockTimeoutError as e:
                         abort(503, e)
@@ -1663,9 +1725,9 @@ class AggregationController(rest.RestController):
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        except storage.AggregationDoesNotExist as e:
+        except (storage.MetricDoesNotExist,
+                storage.GranularityDoesNotExist,
+                storage.AggregationDoesNotExist) as e:
             abort(404, e)
 
     MetricIDsSchema = [utils.UUID]
@@ -1725,7 +1787,7 @@ class StatusController(rest.RestController):
     def get(details=True):
         enforce("get status", {})
         try:
-            report = pecan.request.storage.incoming.measures_report(
+            report = pecan.request.incoming.measures_report(
                 strtobool("details", details))
         except incoming.ReportGenerationError:
             abort(503, 'Unable to generate status. Please retry.')

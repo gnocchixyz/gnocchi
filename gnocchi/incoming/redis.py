@@ -17,8 +17,8 @@ import contextlib
 
 import six
 
-from gnocchi.storage.common import redis
-from gnocchi.storage.incoming import _carbonara
+from gnocchi.common import redis
+from gnocchi.incoming import _carbonara
 
 
 class RedisStorage(_carbonara.CarbonaraBasedStorage):
@@ -26,6 +26,9 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
+
+    def __str__(self):
+        return "%s: %s" % (self.__class__.__name__, self._client)
 
     def get_storage_sacks(self):
         return self._client.hget(self.CFG_PREFIX, self.CFG_SACKS)

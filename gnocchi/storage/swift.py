@@ -16,9 +16,9 @@
 
 from oslo_config import cfg
 
+from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi.storage import _carbonara
-from gnocchi.storage.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -68,8 +68,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     WRITE_FULL = True
 
-    def __init__(self, conf, incoming, coord=None):
-        super(SwiftStorage, self).__init__(conf, incoming, coord)
+    def __init__(self, conf, coord=None):
+        super(SwiftStorage, self).__init__(conf, coord)
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 

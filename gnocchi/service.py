@@ -32,7 +32,8 @@ LOG = daiquiri.getLogger(__name__)
 
 
 def prepare_service(args=None, conf=None,
-                    default_config_files=None):
+                    default_config_files=None,
+                    log_to_std=False):
     if conf is None:
         conf = cfg.ConfigOpts()
     opts.set_defaults()
@@ -53,7 +54,7 @@ def prepare_service(args=None, conf=None,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
 
-    if conf.log_dir or conf.log_file:
+    if not log_to_std and (conf.log_dir or conf.log_file):
         outputs = [daiquiri.output.File(filename=conf.log_file,
                                         directory=conf.log_dir)]
     else:
