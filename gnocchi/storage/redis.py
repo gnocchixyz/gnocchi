@@ -35,7 +35,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
 
     def __init__(self, conf, coord=None):
         super(RedisStorage, self).__init__(conf, coord)
-        self._client = redis.get_client(conf.redis_url)
+        self._client, options = redis.get_client(conf.redis_url)
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)

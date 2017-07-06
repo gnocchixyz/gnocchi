@@ -124,4 +124,4 @@ def get_client(url):
         # The master_client is a redis.StrictRedis using a
         # Sentinel managed connection pool.
         return master_client
-    return redis.StrictRedis(**kwargs)
+    return redis.StrictRedis(**kwargs), options
