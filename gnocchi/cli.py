@@ -48,8 +48,15 @@ def config_generator():
     return genconfig.prehook(None, sys.argv[1:])
 
 
+_SACK_NUMBER_OPT = cfg.IntOpt(
+    "sacks-number", min=1, max=65535, required=True,
+    help="Number of incoming storage sacks to create.")
+
+
 def upgrade():
     conf = cfg.ConfigOpts()
+    sack_number_opt = copy.copy(_SACK_NUMBER_OPT)
+    sack_number_opt.default = 128
     conf.register_cli_opts([
         cfg.BoolOpt("skip-index", default=False,
                     help="Skip index upgrade."),
@@ -59,9 +66,7 @@ def upgrade():
                     help="Skip incoming storage upgrade."),
         cfg.BoolOpt("skip-archive-policies-creation", default=False,
                     help="Skip default archive policies creation."),
-        cfg.IntOpt("sacks-number", default=128, min=1,
-                   help="Number of incoming storage sacks to create."),
-
+        sack_number_opt,
     ])
     conf = service.prepare_service(conf=conf, log_to_std=True)
     if not conf.skip_index:
@@ -91,10 +96,7 @@ def upgrade():
 
 def change_sack_size():
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts([
-        cfg.IntOpt("sacks-number", required=True, min=1,
-                   help="Number of storage sacks."),
-    ])
+    conf.register_cli_opts([_SACK_NUMBER_OPT])
     conf = service.prepare_service(conf=conf, log_to_std=True)
     s = incoming.get_driver(conf)
     try:
