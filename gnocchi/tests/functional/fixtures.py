@@ -135,6 +135,7 @@ class ConfigFixture(fixture.GabbiFixture):
         LOAD_APP_KWARGS = {
             'storage': s,
             'indexer': index,
+            'incoming': i,
             'conf': conf,
         }
 
