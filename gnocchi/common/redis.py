@@ -74,10 +74,10 @@ CLIENT_INT_ARGS = frozenset([
 CLIENT_DEFAULT_SOCKET_TO = 30
 
 
-def get_client(conf):
+def get_client(url):
     if redis is None:
         raise RuntimeError("python-redis unavailable")
-    parsed_url = parse.urlparse(conf.redis_url)
+    parsed_url = parse.urlparse(url)
     options = parse.parse_qs(parsed_url.query)
 
     kwargs = {}
