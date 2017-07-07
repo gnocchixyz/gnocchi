@@ -38,7 +38,7 @@ tests:
         archive_policy_name: low
       status: 201
 
-    - name: get metric list to push metric 1
+    - name: get metric list
       GET: /v1/metric
 
     - name: push measurements to metric 1
