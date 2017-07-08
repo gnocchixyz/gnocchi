@@ -59,6 +59,15 @@ class TestUtils(tests_base.TestCase):
             datetime.datetime(2015, 3, 6, 14, 34, 0, 400000,
                               tzinfo=iso8601.iso8601.UTC))
 
+    def test_to_timestamps_relative(self):
+        with mock.patch('gnocchi.utils.utcnow') as utcnow:
+            utcnow.return_value = datetime.datetime(
+                2015, 3, 6, 14, 34, tzinfo=iso8601.iso8601.UTC)
+            self.assertEqual(
+                utils.to_datetime("-10 minutes"),
+                datetime.datetime(2015, 3, 6, 14, 24,
+                                  tzinfo=iso8601.iso8601.UTC))
+
 
 class TestResourceUUID(tests_base.TestCase):
     def test_conversion(self):
