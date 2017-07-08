@@ -7,13 +7,9 @@
 Installation
 ============
 
-To install Gnocchi using `pip`, just type::
-
-  pip install gnocchi
-
-Depending on the drivers and features you want to use (see :doc:`architecture`
-for which driver to pick), you need to install extra variants using, for
-example::
+Gnocchi can be installed using `pip`. Depending on the drivers and features you
+want to use (see :doc:`architecture` for which driver to pick), you need to
+specify the extra variants you need. For example::
 
   pip install gnocchi[postgresql,ceph,keystone]
 
