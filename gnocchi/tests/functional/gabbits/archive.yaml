@@ -441,7 +441,7 @@ tests:
                 points: 60
       status: 400
       response_strings:
-          - "Invalid input: not a valid value for dictionary value"
+          - "Invalid input: Timespan must be positive for dictionary value"
 
     - name: create invalid points policy
       POST: /v1/archive_policy
@@ -561,8 +561,8 @@ tests:
       status: 201
       response_json_paths:
           $.definition[0].points: 1000
-          $.definition[0].granularity: "0:00:04"
-          $.definition[0].timespan: "1:06:40"
+          $.definition[0].granularity: "0:00:03.600000"
+          $.definition[0].timespan: "1:00:00"
 
     - name: policy float timespan
       POST: /v1/archive_policy
@@ -599,5 +599,5 @@ tests:
             - rate:last
             - rate:mean
           $.definition[0].points: 1000
-          $.definition[0].granularity: "0:00:04"
-          $.definition[0].timespan: "1:06:40"
+          $.definition[0].granularity: "0:00:03.600000"
+          $.definition[0].timespan: "1:00:00"

@@ -19,6 +19,7 @@ from oslo_config import cfg
 from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 
 OPTS = [
@@ -58,7 +59,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
     @staticmethod
     def _get_object_name(metric, key, aggregation, version=3):
         name = str("gnocchi_%s_%s_%s_%s" % (
-            metric.id, key, aggregation, key.sampling))
+            metric.id, key, aggregation,
+            utils.timespan_total_seconds(key.sampling)),
+        )
         return name + '_v%s' % version if version else name
 
     def _object_exists(self, name):
@@ -167,9 +170,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
 
             keys = set()
+            granularity = str(utils.timespan_total_seconds(granularity))
             for name, value in omaps:
                 meta = name.split('_')
-                if (aggregation == meta[3] and granularity == float(meta[4])
+                if (aggregation == meta[3] and granularity == meta[4]
                         and self._version_check(name, version)):
                     keys.add(meta[2])
             return keys

@@ -21,6 +21,7 @@ import tenacity
 from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 boto3 = s3.boto3
 botocore = s3.botocore
@@ -88,7 +89,11 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
 
     @staticmethod
     def _object_name(split_key, aggregation, version=3):
-        name = '%s_%s_%s' % (aggregation, split_key.sampling, split_key)
+        name = '%s_%s_%s' % (
+            aggregation,
+            utils.timespan_total_seconds(split_key.sampling),
+            split_key,
+        )
         return name + '_v%s' % version if version else name
 
     @staticmethod
@@ -182,8 +187,10 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             try:
                 response = self.s3.list_objects_v2(
                     Bucket=bucket,
-                    Prefix=self._prefix(metric) + '%s_%s' % (aggregation,
-                                                             granularity),
+                    Prefix=self._prefix(metric) + '%s_%s' % (
+                        aggregation,
+                        utils.timespan_total_seconds(granularity),
+                    ),
                     **kwargs)
             except botocore.exceptions.ClientError as e:
                 if e.response['Error'].get('Code') == "NoSuchKey":

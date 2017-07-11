@@ -18,6 +18,7 @@ from oslo_config import cfg
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 
 OPTS = [
@@ -50,8 +51,9 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     @classmethod
     def _aggregated_field_for_split(cls, aggregation, key, version=3,
                                     granularity=None):
-        path = cls.FIELD_SEP.join([str(key), aggregation,
-                                   str(granularity or key.sampling)])
+        path = cls.FIELD_SEP.join([
+            str(key), aggregation,
+            str(utils.timespan_total_seconds(granularity or key.sampling))])
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):

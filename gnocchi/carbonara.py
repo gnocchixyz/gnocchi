@@ -21,7 +21,6 @@ import functools
 import itertools
 import logging
 import math
-import numbers
 import random
 import re
 import struct
@@ -41,6 +40,10 @@ import six
 time.strptime("2016-02-19", "%Y-%m-%d")
 
 LOG = logging.getLogger(__name__)
+
+
+UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
+ONE_SECOND = numpy.timedelta64(1, 's')
 
 
 class BeforeEpochError(Exception):
@@ -73,9 +76,13 @@ class InvalidData(ValueError):
         super(InvalidData, self).__init__("Unable to unpack, invalid data")
 
 
+def datetime64_to_epoch(dt):
+    return (dt - UNIX_UNIVERSAL_START64) / ONE_SECOND
+
+
 def round_timestamp(ts, freq):
-    return pandas.Timestamp(
-        (pandas.Timestamp(ts).value // freq) * freq)
+    return UNIX_UNIVERSAL_START64 + numpy.floor(
+        (ts - UNIX_UNIVERSAL_START64) / freq) * freq
 
 
 class GroupedTimeSeries(object):
@@ -84,18 +91,17 @@ class GroupedTimeSeries(object):
         # duplicate timestamps, it uses numpy.unique that sorted list, but
         # we always assume the orderd to be the same as the input.
         self.granularity = granularity
-        freq = granularity * 10e8
         self.start = start
         if start is None:
             self._ts = ts
             self._ts_for_derive = ts
         else:
             self._ts = ts[start:]
-            start_derive = start - pandas.Timedelta(freq, unit='ns')
+            start_derive = start - granularity
             self._ts_for_derive = ts[start_derive:]
 
-        self.indexes = (numpy.array(self._ts.index,
-                                    numpy.float) // freq) * freq
+        self.indexes = round_timestamp(
+            numpy.array(self._ts.index, dtype=numpy.datetime64), granularity)
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
@@ -219,12 +225,6 @@ class TimeSerie(object):
     def __len__(self):
         return len(self.ts)
 
-    @staticmethod
-    def _to_offset(value):
-        if isinstance(value, numbers.Real):
-            return pandas.tseries.offsets.Nano(value * 10e8)
-        return pandas.tseries.frequencies.to_offset(value)
-
     @property
     def first(self):
         try:
@@ -274,7 +274,7 @@ class BoundTimeSerie(TimeSerie):
 
         """
         super(BoundTimeSerie, self).__init__(ts)
-        self.block_size = self._to_offset(block_size)
+        self.block_size = block_size
         self.back_window = back_window
         self._truncate()
 
@@ -387,7 +387,7 @@ class BoundTimeSerie(TimeSerie):
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
-                cls.unserialize(s, 1, 1)
+                cls.unserialize(s, ONE_SECOND, 1)
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
                   % (((points * 2 * 8)
@@ -396,9 +396,13 @@ class BoundTimeSerie(TimeSerie):
     def first_block_timestamp(self):
         """Return the timestamp of the first block."""
         rounded = round_timestamp(self.ts.index[-1],
-                                  self.block_size.delta.value)
-
-        return rounded - (self.block_size * self.back_window)
+                                  self.block_size)
+        # FIXME(jd) Return the result as a pandas.Timestamp object as Pandas is
+        # faster at indexing pandas.Timestamp than numpy.timedelta64 objects
+        # for whatever reason
+        return pandas.Timestamp(
+            rounded - (self.block_size * self.back_window)
+        )
 
     def _truncate(self):
         """Truncate the timeserie."""
@@ -424,10 +428,8 @@ class SplitKey(object):
     def __init__(self, value, sampling):
         if isinstance(value, SplitKey):
             self.key = value.key
-        elif isinstance(value, pandas.Timestamp):
-            self.key = value.value / 10e8
         else:
-            self.key = float(value)
+            self.key = value
 
         self.sampling = sampling
 
@@ -435,7 +437,8 @@ class SplitKey(object):
     def from_timestamp_and_sampling(cls, timestamp, sampling):
         return cls(
             round_timestamp(
-                timestamp, freq=sampling * cls.POINTS_PER_SPLIT * 10e8),
+                timestamp,
+                freq=sampling * cls.POINTS_PER_SPLIT),
             sampling)
 
     def __next__(self):
@@ -453,35 +456,48 @@ class SplitKey(object):
         return self
 
     def __hash__(self):
-        return hash(self.key)
+        return hash(
+            str(datetime64_to_epoch(self.key))
+            +
+            str(self.sampling / ONE_SECOND)
+        )
 
     def __lt__(self, other):
         if isinstance(other, SplitKey):
+            if self.sampling != other.sampling:
+                raise TypeError(
+                    "Cannot compare %s with different sampling" %
+                    self.__class__.__name__)
             return self.key < other.key
         if isinstance(other, pandas.Timestamp):
-            return self.key * 10e8 < other.value
-        return self.key < other
+            return pandas.Timestamp(self.key) < other
+        if isinstance(other, numpy.datetime64):
+            return self.key < other
+        raise TypeError("Cannot compare %r with %r" % (self, other))
 
     def __eq__(self, other):
         if isinstance(other, SplitKey):
+            if self.sampling != other.sampling:
+                raise TypeError(
+                    "Cannot compare %s with different sampling" %
+                    self.__class__.__name__)
             return self.key == other.key
         if isinstance(other, pandas.Timestamp):
-            return self.key * 10e8 == other.value
-        return self.key == other
+            return pandas.Timestamp(self.key) == other
+        if isinstance(other, numpy.datetime64):
+            return self.key == other
+        raise TypeError("Cannot compare %r with %r" % (self, other))
 
     def __str__(self):
         return str(float(self))
 
     def __float__(self):
-        return self.key
-
-    def as_datetime(self):
-        return pandas.Timestamp(self.key, unit='s')
+        return datetime64_to_epoch(self.key)
 
     def __repr__(self):
-        return "<%s: %s / %fs>" % (self.__class__.__name__,
-                                   repr(self.key),
-                                   self.sampling)
+        return "<%s: %s / %s>" % (self.__class__.__name__,
+                                  self.key,
+                                  self.sampling)
 
 
 class AggregatedTimeSerie(TimeSerie):
@@ -500,7 +516,7 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
         super(AggregatedTimeSerie, self).__init__(ts)
-        self.sampling = self._to_offset(sampling).nanos / 10e8
+        self.sampling = sampling
         self.max_size = max_size
         self.aggregation_method = aggregation_method
         self._truncate(quick=True)
@@ -537,8 +553,11 @@ class AggregatedTimeSerie(TimeSerie):
         # but we have ordered timestamps, so don't need
         # to iter the whole series.
         freq = self.sampling * SplitKey.POINTS_PER_SPLIT
-        ix = numpy.array(self.ts.index, numpy.float64) / 10e8
-        keys, counts = numpy.unique((ix // freq) * freq, return_counts=True)
+        keys, counts = numpy.unique(
+            round_timestamp(
+                numpy.array(self.ts.index, dtype=numpy.datetime64),
+                freq),
+            return_counts=True)
         start = 0
         for key, count in six.moves.zip(keys, counts):
             end = start + count
@@ -578,7 +597,7 @@ class AggregatedTimeSerie(TimeSerie):
                 and self.aggregation_method == other.aggregation_method)
 
     def __repr__(self):
-        return "<%s 0x%x sampling=%fs max_size=%s agg_method=%s>" % (
+        return "<%s 0x%x sampling=%s max_size=%s agg_method=%s>" % (
             self.__class__.__name__,
             id(self),
             self.sampling,
@@ -631,9 +650,6 @@ class AggregatedTimeSerie(TimeSerie):
                 y = index * key.sampling + key.key
                 x = everything['v'][index]
 
-            y = y.astype(numpy.float64, copy=False) * 10e8
-            y = y.astype('datetime64[ns]', copy=False)
-            y = pandas.to_datetime(y)
         return cls.from_data(key.sampling, agg_method, y, x)
 
     def get_split_key(self, timestamp=None):
@@ -658,25 +674,21 @@ class AggregatedTimeSerie(TimeSerie):
         The offset returned indicates at which offset the data should be
         written from. In the case of compressed data, this is always 0.
 
-        :param start: Timestamp to start serialization at.
+        :param start: SplitKey to start serialization at.
         :param compressed: Serialize in a compressed format.
         :return: a tuple of (offset, data)
 
         """
         if not self.ts.index.is_monotonic:
             self.ts = self.ts.sort_index()
-        offset_div = self.sampling * 10e8
-        if isinstance(start, SplitKey):
-            start = start.as_datetime().value
-        else:
-            start = pandas.Timestamp(start).value
+        offset_div = self.sampling
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
         if compressed:
             # NOTE(jd) Use a double delta encoding for timestamps
             timestamps = numpy.insert(
-                numpy.diff(self.ts.index) // offset_div,
-                0, int((self.first.value - start) // offset_div))
+                numpy.floor(numpy.diff(self.ts.index) / offset_div),
+                0, numpy.floor((self.first - start.key) / offset_div))
             timestamps = timestamps.astype('<H', copy=False)
             values = self.ts.values.astype('<d', copy=False)
             payload = (timestamps.tobytes() + values.tobytes())
@@ -690,10 +702,11 @@ class AggregatedTimeSerie(TimeSerie):
         # aggregate value is 0. calculate how many seconds from start the
         # series runs until and initialize list to store alternating
         # delimiter, float entries
-        first = self.first.value  # NOTE(jd) needed because faster
-        e_offset = int((self.last.value - first) // offset_div) + 1
+        first = self.first  # NOTE(jd) needed because faster
+        e_offset = int(numpy.floor((self.last - first) / offset_div) + 1)
 
-        locs = (numpy.cumsum(numpy.diff(self.ts.index)) // offset_div)
+        locs = numpy.floor(numpy.cumsum(numpy.diff(self.ts.index))
+                           / offset_div)
         locs = numpy.insert(locs, 0, 0)
         locs = locs.astype(numpy.int, copy=False)
 
@@ -710,7 +723,8 @@ class AggregatedTimeSerie(TimeSerie):
         serial[locs] = values
 
         payload = serial.tobytes()
-        offset = int((first - start) // offset_div) * self.PADDED_SERIAL_LEN
+        offset = numpy.floor(
+            (first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
         return offset, payload
 
     def _truncate(self, quick=False):
@@ -736,7 +750,7 @@ class AggregatedTimeSerie(TimeSerie):
         if from_timestamp is None:
             from_ = None
         else:
-            from_ = round_timestamp(from_timestamp, self.sampling * 10e8)
+            from_ = round_timestamp(from_timestamp, self.sampling)
         points = self[from_:to_timestamp]
         try:
             # Do not include stop timestamp
@@ -759,7 +773,7 @@ class AggregatedTimeSerie(TimeSerie):
         """Run a speed benchmark!"""
         points = SplitKey.POINTS_PER_SPLIT
         sampling = 5
-        resample = 35
+        resample = numpy.timedelta64(35, 's')
 
         now = datetime.datetime(2015, 4, 3, 23, 11)
 
@@ -791,7 +805,8 @@ class AggregatedTimeSerie(TimeSerie):
                                 [now + datetime.timedelta(seconds=i*sampling)
                                  for i in six.moves.range(points)])
             pts = pts.sort_index()
-            ts = cls(ts=pts, sampling=sampling, aggregation_method='mean')
+            ts = cls(ts=pts, sampling=numpy.timedelta64(sampling, 's'),
+                     aggregation_method='mean')
             t0 = time.time()
             key = ts.get_split_key()
             for i in six.moves.range(serialize_times):
@@ -835,7 +850,8 @@ class AggregatedTimeSerie(TimeSerie):
 
             # NOTE(sileht): propose a new series with half overload timestamps
             pts = ts.ts.copy(deep=True)
-            tsbis = cls(ts=pts, sampling=sampling, aggregation_method='mean')
+            tsbis = cls(ts=pts, sampling=numpy.timedelta64(sampling, 's'),
+                        aggregation_method='mean')
             tsbis.ts.reindex(tsbis.ts.index -
                              datetime.timedelta(seconds=sampling * points / 2))
 
@@ -848,7 +864,8 @@ class AggregatedTimeSerie(TimeSerie):
             for agg in ['mean', 'sum', 'max', 'min', 'std', 'median', 'first',
                         'last', 'count', '5pct', '90pct']:
                 serialize_times = 3 if agg.endswith('pct') else 10
-                ts = cls(ts=pts, sampling=sampling, aggregation_method=agg)
+                ts = cls(ts=pts, sampling=numpy.timedelta64(sampling, 's'),
+                         aggregation_method=agg)
                 t0 = time.time()
                 for i in six.moves.range(serialize_times):
                     ts.resample(resample)

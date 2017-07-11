@@ -145,7 +145,10 @@ def PositiveNotNullInt(value):
 
 
 def Timespan(value):
-    return utils.to_timespan(value).total_seconds()
+    try:
+        return utils.to_timespan(value)
+    except ValueError as e:
+        raise voluptuous.Invalid(e)
 
 
 def get_header_option(name, params):
@@ -421,13 +424,13 @@ class MetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -435,7 +438,7 @@ class MetricController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = Timespan(resample)
+                resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
 
@@ -457,7 +460,8 @@ class MetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
-                    Timespan(granularity) if granularity is not None else None,
+                    utils.to_timespan(granularity)
+                    if granularity is not None else None,
                     resample)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
@@ -1340,7 +1344,7 @@ class SearchMetricController(rest.RestController):
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
              granularity=None):
-        granularity = [Timespan(g)
+        granularity = [utils.to_timespan(g)
                        for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
             ids=arg_to_list(metric_id))
@@ -1355,13 +1359,13 @@ class SearchMetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1518,14 +1522,14 @@ class MetricsMeasuresBatchController(rest.RestController):
         start = kwargs.get('start')
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         stop = kwargs.get('stop')
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1541,7 +1545,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         granularity = kwargs.get('granularity')
         if granularity is not None:
             try:
-                granularity = Timespan(granularity)
+                granularity = utils.to_timespan(granularity)
             except ValueError as e:
                 abort(400, e)
 
@@ -1650,13 +1654,13 @@ class AggregationController(rest.RestController):
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1676,7 +1680,7 @@ class AggregationController(rest.RestController):
             return []
         if granularity is not None:
             try:
-                granularity = Timespan(granularity)
+                granularity = utils.to_timespan(granularity)
             except ValueError as e:
                 abort(400, e)
 
@@ -1684,7 +1688,7 @@ class AggregationController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = Timespan(resample)
+                resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
 
