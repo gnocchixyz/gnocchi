@@ -140,12 +140,21 @@ def to_timespan(value):
         seconds = float(value)
     except Exception:
         try:
-            seconds = pd.to_timedelta(value).total_seconds()
+            seconds = pd.to_timedelta(value).to_timedelta64()
         except Exception:
             raise ValueError("Unable to parse timespan")
-    if seconds <= 0:
+    else:
+        seconds = numpy.timedelta64(int(seconds * 10e8), 'ns')
+    if seconds <= numpy.timedelta64(0, 'ns'):
         raise ValueError("Timespan must be positive")
-    return datetime.timedelta(seconds=seconds)
+    return seconds
+
+
+_ONE_SECOND = numpy.timedelta64(1, 's')
+
+
+def timespan_total_seconds(td):
+    return td / _ONE_SECOND
 
 
 def utcnow():

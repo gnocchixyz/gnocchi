@@ -17,6 +17,7 @@
 import uuid
 
 import mock
+import numpy
 
 from gnocchi import indexer
 from gnocchi import statsd
@@ -71,9 +72,15 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0)
+            (utils.datetime_utc(2015, 1, 7),
+             numpy.timedelta64(1, 'D'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13),
+             numpy.timedelta64(1, 'h'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13, 58),
+             numpy.timedelta64(1, 'm'),
+             1.0)
         ], measures)
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
@@ -92,10 +99,18 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.5),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.5),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 59), 60.0, 2.0)
+            (utils.datetime_utc(2015, 1, 7),
+             numpy.timedelta64(1, 'D'),
+             1.5),
+            (utils.datetime_utc(2015, 1, 7, 13),
+             numpy.timedelta64(1, 'h'),
+             1.5),
+            (utils.datetime_utc(2015, 1, 7, 13, 58),
+             numpy.timedelta64(1, 'm'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13, 59),
+             numpy.timedelta64(1, 'm'),
+             2.0)
         ], measures)
 
     def test_gauge(self):
@@ -126,9 +141,15 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0)], measures)
+            (utils.datetime_utc(2015, 1, 7),
+             numpy.timedelta64(1, 'D'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13),
+             numpy.timedelta64(1, 'h'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13, 58),
+             numpy.timedelta64(1, 'm'),
+             1.0)], measures)
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         self.server.datagram_received(
@@ -145,10 +166,18 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 28),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 28),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 59), 60.0, 55.0)], measures)
+            (utils.datetime_utc(2015, 1, 7),
+             numpy.timedelta64(1, 'D'),
+             28),
+            (utils.datetime_utc(2015, 1, 7, 13),
+             numpy.timedelta64(1, 'h'),
+             28),
+            (utils.datetime_utc(2015, 1, 7, 13, 58),
+             numpy.timedelta64(1, 'm'),
+             1.0),
+            (utils.datetime_utc(2015, 1, 7, 13, 59),
+             numpy.timedelta64(1, 'm'),
+             55.0)], measures)
 
 
 class TestStatsdArchivePolicyRule(TestStatsd):
