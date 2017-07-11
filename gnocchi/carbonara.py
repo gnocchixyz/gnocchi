@@ -580,10 +580,15 @@ class AggregatedTimeSerie(TimeSerie):
         return six.indexbytes(serialized_data, 0) == ord("c")
 
     @classmethod
-    def unserialize(cls, data, start, agg_method, sampling):
+    def unserialize(cls, data, key, agg_method):
+        """Unserialize an aggregated timeserie.
+
+        :param data: Raw data buffer.
+        :param key: A :class:`SplitKey` key.
+        :param agg_method: The aggregation method of this timeseries.
+        """
         x, y = [], []
 
-        start = float(start)
         if data:
             if cls.is_compressed(data):
                 # Compressed format
@@ -597,7 +602,7 @@ class AggregatedTimeSerie(TimeSerie):
                     y = numpy.frombuffer(timestamps_raw, dtype='<H')
                 except ValueError:
                     raise InvalidData()
-                y = numpy.cumsum(y * sampling) + start
+                y = numpy.cumsum(y * key.sampling) + key.key
 
                 values_raw = uncompressed[
                     nb_points*cls.COMPRESSED_TIMESPAMP_LEN:]
@@ -611,13 +616,13 @@ class AggregatedTimeSerie(TimeSerie):
                 except ValueError:
                     raise InvalidData()
                 index = numpy.nonzero(everything['b'])[0]
-                y = index * sampling + start
+                y = index * key.sampling + key.key
                 x = everything['v'][index]
 
             y = y.astype(numpy.float64, copy=False) * 10e8
             y = y.astype('datetime64[ns]', copy=False)
             y = pandas.to_datetime(y)
-        return cls.from_data(sampling, agg_method, y, x)
+        return cls.from_data(key.sampling, agg_method, y, x)
 
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
@@ -787,7 +792,7 @@ class AggregatedTimeSerie(TimeSerie):
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
-                cls.unserialize(s, key, 'mean', sampling)
+                cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
                   % (((points * 2 * 8)
@@ -804,7 +809,7 @@ class AggregatedTimeSerie(TimeSerie):
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
-                cls.unserialize(s, key, 'mean', sampling)
+                cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Uncompression speed: %.2f MB/s"
                   % (((points * 2 * 8)
