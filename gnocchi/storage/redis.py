@@ -71,8 +71,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricDoesNotExist(metric)
         return data
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         key = self._metric_key(metric)
         if not self._client.exists(key):
             raise storage.MetricDoesNotExist(metric)

@@ -169,8 +169,7 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             raise
         return response['Body'].read()
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         bucket = self._bucket_name
         keys = set()
         response = {}

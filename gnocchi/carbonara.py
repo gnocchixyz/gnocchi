@@ -43,6 +43,9 @@ time.strptime("2016-02-19", "%Y-%m-%d")
 LOG = logging.getLogger(__name__)
 
 
+UNIX_UNIVERSAL_START64 = numpy.datetime64("1970")
+
+
 class BeforeEpochError(Exception):
     """Error raised when a timestamp before Epoch is used."""
 
@@ -407,6 +410,10 @@ class SplitKey(object):
             self.key = value.key
         elif isinstance(value, pandas.Timestamp):
             self.key = value.value / 10e8
+        elif isinstance(value, numpy.datetime64):
+            self.key = (
+                (value - UNIX_UNIVERSAL_START64) / numpy.timedelta64(1, 's')
+            )
         else:
             self.key = float(value)
 
