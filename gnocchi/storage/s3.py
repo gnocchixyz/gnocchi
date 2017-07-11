@@ -87,8 +87,8 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 raise
 
     @staticmethod
-    def _object_name(split_key, aggregation, granularity, version=3):
-        name = '%s_%s_%s' % (aggregation, granularity, split_key)
+    def _object_name(split_key, aggregation, version=3):
+        name = '%s_%s_%s' % (aggregation, split_key.sampling, split_key)
         return name + '_v%s' % version if version else name
 
     @staticmethod
@@ -113,20 +113,20 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
                 wait=self._consistency_wait,
                 stop=self._consistency_stop)(_head)
 
-    def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=0, version=3):
+    def _store_metric_measures(self, metric, key, aggregation,
+                               data, offset=0, version=3):
         self._put_object_safe(
             Bucket=self._bucket_name,
             Key=self._prefix(metric) + self._object_name(
-                timestamp_key, aggregation, granularity, version),
+                key, aggregation, version),
             Body=data)
 
-    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity, version=3):
+    def _delete_metric_measures(self, metric, key, aggregation,
+                                version=3):
         self.s3.delete_object(
             Bucket=self._bucket_name,
             Key=self._prefix(metric) + self._object_name(
-                timestamp_key, aggregation, granularity, version))
+                key, aggregation, version))
 
     def _delete_metric(self, metric):
         bucket = self._bucket_name
@@ -149,13 +149,12 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
             s3.bulk_delete(self.s3, bucket,
                            [c['Key'] for c in response.get('Contents', ())])
 
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
-                      version=3):
+    def _get_measures(self, metric, key, aggregation, version=3):
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    timestamp_key, aggregation, granularity, version))
+                    key, aggregation, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
                 try:

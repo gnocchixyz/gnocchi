@@ -230,7 +230,9 @@ class TestStorageDriver(tests_base.TestCase):
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
-            if args[0] == m_sql and args[2] == 'mean' and args[3] == 60.0:
+            if (args[0] == m_sql
+               and args[2] == 'mean'
+               and args[1].sampling == 60.0):
                 count += 1
         self.assertEqual(1, count)
 
@@ -329,13 +331,13 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -363,17 +365,17 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'), 60),
         }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1452384000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1452384000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -418,13 +420,13 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -454,17 +456,17 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'), 60),
         }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1452384000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1452384000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -507,13 +509,13 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -526,9 +528,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         # Test what happens if we delete the latest split and then need to
         # compress it!
-        self.storage._delete_metric_measures(self.metric,
-                                             '1451952000.0',
-                                             'mean', 60.0)
+        self.storage._delete_metric_measures(
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), 'mean')
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -571,13 +572,13 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451520000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451736000.0, 60.0), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
@@ -590,7 +591,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         # Test what happens if we write garbage
         self.storage._store_metric_measures(
-            self.metric, '1451952000.0', "mean", 60.0, b"oh really?")
+            self.metric, carbonara.SplitKey(1451952000.0, 60.0), "mean",
+            b"oh really?")
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
