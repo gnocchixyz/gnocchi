@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -410,7 +410,7 @@ class SplitKey(object):
         else:
             self.key = float(value)
 
-        self._carbonara_sampling = float(sampling)
+        self.sampling = sampling
 
     @classmethod
     def from_timestamp_and_sampling(cls, timestamp, sampling):
@@ -425,8 +425,8 @@ class SplitKey(object):
         :return: A `SplitKey` object.
         """
         return self.__class__(
-            self.key + self._carbonara_sampling * self.POINTS_PER_SPLIT,
-            self._carbonara_sampling)
+            self.key + self.sampling * self.POINTS_PER_SPLIT,
+            self.sampling)
 
     next = __next__
 
@@ -462,7 +462,7 @@ class SplitKey(object):
     def __repr__(self):
         return "<%s: %s / %fs>" % (self.__class__.__name__,
                                    repr(self.key),
-                                   self._carbonara_sampling)
+                                   self.sampling)
 
 
 class AggregatedTimeSerie(TimeSerie):

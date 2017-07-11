@@ -66,9 +66,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                             "agg_" + aggregation)
 
     def _build_metric_path_for_split(self, metric, aggregation,
-                                     timestamp_key, granularity, version=3):
+                                     key, version=3):
         path = os.path.join(self._build_metric_path(metric, aggregation),
-                            str(timestamp_key) + "_" + str(granularity))
+                            str(key) + "_" + str(key.sampling))
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):
@@ -115,17 +115,15 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 keys.add(meta[0])
         return keys
 
-    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity, version=3):
+    def _delete_metric_measures(self, metric, key, aggregation, version=3):
         os.unlink(self._build_metric_path_for_split(
-            metric, aggregation, timestamp_key, granularity, version))
+            metric, aggregation, key, version))
 
-    def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=None, version=3):
+    def _store_metric_measures(self, metric, key, aggregation,
+                               data, offset=None, version=3):
         self._atomic_file_store(
-            self._build_metric_path_for_split(metric, aggregation,
-                                              timestamp_key, granularity,
-                                              version),
+            self._build_metric_path_for_split(
+                metric, aggregation, key, version),
             data)
 
     def _delete_metric(self, metric):
@@ -138,10 +136,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 # measures)
                 raise
 
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
-                      version=3):
+    def _get_measures(self, metric, key, aggregation, version=3):
         path = self._build_metric_path_for_split(
-            metric, aggregation, timestamp_key, granularity, version)
+            metric, aggregation, key, version)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()
