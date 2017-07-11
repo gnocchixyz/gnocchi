@@ -18,6 +18,7 @@ import operator
 import uuid
 
 import mock
+import numpy
 
 from gnocchi import archive_policy
 from gnocchi import indexer
@@ -55,9 +56,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 12, u'timespan': 3600},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(5, 'm'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': u'low'}, dict(ap))
 
     def test_update_archive_policy(self):
@@ -88,9 +95,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 6, u'timespan': 1800},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(300, 's'),
+                 u'points': 6,
+                 u'timespan': numpy.timedelta64(1800, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': apname}, dict(ap))
         ap = self.index.update_archive_policy(
             apname, [archive_policy.ArchivePolicyItem(granularity=300,
@@ -104,9 +117,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 12, u'timespan': 3600},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(300, 's'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': apname}, dict(ap))
 
     def test_delete_archive_policy(self):

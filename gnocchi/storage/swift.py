@@ -19,6 +19,7 @@ from oslo_config import cfg
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -81,7 +82,10 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
 
     @staticmethod
     def _object_name(split_key, aggregation, version=3):
-        name = '%s_%s_%s' % (split_key, aggregation, split_key.sampling)
+        name = '%s_%s_%s' % (
+            split_key, aggregation,
+            utils.timespan_total_seconds(split_key.sampling),
+        )
         return name + '_v%s' % version if version else name
 
     def _create_metric(self, metric):
@@ -151,10 +155,11 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
         keys = set()
+        granularity = str(utils.timespan_total_seconds(granularity))
         for f in files:
             try:
                 meta = f['name'].split('_')
-                if (aggregation == meta[1] and granularity == float(meta[2])
+                if (aggregation == meta[1] and granularity == meta[2]
                         and self._version_check(f['name'], version)):
                     keys.add(meta[0])
             except (ValueError, IndexError):
