@@ -129,6 +129,13 @@ class GnocchiBase(models.ModelBase):
 
 
 class ArchivePolicyDefinitionType(sqlalchemy_utils.JSONType):
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return super(
+                ArchivePolicyDefinitionType, self).process_bind_param(
+                    [v.serialize() for v in value],
+                    dialect)
+
     def process_result_value(self, value, dialect):
         values = super(ArchivePolicyDefinitionType,
                        self).process_result_value(value, dialect)
