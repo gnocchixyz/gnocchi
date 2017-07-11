@@ -68,7 +68,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     def _build_metric_path_for_split(self, metric, aggregation,
                                      timestamp_key, granularity, version=3):
         path = os.path.join(self._build_metric_path(metric, aggregation),
-                            timestamp_key + "_" + str(granularity))
+                            str(timestamp_key) + "_" + str(granularity))
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):
@@ -101,8 +101,7 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         try:
             files = os.listdir(self._build_metric_path(metric, aggregation))
         except OSError as e:

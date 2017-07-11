@@ -283,13 +283,13 @@ class TestStorageDriver(tests_base.TestCase):
             (utils.datetime_utc(2015, 1, 1, 12), 300.0, 69),
         ], self.storage.get_measures(self.metric))
 
-        self.assertEqual({"1244160000.0"},
+        self.assertEqual({carbonara.SplitKey("1244160000.0", 86400)},
                          self.storage._list_split_keys_for_metric(
                              self.metric, "mean", 86400.0))
-        self.assertEqual({"1412640000.0"},
+        self.assertEqual({carbonara.SplitKey("1412640000.0", 3600)},
                          self.storage._list_split_keys_for_metric(
                              self.metric, "mean", 3600.0))
-        self.assertEqual({"1419120000.0"},
+        self.assertEqual({carbonara.SplitKey("1419120000.0", 300)},
                          self.storage._list_split_keys_for_metric(
                              self.metric, "mean", 300.0))
 
@@ -312,10 +312,11 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -350,10 +351,12 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        self.assertEqual({'1452384000.0', '1451736000.0',
-                          '1451520000.0', '1451952000.0'},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1452384000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
         data = self.storage._get_measures(
             self.metric, '1451520000.0', "mean", 60.0)
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -398,10 +401,11 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -438,10 +442,12 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        self.assertEqual({'1452384000.0', '1451736000.0',
-                          '1451520000.0', '1451952000.0'},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1452384000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
         data = self.storage._get_measures(
             self.metric, '1451520000.0', "mean", 60.0)
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -484,10 +490,11 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -547,10 +554,11 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(1451520000.0, 60),
+            carbonara.SplitKey(1451736000.0, 60),
+            carbonara.SplitKey(1451952000.0, 60),
+        }, self.storage._list_split_keys_for_metric(self.metric, "mean", 60.0))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue

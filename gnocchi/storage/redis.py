@@ -50,7 +50,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
     @classmethod
     def _aggregated_field_for_split(cls, aggregation, timestamp_key,
                                     granularity, version=3):
-        path = cls.FIELD_SEP.join([timestamp_key, aggregation,
+        path = cls.FIELD_SEP.join([str(timestamp_key), aggregation,
                                    str(granularity)])
         return path + '_v%s' % version if version else path
 
@@ -71,8 +71,7 @@ class RedisStorage(_carbonara.CarbonaraBasedStorage):
             raise storage.MetricDoesNotExist(metric)
         return data
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         key = self._metric_key(metric)
         if not self._client.exists(key):
             raise storage.MetricDoesNotExist(metric)

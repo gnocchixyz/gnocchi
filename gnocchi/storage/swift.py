@@ -145,8 +145,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             raise
         return contents
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
