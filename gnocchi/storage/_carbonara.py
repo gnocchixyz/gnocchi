@@ -16,6 +16,7 @@
 # under the License.
 import collections
 import datetime
+import functools
 import itertools
 import operator
 
@@ -117,9 +118,15 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                granularity, data, offset=None, version=3):
         raise NotImplementedError
 
-    @staticmethod
-    def _list_split_keys_for_metric(metric, aggregation, granularity,
+    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=3):
+        return set(map(
+            functools.partial(carbonara.SplitKey, sampling=granularity),
+            utils.to_timestamps(self._list_split_keys(
+                metric, aggregation, granularity, version))))
+
+    @staticmethod
+    def _list_split_keys(metric, aggregation, granularity, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -190,14 +197,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             raise storage.GranularityDoesNotExist(metric, granularity)
 
         if from_timestamp:
-            from_timestamp = str(
-                carbonara.SplitKey.from_timestamp_and_sampling(
-                    from_timestamp, granularity))
+            from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
+                from_timestamp, granularity)
 
         if to_timestamp:
-            to_timestamp = str(
-                carbonara.SplitKey.from_timestamp_and_sampling(
-                    to_timestamp, granularity))
+            to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
+                to_timestamp, granularity)
 
         timeseries = list(filter(
             lambda x: x is not None,
@@ -284,13 +289,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             oldest_point_to_keep = ts.last - datetime.timedelta(
                 seconds=archive_policy_def.timespan)
             oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
-            oldest_key_to_keep_s = str(oldest_key_to_keep)
             for key in list(existing_keys):
                 # NOTE(jd) Only delete if the key is strictly inferior to
                 # the timestamp; we don't delete any timeserie split that
                 # contains our timestamp, so we prefer to keep a bit more
                 # than deleting too much
-                if key < oldest_key_to_keep_s:
+                if key < oldest_key_to_keep:
                     self._delete_metric_measures(
                         metric, key, aggregation,
                         archive_policy_def.granularity)
@@ -317,8 +321,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                         # NOTE(jd) Rewrite it entirely for fun (and later for
                         # compression). For that, we just pass None as split.
                         self._store_timeserie_split(
-                            metric, carbonara.SplitKey(
-                                float(key), archive_policy_def.granularity),
+                            metric, key,
                             None, aggregation, archive_policy_def,
                             oldest_mutable_timestamp)
 
