@@ -80,8 +80,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 
     @staticmethod
-    def _object_name(split_key, aggregation, granularity, version=3):
-        name = '%s_%s_%s' % (split_key, aggregation, granularity)
+    def _object_name(split_key, aggregation, version=3):
+        name = '%s_%s_%s' % (split_key, aggregation, split_key.sampling)
         return name + '_v%s' % version if version else name
 
     def _create_metric(self, metric):
@@ -94,20 +94,17 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
-    def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=None, version=3):
+    def _store_metric_measures(self, metric, key, aggregation,
+                               data, offset=None, version=3):
         self.swift.put_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity,
-                              version),
+            self._object_name(key, aggregation, version),
             data)
 
-    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity, version=3):
+    def _delete_metric_measures(self, metric, key, aggregation, version=3):
         self.swift.delete_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity,
-                              version))
+            self._object_name(key, aggregation, version))
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)
@@ -127,12 +124,11 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                     # Deleted in the meantime? Whatever.
                     raise
 
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
-                      version=3):
+    def _get_measures(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
-                    timestamp_key, aggregation, granularity, version))
+                    key, aggregation, version))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
