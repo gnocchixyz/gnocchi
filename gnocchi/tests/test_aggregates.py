@@ -16,7 +16,6 @@
 import datetime
 import uuid
 
-import pandas
 from stevedore import extension
 
 from gnocchi import aggregates
@@ -80,7 +79,6 @@ class TestAggregates(tests_base.TestCase):
                               window=window)
 
             window = 120.0
-            result = pandas.Series()
             grain, result = agg_obj.retrieve_data(self.storage, metric,
                                                   start=None, stop=None,
                                                   window=window)
