@@ -429,7 +429,7 @@ tests:
       response_strings:
           - timespan ≠ granularity × points
 
-    - name: create invalid points policy
+    - name: create invalid granularity policy
       POST: /v1/archive_policy
       request_headers:
           # User admin
@@ -443,7 +443,7 @@ tests:
       response_strings:
           - "Invalid input: not a valid value for dictionary value"
 
-    - name: create invalid granularity policy
+    - name: create invalid points policy
       POST: /v1/archive_policy
       request_headers:
           # User admin
