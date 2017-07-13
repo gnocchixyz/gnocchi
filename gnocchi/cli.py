@@ -191,7 +191,7 @@ class MetricProcessor(MetricProcessBase):
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
-        self.coord, __ = utils.get_coordinator_and_start(
+        self.coord = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
         self._tasks = []
         self.group_state = None
