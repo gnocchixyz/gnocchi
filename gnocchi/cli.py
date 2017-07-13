@@ -116,6 +116,13 @@ def statsd():
     statsd_service.start()
 
 
+# Retry with exponential backoff for up to 1 minute
+_wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
+
+
+retry_on_exception = tenacity.Retrying(wait=_wait_exponential)
+
+
 class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
@@ -126,9 +133,9 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown_done = threading.Event()
 
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
-        self.incoming = incoming.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
+        self.store = retry_on_exception(storage.get_driver, self.conf)
+        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
+        self.index = retry_on_exception(indexer.get_driver, self.conf)
 
     def run(self):
         self._configure()
@@ -164,7 +171,7 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = incoming.get_driver(self.conf)
+        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
 
     def _run_job(self):
         try:
@@ -188,16 +195,20 @@ class MetricProcessor(MetricProcessBase):
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
-        self.coord = utils.get_coordinator_and_start(
-            conf.storage.coordination_url)
         self._tasks = []
         self.group_state = None
 
-    @utils.retry
+    @tenacity.retry(
+        wait=_wait_exponential,
+        # Never retry except when explicitly asked by raising TryAgain
+        retry=tenacity.retry_never)
     def _configure(self):
-        self.store = storage.get_driver(self.conf, self.coord)
-        self.incoming = incoming.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
+        self.coord = retry_on_exception(utils.get_coordinator_and_start,
+                                        self.conf.storage.coordination_url)
+        self.store = retry_on_exception(storage.get_driver,
+                                        self.conf, self.coord)
+        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
+        self.index = retry_on_exception(indexer.get_driver, self.conf)
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
