@@ -90,10 +90,9 @@ def _enable_coordination(coord):
 
 
 def get_coordinator_and_start(url):
-    my_id = str(uuid.uuid4()).encode()
-    coord = coordination.get_coordinator(url, my_id)
+    coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
     _enable_coordination(coord)
-    return coord, my_id
+    return coord
 
 
 unix_universal_start64 = numpy.datetime64("1970")
