@@ -210,14 +210,14 @@ class TimeSerie(object):
     @property
     def first(self):
         try:
-            return self.ts.index[0]
+            return self.ts.index[0].to_datetime64()
         except IndexError:
             return
 
     @property
     def last(self):
         try:
-            return self.ts.index[-1]
+            return self.ts.index[-1].to_datetime64()
         except IndexError:
             return
 
@@ -313,8 +313,8 @@ class BoundTimeSerie(TimeSerie):
 
     def serialize(self):
         # NOTE(jd) Use a double delta encoding for timestamps
-        timestamps = numpy.insert(numpy.diff(self.ts.index),
-                                  0, self.first.value)
+        timestamps = numpy.insert(numpy.diff(self.ts.index), 0,
+                                  int(datetime64_to_epoch(self.first) * 10e8))
         timestamps = timestamps.astype('<Q', copy=False)
         values = self.ts.values.astype('<d', copy=False)
         payload = (timestamps.tobytes() + values.tobytes())
