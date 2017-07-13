@@ -107,7 +107,6 @@ def load_app(conf, indexer=None, storage=None, incoming=None,
         incoming = gnocchi_incoming.get_driver(conf)
     if not indexer:
         indexer = gnocchi_indexer.get_driver(conf)
-        indexer.connect()
 
     # Build the WSGI app
     cfg_path = conf.api.paste_config

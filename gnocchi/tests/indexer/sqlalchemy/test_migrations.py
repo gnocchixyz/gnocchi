@@ -47,7 +47,6 @@ class ModelsMigrationsSync(
                 self.conf.indexer.url),
             'indexer')
         self.index = indexer.get_driver(self.conf)
-        self.index.connect()
         self.index.upgrade(nocreate=True)
         self.addCleanup(self._drop_database)
 

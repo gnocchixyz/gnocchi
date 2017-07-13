@@ -119,7 +119,6 @@ class ConfigFixture(fixture.GabbiFixture):
             'indexer')
 
         index = indexer.get_driver(conf)
-        index.connect()
         index.upgrade()
 
         # Set pagination to a testable value
