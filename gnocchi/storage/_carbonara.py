@@ -63,9 +63,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             self._map_in_thread = self._map_no_thread
         else:
             self._map_in_thread = self._map_in_futures_threads
-        self.coord, __ = (
-            (coord, None) if coord else
-            utils.get_coordinator_and_start(conf.coordination_url))
+        self.coord = (coord if coord else
+                      utils.get_coordinator_and_start(conf.coordination_url))
         self.shared_coord = bool(coord)
 
     def stop(self):
