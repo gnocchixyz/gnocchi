@@ -210,18 +210,6 @@ class MetricProcessor(MetricProcessBase):
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
-            LOG.info('Joined coordination group: %s', self.GROUP_ID)
-
-            @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
-                                run_immediately=True)
-            def run_watchers():
-                self.coord.run_watchers()
-
-            self.periodic = periodics.PeriodicWorker.create([])
-            self.periodic.add(run_watchers)
-            t = threading.Thread(target=self.periodic.start)
-            t.daemon = True
-            t.start()
         except NotImplementedError:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
@@ -229,6 +217,19 @@ class MetricProcessor(MetricProcessBase):
             LOG.error('Unexpected error configuring coordinator for '
                       'partitioning. Retrying: %s', e)
             raise tenacity.TryAgain(e)
+
+        LOG.info('Joined coordination group: %s', self.GROUP_ID)
+
+        @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
+                            run_immediately=True)
+        def run_watchers():
+            self.coord.run_watchers()
+
+        self.periodic = periodics.PeriodicWorker.create([])
+        self.periodic.add(run_watchers)
+        t = threading.Thread(target=self.periodic.start)
+        t.daemon = True
+        t.start()
 
     def _get_tasks(self):
         try:
