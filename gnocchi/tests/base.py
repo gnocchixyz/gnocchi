@@ -290,7 +290,6 @@ class TestCase(BaseTestCase):
                                    group="storage")
 
         self.index = indexer.get_driver(self.conf)
-        self.index.connect()
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the

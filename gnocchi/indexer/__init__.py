@@ -265,10 +265,6 @@ class IndexerDriver(object):
         pass
 
     @staticmethod
-    def connect():
-        pass
-
-    @staticmethod
     def disconnect():
         pass
 

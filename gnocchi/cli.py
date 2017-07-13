@@ -71,7 +71,6 @@ def upgrade():
     conf = service.prepare_service(conf=conf, log_to_std=True)
     if not conf.skip_index:
         index = indexer.get_driver(conf)
-        index.connect()
         LOG.info("Upgrading indexer %s", index)
         index.upgrade()
     if not conf.skip_storage:
@@ -88,7 +87,6 @@ def upgrade():
             and not index.list_archive_policy_rules()):
         if conf.skip_index:
             index = indexer.get_driver(conf)
-            index.connect()
         for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
             index.create_archive_policy(ap)
         index.create_archive_policy_rule("default", "*", "low")
@@ -132,7 +130,6 @@ class MetricProcessBase(cotyledon.Service):
         self.store = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
-        self.index.connect()
 
     def run(self):
         self._configure()
@@ -202,7 +199,6 @@ class MetricProcessor(MetricProcessBase):
         self.store = storage.get_driver(self.conf, self.coord)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
-        self.index.connect()
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
@@ -314,7 +310,6 @@ def metricd_tester(conf):
     # want to avoid issues with profiler and os.fork(), that
     # why we don't use the MetricdServiceManager.
     index = indexer.get_driver(conf)
-    index.connect()
     s = storage.get_driver(conf)
     inc = incoming.get_driver(conf)
     metrics = set()

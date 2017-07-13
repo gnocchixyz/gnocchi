@@ -65,7 +65,6 @@ def run_migrations_online():
     """
     conf = config.conf
     indexer = sqlalchemy.SQLAlchemyIndexer(conf)
-    indexer.connect()
     with indexer.facade.writer_connection() as connectable:
 
         with connectable.connect() as connection:

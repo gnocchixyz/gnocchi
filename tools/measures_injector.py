@@ -37,7 +37,6 @@ def injector():
     ])
     conf = service.prepare_service(conf=conf)
     index = indexer.get_driver(conf)
-    index.connect()
     s = storage.get_driver(conf)
 
     def todo():
