@@ -544,11 +544,16 @@ Also, aggregation across metrics have different behavior depending
 on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
 is set.
 
-If boundaries are not set, Gnocchi makes the aggregation only with points
-at timestamp present in all timeseries. When boundaries are set, Gnocchi
-expects that we have certain percent of timestamps common between timeseries,
-this percent is controlled by needed_overlap (defaulted with 100%). If this
-percent is not reached an error is returned.
+When a boundary is set, Gnocchi expects that we have certain percent of
+timestamps common between timeseries. This percent is controlled by
+needed_overlap, which by default expects 100% overlap. If this percent is not
+reached, an error is returned. If no boundaries are set, Gnocchi aggregates and
+returns only the last contiguous range of common datapoints.
+
+.. note::
+
+   Not setting a boundary may result in an extremely sparse result.
+   Additionally, it may not accurately reflect 'needed_overlap' value, if set.
 
 The ability to fill in points missing from a subset of timeseries is supported
 by specifying a `fill` value. Valid fill values include any valid float or
