@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    It's now possible to made some transformation to the stored timeseries
+    during the retrieval of the measures. The allowed transformations are
+    absolute and negative.

@@ -122,6 +122,15 @@ resampled to a new granularity.
    Depending on the aggregation method and frequency of measures, resampled
    data may lack accuracy as it is working against previously aggregated data.
 
+
+Stored measures can be transformed during retrieval, with:
+
+{{ scenarios['get-measures-transform']['doc'] }}
+
+The example will first apply absolute to the values and then negate them.
+
+Supported transformations are `absolute` and `negative`.
+
 Measures batching
 =================
 It is also possible to batch measures sending, i.e. send several measures for

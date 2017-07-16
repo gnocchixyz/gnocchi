@@ -137,7 +137,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, resample=None):
+                     aggregation='mean', granularity=None, resample=None,
+                     transform=None):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
         if granularity is None:
@@ -153,6 +154,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             if resample:
                 agg_timeseries = agg_timeseries.resample(resample)
             agg_timeseries = [agg_timeseries]
+
+        if transform is not None:
+            agg_timeseries = list(map(lambda agg: agg.transform(transform),
+                                      agg_timeseries))
 
         return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
                                       for ts in agg_timeseries]))
@@ -473,7 +478,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                   fill=None):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
-            aggregation, reaggregation, resample, granularity, needed_overlap)
+            aggregation, reaggregation, resample, granularity, needed_overlap,
+            fill)
 
         if reaggregation is None:
             reaggregation = aggregation
@@ -502,7 +508,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                       [(metric, aggregation, granularity,
                                         from_timestamp, to_timestamp)
                                        for metric in metrics])
-            tss = map(lambda ts: ts.resample(resample), tss)
+            tss = list(map(lambda ts: ts.resample(resample), tss))
         else:
             tss = self._map_in_thread(self._get_measures_timeserie,
                                       [(metric, aggregation, g,

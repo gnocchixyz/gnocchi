@@ -213,6 +213,45 @@ tests:
           - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
+    - name: push negative measurements to metric again
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
+      data:
+          - timestamp: "2015-03-06T14:36:15"
+            value: -16
+          - timestamp: "2015-03-06T14:37:15"
+            value: -23
+      status: 202
+
+    - name: get measurements from metric and transform
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute&refresh=true
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:36:15+00:00", 1.0, 16.0]
+          - ["2015-03-06T14:37:15+00:00", 1.0, 23.0]
+
+    - name: get measurements from metric and two transforms
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute:negative
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:57+00:00", 1.0, -43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -11.0]
+          - ["2015-03-06T14:36:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:37:15+00:00", 1.0, -23.0]
+
+    - name: get measurements from metric and invalid transform
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute:notexists
+      status: 400
+      response_strings:
+        - Transformation 'notexists' doesn't exist
+
     - name: get measurements from metric and resample no granularity
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60
       status: 400
