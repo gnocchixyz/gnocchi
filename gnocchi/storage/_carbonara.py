@@ -502,8 +502,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                       [(metric, aggregation, granularity,
                                         from_timestamp, to_timestamp)
                                        for metric in metrics])
-            for i, ts in enumerate(tss):
-                tss[i] = ts.resample(resample)
+            tss = map(lambda ts: ts.resample(resample), tss)
         else:
             tss = self._map_in_thread(self._get_measures_timeserie,
                                       [(metric, aggregation, g,
