@@ -270,6 +270,9 @@
 - name: get-measures-granularity
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?granularity=1 HTTP/1.1
 
+- name: get-measures-transform
+  request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?transform=absolute:negative HTTP/1.1
+
 - name: get-measures-refresh
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?refresh=true HTTP/1.1
 

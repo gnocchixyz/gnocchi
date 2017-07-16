@@ -276,6 +276,29 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5.9000000000000004,
                          ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
+    def test_transform(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime64(2014, 1, 1, 12, 0, 0), -3),
+             (datetime64(2014, 1, 1, 12, 1, 0), 5),
+             (datetime64(2014, 1, 1, 12, 2, 0), -6)])
+        ts = carbonara.AggregatedTimeSerie.from_timeseries(
+            [ts], sampling=60, aggregation_method="last")
+        ts = ts.transform(["absolute"])
+
+        self.assertEqual(3, len(ts))
+        self.assertEqual([3, 5, 6], [
+            ts[datetime64(2014, 1, 1, 12, 0, 0)][1],
+            ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
+            ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
+
+        ts = ts.transform(["absolute", "negative"])
+
+        self.assertEqual(3, len(ts))
+        self.assertEqual([-3, -5, -6], [
+            ts[datetime64(2014, 1, 1, 12, 0, 0)][1],
+            ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
+            ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
+
     def _do_test_aggregation(self, name, v1, v2):
         ts = carbonara.TimeSerie.from_tuples(
             [(datetime64(2014, 1, 1, 12, 0, 0), 3),

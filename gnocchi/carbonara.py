@@ -562,6 +562,21 @@ class AggregatedTimeSerie(TimeSerie):
         return AggregatedTimeSerie.from_grouped_serie(
             self.group_serie(sampling), sampling, self.aggregation_method)
 
+    def transform(self, transform):
+        timestamps = self.ts["timestamps"]
+        values = self.ts["values"]
+        for trans in transform:
+            if trans == "absolute":
+                values = numpy.abs(values)
+            elif trans == "negative":
+                values = numpy.negative(values)
+            else:
+                raise ValueError("Transformation '%s' doesn't exists" % trans)
+        return AggregatedTimeSerie(self.sampling,
+                                   self.aggregation_method,
+                                   ts=make_timeseries(timestamps, values),
+                                   max_size=self.max_size)
+
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps,
                   values, max_size=None):
