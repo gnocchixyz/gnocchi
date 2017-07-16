@@ -375,6 +375,21 @@ def MeasuresListSchema(measures):
         times.tolist(), values))
 
 
+VALID_TRANSFORMATION_METHODS = ["absolute", "negative"]
+
+
+def TransformSchema(transform):
+    try:
+        transform = transform.split(":")
+    except Exception:
+        abort(400, "Invalid transformation")
+
+    for trans in transform:
+        if trans not in VALID_TRANSFORMATION_METHODS:
+            abort(400, "Transformation '%s' doesn't exist" % trans)
+    return transform
+
+
 class MetricController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
@@ -407,7 +422,9 @@ class MetricController(rest.RestController):
 
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
-                     granularity=None, resample=None, refresh=False, **param):
+                     granularity=None, resample=None, refresh=False,
+                     transform=None,
+                     **param):
         self.enforce_metric("get measures")
         if not (aggregation
                 in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
@@ -418,6 +435,9 @@ class MetricController(rest.RestController):
                 agg=aggregation,
                 std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
                 custom=str(self.custom_agg.keys())))
+
+        if transform is not None:
+            transform = TransformSchema(transform)
 
         if start is not None:
             try:
@@ -458,7 +478,7 @@ class MetricController(rest.RestController):
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
                     Timespan(granularity) if granularity is not None else None,
-                    resample)
+                    resample, transform)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
