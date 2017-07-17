@@ -24,7 +24,6 @@ import time
 import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
-from futurist import periodics
 from oslo_config import cfg
 import six
 import tenacity
@@ -211,17 +210,6 @@ class MetricProcessor(MetricProcessBase):
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
-
-            @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
-                                run_immediately=True)
-            def run_watchers():
-                self.coord.run_watchers()
-
-            self.periodic = periodics.PeriodicWorker.create([])
-            self.periodic.add(run_watchers)
-            t = threading.Thread(target=self.periodic.start)
-            t.daemon = True
-            t.start()
         except NotImplementedError:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
@@ -232,6 +220,7 @@ class MetricProcessor(MetricProcessBase):
 
     def _get_tasks(self):
         try:
+            self.coord.run_watchers()
             if (not self._tasks or
                     self.group_state != self.partitioner.ring.nodes):
                 self.group_state = self.partitioner.ring.nodes.copy()
@@ -239,6 +228,8 @@ class MetricProcessor(MetricProcessBase):
                     i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
+        except Exception as e:
+            LOG.error('Unexpected error updating the task partitioner: %s', e)
         finally:
             return self._tasks or self.fallback_tasks
 
