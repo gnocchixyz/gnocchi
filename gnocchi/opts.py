@@ -129,12 +129,6 @@ def list_opts():
                        required=True,
                        help="How many seconds to wait between "
                        "cleaning of expired data"),
-            cfg.IntOpt('worker_sync_rate',
-                       default=30,
-                       help="Frequency to detect when metricd workers join or "
-                            "leave system (in seconds). A shorter rate, may "
-                            "improve rebalancing but create more coordination "
-                            "load"),
             cfg.IntOpt('processing_replicas',
                        default=3,
                        min=1,
