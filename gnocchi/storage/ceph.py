@@ -18,7 +18,6 @@ from oslo_config import cfg
 
 from gnocchi.common import ceph
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 
 
 OPTS = [
@@ -40,7 +39,7 @@ OPTS = [
 rados = ceph.rados
 
 
-class CephStorage(_carbonara.CarbonaraBasedStorage):
+class CephStorage(storage.StorageDriver):
     WRITE_FULL = False
 
     def __init__(self, conf, coord=None):

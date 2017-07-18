@@ -17,7 +17,6 @@ from oslo_config import cfg
 
 from gnocchi.common import redis
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 
 
 OPTS = [
@@ -27,7 +26,7 @@ OPTS = [
 ]
 
 
-class RedisStorage(_carbonara.CarbonaraBasedStorage):
+class RedisStorage(storage.StorageDriver):
     WRITE_FULL = True
 
     STORAGE_PREFIX = "timeseries"
