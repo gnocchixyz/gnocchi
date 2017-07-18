@@ -82,6 +82,8 @@ unix_universal_start64 = numpy.datetime64("1970")
 def to_timestamps(values):
     try:
         values = list(values)
+        if len(values) == 0:
+            return []
         if isinstance(values[0], (numpy.datetime64, datetime.datetime)):
             times = numpy.array(values)
         else:
