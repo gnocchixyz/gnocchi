@@ -160,7 +160,7 @@ class LockedMetric(StorageError):
         super(LockedMetric, self).__init__("Metric %s is locked" % metric)
 
 
-class CorruptionError(ValueError):
+class CorruptionError(ValueError, StorageError):
     """Data corrupted, damn it."""
 
     def __init__(self, message):
