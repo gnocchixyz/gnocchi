@@ -22,7 +22,6 @@ import tempfile
 from oslo_config import cfg
 
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 from gnocchi import utils
 
 
@@ -33,7 +32,7 @@ OPTS = [
 ]
 
 
-class FileStorage(_carbonara.CarbonaraBasedStorage):
+class FileStorage(storage.StorageDriver):
     WRITE_FULL = True
 
     def __init__(self, conf, coord=None):

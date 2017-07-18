@@ -158,7 +158,7 @@ def list_opts():
                             'to force refresh of metric.'),
         ) + gnocchi.rest.app.API_OPTS,
         ),
-        ("storage", (_STORAGE_OPTS + gnocchi.storage._carbonara.OPTS)),
+        ("storage", _STORAGE_OPTS + gnocchi.storage._CARBONARA_OPTS),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
             cfg.HostAddressOpt('host',
