@@ -24,7 +24,6 @@ from gnocchi import archive_policy
 from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 from gnocchi.storage import ceph
 from gnocchi.storage import file
 from gnocchi.storage import redis
@@ -80,9 +79,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIsInstance(driver, storage.StorageDriver)
 
     def test_corrupted_data(self):
-        if not isinstance(self.storage, _carbonara.CarbonaraBasedStorage):
-            self.skipTest("This driver is not based on Carbonara")
-
         self.incoming.add_measures(self.metric, [
             storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
@@ -117,7 +113,7 @@ class TestStorageDriver(tests_base.TestCase):
             except Exception:
                 pass
 
-        with mock.patch('gnocchi.storage._carbonara.LOG') as LOG:
+        with mock.patch('gnocchi.storage.LOG') as LOG:
             self.trigger_processing()
             self.assertFalse(LOG.error.called)
 
