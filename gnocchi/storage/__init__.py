@@ -51,10 +51,6 @@ _CARBONARA_OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
-class SackLockTimeoutError(Exception):
-        pass
-
-
 Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
@@ -158,6 +154,10 @@ class CorruptionError(ValueError, StorageError):
 
     def __init__(self, message):
         super(CorruptionError, self).__init__(message)
+
+
+class SackLockTimeoutError(StorageError):
+        pass
 
 
 def get_driver(conf, coord=None):
