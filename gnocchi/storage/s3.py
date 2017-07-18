@@ -20,7 +20,6 @@ import tenacity
 
 from gnocchi.common import s3
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 
 boto3 = s3.boto3
 botocore = s3.botocore
@@ -57,7 +56,7 @@ def retry_if_operationaborted(exception):
             and exception.response['Error'].get('Code') == "OperationAborted")
 
 
-class S3Storage(_carbonara.CarbonaraBasedStorage):
+class S3Storage(storage.StorageDriver):
 
     WRITE_FULL = True
 

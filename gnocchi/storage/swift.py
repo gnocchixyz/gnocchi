@@ -18,7 +18,6 @@ from oslo_config import cfg
 
 from gnocchi.common import swift
 from gnocchi import storage
-from gnocchi.storage import _carbonara
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -64,7 +63,7 @@ OPTS = [
 ]
 
 
-class SwiftStorage(_carbonara.CarbonaraBasedStorage):
+class SwiftStorage(storage.StorageDriver):
 
     WRITE_FULL = True
 
