@@ -38,7 +38,6 @@ class Stats(object):
         self.conf = conf
         self.incoming = incoming.get_driver(self.conf)
         self.indexer = indexer.get_driver(self.conf)
-        self.indexer.connect()
         try:
             self.indexer.create_resource('generic',
                                          self.conf.statsd.resource_id,
