@@ -30,6 +30,14 @@ def get_connection(conf):
     if swclient is None:
         raise RuntimeError("python-swiftclient unavailable")
 
+    os_options = {
+        'endpoint_type': conf.swift_endpoint_type,
+        'service_type':  conf.swift_service_type,
+        'user_domain_name': conf.swift_user_domain_name,
+    }
+    if conf.swift_region:
+        os_options['region_name'] = conf.swift_region
+
     return swclient.Connection(
         auth_version=conf.swift_auth_version,
         authurl=conf.swift_authurl,
@@ -38,8 +46,9 @@ def get_connection(conf):
         key=conf.swift_key,
         tenant_name=conf.swift_project_name,
         timeout=conf.swift_timeout,
-        os_options={'endpoint_type': conf.swift_endpoint_type,
-                    'user_domain_name': conf.swift_user_domain_name},
+        insecure=conf.swift_auth_insecure,
+        os_options=os_options,
+        cacert=conf.swift_cacert,
         retries=0)
 
 

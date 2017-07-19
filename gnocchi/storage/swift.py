@@ -27,6 +27,10 @@ OPTS = [
     cfg.StrOpt('swift_auth_version',
                default='1',
                help='Swift authentication version to user.'),
+    cfg.BoolOpt('swift_auth_insecure',
+                default=False,
+                help='If True, swiftclient won\'t check for a valid SSL '
+                     'certificate when authenticating.'),
     cfg.StrOpt('swift_preauthurl',
                help='Swift pre-auth URL.'),
     cfg.StrOpt('swift_authurl',
@@ -35,6 +39,11 @@ OPTS = [
     cfg.StrOpt('swift_preauthtoken',
                secret=True,
                help='Swift token to user to authenticate.'),
+    cfg.StrOpt('swift_cacert',
+               help='A string giving the CA certificate file to use in '
+                    'SSL connections for verifying certs.'),
+    cfg.StrOpt('swift_region',
+               help='Swift region.'),
     cfg.StrOpt('swift_user',
                default="admin:admin",
                help='Swift user.'),
@@ -57,6 +66,11 @@ OPTS = [
     cfg.StrOpt('swift_endpoint_type',
                default='publicURL',
                help='Endpoint type to connect to Swift',),
+    cfg.StrOpt('swift_service_type',
+               default='object-store',
+               help='A string giving the service type of the swift service '
+                    'to use. This setting is only used if '
+                    'swift_auth_version is 2.'),
     cfg.IntOpt('swift_timeout',
                min=0,
                default=300,
