@@ -19,6 +19,7 @@ from oslo_config import cfg
 from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 
 OPTS = [
@@ -56,10 +57,11 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         super(CephStorage, self).stop()
 
     @staticmethod
-    def _get_object_name(metric, timestamp_key, aggregation, granularity,
-                         version=3):
+    def _get_object_name(metric, key, aggregation, version=3):
         name = str("gnocchi_%s_%s_%s_%s" % (
-            metric.id, timestamp_key, aggregation, granularity))
+            metric.id, key, aggregation,
+            utils.timespan_total_seconds(key.sampling)),
+        )
         return name + '_v%s' % version if version else name
 
     def _object_exists(self, name):
@@ -76,10 +78,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         else:
             self.ioctx.write_full(name, b"")
 
-    def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=None, version=3):
-        name = self._get_object_name(metric, timestamp_key,
-                                     aggregation, granularity, version)
+    def _store_metric_measures(self, metric, key, aggregation,
+                               data, offset=None, version=3):
+        name = self._get_object_name(metric, key, aggregation, version)
         if offset is None:
             self.ioctx.write_full(name, data)
         else:
@@ -89,10 +90,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 
-    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity, version=3):
-        name = self._get_object_name(metric, timestamp_key,
-                                     aggregation, granularity, version)
+    def _delete_metric_measures(self, metric, key, aggregation, version=3):
+        name = self._get_object_name(metric, key, aggregation, version)
 
         try:
             self.ioctx.remove_object(name)
@@ -139,11 +138,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             # It's possible that the object does not exists
             pass
 
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
-                      version=3):
+    def _get_measures(self, metric, key, aggregation, version=3):
         try:
-            name = self._get_object_name(metric, timestamp_key,
-                                         aggregation, granularity, version)
+            name = self._get_object_name(metric, key, aggregation, version)
             return self._get_object_content(name)
         except rados.ObjectNotFound:
             if self._object_exists(
@@ -152,8 +149,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
             else:
                 raise storage.MetricDoesNotExist(metric)
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
             try:
@@ -174,9 +170,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
 
             keys = set()
+            granularity = str(utils.timespan_total_seconds(granularity))
             for name, value in omaps:
                 meta = name.split('_')
-                if (aggregation == meta[3] and granularity == float(meta[4])
+                if (aggregation == meta[3] and granularity == meta[4]
                         and self._version_check(name, version)):
                     keys.add(meta[2])
             return keys

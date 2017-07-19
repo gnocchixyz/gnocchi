@@ -16,8 +16,8 @@
 import datetime
 import uuid
 
-import iso8601
 import mock
+import numpy
 import six.moves
 
 from gnocchi import archive_policy
@@ -33,6 +33,10 @@ from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
+
+
+def datetime64(*args):
+    return numpy.datetime64(datetime.datetime(*args))
 
 
 class TestStorageDriver(tests_base.TestCase):
@@ -95,9 +99,12 @@ class TestStorageDriver(tests_base.TestCase):
                 self.trigger_processing()
 
         m = self.storage.get_measures(self.metric)
-        self.assertIn((utils.datetime_utc(2014, 1, 1), 86400.0, 1), m)
-        self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 3600.0, 1), m)
-        self.assertIn((utils.datetime_utc(2014, 1, 1, 13), 300.0, 1), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1),
+                       numpy.timedelta64(1, 'D'), 1), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 13),
+                       numpy.timedelta64(1, 'h'), 1), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 13),
+                       numpy.timedelta64(5, 'm'), 1), m)
 
     def test_aborted_initial_processing(self):
         self.incoming.add_measures(self.metric, [
@@ -115,9 +122,12 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertFalse(LOG.error.called)
 
         m = self.storage.get_measures(self.metric)
-        self.assertIn((utils.datetime_utc(2014, 1, 1), 86400.0, 5.0), m)
-        self.assertIn((utils.datetime_utc(2014, 1, 1, 12), 3600.0, 5.0), m)
-        self.assertIn((utils.datetime_utc(2014, 1, 1, 12), 300.0, 5.0), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1),
+                       numpy.timedelta64(1, 'D'), 5.0), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 12),
+                       numpy.timedelta64(1, 'h'), 5.0), m)
+        self.assertIn((utils.datetime_utc(2014, 1, 1, 12),
+                       numpy.timedelta64(5, 'm'), 5.0), m)
 
     def test_list_metric_with_measures_to_process(self):
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
@@ -229,7 +239,9 @@ class TestStorageDriver(tests_base.TestCase):
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
-            if args[0] == m_sql and args[2] == 'mean' and args[3] == 60.0:
+            if (args[0] == m_sql
+               and args[2] == 'mean'
+               and args[1].sampling == numpy.timedelta64(1, 'm')):
                 count += 1
         self.assertEqual(1, count)
 
@@ -263,11 +275,16 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 23.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 23.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(self.metric))
 
         # One year later…
@@ -277,21 +294,32 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2015, 1, 1), 86400.0, 69),
-            (utils.datetime_utc(2015, 1, 1, 12), 3600.0, 69),
-            (utils.datetime_utc(2015, 1, 1, 12), 300.0, 69),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2015, 1, 1),
+             numpy.timedelta64(1, 'D'), 69),
+            (utils.datetime_utc(2015, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 69),
+            (utils.datetime_utc(2015, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69),
         ], self.storage.get_measures(self.metric))
 
-        self.assertEqual({"1244160000.0"},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 86400.0))
-        self.assertEqual({"1412640000.0"},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 3600.0))
-        self.assertEqual({"1419120000.0"},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 300.0))
+        self.assertEqual({
+            carbonara.SplitKey(
+                numpy.datetime64('2009-06-05T00:00:00.000000000'),
+                numpy.timedelta64(1, 'D')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'D')))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2014-10-07T00:00:00'),
+                               numpy.timedelta64(1, 'h')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'h')))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2014-12-21T00:00:00'),
+                               numpy.timedelta64(5, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(5, 'm')))
 
     def test_rewrite_measures(self):
         # Create an archive policy that spans on several splits. Each split
@@ -312,10 +340,15 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -323,22 +356,36 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(1, 'm')))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -350,33 +397,59 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        self.assertEqual({'1452384000.0', '1451736000.0',
-                          '1451520000.0', '1451952000.0'},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1452384000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1452384000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-            (utils.datetime_utc(2016, 1, 10, 16, 18), 60.0, 45),
-            (utils.datetime_utc(2016, 1, 10, 17, 12), 60.0, 46),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+            (utils.datetime_utc(2016, 1, 10, 16, 18),
+             numpy.timedelta64(1, 'm'), 45),
+            (utils.datetime_utc(2016, 1, 10, 17, 12),
+             numpy.timedelta64(1, 'm'), 46),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(1, 'm')))
 
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
         """See LP#1655422"""
@@ -398,10 +471,15 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -409,22 +487,36 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm')
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(60, 's')))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -438,32 +530,57 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        self.assertEqual({'1452384000.0', '1451736000.0',
-                          '1451520000.0', '1451952000.0'},
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(60, 's')
+            ), "mean")
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1452384000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1452384000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-            (utils.datetime_utc(2016, 1, 10, 0, 12), 60.0, 45),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+            (utils.datetime_utc(2016, 1, 10, 0, 12),
+             numpy.timedelta64(1, 'm'), 45),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(60, 's')))
 
     def test_rewrite_measures_corruption_missing_file(self):
         # Create an archive policy that spans on several splits. Each split
@@ -484,10 +601,15 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -495,28 +617,45 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric,
+            carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(1, 'm')
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(60, 's')))
 
         # Test what happens if we delete the latest split and then need to
         # compress it!
-        self.storage._delete_metric_measures(self.metric,
-                                             '1451952000.0',
-                                             'mean', 60.0)
+        self.storage._delete_metric_measures(
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), 'mean')
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -547,10 +686,15 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
-        splits = {'1451520000.0', '1451736000.0', '1451952000.0'}
-        self.assertEqual(splits,
-                         self.storage._list_split_keys_for_metric(
-                             self.metric, "mean", 60.0))
+        self.assertEqual({
+            carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                               numpy.timedelta64(1, 'm')),
+            carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                               numpy.timedelta64(1, 'm')),
+        }, self.storage._list_split_keys_for_metric(
+            self.metric, "mean", numpy.timedelta64(1, 'm')))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -558,26 +702,44 @@ class TestStorageDriver(tests_base.TestCase):
             assertCompressedIfWriteFull = self.assertFalse
 
         data = self.storage._get_measures(
-            self.metric, '1451520000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(60, 's'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451736000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451736000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
-            self.metric, '1451952000.0', "mean", 60.0)
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean")
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual([
-            (utils.datetime_utc(2016, 1, 1, 12), 60.0, 69),
-            (utils.datetime_utc(2016, 1, 2, 13, 7), 60.0, 42),
-            (utils.datetime_utc(2016, 1, 4, 14, 9), 60.0, 4),
-            (utils.datetime_utc(2016, 1, 6, 15, 12), 60.0, 44),
-        ], self.storage.get_measures(self.metric, granularity=60.0))
+            (utils.datetime_utc(2016, 1, 1, 12),
+             numpy.timedelta64(1, 'm'), 69),
+            (utils.datetime_utc(2016, 1, 2, 13, 7),
+             numpy.timedelta64(1, 'm'), 42),
+            (utils.datetime_utc(2016, 1, 4, 14, 9),
+             numpy.timedelta64(1, 'm'), 4),
+            (utils.datetime_utc(2016, 1, 6, 15, 12),
+             numpy.timedelta64(1, 'm'), 44),
+        ], self.storage.get_measures(self.metric,
+                                     granularity=numpy.timedelta64(1, 'm')))
 
         # Test what happens if we write garbage
         self.storage._store_metric_measures(
-            self.metric, '1451952000.0', "mean", 60.0, b"oh really?")
+            self.metric, carbonara.SplitKey(
+                numpy.datetime64(1451952000, 's'),
+                numpy.timedelta64(1, 'm'),
+            ), "mean",
+            b"oh really?")
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -597,10 +759,14 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 55.5),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 55.5),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 42.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 55.5),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 55.5),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 42.0),
         ], self.storage.get_measures(self.metric))
 
         self.incoming.add_measures(self.metric, [
@@ -610,27 +776,42 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 23.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 23.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(self.metric))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 69),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 42.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 69),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 42.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(self.metric, aggregation='max'))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 4),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 4),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 4.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 4),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 4),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 4.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(self.metric, aggregation='min'))
 
     def test_add_and_get_measures(self):
@@ -643,77 +824,100 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 23.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 23.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(self.metric))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 0)))
+            from_timestamp=datetime64(2014, 1, 1, 12, 10, 0)))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5), 300.0, 23.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5),
+             numpy.timedelta64(5, 'm'), 23.0),
         ], self.storage.get_measures(
             self.metric,
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 6, 0)))
+            to_timestamp=datetime64(2014, 1, 1, 12, 6, 0)))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 44.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(
             self.metric,
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10),
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10)))
+            to_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
+            from_timestamp=datetime64(2014, 1, 1, 12, 10, 10)))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2)))
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=iso8601.parse_date("2014-1-1 13:00:00+01:00"),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2)))
+            from_timestamp=datetime64(2014, 1, 1, 12),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 39.75),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2),
-            granularity=3600.0))
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 2),
+            granularity=numpy.timedelta64(1, 'h')))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12), 300.0, 69.0),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(5, 'm'), 69.0),
         ], self.storage.get_measures(
             self.metric,
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 2),
-            granularity=300.0))
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 2),
+            granularity=numpy.timedelta64(5, 'm')))
 
         self.assertRaises(storage.GranularityDoesNotExist,
                           self.storage.get_measures,
                           self.metric,
-                          granularity=42)
+                          granularity=numpy.timedelta64(42, 's'))
 
     def test_get_cross_metric_measures_unknown_metric(self):
         self.assertEqual([],
@@ -772,7 +976,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertRaises(storage.GranularityDoesNotExist,
                           self.storage.get_cross_metric_measures,
                           [self.metric, metric2],
-                          granularity=12345.456)
+                          granularity=numpy.timedelta64(12345456, 'ms'))
 
     def test_add_and_get_cross_metric_measures_different_archives(self):
         metric2 = storage.Metric(uuid.uuid4(),
@@ -812,71 +1016,94 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0), 300.0, 12.5),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 24.0)
+            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+             numpy.timedelta64(1, 'D'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 39.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+             numpy.timedelta64(5, 'm'), 12.5),
+            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+             numpy.timedelta64(5, 'm'), 24.0)
         ], values)
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2],
                                                         reaggregation='max')
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 69),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0), 300.0, 23),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 44)
+            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+             numpy.timedelta64(1, 'D'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 39.75),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 69),
+            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+             numpy.timedelta64(5, 'm'), 23),
+            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+             numpy.timedelta64(5, 'm'), 44)
         ], values)
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 0))
+            from_timestamp=datetime64(2014, 1, 1, 12, 10, 0))
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 24.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+             numpy.timedelta64(5, 'm'), 24.0),
         ], values)
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 5, 0))
+            to_timestamp=datetime64(2014, 1, 1, 12, 5, 0))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
+            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+             numpy.timedelta64(1, 'D'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 10, 10))
+            from_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
+            to_timestamp=datetime64(2014, 1, 1, 12, 10, 10))
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12), 3600.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10), 300.0, 24.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12),
+             numpy.timedelta64(1, 'h'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 10),
+             numpy.timedelta64(5, 'm'), 24.0),
         ], values)
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 1))
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1), 86400.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
+            (utils.datetime_utc(2014, 1, 1),
+             numpy.timedelta64(1, 'D'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 22.25),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
         values = self.storage.get_cross_metric_measures(
             [self.metric, metric2],
-            from_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime.datetime(2014, 1, 1, 12, 0, 1),
-            granularity=300.0)
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1),
+            granularity=numpy.timedelta64(5, 'm'))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
     def test_add_and_get_cross_metric_measures_with_holes(self):
@@ -898,11 +1125,16 @@ class TestStorageDriver(tests_base.TestCase):
 
         values = self.storage.get_cross_metric_measures([self.metric, metric2])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0), 86400.0, 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 3600.0, 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 300.0, 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0), 300.0, 11.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0), 300.0, 22.0)
+            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+             numpy.timedelta64(1, 'D'), 18.875),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 18.875),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), 39.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+             numpy.timedelta64(5, 'm'), 11.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+             numpy.timedelta64(5, 'm'), 22.0)
         ], values)
 
     def test_search_value(self):
@@ -926,10 +1158,14 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(
             {metric2: [],
              self.metric: [
-                 (utils.datetime_utc(2014, 1, 1), 86400, 33),
-                 (utils.datetime_utc(2014, 1, 1, 12), 3600, 33),
-                 (utils.datetime_utc(2014, 1, 1, 12), 300, 69),
-                 (utils.datetime_utc(2014, 1, 1, 12, 10), 300, 42)]},
+                 (utils.datetime_utc(2014, 1, 1),
+                  numpy.timedelta64(1, 'D'), 33),
+                 (utils.datetime_utc(2014, 1, 1, 12),
+                  numpy.timedelta64(1, 'h'), 33),
+                 (utils.datetime_utc(2014, 1, 1, 12),
+                  numpy.timedelta64(5, 'm'), 69),
+                 (utils.datetime_utc(2014, 1, 1, 12, 10),
+                  numpy.timedelta64(5, 'm'), 42)]},
             self.storage.search_value(
                 [metric2, self.metric],
                 {u"≥": 30}))
@@ -955,9 +1191,12 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing([str(m.id)])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 5),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10),
+             numpy.timedelta64(5, 's'), 1.0),
         ], self.storage.get_measures(m))
         # expand to more points
         self.index.update_archive_policy(
@@ -968,18 +1207,24 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing([str(m.id)])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 5), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 5),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 15),
+             numpy.timedelta64(5, 's'), 1.0),
         ], self.storage.get_measures(m))
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
         m = self.index.list_metrics(ids=[m.id])[0]
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 10), 5.0, 1.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 15), 5.0, 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 10),
+             numpy.timedelta64(5, 's'), 1.0),
+            (utils.datetime_utc(2014, 1, 1, 12, 0, 15),
+             numpy.timedelta64(5, 's'), 1.0),
         ], self.storage.get_measures(m))
 
     def test_resample_no_metric(self):
@@ -987,10 +1232,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual([],
                          self.storage.get_measures(
                              self.metric,
-                             utils.datetime_utc(2014, 1, 1),
-                             utils.datetime_utc(2015, 1, 1),
-                             granularity=300,
-                             resample=3600))
+                             datetime64(2014, 1, 1),
+                             datetime64(2015, 1, 1),
+                             granularity=numpy.timedelta64(300, 's'),
+                             resample=numpy.timedelta64(1, 'h')))
 
 
 class TestMeasureQuery(tests_base.TestCase):

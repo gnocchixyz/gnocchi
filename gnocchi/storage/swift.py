@@ -19,6 +19,7 @@ from oslo_config import cfg
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi.storage import _carbonara
+from gnocchi import utils
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -80,8 +81,11 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         return '%s.%s' % (self._container_prefix, str(metric.id))
 
     @staticmethod
-    def _object_name(split_key, aggregation, granularity, version=3):
-        name = '%s_%s_%s' % (split_key, aggregation, granularity)
+    def _object_name(split_key, aggregation, version=3):
+        name = '%s_%s_%s' % (
+            split_key, aggregation,
+            utils.timespan_total_seconds(split_key.sampling),
+        )
         return name + '_v%s' % version if version else name
 
     def _create_metric(self, metric):
@@ -94,20 +98,17 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
-    def _store_metric_measures(self, metric, timestamp_key, aggregation,
-                               granularity, data, offset=None, version=3):
+    def _store_metric_measures(self, metric, key, aggregation,
+                               data, offset=None, version=3):
         self.swift.put_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity,
-                              version),
+            self._object_name(key, aggregation, version),
             data)
 
-    def _delete_metric_measures(self, metric, timestamp_key, aggregation,
-                                granularity, version=3):
+    def _delete_metric_measures(self, metric, key, aggregation, version=3):
         self.swift.delete_object(
             self._container_name(metric),
-            self._object_name(timestamp_key, aggregation, granularity,
-                              version))
+            self._object_name(key, aggregation, version))
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)
@@ -127,12 +128,11 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                     # Deleted in the meantime? Whatever.
                     raise
 
-    def _get_measures(self, metric, timestamp_key, aggregation, granularity,
-                      version=3):
+    def _get_measures(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
-                    timestamp_key, aggregation, granularity, version))
+                    key, aggregation, version))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
@@ -145,8 +145,7 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             raise
         return contents
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
+    def _list_split_keys(self, metric, aggregation, granularity, version=3):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -156,10 +155,11 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
                 raise storage.MetricDoesNotExist(metric)
             raise
         keys = set()
+        granularity = str(utils.timespan_total_seconds(granularity))
         for f in files:
             try:
                 meta = f['name'].split('_')
-                if (aggregation == meta[1] and granularity == float(meta[2])
+                if (aggregation == meta[1] and granularity == meta[2]
                         and self._version_check(f['name'], version)):
                     keys.add(meta[0])
             except (ValueError, IndexError):
