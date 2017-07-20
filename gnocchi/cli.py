@@ -87,7 +87,7 @@ def statsd():
 _wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
 
 
-retry_on_exception = tenacity.Retrying(wait=_wait_exponential)
+retry_on_exception = tenacity.Retrying(wait=_wait_exponential).call
 
 
 class MetricProcessBase(cotyledon.Service):
