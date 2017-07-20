@@ -21,4 +21,4 @@ WebOb>=1.4.1
 Paste
 PasteDeploy
 monotonic
-daiquiri
+daiquiri!=1.2.0
