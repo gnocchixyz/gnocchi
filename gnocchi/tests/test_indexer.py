@@ -730,6 +730,37 @@ class TestIndexerDriver(tests_base.TestCase):
             attribute_filter={"=": {"project_id": 'bad-project'}})
         self.assertEqual(0, len(resources))
 
+    def test_list_resources_with_no_project(self):
+        r1 = uuid.uuid4()
+        r2 = uuid.uuid4()
+        user = str(uuid.uuid4())
+        project = str(uuid.uuid4())
+        creator = user + ":" + project
+        g1 = self.index.create_resource('generic', r1, creator, user, project)
+        g2 = self.index.create_resource('generic', r2, creator, None, None)
+
+        # Get null value
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"creator": creator}},
+                {"!=": {"project_id": project}}
+            ]})
+        self.assertEqual(1, len(resources))
+        self.assertEqual(g2, resources[0])
+
+        # Get null and filled values
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"creator": creator}},
+                {"!=": {"project_id": "foobar"}}
+            ]},
+            sorts=["project_id:asc-nullsfirst"])
+        self.assertEqual(2, len(resources))
+        self.assertEqual(g2, resources[0])
+        self.assertEqual(g1, resources[1])
+
     def test_list_resources_by_duration(self):
         r1 = uuid.uuid4()
         user = str(uuid.uuid4())
