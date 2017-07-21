@@ -74,3 +74,24 @@ tests:
       data: {}
       response_json_paths:
         $.`len`: 2
+
+    - name: post generic resource with project/user
+      POST: /v1/resource/generic
+      data:
+          id: 95573760-b085-4e69-9280-91f66fc3ed3c
+          started_at: "2014-01-03T02:02:02.000000"
+      status: 201
+
+    - name: search empty query again
+      POST: /v1/search/resource/generic
+      data: {}
+      response_json_paths:
+        $.`len`: 3
+
+    - name: search all resource not foobar
+      POST: /v1/search/resource/generic
+      data:
+        ne:
+          project_id: foobar
+      response_json_paths:
+        $.`len`: 3
