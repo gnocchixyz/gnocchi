@@ -100,8 +100,7 @@ class GroupedTimeSeries(object):
             start_derive = start - granularity
             self._ts_for_derive = ts[start_derive:]
 
-        self.indexes = round_timestamp(
-            numpy.array(self._ts.index, dtype=numpy.datetime64), granularity)
+        self.indexes = round_timestamp(self._ts.index.values, granularity)
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
@@ -190,7 +189,7 @@ class TimeSerie(object):
 
     def __init__(self, ts=None):
         if ts is None:
-            ts = pandas.Series()
+            ts = pandas.Series(index=numpy.array([], dtype='datetime64[ns]'))
         self.ts = ts
 
     @staticmethod
@@ -552,9 +551,7 @@ class AggregatedTimeSerie(TimeSerie):
         # to iter the whole series.
         freq = self.sampling * SplitKey.POINTS_PER_SPLIT
         keys, counts = numpy.unique(
-            round_timestamp(
-                numpy.array(self.ts.index, dtype=numpy.datetime64),
-                freq),
+            round_timestamp(self.ts.index.values, freq),
             return_counts=True)
         start = 0
         for key, count in six.moves.zip(keys, counts):
