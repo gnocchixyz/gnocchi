@@ -131,8 +131,7 @@ class GroupedTimeSeries(object):
                                      default=None)
 
     def _count(self):
-        timestamps = self.tstamps.astype('datetime64[ns]', copy=False)
-        return (self.counts, timestamps)
+        return (self.counts, self.tstamps)
 
     def count(self):
         return pandas.Series(*self._count())
@@ -142,14 +141,14 @@ class GroupedTimeSeries(object):
         cumcounts = numpy.cumsum(counts) - 1
         values = self._ts.values[cumcounts]
 
-        return pandas.Series(values, pandas.to_datetime(timestamps))
+        return pandas.Series(values, timestamps)
 
     def first(self):
         counts, timestamps = self._count()
         counts = numpy.insert(counts[:-1], 0, 0)
         cumcounts = numpy.cumsum(counts)
         values = self._ts.values[cumcounts]
-        return pandas.Series(values, pandas.to_datetime(timestamps))
+        return pandas.Series(values, timestamps)
 
     def quantile(self, q):
         return self._scipy_aggregate(ndimage.labeled_comprehension,
@@ -171,8 +170,7 @@ class GroupedTimeSeries(object):
 
         values = method(self._ts.values, self.indexes, tstamps,
                         *args, **kwargs)
-        timestamps = tstamps.astype('datetime64[ns]', copy=False)
-        return pandas.Series(values, pandas.to_datetime(timestamps))
+        return pandas.Series(values, tstamps)
 
     def derived(self):
         timestamps = self._ts_for_derive.index[1:]
@@ -324,7 +322,7 @@ class BoundTimeSerie(TimeSerie):
         values = numpy.frombuffer(values_raw, dtype='<d')
 
         return cls.from_data(
-            pandas.to_datetime(timestamps),
+            timestamps,
             values,
             block_size=block_size,
             back_window=back_window)
