@@ -756,11 +756,7 @@ class AggregatedTimeSerie(TimeSerie):
                              points)
 
     def merge(self, ts):
-        """Merge a timeserie into this one.
-
-        This is equivalent to `update` but is faster as they are is no
-        resampling. Be careful on what you merge.
-        """
+        """Merge a timeserie into this one."""
         self.ts = self.ts.combine_first(ts.ts)
 
     @classmethod
