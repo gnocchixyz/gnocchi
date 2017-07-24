@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -155,9 +155,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 agg_timeseries = agg_timeseries.resample(resample)
             agg_timeseries = [agg_timeseries]
 
-        return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
-                for ts in agg_timeseries
-                for timestamp, r, v in ts.fetch(from_timestamp, to_timestamp)]
+        return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
+                                      for ts in agg_timeseries]))
 
     def _get_measures_and_unserialize(self, metric, key, aggregation):
         data = self._get_measures(metric, key, aggregation)
@@ -232,10 +231,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 pass
             else:
                 if existing is not None:
-                    if split is None:
-                        split = existing
-                    else:
-                        split.merge(existing)
+                    if split is not None:
+                        existing.merge(split)
+                    split = existing
 
         if split is None:
             # `split' can be none if existing is None and no split was passed
@@ -530,8 +528,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return {metric:
-                [(timestamp.replace(tzinfo=iso8601.iso8601.UTC),
-                  g, value)
+                [(timestamp, g, value)
                  for timestamp, g, value in values
                  if predicate(value)]}
 
