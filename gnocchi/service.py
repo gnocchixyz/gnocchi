@@ -61,7 +61,7 @@ def prepare_service(args=None, conf=None,
 
     if conf.use_syslog:
         outputs.append(
-            daiquiri.output.Syslog(facilty=conf.syslog_log_faciltity))
+            daiquiri.output.Syslog(facility=conf.syslog_log_faciltity))
 
     if conf.use_journal:
         outputs.append(daiquiri.output.Journal())
