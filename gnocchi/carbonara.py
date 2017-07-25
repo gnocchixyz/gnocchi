@@ -360,7 +360,7 @@ class BoundTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
@@ -780,7 +780,7 @@ class AggregatedTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
