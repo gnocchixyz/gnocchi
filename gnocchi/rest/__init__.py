@@ -454,18 +454,14 @@ class MetricController(rest.RestController):
             if aggregation in self.custom_agg:
                 warnings.warn("moving_average aggregation is deprecated.",
                               category=DeprecationWarning)
-                measures = self.custom_agg[aggregation].compute(
+                return self.custom_agg[aggregation].compute(
                     pecan.request.storage, self.metric,
                     start, stop, **param)
-            else:
-                measures = pecan.request.storage.get_measures(
-                    self.metric, start, stop, aggregation,
-                    utils.to_timespan(granularity)
-                    if granularity is not None else None,
-                    resample)
-            # Replace timestamp keys by their string versions
-            return [(timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return pecan.request.storage.get_measures(
+                self.metric, start, stop, aggregation,
+                utils.to_timespan(granularity)
+                if granularity is not None else None,
+                resample)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
@@ -1549,19 +1545,14 @@ class MetricsMeasuresBatchController(rest.RestController):
             except ValueError as e:
                 abort(400, e)
 
-        metric_batch = {}
         try:
-            for metric in metrics:
-                measures = pecan.request.storage.get_measures(
-                    metric, start, stop, aggregation, granularity)
-                metric_batch[str(metric.id)] = [
-                    (timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return dict((str(metric.id),
+                         pecan.request.storage.get_measures(
+                             metric, start, stop, aggregation, granularity))
+                        for metric in metrics)
         except (storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, e)
-
-        return metric_batch
 
 
 class SearchController(object):
@@ -1716,16 +1707,12 @@ class AggregationController(rest.RestController):
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
-                measures = pecan.request.storage.get_measures(
+                return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
                     granularity, resample)
-            else:
-                measures = pecan.request.storage.get_cross_metric_measures(
-                    metrics, start, stop, aggregation,
-                    reaggregation, resample, granularity, needed_overlap, fill)
-            # Replace timestamp keys by their string versions
-            return [(timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return pecan.request.storage.get_cross_metric_measures(
+                metrics, start, stop, aggregation,
+                reaggregation, resample, granularity, needed_overlap, fill)
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
