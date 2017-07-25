@@ -453,11 +453,8 @@ class SplitKey(object):
         return self
 
     def __hash__(self):
-        return hash(
-            str(datetime64_to_epoch(self.key))
-            +
-            str(self.sampling / ONE_SECOND)
-        )
+        return hash(str(self.key.astype('datetime64[ns]')) +
+                    str(self.sampling.astype('timedelta64[ns]')))
 
     def __lt__(self, other):
         if isinstance(other, SplitKey):
