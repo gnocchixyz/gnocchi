@@ -1642,6 +1642,9 @@ class AggregationController(rest.RestController):
             needed_overlap = float(needed_overlap)
         except ValueError:
             abort(400, 'needed_overlap must be a number')
+        if needed_overlap != 100.0 and start is None and stop is None:
+            abort(400, 'start and/or stop must be provided if specifying '
+                  'needed_overlap')
 
         if start is not None:
             try:
