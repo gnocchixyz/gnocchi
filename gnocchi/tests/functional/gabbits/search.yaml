@@ -21,11 +21,48 @@ tests:
       GET: /v1/search/resource/foobar
       status: 404
 
+    # FIXME(sileht): this test looks wrong, it talks about invalidity
+    # but asserts it return 200...
     - name: search with invalid uuid
       POST: /v1/search/resource/generic
       data:
         =:
           id: "cd9eef"
+
+    - name: search invalid and value
+      desc: and should be followed by a list, not dict
+      POST: /v1/search/resource/generic
+      data:
+        and:
+          project_id: foobar
+      status: 400
+      response_strings:
+       - "expected a list for dictionary value @ data["
+       - "'and']"
+
+    - name: search invalid ne value
+      desc: attribute value for binary operator must not be dict or list
+      POST: /v1/search/resource/generic
+      data:
+        ne:
+          project_id:
+            - foobar
+      status: 400
+      response_strings:
+       - "for dictionary value @ data["
+       - "'ne']["
+       - "'project_id']"
+
+    - name: search invalid not value
+      desc: uninary operator must follow by dict, not list
+      POST: /v1/search/resource/generic
+      data:
+        not:
+          - project_id: foobar
+      status: 400
+      response_strings:
+       - "expected a dictionary for dictionary value @ data["
+       - "'not']"
 
     - name: post generic resource
       POST: /v1/resource/generic
@@ -55,14 +92,21 @@ tests:
       response_json_paths:
         $.`len`: 2
 
-    - name: search like created_by_project_id
+    - name: search eq created_by_project_id
       POST: /v1/search/resource/generic
       data:
         eq:
-          created_by_project_id:
-            - f3d41b770cc14f0bb94a1d5be9c0e3ea
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       response_json_paths:
         $.`len`: 0
+
+    - name: search eq creator
+      POST: /v1/search/resource/generic
+      data:
+        eq:
+          creator: "foobar"
+      response_json_paths:
+        $.`len`: 2
 
     - name: search in_ query string
       POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
