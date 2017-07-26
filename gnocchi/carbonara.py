@@ -225,14 +225,14 @@ class TimeSerie(object):
     @property
     def first(self):
         try:
-            return self.ts.index[0]
+            return self.ts.index[0].to_datetime64()
         except IndexError:
             return
 
     @property
     def last(self):
         try:
-            return self.ts.index[-1]
+            return self.ts.index[-1].to_datetime64()
         except IndexError:
             return
 
@@ -251,6 +251,16 @@ class TimeSerie(object):
         # does not accept bytearray but only bytes, so make sure that we have a
         # byte type returned.
         return memoryview(lz4.block.compress(payload)).tobytes()
+
+    @staticmethod
+    def _generate_random_timestamps(how_many,
+                                    now=numpy.datetime64("2015-04-03 23:11")):
+        return numpy.sort(
+            numpy.array(
+                [now + numpy.timedelta64(
+                    i * random.randint(1000000, 10000000), 'us')
+                 for i in six.moves.range(how_many)],
+                dtype="datetime64[ns]"))
 
 
 class BoundTimeSerie(TimeSerie):
@@ -311,14 +321,14 @@ class BoundTimeSerie(TimeSerie):
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
-        timestamps_raw = uncompressed[
-            :nb_points*cls._SERIALIZATION_TIMESTAMP_LEN]
-        timestamps = numpy.frombuffer(timestamps_raw, dtype='<Q')
+        timestamps = numpy.frombuffer(uncompressed, dtype='<Q',
+                                      count=nb_points)
         timestamps = numpy.cumsum(timestamps)
         timestamps = timestamps.astype(dtype='datetime64[ns]', copy=False)
 
-        values_raw = uncompressed[nb_points*cls._SERIALIZATION_TIMESTAMP_LEN:]
-        values = numpy.frombuffer(values_raw, dtype='<d')
+        values = numpy.frombuffer(
+            uncompressed, dtype='<d',
+            offset=nb_points * cls._SERIALIZATION_TIMESTAMP_LEN)
 
         return cls.from_data(
             timestamps,
@@ -328,8 +338,7 @@ class BoundTimeSerie(TimeSerie):
 
     def serialize(self):
         # NOTE(jd) Use a double delta encoding for timestamps
-        timestamps = numpy.insert(numpy.diff(self.ts.index),
-                                  0, self.first.value)
+        timestamps = numpy.insert(numpy.diff(self.ts.index), 0, self.first)
         timestamps = timestamps.astype('<Q', copy=False)
         values = self.ts.values.astype('<d', copy=False)
         payload = (timestamps.tobytes() + values.tobytes())
@@ -341,7 +350,7 @@ class BoundTimeSerie(TimeSerie):
         points = SplitKey.POINTS_PER_SPLIT
         serialize_times = 50
 
-        now = datetime.datetime(2015, 4, 3, 23, 11)
+        timestamps = cls._generate_random_timestamps(points)
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
@@ -361,17 +370,12 @@ class BoundTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
             print(title)
-            pts = pandas.Series(values,
-                                [now + datetime.timedelta(
-                                    seconds=i * random.randint(1, 10),
-                                    microseconds=random.randint(1, 999999))
-                                 for i in six.moves.range(points)])
-            pts = pts.sort_index()
+            pts = pandas.Series(values, timestamps)
             ts = cls(ts=pts)
             t0 = time.time()
             for i in six.moves.range(serialize_times):
@@ -394,12 +398,7 @@ class BoundTimeSerie(TimeSerie):
         """Return the timestamp of the first block."""
         rounded = round_timestamp(self.ts.index[-1],
                                   self.block_size)
-        # FIXME(jd) Return the result as a pandas.Timestamp object as Pandas is
-        # faster at indexing pandas.Timestamp than numpy.timedelta64 objects
-        # for whatever reason
-        return pandas.Timestamp(
-            rounded - (self.block_size * self.back_window)
-        )
+        return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
         """Truncate the timeserie."""
@@ -453,11 +452,8 @@ class SplitKey(object):
         return self
 
     def __hash__(self):
-        return hash(
-            str(datetime64_to_epoch(self.key))
-            +
-            str(self.sampling / ONE_SECOND)
-        )
+        return hash(str(self.key.astype('datetime64[ns]')) +
+                    str(self.sampling.astype('timedelta64[ns]')))
 
     def __lt__(self, other):
         if isinstance(other, SplitKey):
@@ -766,7 +762,7 @@ class AggregatedTimeSerie(TimeSerie):
         sampling = 5
         resample = numpy.timedelta64(35, 's')
 
-        now = datetime.datetime(2015, 4, 3, 23, 11)
+        timestamps = cls._generate_random_timestamps(points)
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
@@ -786,16 +782,13 @@ class AggregatedTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
             print(title)
             serialize_times = 50
-            pts = pandas.Series(values,
-                                [now + datetime.timedelta(seconds=i*sampling)
-                                 for i in six.moves.range(points)])
-            pts = pts.sort_index()
+            pts = pandas.Series(values, timestamps)
             ts = cls(ts=pts, sampling=numpy.timedelta64(sampling, 's'),
                      aggregation_method='mean')
             t0 = time.time()
