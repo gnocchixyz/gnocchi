@@ -598,8 +598,6 @@ class AggregatedTimeSerie(TimeSerie):
         start = 0
         for key, count in six.moves.zip(keys, counts):
             end = start + count
-            if key == -0.0:
-                key = abs(key)
             yield (SplitKey(key, self.sampling),
                    AggregatedTimeSerie(self.sampling, self.aggregation_method,
                                        self[start:end]))
