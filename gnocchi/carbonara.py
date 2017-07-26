@@ -618,17 +618,15 @@ class AggregatedTimeSerie(TimeSerie):
                     memoryview(data)[1:].tobytes())
                 nb_points = len(uncompressed) // cls.COMPRESSED_SERIAL_LEN
 
-                timestamps_raw = uncompressed[
-                    :nb_points*cls.COMPRESSED_TIMESPAMP_LEN]
                 try:
-                    y = numpy.frombuffer(timestamps_raw, dtype='<H')
+                    y = numpy.frombuffer(uncompressed, dtype='<H',
+                                         count=nb_points)
                 except ValueError:
                     raise InvalidData()
                 y = numpy.cumsum(y * key.sampling) + key.key
-
-                values_raw = uncompressed[
-                    nb_points*cls.COMPRESSED_TIMESPAMP_LEN:]
-                x = numpy.frombuffer(values_raw, dtype='<d')
+                x = numpy.frombuffer(
+                    uncompressed, dtype='<d',
+                    offset=nb_points*cls.COMPRESSED_TIMESPAMP_LEN)
 
             else:
                 # Padded format
