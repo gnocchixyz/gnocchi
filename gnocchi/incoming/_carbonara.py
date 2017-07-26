@@ -19,7 +19,7 @@ import itertools
 import struct
 
 import daiquiri
-import pandas
+import numpy
 import six
 
 from gnocchi import incoming
@@ -36,7 +36,6 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
     _MEASURE_SERIAL_FORMAT = "Qd"
-    _MEASURE_SERIAL_LEN = struct.calcsize(_MEASURE_SERIAL_FORMAT)
 
     @property
     def NUM_SACKS(self):
@@ -77,18 +76,16 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
         return coord.get_lock(lock_name)
 
     def _unserialize_measures(self, measure_id, data):
-        nb_measures = len(data) // self._MEASURE_SERIAL_LEN
         try:
-            measures = struct.unpack(
-                "<" + self._MEASURE_SERIAL_FORMAT * nb_measures, data)
-        except struct.error:
+            return numpy.frombuffer(
+                data,
+                dtype=[('timestamps', '<datetime64[ns]'),
+                       ('values', '<d')])
+        except ValueError:
             LOG.error(
                 "Unable to decode measure %s, possible data corruption",
                 measure_id)
             raise
-        return six.moves.zip(
-            pandas.to_datetime(measures[::2], unit='ns'),
-            itertools.islice(measures, 1, len(measures), 2))
 
     def _encode_measures(self, measures):
         measures = list(measures)
