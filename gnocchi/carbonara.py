@@ -321,14 +321,14 @@ class BoundTimeSerie(TimeSerie):
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
-        timestamps_raw = uncompressed[
-            :nb_points*cls._SERIALIZATION_TIMESTAMP_LEN]
-        timestamps = numpy.frombuffer(timestamps_raw, dtype='<Q')
+        timestamps = numpy.frombuffer(uncompressed, dtype='<Q',
+                                      count=nb_points)
         timestamps = numpy.cumsum(timestamps)
         timestamps = timestamps.astype(dtype='datetime64[ns]', copy=False)
 
-        values_raw = uncompressed[nb_points*cls._SERIALIZATION_TIMESTAMP_LEN:]
-        values = numpy.frombuffer(values_raw, dtype='<d')
+        values = numpy.frombuffer(
+            uncompressed, dtype='<d',
+            offset=nb_points * cls._SERIALIZATION_TIMESTAMP_LEN)
 
         return cls.from_data(
             timestamps,
