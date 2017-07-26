@@ -283,7 +283,6 @@ class BoundTimeSerie(TimeSerie):
         super(BoundTimeSerie, self).__init__(ts)
         self.block_size = block_size
         self.back_window = back_window
-        self._truncate()
 
     @classmethod
     def from_data(cls, timestamps=None, values=None,
