@@ -225,14 +225,14 @@ class TimeSerie(object):
     @property
     def first(self):
         try:
-            return self.ts.index[0]
+            return self.ts.index[0].to_datetime64()
         except IndexError:
             return
 
     @property
     def last(self):
         try:
-            return self.ts.index[-1]
+            return self.ts.index[-1].to_datetime64()
         except IndexError:
             return
 
@@ -328,8 +328,7 @@ class BoundTimeSerie(TimeSerie):
 
     def serialize(self):
         # NOTE(jd) Use a double delta encoding for timestamps
-        timestamps = numpy.insert(numpy.diff(self.ts.index),
-                                  0, self.first.value)
+        timestamps = numpy.insert(numpy.diff(self.ts.index), 0, self.first)
         timestamps = timestamps.astype('<Q', copy=False)
         values = self.ts.values.astype('<d', copy=False)
         payload = (timestamps.tobytes() + values.tobytes())
@@ -361,7 +360,7 @@ class BoundTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
@@ -394,12 +393,7 @@ class BoundTimeSerie(TimeSerie):
         """Return the timestamp of the first block."""
         rounded = round_timestamp(self.ts.index[-1],
                                   self.block_size)
-        # FIXME(jd) Return the result as a pandas.Timestamp object as Pandas is
-        # faster at indexing pandas.Timestamp than numpy.timedelta64 objects
-        # for whatever reason
-        return pandas.Timestamp(
-            rounded - (self.block_size * self.back_window)
-        )
+        return rounded - (self.block_size * self.back_window)
 
     def _truncate(self):
         """Truncate the timeserie."""
@@ -783,7 +777,7 @@ class AggregatedTimeSerie(TimeSerie):
                  [random.randint(0, 20000) for x in six.moves.range(points)]),
                 ("Small number random neg",
                  [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", map(math.sin, six.moves.range(points))),
+                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
                 ("random ", [random.random()
                              for x in six.moves.range(points)]),
         ]:
