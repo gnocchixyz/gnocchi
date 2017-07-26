@@ -23,6 +23,8 @@ env:
   - TARGET: py35-postgresql
 
 before_script:
+  - python35 --version
+  - python27 --version
   # Travis We need to fetch all tags/branches for documentation target
   - case $TARGET in
       docs*)
