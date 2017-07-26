@@ -252,16 +252,6 @@ class TimeSerie(object):
         # byte type returned.
         return memoryview(lz4.block.compress(payload)).tobytes()
 
-    @staticmethod
-    def _generate_random_timestamps(how_many,
-                                    now=numpy.datetime64("2015-04-03 23:11")):
-        return numpy.sort(
-            numpy.array(
-                [now + numpy.timedelta64(
-                    i * random.randint(1000000, 10000000), 'us')
-                 for i in six.moves.range(how_many)],
-                dtype="datetime64[ns]"))
-
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, ts=None, block_size=None, back_window=0):
@@ -350,7 +340,11 @@ class BoundTimeSerie(TimeSerie):
         points = SplitKey.POINTS_PER_SPLIT
         serialize_times = 50
 
-        timestamps = cls._generate_random_timestamps(points)
+        now = datetime.datetime(2015, 4, 3, 23, 11)
+        timestamps = numpy.sort(numpy.array(
+            [now + datetime.timedelta(seconds=i * random.randint(1, 10),
+                                      microseconds=random.randint(1, 999999))
+             for i in six.moves.range(points)]))
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
@@ -760,7 +754,10 @@ class AggregatedTimeSerie(TimeSerie):
         sampling = 5
         resample = numpy.timedelta64(35, 's')
 
-        timestamps = cls._generate_random_timestamps(points)
+        now = datetime.datetime(2015, 4, 3, 23, 11)
+        timestamps = numpy.sort(numpy.array(
+            [now + datetime.timedelta(seconds=i*sampling)
+             for i in six.moves.range(points)]))
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
