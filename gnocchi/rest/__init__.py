@@ -1179,6 +1179,12 @@ def ResourceSearchSchema(v):
     return _ResourceSearchSchema()(v)
 
 
+# NOTE(sileht): indexer will cast this type to the real attribute
+# type, here we just want to be sure this is not a dict or a list
+ResourceSearchSchemaAttributeValue = voluptuous.Any(
+    six.text_type, float, int, bool, None)
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request)
@@ -1195,21 +1201,26 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"in",
-                    u"like",
+                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
-                    voluptuous.Any(
-                        {"id": voluptuous.Any(
-                            [_ResourceUUID], _ResourceUUID),
-                         voluptuous.Extra: voluptuous.Extra})),
+                    {"id": _ResourceUUID,
+                     six.text_type: ResourceSearchSchemaAttributeValue},
+                ),
+                voluptuous.Any(
+                    u"in",
+                ): voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {"id": [_ResourceUUID],
+                     six.text_type: [ResourceSearchSchemaAttributeValue]}
+                ),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",
-                    u"not",
                 ): voluptuous.All(
                     [ResourceSearchSchema], voluptuous.Length(min=1)
-                )
+                ),
+                u"not": ResourceSearchSchema,
             }
         )
     )
