@@ -855,11 +855,14 @@ class AggregatedTimeSerie(TimeSerie):
                   % (((points * 2 * 8)
                       / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
+            def per_sec(t1, t0):
+                return 1 / ((t1 - t0) / serialize_times)
+
             t0 = time.time()
             for i in six.moves.range(serialize_times):
                 list(ts.split())
             t1 = time.time()
-            print("  split() speed: %.8f s" % ((t1 - t0) / serialize_times))
+            print("  split() speed: %.2f Hz" % per_sec(t1, t0))
 
             # NOTE(sileht): propose a new series with half overload timestamps
             pts = ts.ts.copy()
@@ -873,7 +876,7 @@ class AggregatedTimeSerie(TimeSerie):
             for i in six.moves.range(serialize_times):
                 ts.merge(tsbis)
             t1 = time.time()
-            print("  merge() speed: %.8f s" % ((t1 - t0) / serialize_times))
+            print("  merge() speed %.2f Hz" % per_sec(t1, t0))
 
             for agg in ['mean', 'sum', 'max', 'min', 'std', 'median', 'first',
                         'last', 'count', '5pct', '90pct']:
@@ -884,8 +887,8 @@ class AggregatedTimeSerie(TimeSerie):
                 for i in six.moves.range(serialize_times):
                     ts.resample(resample)
                 t1 = time.time()
-                print("  resample(%s) speed: %.8f s" % (agg, (t1 - t0) /
-                                                        serialize_times))
+                print("  resample(%s) speed: %.2f Hz"
+                      % (agg, per_sec(t1, t0)))
 
     @staticmethod
     def aggregated(timeseries, aggregation, from_timestamp=None,
