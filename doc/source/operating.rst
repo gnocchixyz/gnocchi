@@ -153,7 +153,7 @@ For example, if you want to keep a year of data with a one minute resolution::
 
 Then::
 
-    size in bytes = 525 600 bytes × 6 = 3 159 600 bytes = 3 085 KiB
+    size in bytes = 525 600 points × 8 bytes = 4 204 800 bytes = 4 106 KiB
 
 This is just for a single aggregated time series. If your archive policy uses
 the 6 default aggregation methods (mean, min, max, sum, std, count) with the
