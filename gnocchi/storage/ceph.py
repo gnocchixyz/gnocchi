@@ -292,8 +292,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         else:
             for xattr, _ in xattrs:
                 self.ioctx.aio_remove(xattr)
-        for name in ('container', 'none'):
-            self.ioctx.aio_remove("gnocchi_%s_%s" % (metric.id, name))
+
+        self.ioctx.aio_remove("gnocchi_%s_container" % metric.id)
+        self._delete_unaggregated_timeserie(metric)
 
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
                       version=3):
