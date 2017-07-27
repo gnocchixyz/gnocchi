@@ -87,7 +87,7 @@ class TestAggregates(tests_base.TestCase):
         result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
-        self.assertEqual([(utils.datetime_utc(2014, 1, 1, 12),
+        self.assertEqual([(numpy.datetime64("2014-01-01 12:00"),
                            numpy.timedelta64(120, 's'),
                            32.25)],
                          result)
@@ -97,7 +97,7 @@ class TestAggregates(tests_base.TestCase):
                                  start=None, stop=None,
                                  window=window, center=center)
 
-        self.assertEqual([(utils.datetime_utc(2014, 1, 1, 12, 1),
+        self.assertEqual([(numpy.datetime64("2014-01-01 12:01"),
                            numpy.timedelta64(120, 's'),
                            28.875)],
                          result)

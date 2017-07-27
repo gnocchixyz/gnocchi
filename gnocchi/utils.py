@@ -181,11 +181,6 @@ def datetime_to_unix(timestamp):
     return (timestamp - unix_universal_start).total_seconds()
 
 
-def dt_to_unix_ns(*args):
-    return int(datetime_to_unix(datetime.datetime(
-        *args, tzinfo=iso8601.iso8601.UTC)) * int(10e8))
-
-
 def dt_in_unix_ns(timestamp):
     return int(datetime_to_unix(timestamp) * int(10e8))
 
