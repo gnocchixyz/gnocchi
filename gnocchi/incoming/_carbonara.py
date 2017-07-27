@@ -15,8 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from concurrent import futures
-import itertools
-import struct
 
 import daiquiri
 import numpy
@@ -35,7 +33,6 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
     SACK_PREFIX = "incoming"
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
-    _MEASURE_SERIAL_FORMAT = "Qd"
 
     @property
     def NUM_SACKS(self):
@@ -75,12 +72,12 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
         lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
         return coord.get_lock(lock_name)
 
+    _SERIALIZE_DTYPE = [('timestamps', '<datetime64[ns]'),
+                        ('values', '<d')]
+
     def _unserialize_measures(self, measure_id, data):
         try:
-            return numpy.frombuffer(
-                data,
-                dtype=[('timestamps', '<datetime64[ns]'),
-                       ('values', '<d')])
+            return numpy.frombuffer(data, dtype=self._SERIALIZE_DTYPE)
         except ValueError:
             LOG.error(
                 "Unable to decode measure %s, possible data corruption",
@@ -88,10 +85,8 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
             raise
 
     def _encode_measures(self, measures):
-        measures = list(measures)
-        return struct.pack(
-            "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
-            *list(itertools.chain.from_iterable(measures)))
+        return numpy.array(list(measures),
+                           dtype=self._SERIALIZE_DTYPE).tobytes()
 
     def add_measures_batch(self, metrics_and_measures):
         with futures.ThreadPoolExecutor(max_workers=_NUM_WORKERS) as executor:

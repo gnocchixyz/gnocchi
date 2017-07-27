@@ -273,7 +273,6 @@ class BoundTimeSerie(TimeSerie):
         super(BoundTimeSerie, self).__init__(ts)
         self.block_size = block_size
         self.back_window = back_window
-        self._truncate()
 
     @classmethod
     def from_data(cls, timestamps=None, values=None,
@@ -311,14 +310,18 @@ class BoundTimeSerie(TimeSerie):
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
-        timestamps = numpy.frombuffer(uncompressed, dtype='<Q',
-                                      count=nb_points)
+
+        try:
+            timestamps = numpy.frombuffer(uncompressed, dtype='<Q',
+                                          count=nb_points)
+            values = numpy.frombuffer(
+                uncompressed, dtype='<d',
+                offset=nb_points * cls._SERIALIZATION_TIMESTAMP_LEN)
+        except ValueError:
+            raise InvalidData
+
         timestamps = numpy.cumsum(timestamps)
         timestamps = timestamps.astype(dtype='datetime64[ns]', copy=False)
-
-        values = numpy.frombuffer(
-            uncompressed, dtype='<d',
-            offset=nb_points * cls._SERIALIZATION_TIMESTAMP_LEN)
 
         return cls.from_data(
             timestamps,
@@ -615,13 +618,12 @@ class AggregatedTimeSerie(TimeSerie):
                 try:
                     y = numpy.frombuffer(uncompressed, dtype='<H',
                                          count=nb_points)
+                    x = numpy.frombuffer(
+                        uncompressed, dtype='<d',
+                        offset=nb_points*cls.COMPRESSED_TIMESPAMP_LEN)
                 except ValueError:
                     raise InvalidData()
                 y = numpy.cumsum(y * key.sampling) + key.key
-                x = numpy.frombuffer(
-                    uncompressed, dtype='<d',
-                    offset=nb_points*cls.COMPRESSED_TIMESPAMP_LEN)
-
             else:
                 # Padded format
                 try:
