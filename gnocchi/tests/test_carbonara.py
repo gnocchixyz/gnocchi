@@ -45,12 +45,11 @@ class TestBoundTimeSerie(base.BaseTestCase):
 
     def test_block_size(self):
         ts = carbonara.BoundTimeSerie.from_data(
-            [datetime64(2014, 1, 1, 12, 0, 0),
-             datetime64(2014, 1, 1, 12, 0, 4),
+            [datetime64(2014, 1, 1, 12, 0, 5),
              datetime64(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6],
+            [5, 6],
             block_size=numpy.timedelta64(5, 's'))
-        self.assertEqual(1, len(ts))
+        self.assertEqual(2, len(ts))
         ts.set_values([(datetime64(2014, 1, 1, 12, 0, 10), 3),
                        (datetime64(2014, 1, 1, 12, 0, 11), 4)])
         self.assertEqual(2, len(ts))
@@ -70,10 +69,9 @@ class TestBoundTimeSerie(base.BaseTestCase):
 
     def test_block_size_unordered(self):
         ts = carbonara.BoundTimeSerie.from_data(
-            [datetime64(2014, 1, 1, 12, 0, 0),
-             datetime64(2014, 1, 1, 12, 0, 5),
+            [datetime64(2014, 1, 1, 12, 0, 5),
              datetime64(2014, 1, 1, 12, 0, 9)],
-            [10, 5, 23],
+            [5, 23],
             block_size=numpy.timedelta64(5, 's'))
         self.assertEqual(2, len(ts))
         ts.set_values([(datetime64(2014, 1, 1, 12, 0, 11), 3),

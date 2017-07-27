@@ -102,7 +102,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         try:
             return carbonara.BoundTimeSerie.unserialize(
                 raw_measures, block_size, back_window)
-        except ValueError:
+        except carbonara.InvalidData:
             raise CorruptionError(
                 "Data corruption detected for %s "
                 "unaggregated timeserie" % metric.id)
