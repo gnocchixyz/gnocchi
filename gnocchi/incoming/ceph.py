@@ -22,12 +22,11 @@ import six
 
 from gnocchi.common import ceph
 from gnocchi import incoming
-from gnocchi.incoming import _carbonara
 
 rados = ceph.rados
 
 
-class CephStorage(_carbonara.CarbonaraBasedStorage):
+class CephStorage(incoming.IncomingDriver):
 
     Q_LIMIT = 1000
 

@@ -18,10 +18,10 @@ import contextlib
 import six
 
 from gnocchi.common import redis
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 
 
-class RedisStorage(_carbonara.CarbonaraBasedStorage):
+class RedisStorage(incoming.IncomingDriver):
 
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
