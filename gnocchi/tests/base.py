@@ -15,6 +15,7 @@
 # under the License.
 import functools
 import json
+import logging
 import os
 import subprocess
 import threading
@@ -268,8 +269,12 @@ class TestCase(BaseTestCase):
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
-        self.conf = service.prepare_service([],
-                                            default_config_files=[])
+
+        self.conf = service.prepare_service(
+            [],
+            default_config_files=[],
+            logging_level=logging.DEBUG)
+
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
             daiquiri.setup(outputs=[])
 
