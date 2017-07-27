@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import operator
 
 import daiquiri
@@ -36,15 +37,7 @@ class SackLockTimeoutError(Exception):
         pass
 
 
-class Measure(object):
-    def __init__(self, timestamp, value):
-        self.timestamp = timestamp
-        self.value = value
-
-    def __iter__(self):
-        """Allow to transform measure to tuple."""
-        yield self.timestamp
-        yield self.value
+Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
 class Metric(object):
