@@ -106,12 +106,13 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         sack_name = self.get_sack_name(sack)
         files = self._list_measure_files_for_metric_id(sack, metric.id)
 
-        measures = []
-        for f in files:
-            headers, data = self.swift.get_object(sack_name, f['name'])
-            measures.extend(self._unserialize_measures(f['name'], data))
-
-        yield measures
+        yield self._array_concatenate([
+            self._unserialize_measures(
+                f['name'],
+                self.swift.get_object(sack_name, f['name'])[1],
+            )
+            for f in files
+        ])
 
         # Now clean objects
         swift.bulk_delete(self.swift, sack_name, files)
