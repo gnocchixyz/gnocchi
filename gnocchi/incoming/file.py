@@ -23,11 +23,11 @@ import uuid
 import numpy
 import six
 
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 from gnocchi import utils
 
 
-class FileStorage(_carbonara.CarbonaraBasedStorage):
+class FileStorage(incoming.IncomingDriver):
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath

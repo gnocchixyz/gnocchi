@@ -20,13 +20,13 @@ import uuid
 import six
 
 from gnocchi.common import swift
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
 
 
-class SwiftStorage(_carbonara.CarbonaraBasedStorage):
+class SwiftStorage(incoming.IncomingDriver):
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
