@@ -21,6 +21,7 @@ import numpy
 import six
 
 from gnocchi.common import ceph
+from gnocchi import incoming
 from gnocchi.incoming import _carbonara
 
 rados = ceph.rados
@@ -121,8 +122,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 names = list(self._list_keys_to_process(
                     i, marker=marker, limit=self.Q_LIMIT))
                 if names and names[0] < marker:
-                    raise _carbonara.ReportGenerationError("Unable to cleanly "
-                                                           "compute backlog.")
+                    raise incoming.ReportGenerationError(
+                        "Unable to cleanly compute backlog.")
                 for name in names:
                     count += 1
                     metric = name.split("_")[1]
