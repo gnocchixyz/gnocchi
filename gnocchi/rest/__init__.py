@@ -1053,7 +1053,12 @@ class ResourcesController(rest.RestController):
     def delete(self, **kwargs):
         # NOTE(sileht): Don't allow empty filter, this is going to delete
         # the entire database.
-        attr_filter = deserialize_and_validate(ResourceSearchSchema)
+        if pecan.request.body:
+            attr_filter = deserialize_and_validate(ResourceSearchSchema)
+        elif kwargs.get("filter"):
+            attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
+        else:
+            attr_filter = None
 
         # the voluptuous checks everything, but it is better to
         # have this here.
@@ -1092,12 +1097,6 @@ class ResourcesByTypeController(rest.RestController):
         except indexer.NoSuchResourceType as e:
             abort(404, e)
         return ResourcesController(resource_type), remainder
-
-
-class InvalidQueryStringSearchAttrFilter(Exception):
-    def __init__(self, reason):
-        super(InvalidQueryStringSearchAttrFilter, self).__init__(
-            "Invalid filter: %s" % reason)
 
 
 class QueryStringSearchAttrFilter(object):
@@ -1170,12 +1169,18 @@ class QueryStringSearchAttrFilter(object):
         return result
 
     @classmethod
-    def parse(cls, query):
+    def _parse(cls, query):
         try:
             parsed_query = cls.expr.parseString(query, parseAll=True)[0]
         except pyparsing.ParseException as e:
-            raise InvalidQueryStringSearchAttrFilter(six.text_type(e))
+            raise abort(400, "Invalid filter: %s" % six.text_type(e))
         return cls._parsed_query2dict(parsed_query)
+
+    @classmethod
+    def parse(cls, query):
+        attr_filter = cls._parse(query)
+        return voluptuous.Schema(ResourceSearchSchema,
+                                 required=True)(attr_filter)
 
 
 def ResourceSearchSchema(v):
@@ -1222,20 +1227,11 @@ class SearchResourceTypeController(rest.RestController):
     def __init__(self, resource_type):
         self._resource_type = resource_type
 
-    @staticmethod
-    def parse_and_validate_qs_filter(query):
-        try:
-            attr_filter = QueryStringSearchAttrFilter.parse(query)
-        except InvalidQueryStringSearchAttrFilter as e:
-            raise abort(400, e)
-        return voluptuous.Schema(ResourceSearchSchema,
-                                 required=True)(attr_filter)
-
     def _search(self, **kwargs):
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
         elif kwargs.get("filter"):
-            attr_filter = self.parse_and_validate_qs_filter(kwargs["filter"])
+            attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
         else:
             attr_filter = None
 
