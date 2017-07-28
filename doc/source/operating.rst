@@ -258,3 +258,33 @@ or MySQL) and doing snapshots or copy of your data storage (Ceph, S3, Swift or
 your file system). The procedure to restore is no more complicated than initial
 deployment: restore your index and storage backups, reinstall Gnocchi if
 necessary, and restart it.
+
+Deployment Strategies
+=====================
+
+Gnocchi is designed to be massively scalable to handle the large deployments.
+In some scenarios, you may want Gnocchi to capture data across multiple
+data centres or geographical regions. Naively doing so may result in decreased
+performance due to latency and potentially increase costs.
+
+To maintain responsive write performance, Gnocchi can be segmented into
+multiple localised instances where each local instance services its own set
+of resources:
+
+
+.. image:: distributed-arch.png
+  :align: center
+  :width: 80%
+  :alt: Gnocchi distributed architecture
+
+
+By leveraging the above model, a fast, lightweight storage driver such as Redis
+can be used to capture local data at each site. From there, centralised metricd
+workers can process each of the sites, pulling in compressed data which
+minimises any potential costs for network utilisation. Lastly, the processed
+aggregated data can be stored in a fully replicated, clustered storage such as
+Ceph to ensure data durability.
+
+Some combination of the above deployment model can be leveraged to minimise
+the complexity and share a replicated, cluster storage while providing a
+responsive interface.
