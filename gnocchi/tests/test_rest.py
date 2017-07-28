@@ -1855,7 +1855,7 @@ class GenericResourceTest(RestTest):
 
 class QueryStringSearchAttrFilterTest(tests_base.TestCase):
     def _do_test(self, expr, expected):
-        req = rest.QueryStringSearchAttrFilter.parse(expr)
+        req = rest.QueryStringSearchAttrFilter._parse(expr)
         self.assertEqual(expected, req)
 
     def test_search_query_builder(self):
