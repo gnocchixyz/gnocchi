@@ -716,8 +716,8 @@ class AggregatedTimeSerie(TimeSerie):
         if compressed:
             # NOTE(jd) Use a double delta encoding for timestamps
             timestamps = numpy.insert(
-                numpy.floor(numpy.diff(self.timestamps) / offset_div),
-                0, numpy.floor((self.first - start.key) / offset_div))
+                numpy.diff(self.timestamps) / offset_div,
+                0, (self.first - start.key) / offset_div)
             timestamps = timestamps.astype('<H', copy=False)
             payload = (timestamps.tobytes() + self.values.tobytes())
             return None, b"c" + self._compress(payload)
@@ -731,10 +731,9 @@ class AggregatedTimeSerie(TimeSerie):
         # series runs until and initialize list to store alternating
         # delimiter, float entries
         first = self.first  # NOTE(jd) needed because faster
-        e_offset = int(numpy.floor((self.last - first) / offset_div) + 1)
+        e_offset = int((self.last - first) / offset_div) + 1
 
-        locs = numpy.floor(numpy.cumsum(numpy.diff(self.timestamps))
-                           / offset_div)
+        locs = numpy.cumsum(numpy.diff(self.timestamps)) / offset_div
         locs = numpy.insert(locs, 0, 0)
         locs = locs.astype(numpy.int, copy=False)
 
@@ -750,8 +749,7 @@ class AggregatedTimeSerie(TimeSerie):
         serial[locs] = values
 
         payload = serial.tobytes()
-        offset = numpy.floor(
-            (first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
+        offset = int((first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
         return offset, payload
 
     def _truncate(self, quick=False):
