@@ -75,6 +75,15 @@ class CarbonaraBasedStorage(incoming.StorageDriver):
     _SERIALIZE_DTYPE = [('timestamps', '<datetime64[ns]'),
                         ('values', '<d')]
 
+    def _make_measures_array(self):
+        return numpy.array([], dtype=self._SERIALIZE_DTYPE)
+
+    @staticmethod
+    def _array_concatenate(arrays):
+        if arrays:
+            return numpy.concatenate(arrays)
+        return arrays
+
     def _unserialize_measures(self, measure_id, data):
         try:
             return numpy.frombuffer(data, dtype=self._SERIALIZE_DTYPE)
