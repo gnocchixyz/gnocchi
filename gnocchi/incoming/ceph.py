@@ -17,6 +17,7 @@ import datetime
 import json
 import uuid
 
+import numpy
 import six
 
 from gnocchi.common import ceph
@@ -197,7 +198,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         sack = self.sack_for_metric(metric.id)
         key_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
 
-        measures = []
         processed_keys = []
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
@@ -215,8 +215,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 # Object has been deleted, so this is just a stalled entry
                 # in the OMAP listing, ignore
                 return
+
+        measures = self._make_measures_array()
         for k, v in omaps:
-            measures.extend(self._unserialize_measures(k, v))
+            measures = numpy.append(measures, self._unserialize_measures(k, v))
             processed_keys.append(k)
 
         yield measures
