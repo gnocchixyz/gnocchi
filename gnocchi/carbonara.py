@@ -16,6 +16,7 @@
 # under the License.
 """Time series data manipulation, better with pancetta."""
 
+import collections
 import functools
 import itertools
 import logging
@@ -43,6 +44,8 @@ LOG = logging.getLogger(__name__)
 
 UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
 ONE_SECOND = numpy.timedelta64(1, 's')
+
+Transformation = collections.namedtuple('Transformation', ["method", "args"])
 
 
 class BeforeEpochError(Exception):
@@ -563,14 +566,28 @@ class AggregatedTimeSerie(TimeSerie):
     def transform(self, transform):
         timestamps = self.ts["timestamps"]
         values = self.ts["values"]
+        sampling = self.sampling
+
         for trans in transform:
-            if trans == "absolute":
+            if trans.method == "absolute":
                 values = numpy.abs(values)
-            elif trans == "negative":
+
+            elif trans.method == "negative":
                 values = numpy.negative(values)
+
+            elif trans.method == "resample":
+                ts = AggregatedTimeSerie.from_data(sampling,
+                                                   self.aggregation_method,
+                                                   timestamps, values,
+                                                   self.max_size)
+                sampling = trans.args[0]
+                ts = ts.resample(sampling)
+                timestamps = ts["timestamps"]
+                values = ts["values"]
+
             else:
                 raise ValueError("Transformation '%s' doesn't exists" % trans)
-        return AggregatedTimeSerie(self.sampling,
+        return AggregatedTimeSerie(sampling,
                                    self.aggregation_method,
                                    ts=make_timeseries(timestamps, values),
                                    max_size=self.max_size)

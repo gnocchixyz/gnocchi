@@ -283,7 +283,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              (datetime64(2014, 1, 1, 12, 2, 0), -6)])
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
             [ts], sampling=60, aggregation_method="last")
-        ts = ts.transform(["absolute"])
+        ts = ts.transform([
+            carbonara.Transformation("absolute", tuple())])
 
         self.assertEqual(3, len(ts))
         self.assertEqual([3, 5, 6], [
@@ -291,13 +292,23 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
             ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
 
-        ts = ts.transform(["absolute", "negative"])
+        ts = ts.transform([
+            carbonara.Transformation("absolute", tuple()),
+            carbonara.Transformation("negative", tuple())])
 
         self.assertEqual(3, len(ts))
         self.assertEqual([-3, -5, -6], [
             ts[datetime64(2014, 1, 1, 12, 0, 0)][1],
             ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
             ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
+
+        ts = ts.transform([
+            carbonara.Transformation("absolute", tuple()),
+            carbonara.Transformation(
+                "resample", (numpy.timedelta64(360, 's'),))])
+
+        self.assertEqual(1, len(ts))
+        self.assertEqual(6, ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
     def _do_test_aggregation(self, name, v1, v2):
         ts = carbonara.TimeSerie.from_tuples(
@@ -1458,6 +1469,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(3, len(agg_ts))
 
         agg_ts = agg_ts.resample(numpy.timedelta64(10, 's'))
+        self.assertEqual(2, len(agg_ts))
+        self.assertEqual(5, agg_ts[0][1])
+        self.assertEqual(3, agg_ts[1][1])
+
+        agg_ts = agg_ts.transform([
+            carbonara.Transformation(
+                "resample", (numpy.timedelta64(10, 's'), ))])
         self.assertEqual(2, len(agg_ts))
         self.assertEqual(5, agg_ts[0][1])
         self.assertEqual(3, agg_ts[1][1])

@@ -213,6 +213,14 @@ tests:
           - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
+    - name: get measurements from metric and resample and negative
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&transform=resample(60):negative&granularity=1
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:00+00:00", 60.0, -43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -14.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -10.0]
+
     - name: push negative measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       data:
@@ -249,8 +257,6 @@ tests:
     - name: get measurements from metric and invalid transform
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute:notexists
       status: 400
-      response_strings:
-        - Transformation 'notexists' doesn't exist
 
     - name: get measurements from metric and resample no granularity
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60
