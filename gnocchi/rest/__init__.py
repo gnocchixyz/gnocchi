@@ -36,6 +36,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
+from gnocchi.rest import transformation
 from gnocchi import storage
 from gnocchi import utils
 
@@ -375,19 +376,11 @@ def MeasuresListSchema(measures):
         times.tolist(), values))
 
 
-VALID_TRANSFORMATION_METHODS = ["absolute", "negative"]
-
-
 def TransformSchema(transform):
     try:
-        transform = transform.split(":")
-    except Exception:
-        abort(400, "Invalid transformation")
-
-    for trans in transform:
-        if trans not in VALID_TRANSFORMATION_METHODS:
-            abort(400, "Transformation '%s' doesn't exist" % trans)
-    return transform
+        return transformation.parse(transform)
+    except transformation.TransformationParserError as e:
+        abort(400, str(e))
 
 
 class MetricController(rest.RestController):
@@ -436,9 +429,6 @@ class MetricController(rest.RestController):
                 std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
                 custom=str(self.custom_agg.keys())))
 
-        if transform is not None:
-            transform = TransformSchema(transform)
-
         if start is not None:
             try:
                 start = utils.to_timestamp(start)
@@ -452,12 +442,18 @@ class MetricController(rest.RestController):
                 abort(400, "Invalid value for stop")
 
         if resample:
+            if transform:
+                abort(400, 'transform and resample are exclusive')
+
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
+
+        if transform is not None:
+            transform = TransformSchema(transform)
 
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric)):

@@ -152,6 +152,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 metric, aggregation, granularity,
                 from_timestamp, to_timestamp)
             if resample:
+                # FIXME(sileht): deprecated this way to resample in favor of
+                # transform
                 agg_timeseries = agg_timeseries.resample(resample)
             agg_timeseries = [agg_timeseries]
 
@@ -504,6 +506,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             granularities_in_common = [granularity]
 
         if resample and granularity:
+            # FIXME(sileht): deprecated this way to resample in favor of
+            # transform
             tss = self._map_in_thread(self._get_measures_timeserie,
                                       [(metric, aggregation, granularity,
                                         from_timestamp, to_timestamp)
