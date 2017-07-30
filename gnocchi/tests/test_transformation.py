@@ -33,6 +33,10 @@ class TestTransformParser(base.BaseTestCase):
             "resample(5):absolute": [("resample",
                                       (numpy.timedelta64(5, 's'),)),
                                      ("absolute", tuple())],
+            "resample(5):resample(10)": [("resample",
+                                          (numpy.timedelta64(5, 's'),)),
+                                         ("resample",
+                                          (numpy.timedelta64(10, 's'),))]
         }
         for expr, expected in expressions.items():
             try:

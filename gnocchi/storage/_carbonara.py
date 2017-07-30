@@ -137,7 +137,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, resample=None,
+                     aggregation='mean', granularity=None,
                      transform=None):
         super(CarbonaraBasedStorage, self).get_measures(
             metric, from_timestamp, to_timestamp, aggregation)
@@ -148,14 +148,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                   from_timestamp, to_timestamp)
                  for ap in reversed(metric.archive_policy.definition)))
         else:
-            agg_timeseries = self._get_measures_timeserie(
+            agg_timeseries = [self._get_measures_timeserie(
                 metric, aggregation, granularity,
-                from_timestamp, to_timestamp)
-            if resample:
-                # FIXME(sileht): deprecated this way to resample in favor of
-                # transform
-                agg_timeseries = agg_timeseries.resample(resample)
-            agg_timeseries = [agg_timeseries]
+                from_timestamp, to_timestamp)]
 
         if transform is not None:
             agg_timeseries = list(map(lambda agg: agg.transform(transform),
@@ -475,12 +470,12 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
     def get_cross_metric_measures(self, metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
-                                  reaggregation=None, resample=None,
+                                  reaggregation=None,
                                   granularity=None, needed_overlap=100.0,
                                   fill=None, transform=None):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
-            aggregation, reaggregation, resample, granularity, needed_overlap,
+            aggregation, reaggregation, granularity, needed_overlap,
             fill, transform)
 
         if reaggregation is None:
@@ -505,20 +500,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         else:
             granularities_in_common = [granularity]
 
-        if resample and granularity:
-            # FIXME(sileht): deprecated this way to resample in favor of
-            # transform
-            tss = self._map_in_thread(self._get_measures_timeserie,
-                                      [(metric, aggregation, granularity,
-                                        from_timestamp, to_timestamp)
-                                       for metric in metrics])
-            tss = list(map(lambda ts: ts.resample(resample), tss))
-        else:
-            tss = self._map_in_thread(self._get_measures_timeserie,
-                                      [(metric, aggregation, g,
-                                        from_timestamp, to_timestamp)
-                                       for metric in metrics
-                                       for g in granularities_in_common])
+        tss = self._map_in_thread(self._get_measures_timeserie,
+                                  [(metric, aggregation, g,
+                                    from_timestamp, to_timestamp)
+                                   for metric in metrics
+                                   for g in granularities_in_common])
 
         if transform is not None:
             tss = list(map(lambda ts: ts.transform(transform), tss))

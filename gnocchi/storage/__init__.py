@@ -209,8 +209,7 @@ class StorageDriver(object):
 
     @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, resample=None,
-                     transform=None):
+                     aggregation='mean', granularity=None, transform=None):
         """Get a measure to a metric.
 
         :param metric: The metric measured.
@@ -218,7 +217,6 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         :param granularity: The granularity to retrieve.
-        :param resample: The granularity to resample to.
         :param transform: List of transformation to apply to the series
         """
         if aggregation not in metric.archive_policy.aggregation_methods:
@@ -231,7 +229,7 @@ class StorageDriver(object):
     @staticmethod
     def get_cross_metric_measures(metrics, from_timestamp=None,
                                   to_timestamp=None, aggregation='mean',
-                                  reaggregation=None, resample=None,
+                                  reaggregation=None,
                                   granularity=None, needed_overlap=None,
                                   fill=None, transform=None):
         """Get aggregated measures of multiple entities.
@@ -243,7 +241,6 @@ class StorageDriver(object):
         :param aggregation: The type of aggregation to retrieve.
         :param reaggregation: The type of aggregation to compute
                               on the retrieved measures.
-        :param resample: The granularity to resample to.
         :param fill: The value to use to fill in missing data in series.
         :param transform: List of transformation to apply to the series
         """
