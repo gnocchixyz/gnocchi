@@ -268,6 +268,12 @@ tests:
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=abc
       status: 400
 
+    - name: get measurements from metric resample and transform
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60&transform=absolute
+      status: 400
+      response_strings:
+        - 'transform and resample are exclusive'
+
     - name: create valid metric two
       POST: /v1/metric
       data:
