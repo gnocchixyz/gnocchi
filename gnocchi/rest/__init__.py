@@ -32,6 +32,7 @@ import werkzeug.http
 
 from gnocchi import aggregates
 from gnocchi import archive_policy
+from gnocchi import carbonara
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
@@ -441,7 +442,11 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
+        if transform is not None:
+            transform = TransformSchema(transform)
+
         if resample:
+            # TODO(sileht): This have to be deprecated at some point
             if transform:
                 abort(400, 'transform and resample are exclusive')
 
@@ -451,9 +456,7 @@ class MetricController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
-
-        if transform is not None:
-            transform = TransformSchema(transform)
+            transform = [carbonara.Transformation("resample", (resample,))]
 
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric)):
@@ -474,7 +477,7 @@ class MetricController(rest.RestController):
                 self.metric, start, stop, aggregation,
                 utils.to_timespan(granularity)
                 if granularity is not None else None,
-                resample, transform)
+                transform)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
@@ -1702,7 +1705,11 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 abort(400, e)
 
+        if transform is not None:
+            transform = TransformSchema(transform)
+
         if resample:
+            # TODO(sileht): This have to be deprecated at some point
             if transform:
                 abort(400, 'transform and resample are exclusive')
 
@@ -1712,6 +1719,7 @@ class AggregationController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
+            transform = [carbonara.Transformation("resample", (resample,))]
 
         if fill is not None:
             if granularity is None:
@@ -1721,9 +1729,6 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 if fill != 'null':
                     abort(400, "fill must be a float or \'null\': %s" % e)
-
-        if transform is not None:
-            transform = TransformSchema(transform)
 
         try:
             if strtobool("refresh", refresh):
@@ -1742,10 +1747,10 @@ class AggregationController(rest.RestController):
                 # metric
                 return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
-                    granularity, resample, transform)
+                    granularity, transform)
             return pecan.request.storage.get_cross_metric_measures(
                 metrics, start, stop, aggregation,
-                reaggregation, resample, granularity, needed_overlap, fill,
+                reaggregation, granularity, needed_overlap, fill,
                 transform)
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
