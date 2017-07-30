@@ -477,11 +477,11 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                   to_timestamp=None, aggregation='mean',
                                   reaggregation=None, resample=None,
                                   granularity=None, needed_overlap=100.0,
-                                  fill=None):
+                                  fill=None, transform=None):
         super(CarbonaraBasedStorage, self).get_cross_metric_measures(
             metrics, from_timestamp, to_timestamp,
             aggregation, reaggregation, resample, granularity, needed_overlap,
-            fill)
+            fill, transform)
 
         if reaggregation is None:
             reaggregation = aggregation
@@ -519,6 +519,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                         from_timestamp, to_timestamp)
                                        for metric in metrics
                                        for g in granularities_in_common])
+
+        if transform is not None:
+            tss = list(map(lambda ts: ts.transform(transform), tss))
 
         try:
             return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)

@@ -1588,7 +1588,8 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
-             groupby=None, fill=None, refresh=False, resample=None):
+             groupby=None, fill=None, refresh=False, resample=None,
+             transform=None):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1612,7 +1613,8 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
-                granularity, needed_overlap, fill, refresh, resample)
+                granularity, needed_overlap, fill, refresh, resample,
+                transform)
 
         def groupper(r):
             return tuple((attr, r[attr]) for attr in groupby)
@@ -1626,7 +1628,8 @@ class AggregationResourceController(rest.RestController):
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation, reaggregation,
-                    granularity, needed_overlap, fill, refresh, resample)
+                    granularity, needed_overlap, fill, refresh, resample,
+                    transform)
             })
 
         return results
@@ -1657,7 +1660,8 @@ class AggregationController(rest.RestController):
                                             reaggregation=None,
                                             granularity=None,
                                             needed_overlap=100.0, fill=None,
-                                            refresh=False, resample=None):
+                                            refresh=False, resample=None,
+                                            transform=None):
         try:
             needed_overlap = float(needed_overlap)
         except ValueError:
@@ -1699,6 +1703,9 @@ class AggregationController(rest.RestController):
                 abort(400, e)
 
         if resample:
+            if transform:
+                abort(400, 'transform and resample are exclusive')
+
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
@@ -1714,6 +1721,9 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 if fill != 'null':
                     abort(400, "fill must be a float or \'null\': %s" % e)
+
+        if transform is not None:
+            transform = TransformSchema(transform)
 
         try:
             if strtobool("refresh", refresh):
@@ -1732,10 +1742,11 @@ class AggregationController(rest.RestController):
                 # metric
                 return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
-                    granularity, resample)
+                    granularity, resample, transform)
             return pecan.request.storage.get_cross_metric_measures(
                 metrics, start, stop, aggregation,
-                reaggregation, resample, granularity, needed_overlap, fill)
+                reaggregation, resample, granularity, needed_overlap, fill,
+                transform)
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
@@ -1750,7 +1761,7 @@ class AggregationController(rest.RestController):
     def get_metric(self, metric=None, start=None, stop=None,
                    aggregation='mean', reaggregation=None, granularity=None,
                    needed_overlap=100.0, fill=None,
-                   refresh=False, resample=None):
+                   refresh=False, resample=None, transform=None):
         if pecan.request.method == 'GET':
             try:
                 metric_ids = voluptuous.Schema(
@@ -1772,7 +1783,7 @@ class AggregationController(rest.RestController):
                 missing_metric_ids.pop()))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
-            granularity, needed_overlap, fill, refresh, resample)
+            granularity, needed_overlap, fill, refresh, resample, transform)
 
     post_metric = get_metric
 
