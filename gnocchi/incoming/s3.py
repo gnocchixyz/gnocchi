@@ -23,13 +23,13 @@ import numpy
 import six
 
 from gnocchi.common import s3
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 
 boto3 = s3.boto3
 botocore = s3.botocore
 
 
-class S3Storage(_carbonara.CarbonaraBasedStorage):
+class S3Storage(incoming.IncomingDriver):
 
     def __init__(self, conf):
         super(S3Storage, self).__init__(conf)

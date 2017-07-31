@@ -642,6 +642,26 @@ tests:
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
       status: 201
 
+    - name: create resource seven
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      data:
+          id: cd09ecce-3e17-4733-ad32-8a6b2034dcfd
+          started_at: "2015-08-14T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
+    - name: create resource eight
+      desc: before test batch delete, create some resources
+      POST: $LAST_URL
+      data:
+          id: 05fde895-cf8a-475c-90a7-a4c8598d935d
+          started_at: "2015-08-14T00:00:00.000000"
+          user_id: 0fbb231484614b1a80131fc22f6afc9c
+          project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      status: 201
+
     - name: get resource one
       desc: ensure the resources exists
       GET: /v1/resource/generic/f93450f2-aaaa-4d67-9985-02511241e7d1
@@ -670,6 +690,16 @@ tests:
     - name: get resource six
       desc: ensure the resources exists
       GET: /v1/resource/generic/f93450f2-ffff-4d67-9985-02511241e7d1
+      status: 200
+
+    - name: get resource seven
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/cd09ecce-3e17-4733-ad32-8a6b2034dcfd
+      status: 200
+
+    - name: get resource eight
+      desc: ensure the resources exists
+      GET: /v1/resource/generic/05fde895-cf8a-475c-90a7-a4c8598d935d
       status: 200
 
     - name: delete random data structure
@@ -763,6 +793,7 @@ tests:
       response_json_paths:
         $.deleted: 2
 
+
     - name: delete both existent and non-existent data
       desc: delete exits and non-exist data
       DELETE: $LAST_URL
@@ -788,3 +819,9 @@ tests:
       status: 200
       response_json_paths:
         $.deleted: 0
+
+    - name: delete multiple with query string
+      DELETE: $LAST_URL?filter=id%20in%20%5Bcd09ecce-3e17-4733-ad32-8a6b2034dcfd%2C%2005fde895-cf8a-475c-90a7-a4c8598d935d%5D
+      response_json_paths:
+        $.deleted: 2
+
