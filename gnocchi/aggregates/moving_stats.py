@@ -107,7 +107,7 @@ class MovingAverage(aggregates.CustomAggregator):
             # change from integer index to timestamp index
             result.index = data.index
 
-            return [(t, window, r) for t, r
+            return [(t.to_datetime64(), window, r) for t, r
                     in six.iteritems(result[~result.isnull()])]
         except Exception as e:
             raise aggregates.CustomAggFailure(str(e))

@@ -1654,17 +1654,22 @@ class ResourceTest(RestTest):
             + "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             expect_errors=True)
+        self.assertEqual(400, result.status_code, result.text)
+        self.assertIn("No overlap", result.text)
 
+        result = self.app.post_json(
+            "/v1/aggregation/resource/" + self.resource_type
+            + "/metric/foo?aggregation=max&needed_overlap=5&start=2013-01-01",
+            params={"=": {"name": name}},
+            expect_errors=True)
         self.assertEqual(400, result.status_code, result.text)
         self.assertIn("No overlap", result.text)
 
         result = self.app.post_json(
             "/v1/aggregation/resource/"
             + self.resource_type + "/metric/foo?aggregation=min"
-            + "&needed_overlap=0",
-            params={"=": {"name": name}},
-            expect_errors=True)
-
+            + "&needed_overlap=0&start=2013-01-01T00:00:00%2B00:00",
+            params={"=": {"name": name}})
         self.assertEqual(200, result.status_code, result.text)
         measures = json.loads(result.text)
         self.assertEqual([['2013-01-01T00:00:00+00:00', 86400.0, 8.0],
@@ -1855,7 +1860,7 @@ class GenericResourceTest(RestTest):
 
 class QueryStringSearchAttrFilterTest(tests_base.TestCase):
     def _do_test(self, expr, expected):
-        req = rest.QueryStringSearchAttrFilter.parse(expr)
+        req = rest.QueryStringSearchAttrFilter._parse(expr)
         self.assertEqual(expected, req)
 
     def test_search_query_builder(self):

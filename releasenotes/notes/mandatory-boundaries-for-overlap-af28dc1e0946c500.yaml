@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    When specifying `needed_overlap` while aggregating across metrics without
+    bounds, the result did not necessarily honour the required overlap
+    provided. Aggregation without bounds now requires 100% overlap; an error is
+    raised otherwise
