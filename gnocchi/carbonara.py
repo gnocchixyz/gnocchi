@@ -84,8 +84,8 @@ def round_timestamp(ts, freq):
         (ts - UNIX_UNIVERSAL_START64) / freq) * freq
 
 
-TIMESERIES_ARRAY_DTYPE = [('timestamps', 'datetime64[ns]'),
-                          ('values', 'float64')]
+TIMESERIES_ARRAY_DTYPE = [('timestamps', '<datetime64[ns]'),
+                          ('values', '<d')]
 
 
 def make_timeseries(timestamps, values):
@@ -267,7 +267,7 @@ class TimeSerie(object):
 
         :param values: A list of tuple (timestamp, value).
         """
-        return self._merge(numpy.array(values, dtype=TIMESERIES_ARRAY_DTYPE))
+        return self._merge(values)
 
     def __len__(self):
         return len(self.ts)

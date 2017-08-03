@@ -20,6 +20,7 @@ import daiquiri
 import numpy
 import six
 
+from gnocchi.carbonara import TIMESERIES_ARRAY_DTYPE
 from gnocchi import exceptions
 from gnocchi import utils
 
@@ -83,11 +84,8 @@ class IncomingDriver(object):
         lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
         return coord.get_lock(lock_name)
 
-    _SERIALIZE_DTYPE = [('timestamps', '<datetime64[ns]'),
-                        ('values', '<d')]
-
     def _make_measures_array(self):
-        return numpy.array([], dtype=self._SERIALIZE_DTYPE)
+        return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)
 
     @staticmethod
     def _array_concatenate(arrays):
@@ -97,7 +95,7 @@ class IncomingDriver(object):
 
     def _unserialize_measures(self, measure_id, data):
         try:
-            return numpy.frombuffer(data, dtype=self._SERIALIZE_DTYPE)
+            return numpy.frombuffer(data, dtype=TIMESERIES_ARRAY_DTYPE)
         except ValueError:
             LOG.error(
                 "Unable to decode measure %s, possible data corruption",
@@ -106,7 +104,7 @@ class IncomingDriver(object):
 
     def _encode_measures(self, measures):
         return numpy.array(list(measures),
-                           dtype=self._SERIALIZE_DTYPE).tobytes()
+                           dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
     def add_measures(self, metric, measures):
         """Add a measure to a metric.
