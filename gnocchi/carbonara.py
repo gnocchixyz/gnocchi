@@ -347,13 +347,9 @@ class BoundTimeSerie(TimeSerie):
     def set_values(self, values, before_truncate_callback=None):
         # NOTE: values must be sorted when passed in.
         if self.block_size is not None and len(self.ts) != 0:
-            first_block_timestamp = self.first_block_timestamp()
-            for index, (timestamp, value) in enumerate(values):
-                if timestamp >= first_block_timestamp:
-                    values = values[index:]
-                    break
-            else:
-                values = []
+            index = numpy.searchsorted(values['timestamps'],
+                                       self.first_block_timestamp())
+            values = values[index:]
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
             before_truncate_callback(self)
