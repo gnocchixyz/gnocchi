@@ -17,7 +17,6 @@
 import collections
 import functools
 import itertools
-import operator
 
 from concurrent import futures
 import daiquiri
@@ -389,7 +388,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             LOG.debug("Skipping %s (already processed)", metric)
             return
 
-        measures = sorted(measures, key=operator.itemgetter(0))
+        measures.sort(order='timestamps')
 
         agg_methods = list(metric.archive_policy.aggregation_methods)
         block_size = metric.archive_policy.max_block_size
@@ -433,7 +432,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # unaggregated measures matching largest
             # granularity. the following takes only the points
             # affected by new measures for specific granularity
-            tstamp = max(bound_timeserie.first, measures[0][0])
+            tstamp = max(bound_timeserie.first, measures['timestamps'][0])
             new_first_block_timestamp = bound_timeserie.first_block_timestamp()
             computed_points['number'] = len(bound_timeserie)
             for d in definition:
