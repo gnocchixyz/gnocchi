@@ -50,8 +50,9 @@ class TestBoundTimeSerie(base.BaseTestCase):
             [5, 6],
             block_size=numpy.timedelta64(5, 's'))
         self.assertEqual(2, len(ts))
-        ts.set_values([(datetime64(2014, 1, 1, 12, 0, 10), 3),
-                       (datetime64(2014, 1, 1, 12, 0, 11), 4)])
+        ts.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 10), 3),
+                                   (datetime64(2014, 1, 1, 12, 0, 11), 4)],
+                                  dtype=carbonara.TIMESERIES_ARRAY_DTYPE))
         self.assertEqual(2, len(ts))
 
     def test_block_size_back_window(self):
@@ -63,8 +64,9 @@ class TestBoundTimeSerie(base.BaseTestCase):
             block_size=numpy.timedelta64(5, 's'),
             back_window=1)
         self.assertEqual(3, len(ts))
-        ts.set_values([(datetime64(2014, 1, 1, 12, 0, 10), 3),
-                       (datetime64(2014, 1, 1, 12, 0, 11), 4)])
+        ts.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 10), 3),
+                                   (datetime64(2014, 1, 1, 12, 0, 11), 4)],
+                                  dtype=carbonara.TIMESERIES_ARRAY_DTYPE))
         self.assertEqual(3, len(ts))
 
     def test_block_size_unordered(self):
@@ -74,8 +76,9 @@ class TestBoundTimeSerie(base.BaseTestCase):
             [5, 23],
             block_size=numpy.timedelta64(5, 's'))
         self.assertEqual(2, len(ts))
-        ts.set_values([(datetime64(2014, 1, 1, 12, 0, 11), 3),
-                       (datetime64(2014, 1, 1, 12, 0, 10), 4)])
+        ts.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 11), 3),
+                                   (datetime64(2014, 1, 1, 12, 0, 10), 4)],
+                                  dtype=carbonara.TIMESERIES_ARRAY_DTYPE))
         self.assertEqual(2, len(ts))
 
     def test_duplicate_timestamps(self):
@@ -87,11 +90,12 @@ class TestBoundTimeSerie(base.BaseTestCase):
         self.assertEqual(10.0, ts[0][1])
         self.assertEqual(23.0, ts[1][1])
 
-        ts.set_values([(datetime64(2014, 1, 1, 13, 0, 10), 3),
-                       (datetime64(2014, 1, 1, 13, 0, 11), 9),
-                       (datetime64(2014, 1, 1, 13, 0, 11), 8),
-                       (datetime64(2014, 1, 1, 13, 0, 11), 7),
-                       (datetime64(2014, 1, 1, 13, 0, 11), 4)])
+        ts.set_values(numpy.array([(datetime64(2014, 1, 1, 13, 0, 10), 3),
+                                   (datetime64(2014, 1, 1, 13, 0, 11), 9),
+                                   (datetime64(2014, 1, 1, 13, 0, 11), 8),
+                                   (datetime64(2014, 1, 1, 13, 0, 11), 7),
+                                   (datetime64(2014, 1, 1, 13, 0, 11), 4)],
+                                  dtype=carbonara.TIMESERIES_ARRAY_DTYPE))
         self.assertEqual(4, len(ts))
         self.assertEqual(10.0, ts[0][1])
         self.assertEqual(23.0, ts[1][1])
@@ -408,10 +412,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 50, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([(datetime64(2014, 1, 1, 11, 46, 4), 4)],
+        tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 11, 46, 4), 4)],
+                                    dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                         before_truncate_callback=functools.partial(
                             self._resample_and_merge, agg_dict=tsc1))
-        tsb2.set_values([(datetime64(2014, 1, 1, 9, 1, 4), 4)],
+        tsb2.set_values(numpy.array([(datetime64(2014, 1, 1, 9, 1, 4), 4)],
+                                    dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                         before_truncate_callback=functools.partial(
                             self._resample_and_merge, agg_dict=tsc2))
 
@@ -430,7 +436,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             max_size=50,
             aggregation_method='mean')
 
-        tsb1.set_values([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
+        tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
+                                    dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                         before_truncate_callback=functools.partial(
                             self._resample_and_merge, agg_dict=tsc1))
         self.assertRaises(carbonara.UnAggregableTimeseries,
@@ -448,7 +455,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         # NOTE(sileht): minute 8 is missing in both and
         # minute 7 in tsc2 too, but it looks like we have
         # enough point to do the aggregation
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 0, 0), 4),
             (datetime64(2014, 1, 1, 12, 1, 0), 3),
             (datetime64(2014, 1, 1, 12, 2, 0), 2),
@@ -457,11 +464,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 5, 0), 3),
             (datetime64(2014, 1, 1, 12, 6, 0), 4),
             (datetime64(2014, 1, 1, 12, 7, 0), 10),
-            (datetime64(2014, 1, 1, 12, 9, 0), 2),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2014, 1, 1, 12, 9, 0), 2)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 1, 0), 3),
             (datetime64(2014, 1, 1, 12, 2, 0), 4),
             (datetime64(2014, 1, 1, 12, 3, 0), 4),
@@ -470,9 +478,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 6, 0), 6),
             (datetime64(2014, 1, 1, 12, 9, 0), 2),
             (datetime64(2014, 1, 1, 12, 11, 0), 2),
-            (datetime64(2014, 1, 1, 12, 12, 0), 2),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2014, 1, 1, 12, 12, 0), 2)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         dtfrom = datetime64(2014, 1, 1, 12, 0, 0)
         dtto = datetime64(2014, 1, 1, 12, 10, 0)
@@ -518,26 +527,28 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 10, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 3, 0), 9),
             (datetime64(2014, 1, 1, 12, 4, 0), 1),
             (datetime64(2014, 1, 1, 12, 5, 0), 2),
             (datetime64(2014, 1, 1, 12, 6, 0), 7),
             (datetime64(2014, 1, 1, 12, 7, 0), 5),
-            (datetime64(2014, 1, 1, 12, 8, 0), 3),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2014, 1, 1, 12, 8, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 0, 0), 6),
             (datetime64(2014, 1, 1, 12, 1, 0), 2),
             (datetime64(2014, 1, 1, 12, 2, 0), 13),
             (datetime64(2014, 1, 1, 12, 3, 0), 24),
             (datetime64(2014, 1, 1, 12, 4, 0), 4),
             (datetime64(2014, 1, 1, 12, 5, 0), 16),
-            (datetime64(2014, 1, 1, 12, 6, 0), 12),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2014, 1, 1, 12, 6, 0), 12)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         # By default we require 100% of point that overlap
         # but we allow that the last datapoint is missing
@@ -564,16 +575,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 10, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
-            (datetime64(2014, 1, 1, 12, 3, 0), 4),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+        tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
+                                    dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+                        before_truncate_callback=functools.partial(
+                            self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
-            (datetime64(2014, 1, 1, 11, 0, 0), 4),
-            (datetime64(2014, 1, 1, 12, 3, 0), 4),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+        tsb2.set_values(numpy.array([(datetime64(2014, 1, 1, 11, 0, 0), 4),
+                                     (datetime64(2014, 1, 1, 12, 3, 0), 4)],
+                                    dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+                        before_truncate_callback=functools.partial(
+                            self._resample_and_merge, agg_dict=tsc2))
 
         output = carbonara.AggregatedTimeSerie.aggregated(
             [tsc1['return'], tsc2['return']], aggregation='mean')
@@ -588,7 +599,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
               'size': 10, 'agg': 'mean'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 46, 4), 4),
             (datetime64(2014, 1, 1, 11, 47, 34), 8),
             (datetime64(2014, 1, 1, 11, 50, 54), 50),
@@ -604,14 +615,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 4, 9), 7),
             (datetime64(2014, 1, 1, 12, 5, 1), 15),
             (datetime64(2014, 1, 1, 12, 5, 12), 1),
-            (datetime64(2014, 1, 1, 12, 6, 0, 2), 3),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 12, 6, 0, 2), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
-        tsb.set_values([
-            (datetime64(2014, 1, 1, 12, 6), 5),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 6), 5)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+                       before_truncate_callback=functools.partial(
+                           self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 11, 54),
@@ -659,26 +671,28 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 10, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 3, 0), 9),
             (datetime64(2014, 1, 1, 12, 4, 0), 1),
             (datetime64(2014, 1, 1, 12, 5, 0), 2),
             (datetime64(2014, 1, 1, 12, 6, 0), 7),
             (datetime64(2014, 1, 1, 12, 7, 0), 5),
-            (datetime64(2014, 1, 1, 12, 8, 0), 3),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2014, 1, 1, 12, 8, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 0), 6),
             (datetime64(2014, 1, 1, 12, 1, 0), 2),
             (datetime64(2014, 1, 1, 12, 2, 0), 13),
             (datetime64(2014, 1, 1, 12, 3, 0), 24),
             (datetime64(2014, 1, 1, 12, 4, 0), 4),
             (datetime64(2014, 1, 1, 12, 5, 0), 16),
-            (datetime64(2014, 1, 1, 12, 6, 0), 12),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2014, 1, 1, 12, 6, 0), 12)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         output = carbonara.AggregatedTimeSerie.aggregated([
             tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
@@ -712,26 +726,28 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 10, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 3, 0), 9),
             (datetime64(2014, 1, 1, 12, 4, 0), 1),
             (datetime64(2014, 1, 1, 12, 5, 0), 2),
             (datetime64(2014, 1, 1, 12, 6, 0), 7),
             (datetime64(2014, 1, 1, 12, 7, 0), 5),
-            (datetime64(2014, 1, 1, 12, 8, 0), 3),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2014, 1, 1, 12, 8, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 0), 6),
             (datetime64(2014, 1, 1, 12, 1, 0), 2),
             (datetime64(2014, 1, 1, 12, 2, 0), 13),
             (datetime64(2014, 1, 1, 12, 3, 0), 24),
             (datetime64(2014, 1, 1, 12, 4, 0), 4),
             (datetime64(2014, 1, 1, 12, 5, 0), 16),
-            (datetime64(2014, 1, 1, 12, 6, 0), 12),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2014, 1, 1, 12, 6, 0), 12)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         output = carbonara.AggregatedTimeSerie.aggregated([
             tsc1['return'], tsc2['return']], aggregation='mean', fill='null')
@@ -765,22 +781,24 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 10, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 3, 0), 9),
             (datetime64(2014, 1, 1, 12, 4, 0), 1),
             (datetime64(2014, 1, 1, 12, 7, 0), 5),
-            (datetime64(2014, 1, 1, 12, 8, 0), 3),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2014, 1, 1, 12, 8, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 0), 6),
             (datetime64(2014, 1, 1, 12, 1, 0), 2),
             (datetime64(2014, 1, 1, 12, 2, 0), 13),
             (datetime64(2014, 1, 1, 12, 3, 0), 24),
-            (datetime64(2014, 1, 1, 12, 4, 0), 4),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2014, 1, 1, 12, 4, 0), 4)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         output = carbonara.AggregatedTimeSerie.aggregated([
             tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
@@ -807,9 +825,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
               'size': 3600 * 24, 'agg': '90pct'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 0, 0), 3),
-                        (datetime64(2014, 1, 1, 12, 0, 0, 123), 4),
-                        (datetime64(2014, 1, 1, 12, 0, 2), 4)],
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 0), 3),
+                                    (datetime64(2014, 1, 1, 12, 0, 0, 123), 4),
+                                    (datetime64(2014, 1, 1, 12, 0, 2), 4)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                        before_truncate_callback=functools.partial(
                            self._resample_and_merge, agg_dict=ts))
 
@@ -831,9 +850,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             # Rounding \o/
             self.assertAlmostEqual(ref[2], res[2])
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 0, 2, 113), 110)],
-                       before_truncate_callback=functools.partial(
-                           self._resample_and_merge, agg_dict=ts))
+        tsb.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 0, 2, 113), 110)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         result = ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))
         reference = [
@@ -858,19 +879,21 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
               'size': 10, 'agg': 'mean'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 46, 0, 200123), 4),
             (datetime64(2014, 1, 1, 11, 46, 0, 340000), 8),
             (datetime64(2014, 1, 1, 11, 47, 0, 323154), 50),
             (datetime64(2014, 1, 1, 11, 48, 0, 590903), 4),
-            (datetime64(2014, 1, 1, 11, 48, 0, 903291), 4),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 11, 48, 0, 903291), 4)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
-        tsb.set_values([
-            (datetime64(2014, 1, 1, 11, 48, 0, 821312), 5),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+        tsb.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 11, 48, 0, 821312), 5)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 11, 46, 0, 200000),
@@ -890,11 +913,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
               'size': 60, 'agg': 'std'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 0, 0), 3),
-                        (datetime64(2014, 1, 1, 12, 1, 4), 4),
-                        (datetime64(2014, 1, 1, 12, 1, 9), 7),
-                        (datetime64(2014, 1, 1, 12, 2, 1), 15),
-                        (datetime64(2014, 1, 1, 12, 2, 12), 1)],
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 0), 3),
+                                    (datetime64(2014, 1, 1, 12, 1, 4), 4),
+                                    (datetime64(2014, 1, 1, 12, 1, 9), 7),
+                                    (datetime64(2014, 1, 1, 12, 2, 1), 15),
+                                    (datetime64(2014, 1, 1, 12, 2, 12), 1)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                        before_truncate_callback=functools.partial(
                            self._resample_and_merge, agg_dict=ts))
 
@@ -905,7 +929,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              numpy.timedelta64(60000000000, 'ns'), 9.8994949366116654),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                        before_truncate_callback=functools.partial(
                            self._resample_and_merge, agg_dict=ts))
 
@@ -921,11 +946,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
               'size': 60, 'agg': 'max'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 0, 0), 3),
-                        (datetime64(2014, 1, 1, 12, 1, 4), 4),
-                        (datetime64(2014, 1, 1, 12, 1, 9), 7),
-                        (datetime64(2014, 1, 1, 12, 2, 1), 15),
-                        (datetime64(2014, 1, 1, 12, 2, 12), 1)],
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 0, 0), 3),
+                                    (datetime64(2014, 1, 1, 12, 1, 4), 4),
+                                    (datetime64(2014, 1, 1, 12, 1, 9), 7),
+                                    (datetime64(2014, 1, 1, 12, 2, 1), 15),
+                                    (datetime64(2014, 1, 1, 12, 2, 12), 1)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                        before_truncate_callback=functools.partial(
                            self._resample_and_merge, agg_dict=ts))
 
@@ -938,7 +964,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              numpy.timedelta64(60000000000, 'ns'), 15),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
-        tsb.set_values([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
+        tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
+                                   dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                        before_truncate_callback=functools.partial(
                            self._resample_and_merge, agg_dict=ts))
 
@@ -955,14 +982,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts = {'sampling': numpy.timedelta64(500, 'ms'), 'agg': 'mean'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 0, 1234), 3),
             (datetime64(2014, 1, 1, 12, 0, 0, 321), 6),
             (datetime64(2014, 1, 1, 12, 1, 4, 234), 5),
             (datetime64(2014, 1, 1, 12, 1, 9, 32), 7),
-            (datetime64(2014, 1, 1, 12, 2, 12, 532), 1),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 12, 2, 12, 532), 1)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         key = ts['return'].get_split_key()
         o, s = ts['return'].serialize(key)
@@ -975,14 +1003,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         tsb = carbonara.BoundTimeSerie()
 
         for i in six.moves.range(1, 11):
-            tsb.set_values([
-                (datetime64(2014, 1, 1, 12, i, i), float(i))
-            ], before_truncate_callback=functools.partial(
-                self._resample_and_merge, agg_dict=ts))
-            tsb.set_values([
-                (datetime64(2014, 1, 1, 12, i, i + 1), float(i + 1))
-            ], before_truncate_callback=functools.partial(
-                self._resample_and_merge, agg_dict=ts))
+            tsb.set_values(numpy.array([
+                (datetime64(2014, 1, 1, 12, i, i), float(i))],
+                dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+                before_truncate_callback=functools.partial(
+                    self._resample_and_merge, agg_dict=ts))
+            tsb.set_values(numpy.array([
+                (datetime64(2014, 1, 1, 12, i, i + 1), float(i + 1))],
+                dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+                before_truncate_callback=functools.partial(
+                    self._resample_and_merge, agg_dict=ts))
             self.assertEqual(i, len(list(ts['return'].fetch())))
 
     def test_back_window(self):
@@ -994,14 +1024,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts = {'sampling': numpy.timedelta64(1, 's'), 'size': 60, 'agg': 'mean'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 1, 2300), 1),
             (datetime64(2014, 1, 1, 12, 0, 1, 4600), 2),
             (datetime64(2014, 1, 1, 12, 0, 2, 4500), 3),
             (datetime64(2014, 1, 1, 12, 0, 2, 7800), 4),
-            (datetime64(2014, 1, 1, 12, 0, 3, 8), 2.5),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 12, 0, 3, 8), 2.5)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
@@ -1026,14 +1057,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts = {'sampling': numpy.timedelta64(1, 's'), 'size': 60, 'agg': 'mean'}
         tsb = carbonara.BoundTimeSerie(block_size=ts['sampling'])
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 1, 2300), 1),
             (datetime64(2014, 1, 1, 12, 0, 1, 4600), 2),
             (datetime64(2014, 1, 1, 12, 0, 2, 4500), 3),
             (datetime64(2014, 1, 1, 12, 0, 2, 7800), 4),
-            (datetime64(2014, 1, 1, 12, 0, 3, 8), 2.5),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 12, 0, 3, 8), 2.5)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
@@ -1046,10 +1078,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ],
             list(ts['return'].fetch()))
 
-        tsb.set_values([
-            (datetime64(2014, 1, 1, 12, 0, 2, 99), 9),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+        tsb.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 0, 2, 99), 9)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
@@ -1062,11 +1095,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             ],
             list(ts['return'].fetch()))
 
-        tsb.set_values([
+        tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 2, 99), 9),
-            (datetime64(2014, 1, 1, 12, 0, 3, 9), 4.5),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=ts))
+            (datetime64(2014, 1, 1, 12, 0, 3, 9), 4.5)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual(
             [
@@ -1123,7 +1157,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             if existing:
                 existing.merge(tsc22['return'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 46, 4), 4),
             (datetime64(2014, 1, 1, 11, 47, 34), 8),
             (datetime64(2014, 1, 1, 11, 50, 54), 50),
@@ -1139,10 +1173,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 4, 9), 7),
             (datetime64(2014, 1, 1, 12, 5, 1), 15),
             (datetime64(2014, 1, 1, 12, 5, 12), 1),
-            (datetime64(2014, 1, 1, 12, 6, 0), 3),
-        ], before_truncate_callback=ts1_update)
+            (datetime64(2014, 1, 1, 12, 6, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=ts1_update)
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 46, 4), 6),
             (datetime64(2014, 1, 1, 11, 47, 34), 5),
             (datetime64(2014, 1, 1, 11, 50, 54), 51),
@@ -1158,8 +1193,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 4, 9), 4),
             (datetime64(2014, 1, 1, 12, 5, 1), 10),
             (datetime64(2014, 1, 1, 12, 5, 12), 1),
-            (datetime64(2014, 1, 1, 12, 6, 0), 1),
-        ], before_truncate_callback=ts2_update)
+            (datetime64(2014, 1, 1, 12, 6, 0), 1)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=ts2_update)
 
         output = carbonara.AggregatedTimeSerie.aggregated(
             [tsc1['return'], tsc12['return'], tsc2['return'], tsc22['return']],
@@ -1205,21 +1241,23 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 'size': 60, 'agg': 'mean'}
         tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
 
-        tsb1.set_values([
+        tsb1.set_values(numpy.array([
             (datetime64(2015, 12, 3, 13, 19, 15), 1),
             (datetime64(2015, 12, 3, 13, 20, 15), 1),
             (datetime64(2015, 12, 3, 13, 21, 15), 1),
-            (datetime64(2015, 12, 3, 13, 22, 15), 1),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc1))
+            (datetime64(2015, 12, 3, 13, 22, 15), 1)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
 
-        tsb2.set_values([
+        tsb2.set_values(numpy.array([
             (datetime64(2015, 12, 3, 13, 21, 15), 10),
             (datetime64(2015, 12, 3, 13, 22, 15), 10),
             (datetime64(2015, 12, 3, 13, 23, 15), 10),
-            (datetime64(2015, 12, 3, 13, 24, 15), 10),
-        ], before_truncate_callback=functools.partial(
-            self._resample_and_merge, agg_dict=tsc2))
+            (datetime64(2015, 12, 3, 13, 24, 15), 10)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
 
         output = carbonara.AggregatedTimeSerie.aggregated(
             [tsc1['return'], tsc2['return']], aggregation="sum")
