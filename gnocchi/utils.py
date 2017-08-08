@@ -103,7 +103,7 @@ def to_timestamps(values):
                     # e.g. "-10 seconds" or "5 minutes"
                     times = numpy.fromiter(
                         numpy.add(numpy.datetime64(utcnow()),
-                                  pd.to_timedelta(values)),
+                                  pd.to_timedelta(values, box=False)),
                         dtype='datetime64[ns]')
                 else:
                     times = numpy.array(values, dtype='datetime64[ns]')
@@ -140,7 +140,7 @@ def to_timespan(value):
         seconds = float(value)
     except Exception:
         try:
-            seconds = pd.to_timedelta(value).to_timedelta64()
+            seconds = pd.to_timedelta(value, box=False)
         except Exception:
             raise ValueError("Unable to parse timespan")
     else:
