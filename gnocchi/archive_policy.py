@@ -18,9 +18,12 @@ import collections
 import datetime
 import operator
 
+import numpy
 from oslo_config import cfg
 from oslo_config import types
 import six
+
+from gnocchi import utils
 
 
 class ArchivePolicy(object):
@@ -34,6 +37,10 @@ class ArchivePolicy(object):
         ('mean', 'sum', 'last', 'max', 'min',
          'std', 'median', 'first', 'count')).union(
              set((str(i) + 'pct' for i in six.moves.range(1, 100))))
+
+    VALID_AGGREGATION_METHODS = VALID_AGGREGATION_METHODS.union(
+        set(map(lambda s: "rate:" + s,
+                VALID_AGGREGATION_METHODS)))
 
     # Set that contains all the above values + their minus equivalent (-mean)
     # and the "*" entry.
@@ -71,7 +78,7 @@ class ArchivePolicy(object):
             raise ValueError(
                 "More than one archive policy "
                 "uses granularity `%s'"
-                % duplicate_granularities[0]
+                % utils.timespan_total_seconds(duplicate_granularities[0])
             )
 
         if aggregation_methods is None:
@@ -155,20 +162,25 @@ class ArchivePolicyItem(dict):
                 raise ValueError(
                     u"timespan ≠ granularity × points")
 
-        if granularity is not None and granularity <= 0:
-            raise ValueError("Granularity should be > 0")
+        if granularity is not None:
+            if not isinstance(granularity, numpy.timedelta64):
+                granularity = numpy.timedelta64(int(granularity * 10e8), 'ns')
+            if granularity <= numpy.timedelta64(0, 'ns'):
+                raise ValueError("Granularity should be > 0")
 
         if points is not None and points <= 0:
             raise ValueError("Number of points should be > 0")
+
+        if (timespan is not None
+           and not isinstance(timespan, numpy.timedelta64)):
+            timespan = numpy.timedelta64(int(timespan * 10e8), 'ns')
 
         if granularity is None:
             if points is None or timespan is None:
                 raise ValueError(
                     "At least two of granularity/points/timespan "
                     "must be provided")
-            granularity = round(timespan / float(points))
-        else:
-            granularity = float(granularity)
+            granularity = timespan / float(points)
 
         if points is None:
             if timespan is None:
@@ -201,11 +213,25 @@ class ArchivePolicyItem(dict):
         """Return a dict representation with human readable values."""
         return {
             'timespan': six.text_type(
-                datetime.timedelta(seconds=self.timespan))
+                datetime.timedelta(
+                    seconds=utils.timespan_total_seconds(
+                        self.timespan)))
             if self.timespan is not None
             else None,
             'granularity': six.text_type(
-                datetime.timedelta(seconds=self.granularity)),
+                datetime.timedelta(
+                    seconds=utils.timespan_total_seconds(
+                        self.granularity))),
+            'points': self.points,
+        }
+
+    def serialize(self):
+        return {
+            'timespan': None
+            if self.timespan is None
+            else float(utils.timespan_total_seconds(self.timespan)),
+            'granularity': float(
+                utils.timespan_total_seconds(self.granularity)),
             'points': self.points,
         }
 
@@ -214,36 +240,39 @@ DEFAULT_ARCHIVE_POLICIES = {
     'bool': ArchivePolicy(
         "bool", 3600, [
             # 1 second resolution for 365 days
-            ArchivePolicyItem(granularity=1,
-                              timespan=365 * 24 * 60 * 60),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 's'),
+                              timespan=numpy.timedelta64(365, 'D')),
         ],
         aggregation_methods=("last",),
     ),
     'low': ArchivePolicy(
         "low", 0, [
             # 5 minutes resolution for 30 days
-            ArchivePolicyItem(granularity=300,
-                              timespan=30 * 24 * 60 * 60),
+            ArchivePolicyItem(granularity=numpy.timedelta64(5, 'm'),
+                              timespan=numpy.timedelta64(30, 'D')),
         ],
     ),
     'medium': ArchivePolicy(
         "medium", 0, [
             # 1 minute resolution for 7 days
-            ArchivePolicyItem(granularity=60,
-                              timespan=7 * 24 * 60 * 60),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 'm'),
+                              timespan=numpy.timedelta64(7, 'D')),
             # 1 hour resolution for 365 days
-            ArchivePolicyItem(granularity=3600,
-                              timespan=365 * 24 * 60 * 60),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 'h'),
+                              timespan=numpy.timedelta64(365, 'D')),
         ],
     ),
     'high': ArchivePolicy(
         "high", 0, [
             # 1 second resolution for an hour
-            ArchivePolicyItem(granularity=1, points=3600),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 's'),
+                              timespan=numpy.timedelta64(1, 'h')),
             # 1 minute resolution for a week
-            ArchivePolicyItem(granularity=60, points=60 * 24 * 7),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 'm'),
+                              timespan=numpy.timedelta64(7, 'D')),
             # 1 hour resolution for a year
-            ArchivePolicyItem(granularity=3600, points=365 * 24),
+            ArchivePolicyItem(granularity=numpy.timedelta64(1, 'h'),
+                              timespan=numpy.timedelta64(365, 'D')),
         ],
     ),
 }

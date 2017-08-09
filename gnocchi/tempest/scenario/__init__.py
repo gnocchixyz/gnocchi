@@ -60,7 +60,7 @@ class GnocchiGabbiTest(tempest.test.BaseTestCase):
         os.environ["GNOCCHI_SERVICE_TOKEN"] = token
         os.environ["GNOCCHI_AUTHORIZATION"] = "not used"
 
-        with file(os.path.join(TEST_DIR, filename)) as f:
+        with open(os.path.join(TEST_DIR, filename)) as f:
             suite_dict = utils.load_yaml(f)
             suite_dict.setdefault('defaults', {})['ssl'] = require_ssl
             test_suite = suitemaker.test_suite_from_dict(

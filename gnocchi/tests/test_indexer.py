@@ -18,6 +18,7 @@ import operator
 import uuid
 
 import mock
+import numpy
 
 from gnocchi import archive_policy
 from gnocchi import indexer
@@ -55,9 +56,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 12, u'timespan': 3600},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(5, 'm'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': u'low'}, dict(ap))
 
     def test_update_archive_policy(self):
@@ -88,9 +95,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 6, u'timespan': 1800},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(300, 's'),
+                 u'points': 6,
+                 u'timespan': numpy.timedelta64(1800, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': apname}, dict(ap))
         ap = self.index.update_archive_policy(
             apname, [archive_policy.ArchivePolicyItem(granularity=300,
@@ -104,9 +117,15 @@ class TestIndexerDriver(tests_base.TestCase):
             'aggregation_methods':
             set(self.conf.archive_policy.default_aggregation_methods),
             'definition': [
-                {u'granularity': 300, u'points': 12, u'timespan': 3600},
-                {u'granularity': 3600, u'points': 24, u'timespan': 86400},
-                {u'granularity': 86400, u'points': 30, u'timespan': 2592000}],
+                {u'granularity': numpy.timedelta64(300, 's'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': apname}, dict(ap))
 
     def test_delete_archive_policy(self):
@@ -733,6 +752,37 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic',
             attribute_filter={"=": {"project_id": 'bad-project'}})
         self.assertEqual(0, len(resources))
+
+    def test_list_resources_with_no_project(self):
+        r1 = uuid.uuid4()
+        r2 = uuid.uuid4()
+        user = str(uuid.uuid4())
+        project = str(uuid.uuid4())
+        creator = user + ":" + project
+        g1 = self.index.create_resource('generic', r1, creator, user, project)
+        g2 = self.index.create_resource('generic', r2, creator, None, None)
+
+        # Get null value
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"creator": creator}},
+                {"!=": {"project_id": project}}
+            ]})
+        self.assertEqual(1, len(resources))
+        self.assertEqual(g2, resources[0])
+
+        # Get null and filled values
+        resources = self.index.list_resources(
+            'generic',
+            attribute_filter={"and": [
+                {"=": {"creator": creator}},
+                {"!=": {"project_id": "foobar"}}
+            ]},
+            sorts=["project_id:asc-nullsfirst"])
+        self.assertEqual(2, len(resources))
+        self.assertEqual(g2, resources[0])
+        self.assertEqual(g1, resources[1])
 
     def test_list_resources_by_duration(self):
         r1 = uuid.uuid4()

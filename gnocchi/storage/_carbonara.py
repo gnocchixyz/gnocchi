@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,14 +15,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import collections
-import datetime
 import functools
 import itertools
-import operator
 
 from concurrent import futures
 import daiquiri
 import iso8601
+import numpy
 from oslo_config import cfg
 import six
 import six.moves
@@ -102,7 +101,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
         try:
             return carbonara.BoundTimeSerie.unserialize(
                 raw_measures, block_size, back_window)
-        except ValueError:
+        except carbonara.InvalidData:
             raise CorruptionError(
                 "Data corruption detected for %s "
                 "unaggregated timeserie" % metric.id)
@@ -120,8 +119,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                                     version=3):
         return set(map(
             functools.partial(carbonara.SplitKey, sampling=granularity),
-            self._list_split_keys(
-                metric, aggregation, granularity, version)))
+            (numpy.array(
+                list(self._list_split_keys(
+                    metric, aggregation, granularity, version)),
+                dtype=numpy.float) * 10e8).astype('datetime64[ns]')))
 
     @staticmethod
     def _list_split_keys(metric, aggregation, granularity, version=3):
@@ -153,9 +154,8 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 agg_timeseries = agg_timeseries.resample(resample)
             agg_timeseries = [agg_timeseries]
 
-        return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
-                for ts in agg_timeseries
-                for timestamp, r, v in ts.fetch(from_timestamp, to_timestamp)]
+        return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
+                                      for ts in agg_timeseries]))
 
     def _get_measures_and_unserialize(self, metric, key, aggregation):
         data = self._get_measures(metric, key, aggregation)
@@ -230,10 +230,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                 pass
             else:
                 if existing is not None:
-                    if split is None:
-                        split = existing
-                    else:
-                        split.merge(existing)
+                    if split is not None:
+                        existing.merge(split)
+                    split = existing
 
         if split is None:
             # `split' can be none if existing is None and no split was passed
@@ -258,9 +257,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                       metric, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
+
+        if aggregation.startswith("rate:"):
+            grouped_serie = grouped_serie.derived()
+            aggregation_to_compute = aggregation[5:]
+        else:
+            aggregation_to_compute = aggregation
+
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped_serie, archive_policy_def.granularity,
-            aggregation, max_size=archive_policy_def.points)
+            aggregation_to_compute, max_size=archive_policy_def.points)
 
         # Don't do anything if the timeserie is empty
         if not ts:
@@ -279,8 +285,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
 
         # First delete old splits
         if archive_policy_def.timespan:
-            oldest_point_to_keep = ts.last - datetime.timedelta(
-                seconds=archive_policy_def.timespan)
+            oldest_point_to_keep = ts.last - archive_policy_def.timespan
             oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
             for key in list(existing_keys):
                 # NOTE(jd) Only delete if the key is strictly inferior to
@@ -291,7 +296,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     self._delete_metric_measures(metric, key, aggregation)
                     existing_keys.remove(key)
         else:
-            oldest_key_to_keep = carbonara.SplitKey(0, 0)
+            oldest_key_to_keep = None
 
         # Rewrite all read-only splits just for fun (and compression). This
         # only happens if `previous_oldest_mutable_timestamp' exists, which
@@ -315,7 +320,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                             None, aggregation, oldest_mutable_timestamp)
 
         for key, split in ts.split():
-            if key >= oldest_key_to_keep:
+            if oldest_key_to_keep is None or key >= oldest_key_to_keep:
                 LOG.debug(
                     "Storing split %s (%s) for metric %s",
                     key, aggregation, metric)
@@ -383,12 +388,16 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             LOG.debug("Skipping %s (already processed)", metric)
             return
 
-        measures = sorted(measures, key=operator.itemgetter(0))
+        measures.sort(order='timestamps')
 
         agg_methods = list(metric.archive_policy.aggregation_methods)
         block_size = metric.archive_policy.max_block_size
         back_window = metric.archive_policy.back_window
         definition = metric.archive_policy.definition
+        # NOTE(sileht): We keep one more blocks to calculate rate of change
+        # correctly
+        if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+            back_window += 1
 
         try:
             ts = self._get_unaggregated_timeserie_and_unserialize(
@@ -423,13 +432,13 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             # unaggregated measures matching largest
             # granularity. the following takes only the points
             # affected by new measures for specific granularity
-            tstamp = max(bound_timeserie.first, measures[0][0])
+            tstamp = max(bound_timeserie.first, measures['timestamps'][0])
             new_first_block_timestamp = bound_timeserie.first_block_timestamp()
             computed_points['number'] = len(bound_timeserie)
             for d in definition:
                 ts = bound_timeserie.group_serie(
                     d.granularity, carbonara.round_timestamp(
-                        tstamp, d.granularity * 10e8))
+                        tstamp, d.granularity))
 
                 self._map_in_thread(
                     self._add_measures,
@@ -518,8 +527,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return {metric:
-                [(timestamp.replace(tzinfo=iso8601.iso8601.UTC),
-                  g, value)
+                [(timestamp, g, value)
                  for timestamp, g, value in values
                  if predicate(value)]}
 

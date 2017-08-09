@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2017 Red Hat, Inc.
 # Copyright © 2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -14,14 +14,20 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import datetime
 import uuid
 
 import mock
+import numpy
 
 from gnocchi import indexer
 from gnocchi import statsd
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
+
+
+def datetime64(*args):
+    return numpy.datetime64(datetime.datetime(*args))
 
 
 class TestStatsd(tests_base.TestCase):
@@ -71,9 +77,9 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0)
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ], measures)
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
@@ -92,10 +98,10 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.5),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.5),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 59), 60.0, 2.0)
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.5),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.5),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
+            (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 2.0)
         ], measures)
 
     def test_gauge(self):
@@ -126,9 +132,10 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0)], measures)
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
+        ], measures)
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         self.server.datagram_received(
@@ -145,10 +152,11 @@ class TestStatsd(tests_base.TestCase):
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
-            (utils.datetime_utc(2015, 1, 7), 86400.0, 28),
-            (utils.datetime_utc(2015, 1, 7, 13), 3600.0, 28),
-            (utils.datetime_utc(2015, 1, 7, 13, 58), 60.0, 1.0),
-            (utils.datetime_utc(2015, 1, 7, 13, 59), 60.0, 55.0)], measures)
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 28),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 28),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
+            (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 55.0)
+        ], measures)
 
 
 class TestStatsdArchivePolicyRule(TestStatsd):

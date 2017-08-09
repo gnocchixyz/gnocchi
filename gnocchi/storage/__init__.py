@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import operator
 
 import daiquiri
@@ -36,15 +37,7 @@ class SackLockTimeoutError(Exception):
         pass
 
 
-class Measure(object):
-    def __init__(self, timestamp, value):
-        self.timestamp = timestamp
-        self.value = value
-
-    def __iter__(self):
-        """Allow to transform measure to tuple."""
-        yield self.timestamp
-        yield self.value
+Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
 class Metric(object):
@@ -111,7 +104,7 @@ class GranularityDoesNotExist(StorageError):
         self.granularity = granularity
         super(GranularityDoesNotExist, self).__init__(
             "Granularity '%s' for metric %s does not exist" %
-            (granularity, metric))
+            (utils.timespan_total_seconds(granularity), metric))
 
 
 class MetricAlreadyExists(StorageError):
@@ -254,10 +247,12 @@ class StorageDriver(object):
         for metric in metrics:
             if aggregation not in metric.archive_policy.aggregation_methods:
                 raise AggregationDoesNotExist(metric, aggregation)
-            if (granularity is not None and granularity
-               not in set(d.granularity
-                          for d in metric.archive_policy.definition)):
-                raise GranularityDoesNotExist(metric, granularity)
+            if granularity is not None:
+                for d in metric.archive_policy.definition:
+                    if d.granularity == granularity:
+                        break
+                else:
+                    raise GranularityDoesNotExist(metric, granularity)
 
     @staticmethod
     def search_value(metrics, query, from_timestamp=None,

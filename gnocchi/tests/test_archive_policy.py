@@ -11,6 +11,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import numpy
+
 from gnocchi import archive_policy
 from gnocchi import service
 from gnocchi.tests import base
@@ -73,12 +75,21 @@ class TestArchivePolicy(base.BaseTestCase):
              .union(set(["12pct"]))),
             ap.aggregation_methods)
 
+        ap = archive_policy.ArchivePolicy("foobar",
+                                          0,
+                                          [],
+                                          ["+rate:last"])
+        self.assertEqual(
+            (set(conf.archive_policy.default_aggregation_methods)
+             .union(set(["rate:last"]))),
+            ap.aggregation_methods)
+
     def test_max_block_size(self):
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,
                                           [(20, 60), (10, 300), (10, 5)],
                                           ["-mean", "-last"])
-        self.assertEqual(ap.max_block_size, 300)
+        self.assertEqual(ap.max_block_size, numpy.timedelta64(300, 's'))
 
 
 class TestArchivePolicyItem(base.BaseTestCase):

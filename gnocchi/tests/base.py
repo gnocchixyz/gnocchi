@@ -15,6 +15,7 @@
 # under the License.
 import functools
 import json
+import logging
 import os
 import subprocess
 import threading
@@ -22,6 +23,7 @@ import uuid
 
 import daiquiri
 import fixtures
+import numpy
 import six
 from six.moves.urllib.parse import unquote
 try:
@@ -218,46 +220,48 @@ class TestCase(BaseTestCase):
             0, [
                 # 2 second resolution for a day
                 archive_policy.ArchivePolicyItem(
-                    granularity=2, points=3600 * 24),
+                    granularity=numpy.timedelta64(2, 's'),
+                    timespan=numpy.timedelta64(1, 'D'),
+                ),
             ],
         ),
         'low': archive_policy.ArchivePolicy(
             "low", 0, [
                 # 5 minutes resolution for an hour
                 archive_policy.ArchivePolicyItem(
-                    granularity=300, points=12),
+                    granularity=numpy.timedelta64(5, 'm'), points=12),
                 # 1 hour resolution for a day
                 archive_policy.ArchivePolicyItem(
-                    granularity=3600, points=24),
+                    granularity=numpy.timedelta64(1, 'h'), points=24),
                 # 1 day resolution for a month
                 archive_policy.ArchivePolicyItem(
-                    granularity=3600 * 24, points=30),
+                    granularity=numpy.timedelta64(1, 'D'), points=30),
             ],
         ),
         'medium': archive_policy.ArchivePolicy(
             "medium", 0, [
                 # 1 minute resolution for an day
                 archive_policy.ArchivePolicyItem(
-                    granularity=60, points=60 * 24),
+                    granularity=numpy.timedelta64(1, 'm'), points=60 * 24),
                 # 1 hour resolution for a week
                 archive_policy.ArchivePolicyItem(
-                    granularity=3600, points=7 * 24),
+                    granularity=numpy.timedelta64(1, 'h'), points=7 * 24),
                 # 1 day resolution for a year
                 archive_policy.ArchivePolicyItem(
-                    granularity=3600 * 24, points=365),
+                    granularity=numpy.timedelta64(1, 'D'), points=365),
             ],
         ),
         'high': archive_policy.ArchivePolicy(
             "high", 0, [
                 # 1 second resolution for an hour
                 archive_policy.ArchivePolicyItem(
-                    granularity=1, points=3600),
+                    granularity=numpy.timedelta64(1, 's'), points=3600),
                 # 1 minute resolution for a week
                 archive_policy.ArchivePolicyItem(
-                    granularity=60, points=60 * 24 * 7),
+                    granularity=numpy.timedelta64(1, 'm'), points=60 * 24 * 7),
                 # 1 hour resolution for a year
                 archive_policy.ArchivePolicyItem(
-                    granularity=3600, points=365 * 24),
+                    granularity=numpy.timedelta64(1, 'h'), points=365 * 24),
             ],
         ),
     }
@@ -265,8 +269,12 @@ class TestCase(BaseTestCase):
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
-        self.conf = service.prepare_service([],
-                                            default_config_files=[])
+
+        self.conf = service.prepare_service(
+            [],
+            default_config_files=[],
+            logging_level=logging.DEBUG)
+
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
             daiquiri.setup(outputs=[])
 

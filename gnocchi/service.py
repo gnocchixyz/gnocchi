@@ -33,7 +33,7 @@ LOG = daiquiri.getLogger(__name__)
 
 def prepare_service(args=None, conf=None,
                     default_config_files=None,
-                    log_to_std=False):
+                    log_to_std=False, logging_level=None):
     if conf is None:
         conf = cfg.ConfigOpts()
     opts.set_defaults()
@@ -62,19 +62,20 @@ def prepare_service(args=None, conf=None,
 
     if conf.use_syslog:
         outputs.append(
-            daiquiri.output.Syslog(facilty=conf.syslog_log_faciltity))
+            daiquiri.output.Syslog(facility=conf.syslog_log_facility))
 
     if conf.use_journal:
         outputs.append(daiquiri.output.Journal())
 
     daiquiri.setup(outputs=outputs)
-    if conf.debug:
-        level = logging.DEBUG
-    elif conf.verbose:
-        level = logging.INFO
-    else:
-        level = logging.WARNING
-    logging.getLogger("gnocchi").setLevel(level)
+    if logging_level is None:
+        if conf.debug:
+            logging_level = logging.DEBUG
+        elif conf.verbose:
+            logging_level = logging.INFO
+        else:
+            logging_level = logging.WARNING
+    logging.getLogger("gnocchi").setLevel(logging_level)
 
     # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
     archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (

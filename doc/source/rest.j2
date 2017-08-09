@@ -148,8 +148,11 @@ Archive Policy
 
 When sending measures for a metric to Gnocchi, the values are dynamically
 aggregated. That means that Gnocchi does not store all sent measures, but
-aggregates them over a certain period of time. Gnocchi provides several
-aggregation methods (mean, min, max, sum…) that are builtin.
+aggregates them over a certain period of time.
+
+Gnocchi provides several aggregation methods (mean, min, max, sum…) that are
+builtin. Those can be prefix by `rate:` to compute the rate of change before
+doing the aggregation.
 
 An archive policy is defined by a list of items in the `definition` field. Each
 item is composed of the timespan and the level of precision that must be kept
@@ -547,13 +550,11 @@ is set.
 When a boundary is set, Gnocchi expects that we have certain percent of
 timestamps common between timeseries. This percent is controlled by
 needed_overlap, which by default expects 100% overlap. If this percent is not
-reached, an error is returned. If no boundaries are set, Gnocchi aggregates and
-returns only the last contiguous range of common datapoints.
+reached, an error is returned.
 
 .. note::
 
-   Not setting a boundary may result in an extremely sparse result.
-   Additionally, it may not accurately reflect 'needed_overlap' value, if set.
+   If no boundaries are set, Gnocchi requires 100% overlap across all series
 
 The ability to fill in points missing from a subset of timeseries is supported
 by specifying a `fill` value. Valid fill values include any valid float or

@@ -16,6 +16,7 @@
 import datetime
 import uuid
 
+import numpy
 from stevedore import extension
 
 from gnocchi import aggregates
@@ -38,18 +39,6 @@ class TestAggregates(tests_base.TestCase):
         self.assertIsInstance(self.custom_agg['moving-average'],
                               moving_stats.MovingAverage)
 
-    def test_check_window_valid(self):
-        for agg_method in self.custom_agg:
-            window = '60s'
-            agg_obj = self.custom_agg[agg_method]
-            result = agg_obj.check_window_valid(window)
-            self.assertEqual(60.0, result)
-
-            window = '60'
-            agg_obj = self.custom_agg[agg_method]
-            result = agg_obj.check_window_valid(window)
-            self.assertEqual(60.0, result)
-
     def _test_create_metric_and_data(self, data, spacing):
         metric = storage.Metric(
             uuid.uuid4(), self.archive_policies['medium'])
@@ -71,18 +60,18 @@ class TestAggregates(tests_base.TestCase):
                                                    spacing=20)
         for agg_method in self.custom_agg:
             agg_obj = self.custom_agg[agg_method]
-            window = 90.0
+            window = numpy.timedelta64(90, 's')
             self.assertRaises(aggregates.CustomAggFailure,
                               agg_obj.retrieve_data,
                               self.storage, metric,
                               start=None, stop=None,
                               window=window)
 
-            window = 120.0
+            window = numpy.timedelta64(120, 's')
             grain, result = agg_obj.retrieve_data(self.storage, metric,
                                                   start=None, stop=None,
                                                   window=window)
-            self.assertEqual(60.0, grain)
+            self.assertEqual(numpy.timedelta64(1, 'm'), grain)
             self.assertEqual(39.0, result[datetime.datetime(2014, 1, 1, 12)])
             self.assertEqual(25.5,
                              result[datetime.datetime(2014, 1, 1, 12, 1)])
@@ -98,16 +87,20 @@ class TestAggregates(tests_base.TestCase):
         result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
-        expected = [(utils.datetime_utc(2014, 1, 1, 12), 120.0, 32.25)]
-        self.assertEqual(expected, result)
+        self.assertEqual([(numpy.datetime64("2014-01-01 12:00"),
+                           numpy.timedelta64(120, 's'),
+                           32.25)],
+                         result)
 
         center = 'True'
         result = agg_obj.compute(self.storage, metric,
                                  start=None, stop=None,
                                  window=window, center=center)
 
-        expected = [(utils.datetime_utc(2014, 1, 1, 12, 1), 120.0, 28.875)]
-        self.assertEqual(expected, result)
+        self.assertEqual([(numpy.datetime64("2014-01-01 12:01"),
+                           numpy.timedelta64(120, 's'),
+                           28.875)],
+                         result)
         # (FIXME) atmalagon: doing a centered average when
         # there are only two points in the retrieved data seems weird.
         # better to raise an error or return nan in this case?

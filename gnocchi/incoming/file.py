@@ -20,13 +20,14 @@ import shutil
 import tempfile
 import uuid
 
+import numpy
 import six
 
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 from gnocchi import utils
 
 
-class FileStorage(_carbonara.CarbonaraBasedStorage):
+class FileStorage(incoming.IncomingDriver):
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
@@ -171,11 +172,12 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric):
         files = self._list_measures_container_for_metric_id(metric.id)
-        measures = []
+        measures = self._make_measures_array()
         for f in files:
             abspath = self._build_measure_path(metric.id, f)
             with open(abspath, "rb") as e:
-                measures.extend(self._unserialize_measures(f, e.read()))
+                measures = numpy.append(
+                    measures, self._unserialize_measures(f, e.read()))
 
         yield measures
 

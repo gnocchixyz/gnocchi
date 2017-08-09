@@ -145,7 +145,10 @@ def PositiveNotNullInt(value):
 
 
 def Timespan(value):
-    return utils.to_timespan(value).total_seconds()
+    try:
+        return utils.to_timespan(value)
+    except ValueError as e:
+        raise voluptuous.Invalid(e)
 
 
 def get_header_option(name, params):
@@ -421,13 +424,13 @@ class MetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -435,7 +438,7 @@ class MetricController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = Timespan(resample)
+                resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
 
@@ -451,17 +454,14 @@ class MetricController(rest.RestController):
             if aggregation in self.custom_agg:
                 warnings.warn("moving_average aggregation is deprecated.",
                               category=DeprecationWarning)
-                measures = self.custom_agg[aggregation].compute(
+                return self.custom_agg[aggregation].compute(
                     pecan.request.storage, self.metric,
                     start, stop, **param)
-            else:
-                measures = pecan.request.storage.get_measures(
-                    self.metric, start, stop, aggregation,
-                    Timespan(granularity) if granularity is not None else None,
-                    resample)
-            # Replace timestamp keys by their string versions
-            return [(timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return pecan.request.storage.get_measures(
+                self.metric, start, stop, aggregation,
+                utils.to_timespan(granularity)
+                if granularity is not None else None,
+                resample)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
@@ -1053,7 +1053,12 @@ class ResourcesController(rest.RestController):
     def delete(self, **kwargs):
         # NOTE(sileht): Don't allow empty filter, this is going to delete
         # the entire database.
-        attr_filter = deserialize_and_validate(ResourceSearchSchema)
+        if pecan.request.body:
+            attr_filter = deserialize_and_validate(ResourceSearchSchema)
+        elif kwargs.get("filter"):
+            attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
+        else:
+            attr_filter = None
 
         # the voluptuous checks everything, but it is better to
         # have this here.
@@ -1092,12 +1097,6 @@ class ResourcesByTypeController(rest.RestController):
         except indexer.NoSuchResourceType as e:
             abort(404, e)
         return ResourcesController(resource_type), remainder
-
-
-class InvalidQueryStringSearchAttrFilter(Exception):
-    def __init__(self, reason):
-        super(InvalidQueryStringSearchAttrFilter, self).__init__(
-            "Invalid filter: %s" % reason)
 
 
 class QueryStringSearchAttrFilter(object):
@@ -1170,16 +1169,28 @@ class QueryStringSearchAttrFilter(object):
         return result
 
     @classmethod
-    def parse(cls, query):
+    def _parse(cls, query):
         try:
             parsed_query = cls.expr.parseString(query, parseAll=True)[0]
         except pyparsing.ParseException as e:
-            raise InvalidQueryStringSearchAttrFilter(six.text_type(e))
+            raise abort(400, "Invalid filter: %s" % six.text_type(e))
         return cls._parsed_query2dict(parsed_query)
+
+    @classmethod
+    def parse(cls, query):
+        attr_filter = cls._parse(query)
+        return voluptuous.Schema(ResourceSearchSchema,
+                                 required=True)(attr_filter)
 
 
 def ResourceSearchSchema(v):
     return _ResourceSearchSchema()(v)
+
+
+# NOTE(sileht): indexer will cast this type to the real attribute
+# type, here we just want to be sure this is not a dict or a list
+ResourceSearchSchemaAttributeValue = voluptuous.Any(
+    six.text_type, float, int, bool, None)
 
 
 def _ResourceSearchSchema():
@@ -1198,21 +1209,26 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"in",
-                    u"like",
+                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
-                    voluptuous.Any(
-                        {"id": voluptuous.Any(
-                            [_ResourceUUID], _ResourceUUID),
-                         voluptuous.Extra: voluptuous.Extra})),
+                    {"id": _ResourceUUID,
+                     six.text_type: ResourceSearchSchemaAttributeValue},
+                ),
+                voluptuous.Any(
+                    u"in",
+                ): voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {"id": [_ResourceUUID],
+                     six.text_type: [ResourceSearchSchemaAttributeValue]}
+                ),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",
-                    u"not",
                 ): voluptuous.All(
                     [ResourceSearchSchema], voluptuous.Length(min=1)
-                )
+                ),
+                u"not": ResourceSearchSchema,
             }
         )
     )
@@ -1222,20 +1238,11 @@ class SearchResourceTypeController(rest.RestController):
     def __init__(self, resource_type):
         self._resource_type = resource_type
 
-    @staticmethod
-    def parse_and_validate_qs_filter(query):
-        try:
-            attr_filter = QueryStringSearchAttrFilter.parse(query)
-        except InvalidQueryStringSearchAttrFilter as e:
-            raise abort(400, e)
-        return voluptuous.Schema(ResourceSearchSchema,
-                                 required=True)(attr_filter)
-
     def _search(self, **kwargs):
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
         elif kwargs.get("filter"):
-            attr_filter = self.parse_and_validate_qs_filter(kwargs["filter"])
+            attr_filter = QueryStringSearchAttrFilter.parse(kwargs["filter"])
         else:
             attr_filter = None
 
@@ -1340,7 +1347,7 @@ class SearchMetricController(rest.RestController):
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
              granularity=None):
-        granularity = [Timespan(g)
+        granularity = [utils.to_timespan(g)
                        for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
             ids=arg_to_list(metric_id))
@@ -1355,13 +1362,13 @@ class SearchMetricController(rest.RestController):
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1518,14 +1525,14 @@ class MetricsMeasuresBatchController(rest.RestController):
         start = kwargs.get('start')
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         stop = kwargs.get('stop')
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1541,23 +1548,18 @@ class MetricsMeasuresBatchController(rest.RestController):
         granularity = kwargs.get('granularity')
         if granularity is not None:
             try:
-                granularity = Timespan(granularity)
+                granularity = utils.to_timespan(granularity)
             except ValueError as e:
                 abort(400, e)
 
-        metric_batch = {}
         try:
-            for metric in metrics:
-                measures = pecan.request.storage.get_measures(
-                    metric, start, stop, aggregation, granularity)
-                metric_batch[str(metric.id)] = [
-                    (timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return dict((str(metric.id),
+                         pecan.request.storage.get_measures(
+                             metric, start, stop, aggregation, granularity))
+                        for metric in metrics)
         except (storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, e)
-
-        return metric_batch
 
 
 class SearchController(object):
@@ -1647,16 +1649,19 @@ class AggregationController(rest.RestController):
             needed_overlap = float(needed_overlap)
         except ValueError:
             abort(400, 'needed_overlap must be a number')
+        if needed_overlap != 100.0 and start is None and stop is None:
+            abort(400, 'start and/or stop must be provided if specifying '
+                  'needed_overlap')
 
         if start is not None:
             try:
-                start = utils.to_datetime(start)
+                start = utils.to_timestamp(start)
             except Exception:
                 abort(400, "Invalid value for start")
 
         if stop is not None:
             try:
-                stop = utils.to_datetime(stop)
+                stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
 
@@ -1676,7 +1681,7 @@ class AggregationController(rest.RestController):
             return []
         if granularity is not None:
             try:
-                granularity = Timespan(granularity)
+                granularity = utils.to_timespan(granularity)
             except ValueError as e:
                 abort(400, e)
 
@@ -1684,7 +1689,7 @@ class AggregationController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = Timespan(resample)
+                resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, e)
 
@@ -1712,16 +1717,12 @@ class AggregationController(rest.RestController):
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
-                measures = pecan.request.storage.get_measures(
+                return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
                     granularity, resample)
-            else:
-                measures = pecan.request.storage.get_cross_metric_measures(
-                    metrics, start, stop, aggregation,
-                    reaggregation, resample, granularity, needed_overlap, fill)
-            # Replace timestamp keys by their string versions
-            return [(timestamp.isoformat(), offset, v)
-                    for timestamp, offset, v in measures]
+            return pecan.request.storage.get_cross_metric_measures(
+                metrics, start, stop, aggregation,
+                reaggregation, resample, granularity, needed_overlap, fill)
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))

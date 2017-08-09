@@ -19,16 +19,17 @@ import datetime
 import json
 import uuid
 
+import numpy
 import six
 
 from gnocchi.common import s3
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 
 boto3 = s3.boto3
 botocore = s3.botocore
 
 
-class S3Storage(_carbonara.CarbonaraBasedStorage):
+class S3Storage(incoming.IncomingDriver):
 
     def __init__(self, conf):
         super(S3Storage, self).__init__(conf)
@@ -165,13 +166,15 @@ class S3Storage(_carbonara.CarbonaraBasedStorage):
         sack = self.sack_for_metric(metric.id)
         files = self._list_measure_files_for_metric_id(sack, metric.id)
 
-        measures = []
+        measures = self._make_measures_array()
         for f in files:
             response = self.s3.get_object(
                 Bucket=self._bucket_name_measures,
                 Key=f)
-            measures.extend(
-                self._unserialize_measures(f, response['Body'].read()))
+            measures = numpy.append(
+                measures,
+                self._unserialize_measures(f, response['Body'].read())
+            )
 
         yield measures
 

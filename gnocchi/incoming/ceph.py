@@ -17,15 +17,16 @@ import datetime
 import json
 import uuid
 
+import numpy
 import six
 
 from gnocchi.common import ceph
-from gnocchi.incoming import _carbonara
+from gnocchi import incoming
 
 rados = ceph.rados
 
 
-class CephStorage(_carbonara.CarbonaraBasedStorage):
+class CephStorage(incoming.IncomingDriver):
 
     Q_LIMIT = 1000
 
@@ -120,8 +121,8 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 names = list(self._list_keys_to_process(
                     i, marker=marker, limit=self.Q_LIMIT))
                 if names and names[0] < marker:
-                    raise _carbonara.ReportGenerationError("Unable to cleanly "
-                                                           "compute backlog.")
+                    raise incoming.ReportGenerationError(
+                        "Unable to cleanly compute backlog.")
                 for name in names:
                     count += 1
                     metric = name.split("_")[1]
@@ -196,7 +197,6 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         sack = self.sack_for_metric(metric.id)
         key_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
 
-        measures = []
         processed_keys = []
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
@@ -214,8 +214,10 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 # Object has been deleted, so this is just a stalled entry
                 # in the OMAP listing, ignore
                 return
+
+        measures = self._make_measures_array()
         for k, v in omaps:
-            measures.extend(self._unserialize_measures(k, v))
+            measures = numpy.append(measures, self._unserialize_measures(k, v))
             processed_keys.append(k)
 
         yield measures

@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+import datetime
 import itertools
 import operator
 import os.path
@@ -582,7 +583,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if c.granularity != n.granularity:
                     raise indexer.UnsupportedArchivePolicyChange(
                         name, '%s granularity interval was changed'
-                        % c.granularity)
+                        % utils.timespan_total_seconds(c.granularity))
             # NOTE(gordc): ORM doesn't update JSON column unless new
             ap.definition = ap_items
             return ap
@@ -1170,7 +1171,9 @@ class QueryTransformer(object):
 
         if field_name == "lifespan":
             attr = getattr(table, "ended_at") - getattr(table, "started_at")
-            value = utils.to_timespan(value)
+            value = datetime.timedelta(
+                seconds=utils.timespan_total_seconds(
+                    utils.to_timespan(value)))
             if engine == "mysql":
                 # NOTE(jd) So subtracting 2 timestamps in MySQL result in some
                 # weird results based on string comparison. It's useless and it
@@ -1218,7 +1221,11 @@ class QueryTransformer(object):
                             raise indexer.QueryValueError(value, field_name)
                         break
 
-        return op(attr, value)
+        if op == operator.ne and value is not None:
+            return operator.or_(operator.eq(attr, None),
+                                op(attr, value))
+        else:
+            return op(attr, value)
 
     @classmethod
     def build_filter(cls, engine, table, tree):

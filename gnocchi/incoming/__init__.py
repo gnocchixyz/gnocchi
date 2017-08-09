@@ -14,9 +14,19 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+from concurrent import futures
 
+import daiquiri
+import numpy
+import six
+
+from gnocchi.carbonara import TIMESERIES_ARRAY_DTYPE
 from gnocchi import exceptions
 from gnocchi import utils
+
+LOG = daiquiri.getLogger(__name__)
+
+_NUM_WORKERS = utils.get_default_workers()
 
 
 class ReportGenerationError(Exception):
@@ -27,15 +37,74 @@ class SackDetectionError(Exception):
     pass
 
 
-class StorageDriver(object):
+class IncomingDriver(object):
+    MEASURE_PREFIX = "measure"
+    SACK_PREFIX = "incoming"
+    CFG_PREFIX = 'gnocchi-config'
+    CFG_SACKS = 'sacks'
+
+    @property
+    def NUM_SACKS(self):
+        if not hasattr(self, '_num_sacks'):
+            try:
+                self._num_sacks = int(self.get_storage_sacks())
+            except Exception as e:
+                LOG.error('Unable to detect the number of storage sacks. '
+                          'Ensure gnocchi-upgrade has been executed: %s', e)
+                raise SackDetectionError(e)
+        return self._num_sacks
 
     @staticmethod
     def __init__(conf):
         pass
 
+    def get_sack_prefix(self, num_sacks=None):
+        sacks = num_sacks if num_sacks else self.NUM_SACKS
+        return self.SACK_PREFIX + str(sacks) + '-%s'
+
+    def upgrade(self, num_sacks):
+        if not self.get_storage_sacks():
+            self.set_storage_settings(num_sacks)
+
     @staticmethod
-    def upgrade():
-        pass
+    def set_storage_settings(num_sacks):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def remove_sack_group(num_sacks):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_storage_sacks():
+        """Return the number of sacks in storage. None if not set."""
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_sack_lock(coord, sack):
+        lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
+        return coord.get_lock(lock_name)
+
+    def _make_measures_array(self):
+        return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)
+
+    @staticmethod
+    def _array_concatenate(arrays):
+        if arrays:
+            return numpy.concatenate(arrays)
+        return arrays
+
+    def _unserialize_measures(self, measure_id, data):
+        try:
+            return numpy.frombuffer(data, dtype=TIMESERIES_ARRAY_DTYPE)
+        except ValueError:
+            LOG.error(
+                "Unable to decode measure %s, possible data corruption",
+                measure_id)
+            raise
+
+    def _encode_measures(self, measures):
+        return numpy.array(list(measures),
+                           dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
     def add_measures(self, metric, measures):
         """Add a measure to a metric.
@@ -45,16 +114,24 @@ class StorageDriver(object):
         """
         self.add_measures_batch({metric: measures})
 
-    @staticmethod
-    def add_measures_batch(metrics_and_measures):
+    def add_measures_batch(self, metrics_and_measures):
         """Add a batch of measures for some metrics.
 
         :param metrics_and_measures: A dict where keys
         are metrics and value are measure.
         """
+        with futures.ThreadPoolExecutor(max_workers=_NUM_WORKERS) as executor:
+            list(executor.map(
+                lambda args: self._store_new_measures(*args),
+                ((metric, self._encode_measures(measures))
+                 for metric, measures
+                 in six.iteritems(metrics_and_measures))))
+
+    @staticmethod
+    def _store_new_measures(metric, data):
         raise exceptions.NotImplementedError
 
-    def measures_report(details=True):
+    def measures_report(self, details=True):
         """Return a report of pending to process measures.
 
         Only useful for drivers that process measurements in background
@@ -62,11 +139,37 @@ class StorageDriver(object):
         :return: {'summary': {'metrics': count, 'measures': count},
                   'details': {metric_id: pending_measures_count}}
         """
+        metrics, measures, full_details = self._build_report(details)
+        report = {'summary': {'metrics': metrics, 'measures': measures}}
+        if full_details is not None:
+            report['details'] = full_details
+        return report
+
+    @staticmethod
+    def _build_report(details):
         raise exceptions.NotImplementedError
 
     @staticmethod
     def list_metric_with_measures_to_process(sack):
-        raise NotImplementedError
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def delete_unprocessed_measures_for_metric_id(metric_id):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def process_measure_for_metric(metric):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def has_unprocessed(metric):
+        raise exceptions.NotImplementedError
+
+    def sack_for_metric(self, metric_id):
+        return metric_id.int % self.NUM_SACKS
+
+    def get_sack_name(self, sack):
+        return self.get_sack_prefix() % sack
 
 
 def get_driver(conf):

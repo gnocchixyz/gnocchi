@@ -13,8 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import datetime
-
 import numpy
 import pandas
 import six
@@ -26,23 +24,14 @@ from gnocchi import utils
 class MovingAverage(aggregates.CustomAggregator):
 
     @staticmethod
-    def check_window_valid(window):
-        """Takes in the window parameter string, reformats as a float."""
-        if window is None:
-            msg = 'Moving aggregate must have window specified.'
-            raise aggregates.CustomAggFailure(msg)
-        try:
-            return utils.to_timespan(six.text_type(window)).total_seconds()
-        except Exception:
-            raise aggregates.CustomAggFailure('Invalid value for window')
-
-    @staticmethod
     def retrieve_data(storage_obj, metric, start, stop, window):
         """Retrieves finest-res data available from storage."""
+        window_seconds = utils.timespan_total_seconds(window)
         try:
             min_grain = min(
                 ap.granularity for ap in metric.archive_policy.definition
-                if window % ap.granularity == 0)
+                if (window_seconds % utils.timespan_total_seconds(
+                    ap.granularity) == 0))
         except ValueError:
             msg = ("No data available that is either full-res or "
                    "of a granularity that factors into the window size "
@@ -76,12 +65,11 @@ class MovingAverage(aggregates.CustomAggregator):
             center = utils.strtobool(center)
 
         def moving_window(x):
-            msec = datetime.timedelta(milliseconds=1)
-            zero = datetime.timedelta(seconds=0)
-            half_span = datetime.timedelta(seconds=window / 2)
+            msec = numpy.timedelta64(1, 'ms')
+            zero = numpy.timedelta64(0, 's')
+            half_span = window / 2
             start = utils.normalize_time(data.index[0])
-            stop = utils.normalize_time(
-                data.index[-1] + datetime.timedelta(seconds=min_grain))
+            stop = utils.normalize_time(data.index[-1] + min_grain)
             # min_grain addition necessary since each bin of rolled-up data
             # is indexed by leftmost timestamp of bin.
 
@@ -119,7 +107,7 @@ class MovingAverage(aggregates.CustomAggregator):
             # change from integer index to timestamp index
             result.index = data.index
 
-            return [(t, window, r) for t, r
+            return [(t.to_datetime64(), window, r) for t, r
                     in six.iteritems(result[~result.isnull()])]
         except Exception as e:
             raise aggregates.CustomAggFailure(str(e))
@@ -138,7 +126,15 @@ class MovingAverage(aggregates.CustomAggregator):
         :param center: how to index the aggregated data (central timestamp or
             leftmost timestamp)
         """
-        window = self.check_window_valid(window)
+        if window is None:
+            raise aggregates.CustomAggFailure(
+                'Moving aggregate must have window specified.'
+            )
+        try:
+            window = utils.to_timespan(window)
+        except ValueError:
+            raise aggregates.CustomAggFailure('Invalid value for window')
+
         min_grain, data = self.retrieve_data(storage_obj, metric, start,
                                              stop, window)
         return self.aggregate_data(data, numpy.mean, window, min_grain, center,

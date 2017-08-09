@@ -103,7 +103,7 @@ def to_timestamps(values):
                     # e.g. "-10 seconds" or "5 minutes"
                     times = numpy.fromiter(
                         numpy.add(numpy.datetime64(utcnow()),
-                                  pd.to_timedelta(values)),
+                                  pd.to_timedelta(values, box=False)),
                         dtype='datetime64[ns]')
                 else:
                     times = numpy.array(values, dtype='datetime64[ns]')
@@ -140,12 +140,21 @@ def to_timespan(value):
         seconds = float(value)
     except Exception:
         try:
-            seconds = pd.to_timedelta(value).total_seconds()
+            seconds = pd.to_timedelta(value, box=False)
         except Exception:
             raise ValueError("Unable to parse timespan")
-    if seconds <= 0:
+    else:
+        seconds = numpy.timedelta64(int(seconds * 10e8), 'ns')
+    if seconds <= numpy.timedelta64(0, 'ns'):
         raise ValueError("Timespan must be positive")
-    return datetime.timedelta(seconds=seconds)
+    return seconds
+
+
+_ONE_SECOND = numpy.timedelta64(1, 's')
+
+
+def timespan_total_seconds(td):
+    return td / _ONE_SECOND
 
 
 def utcnow():
@@ -170,11 +179,6 @@ unix_universal_start = datetime_utc(1970, 1, 1)
 
 def datetime_to_unix(timestamp):
     return (timestamp - unix_universal_start).total_seconds()
-
-
-def dt_to_unix_ns(*args):
-    return int(datetime_to_unix(datetime.datetime(
-        *args, tzinfo=iso8601.iso8601.UTC)) * int(10e8))
 
 
 def dt_in_unix_ns(timestamp):
