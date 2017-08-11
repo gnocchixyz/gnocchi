@@ -84,6 +84,11 @@ def list_opts():
                        required=True,
                        help="How many seconds to wait between "
                        "cleaning of expired data"),
+            cfg.IntOpt('tasks_per_worker',
+                       default=16,
+                       min=1,
+                       help="How many tasks to assign each metricd worker "
+                       "when scheduling measures processing jobs"),
         )),
         ("api", (
             cfg.StrOpt('paste_config',
