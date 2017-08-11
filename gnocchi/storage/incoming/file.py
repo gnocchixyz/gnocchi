@@ -72,11 +72,12 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         return (len(metric_details.keys()), sum(metric_details.values()),
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        if full:
-            return set(os.listdir(self.measure_path))
-        return set(
-            os.listdir(self.measure_path)[size * part:size * (part + 1)])
+    def _list_metric_with_measures_to_process(self):
+        # NOTE(jd) Ceph and Swift driver order those by the number of metrics.
+        # It's too costly to do that with file driver since it would need to
+        # list every directory. Just don't do it and use the standard OS
+        # sorting of the metric list
+        return ((d, 0) for d in os.listdir(self.measure_path))
 
     def _list_measures_container_for_metric_id(self, metric_id):
         try:
