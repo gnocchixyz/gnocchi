@@ -201,13 +201,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         return len(list(self._list_object_names_to_process(object_prefix)))
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process()
-        if full:
-            objs_it = names
-        else:
-            objs_it = itertools.islice(names, size * part, size * (part + 1))
-        return set([name.split("_")[1] for name in objs_it])
+    def _list_metric_with_measures_to_process(self):
+        # Sort measures objects per metric id
+        names = sorted(o.split("_")[1]
+                       for o in self._list_object_names_to_process())
+        # Group per metric id and store len() of the number of measures
+        return ((metric, len(list(measures)))
+                for metric, measures in itertools.groupby(names))
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)

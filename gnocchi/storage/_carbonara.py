@@ -358,8 +358,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric(metric):
         raise NotImplementedError
 
+    def list_metric_with_measures_to_process(self, size, part, full=False):
+        metrics = map(operator.itemgetter(0),
+                      # Sort by the number of measures, bigger first (reverse)
+                      sorted(
+                          self._list_metric_with_measures_to_process(),
+                          key=operator.itemgetter(1),
+                          reverse=True))
+        if full:
+            return set(metrics)
+        return set(list(metrics)[size * part:size * (part + 1)])
+
     @staticmethod
-    def list_metric_with_measures_to_process(size, part, full=False):
+    def _list_metric_with_measures_to_process():
+        """Return an ordered list of metrics that needs to be processed."""
         raise NotImplementedError
 
     @staticmethod
