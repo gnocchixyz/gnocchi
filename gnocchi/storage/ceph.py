@@ -202,10 +202,12 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         return len(list(self._list_object_names_to_process(object_prefix)))
 
     def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process()
         if full:
-            objs_it = names
+            objs_it = self._list_object_names_to_process()
         else:
+            names = sorted(
+                self._list_object_names_to_process(),
+                key=lambda x: x.split('_', 3)[-1])
             objs_it = itertools.islice(names, size * part, size * (part + 1))
         return set([name.split("_")[1] for name in objs_it])
 
