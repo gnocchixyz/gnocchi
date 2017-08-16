@@ -33,7 +33,7 @@ steps:
      [cors]
      allowed_origin = http://example.com/grafana
 
-2. Configure the CORS middleware in Keystone to allow request from Grafana too:
+2. Configure the CORS middleware in Keystone to allow request from Grafana too::
 
      [cors]
      allowed_origin = http://example.com/grafana
