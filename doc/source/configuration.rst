@@ -70,6 +70,25 @@ edit the `api-paste.ini` file to add the Keystone authentication middleware::
 .. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
 .. _`Grafana`: http://grafana.org/
 
+Configuring metricd
+-------------------
+
+The `gnocchi-metricd` daemon regularly polls the storage backend for new
+measures to process and processes them, spreading the workload across all its
+workers using the coordination backend.
+
+Each polling is run after `metricd_processing_delay` seconds and grabs
+`tasks_per_worker` metrics to process. These two values are configurable.
+
+The shorter `metricd_processing_delay` is, the less lag you will have in your
+computed metrics, but the more the workers will hit the storage backend often.
+
+The value of `tasks_per_worker` is the number of metrics that will be grabbed
+for processing on each polling. That means it should be big enough to keep a
+metricd busy for `metricd_processing_delay` seconds. Depending on the speed of
+your processor, that can might be increased if you see that your workers are
+often idle while the backlog is not empty.
+
 
 Driver notes
 ============
