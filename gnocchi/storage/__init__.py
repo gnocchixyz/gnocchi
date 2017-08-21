@@ -208,6 +208,10 @@ class StorageDriver(object):
         """
 
     @staticmethod
+    def refresh_metric(indexer, incoming, metric, timeout):
+        """Process added measures for metric."""
+
+    @staticmethod
     def get_measures(metric, from_timestamp=None, to_timestamp=None,
                      aggregation='mean', granularity=None, resample=None):
         """Get a measure to a metric.
