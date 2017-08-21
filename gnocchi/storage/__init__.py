@@ -28,11 +28,11 @@ OPTS = [
                default='file',
                help='Storage driver to use'),
     cfg.IntOpt('metric_processing_delay',
-               default=60,
+               default=30,
                help="How many seconds to wait between "
                "scheduling new metrics to process"),
     cfg.IntOpt('tasks_per_worker',
-               default=16,
+               default=256,
                min=1,
                help="How many tasks to assign each metricd worker when "
                "scheduling measures processing jobs"),
