@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -37,6 +37,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
+from gnocchi.rest import cross_metric
 from gnocchi.rest import transformation
 from gnocchi import storage
 from gnocchi import utils
@@ -1748,11 +1749,12 @@ class AggregationController(rest.RestController):
                 return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
                     granularity, transform)
-            return pecan.request.storage.get_cross_metric_measures(
+            return cross_metric.get_cross_metric_measures(
+                pecan.request.storage,
                 metrics, start, stop, aggregation,
                 reaggregation, granularity, needed_overlap, fill,
                 transform)
-        except storage.MetricUnaggregatable as e:
+        except cross_metric.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
         except (storage.MetricDoesNotExist,
