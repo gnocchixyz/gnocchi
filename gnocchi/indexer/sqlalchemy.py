@@ -1215,7 +1215,11 @@ class QueryTransformer(object):
                             raise indexer.QueryValueError(value, field_name)
                         break
 
-        return op(attr, value)
+        if op == operator.ne and value is not None:
+            return operator.or_(operator.eq(attr, None),
+                                op(attr, value))
+        else:
+            return op(attr, value)
 
     @classmethod
     def build_filter(cls, engine, table, tree):
