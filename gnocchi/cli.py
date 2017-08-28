@@ -139,12 +139,12 @@ class MetricScheduler(MetricProcessBase):
     MAX_OVERLAP = 0.3
     GROUP_ID = "gnocchi-scheduler"
     SYNC_RATE = 30
-    TASKS_PER_WORKER = 16
     BLOCK_SIZE = 4
 
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
             worker_id, conf, conf.storage.metric_processing_delay)
+        self.TASKS_PER_WORKER = conf.storage.tasks_per_worker
         self._coord, self._my_id = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
         self.queue = queue
