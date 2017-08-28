@@ -18,4 +18,5 @@ if __name__ == '__main__':
     sys.exit(cli.api())
 else:
     from gnocchi.rest import app
-    application = app.build_wsgi_app()
+    from gnocchi import service
+    application = app.load_app(service.prepare_service())
