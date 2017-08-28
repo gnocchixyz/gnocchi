@@ -31,7 +31,6 @@ from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
-from gnocchi import service
 from gnocchi import storage as gnocchi_storage
 
 
@@ -150,7 +149,3 @@ def app_factory(global_config, **local_conf):
     global APPCONFIGS
     appconfig = APPCONFIGS.get(global_config.get('configkey'))
     return _setup_app(root=local_conf.get('root'), **appconfig)
-
-
-def build_wsgi_app():
-    return load_app(service.prepare_service())
