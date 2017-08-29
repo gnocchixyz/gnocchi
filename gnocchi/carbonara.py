@@ -546,7 +546,8 @@ class AggregatedTimeSerie(TimeSerie):
     COMPRESSED_SERIAL_LEN = struct.calcsize("<Hd")
     COMPRESSED_TIMESPAMP_LEN = struct.calcsize("<H")
 
-    def __init__(self, sampling, aggregation_method, ts=None, max_size=None):
+    def __init__(self, sampling, aggregation_method, ts=None, max_size=None,
+                 truncate=True):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -557,7 +558,8 @@ class AggregatedTimeSerie(TimeSerie):
         self.sampling = sampling
         self.max_size = max_size
         self.aggregation_method = aggregation_method
-        self._truncate(quick=True)
+        if truncate:
+            self._truncate()
 
     def resample(self, sampling):
         return AggregatedTimeSerie.from_grouped_serie(
@@ -595,10 +597,14 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps,
                   values, max_size=None):
+        # TODO(gordc): we don't truncate here but we might want to.
+        # specifically, when we store_timeserie_split, we merge with existing
+        # serie but we don't truncate so we might merge stuff that is beyond
+        # policy (not visible because we follow policy and truncate on GET)
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
                    ts=make_timeseries(timestamps, values),
-                   max_size=max_size)
+                   max_size=max_size, truncate=False)
 
     @staticmethod
     def _get_agg_method(aggregation_method):
@@ -644,12 +650,12 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
     def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method,
-                           max_size=None):
+                           max_size=None, truncate=False):
         agg_name, q = cls._get_agg_method(aggregation_method)
         return cls(sampling, aggregation_method,
                    ts=cls._resample_grouped(grouped_serie, agg_name,
                                             q),
-                   max_size=max_size)
+                   max_size=max_size, truncate=truncate)
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
@@ -780,12 +786,11 @@ class AggregatedTimeSerie(TimeSerie):
         offset = int((first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
         return offset, payload
 
-    def _truncate(self, quick=False):
+    def _truncate(self):
         """Truncate the timeserie."""
         if self.max_size is not None:
             # Remove empty points if any that could be added by aggregation
-            self.ts = (self.ts[-self.max_size:] if quick
-                       else self.ts.dropna()[-self.max_size:])
+            self.ts = self.ts[-self.max_size:]
 
     @staticmethod
     def _resample_grouped(grouped_serie, agg_name, q=None):

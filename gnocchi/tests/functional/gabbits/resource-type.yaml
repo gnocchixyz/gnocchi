@@ -246,7 +246,7 @@ tests:
       status: 400
       response_strings:
           # split to not match the u' in py2
-          - "Invalid input: not a valid value for dictionary value @ data["
+          - "Invalid input: badly formed hexadecimal UUID string for dictionary value @ data["
           - "'uuid']"
 
 # Good resources for this type
