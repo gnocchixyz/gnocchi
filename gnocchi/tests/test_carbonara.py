@@ -178,7 +178,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         if derived:
             grouped = grouped.derived()
         return carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, sampling, agg, max_size=max_size)
+            grouped, sampling, agg, max_size=max_size, truncate=True)
 
     def test_derived_mean(self):
         ts = carbonara.TimeSerie.from_tuples(
@@ -399,7 +399,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped, agg_dict['sampling'], agg_dict['agg'],
-            max_size=agg_dict.get('size'))
+            max_size=agg_dict.get('size'), truncate=True)
         if existing:
             existing.merge(agg_dict['return'])
             agg_dict['return'] = existing
@@ -1130,14 +1130,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             existing = tsc1.get('return')
             tsc1['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
                 grouped, tsc1['sampling'], tsc1['agg'],
-                max_size=tsc1['size'])
+                max_size=tsc1['size'], truncate=True)
             if existing:
                 existing.merge(tsc1['return'])
             grouped = ts.group_serie(tsc12['sampling'])
             existing = tsc12.get('return')
             tsc12['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
                 grouped, tsc12['sampling'], tsc12['agg'],
-                max_size=tsc12['size'])
+                max_size=tsc12['size'], truncate=True)
             if existing:
                 existing.merge(tsc12['return'])
 
@@ -1146,14 +1146,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             existing = tsc2.get('return')
             tsc2['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
                 grouped, tsc2['sampling'], tsc2['agg'],
-                max_size=tsc2['size'])
+                max_size=tsc2['size'], truncate=True)
             if existing:
                 existing.merge(tsc2['return'])
             grouped = ts.group_serie(tsc22['sampling'])
             existing = tsc22.get('return')
             tsc22['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
                 grouped, tsc22['sampling'], tsc22['agg'],
-                max_size=tsc22['size'])
+                max_size=tsc22['size'], truncate=True)
             if existing:
                 existing.merge(tsc22['return'])
 
