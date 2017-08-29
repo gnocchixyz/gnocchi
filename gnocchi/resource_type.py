@@ -163,7 +163,13 @@ class StringSchema(CommonAttributeSchema):
 
 class UUIDSchema(CommonAttributeSchema):
     typename = "uuid"
-    schema_ext = staticmethod(utils.UUID)
+
+    @staticmethod
+    def schema_ext(value):
+        try:
+            return utils.UUID(value)
+        except ValueError as e:
+            raise voluptuous.Invalid(e)
 
 
 class NumberSchema(CommonAttributeSchema):

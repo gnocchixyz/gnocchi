@@ -26,7 +26,7 @@ import daiquiri
 import iso8601
 import monotonic
 import numpy
-import pandas as pd
+import pytimeparse
 import six
 from stevedore import driver
 from tooz import coordination
@@ -103,7 +103,7 @@ def to_timestamps(values):
                     # e.g. "-10 seconds" or "5 minutes"
                     times = numpy.fromiter(
                         numpy.add(numpy.datetime64(utcnow()),
-                                  pd.to_timedelta(values)),
+                                  [to_timespan(v, True) for v in values]),
                         dtype='datetime64[ns]')
                 else:
                     times = numpy.array(values, dtype='datetime64[ns]')
@@ -133,19 +133,17 @@ def timestamp_to_datetime(v):
         v.astype(float) / 10e8).replace(tzinfo=iso8601.iso8601.UTC)
 
 
-def to_timespan(value):
+def to_timespan(value, allow_le_zero=False):
     if value is None:
         raise ValueError("Invalid timespan")
     try:
         seconds = float(value)
     except Exception:
-        try:
-            seconds = pd.to_timedelta(value).to_timedelta64()
-        except Exception:
+        seconds = pytimeparse.parse(value)
+        if seconds is None:
             raise ValueError("Unable to parse timespan")
-    else:
-        seconds = numpy.timedelta64(int(seconds * 10e8), 'ns')
-    if seconds <= numpy.timedelta64(0, 'ns'):
+    seconds = numpy.timedelta64(int(seconds * 10e8), 'ns')
+    if not allow_le_zero and seconds <= numpy.timedelta64(0, 'ns'):
         raise ValueError("Timespan must be positive")
     return seconds
 

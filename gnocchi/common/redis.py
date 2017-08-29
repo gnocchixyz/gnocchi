@@ -70,9 +70,6 @@ CLIENT_INT_ARGS = frozenset([
     'socket_timeout',
 ])
 
-#: Default socket timeout to use when none is provided.
-CLIENT_DEFAULT_SOCKET_TO = 30
-
 
 def get_client(conf):
     if redis is None:
@@ -104,8 +101,6 @@ def get_client(conf):
         else:
             v = options[a][-1]
         kwargs[a] = v
-    if 'socket_timeout' not in kwargs:
-        kwargs['socket_timeout'] = CLIENT_DEFAULT_SOCKET_TO
 
     # Ask the sentinel for the current master if there is a
     # sentinel arg.

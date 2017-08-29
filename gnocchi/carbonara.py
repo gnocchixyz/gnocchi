@@ -84,8 +84,8 @@ def round_timestamp(ts, freq):
         (ts - UNIX_UNIVERSAL_START64) / freq) * freq
 
 
-TIMESERIES_ARRAY_DTYPE = [('timestamps', 'datetime64[ns]'),
-                          ('values', 'float64')]
+TIMESERIES_ARRAY_DTYPE = [('timestamps', '<datetime64[ns]'),
+                          ('values', '<d')]
 
 
 def make_timeseries(timestamps, values):
@@ -267,7 +267,7 @@ class TimeSerie(object):
 
         :param values: A list of tuple (timestamp, value).
         """
-        return self._merge(numpy.array(values, dtype=TIMESERIES_ARRAY_DTYPE))
+        return self._merge(values)
 
     def __len__(self):
         return len(self.ts)
@@ -347,13 +347,9 @@ class BoundTimeSerie(TimeSerie):
     def set_values(self, values, before_truncate_callback=None):
         # NOTE: values must be sorted when passed in.
         if self.block_size is not None and len(self.ts) != 0:
-            first_block_timestamp = self.first_block_timestamp()
-            for index, (timestamp, value) in enumerate(values):
-                if timestamp >= first_block_timestamp:
-                    values = values[index:]
-                    break
-            else:
-                values = []
+            index = numpy.searchsorted(values['timestamps'],
+                                       self.first_block_timestamp())
+            values = values[index:]
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
             before_truncate_callback(self)
