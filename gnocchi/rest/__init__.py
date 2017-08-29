@@ -167,10 +167,7 @@ def get_details(params):
 
 
 def strtobool(varname, v):
-    """Convert a string to a boolean.
-
-    Default to false if unable to convert.
-    """
+    """Convert a string to a boolean."""
     try:
         return utils.strtobool(v)
     except ValueError as e:
