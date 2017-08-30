@@ -23,3 +23,4 @@ Paste
 PasteDeploy
 monotonic
 daiquiri
+pyparsing>=2.2.0
