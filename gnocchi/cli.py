@@ -251,9 +251,11 @@ class MetricProcessor(MetricProcessBase):
                 continue
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
-                m_count += len(metrics)
-                self.store.process_background_tasks(
-                    self.index, self.incoming, metrics)
+                metric_len = len(metrics)
+                if metric_len:
+                    m_count += metric_len
+                    self.store.process_background_tasks(
+                        self.index, self.incoming, metrics)
                 s_count += 1
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
