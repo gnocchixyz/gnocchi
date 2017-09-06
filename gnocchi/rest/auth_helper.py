@@ -17,7 +17,7 @@
 import webob
 import werkzeug.http
 
-from gnocchi import rest
+from gnocchi.rest import api
 
 
 class KeystoneAuthHelper(object):
@@ -44,7 +44,7 @@ class KeystoneAuthHelper(object):
     def get_resource_policy_filter(request, rule, resource_type):
         try:
             # Check if the policy allows the user to list any resource
-            rest.enforce(rule, {
+            api.enforce(rule, {
                 "resource_type": resource_type,
             })
         except webob.exc.HTTPForbidden:
@@ -54,7 +54,7 @@ class KeystoneAuthHelper(object):
             try:
                 # Check if the policy allows the user to list resources linked
                 # to their project
-                rest.enforce(rule, {
+                api.enforce(rule, {
                     "resource_type": resource_type,
                     "project_id": project_id,
                 })
@@ -66,7 +66,7 @@ class KeystoneAuthHelper(object):
             try:
                 # Check if the policy allows the user to list resources linked
                 # to their created_by_project
-                rest.enforce(rule, {
+                api.enforce(rule, {
                     "resource_type": resource_type,
                     "created_by_project_id": project_id,
                 })
@@ -81,7 +81,7 @@ class KeystoneAuthHelper(object):
 
             if not policy_filter:
                 # We need to have at least one policy filter in place
-                rest.abort(403, "Insufficient privileges")
+                api.abort(403, "Insufficient privileges")
 
             return {"or": policy_filter}
 
@@ -92,7 +92,7 @@ class BasicAuthHelper(object):
         auth = werkzeug.http.parse_authorization_header(
             request.headers.get("Authorization"))
         if auth is None:
-            rest.abort(401)
+            api.abort(401)
         return auth.username
 
     def get_auth_info(self, request):
@@ -115,7 +115,7 @@ class RemoteUserAuthHelper(object):
     def get_current_user(request):
         user = request.remote_user
         if user is None:
-            rest.abort(401)
+            api.abort(401)
         return user.decode('iso-8859-1')
 
     def get_auth_info(self, request):
