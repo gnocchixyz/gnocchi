@@ -33,7 +33,7 @@ from gnocchi import archive_policy
 from gnocchi import genconfig
 from gnocchi import incoming
 from gnocchi import indexer
-from gnocchi.rest import app
+from gnocchi import opts
 from gnocchi import service
 from gnocchi import statsd as statsd_service
 from gnocchi import storage
@@ -333,7 +333,7 @@ def api():
         sys.argv.pop(double_dash)
 
     conf = cfg.ConfigOpts()
-    for opt in app.API_OPTS:
+    for opt in opts.API_OPTS:
         # NOTE(jd) Register the API options without a default, so they are only
         # used to override the one in the config file
         c = copy.copy(opt)
