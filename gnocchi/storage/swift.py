@@ -31,8 +31,9 @@ OPTS = [
                 default=False,
                 help='If True, swiftclient won\'t check for a valid SSL '
                      'certificate when authenticating.'),
-    cfg.StrOpt('swift_preauthurl',
-               help='Swift pre-auth URL.'),
+    cfg.StrOpt('swift_url',
+               help='Swift URL. '
+               'If unset, it is obtained from the auth service.'),
     cfg.StrOpt('swift_authurl',
                default="http://localhost:8080/auth/v1.0",
                help='Swift auth URL.'),
