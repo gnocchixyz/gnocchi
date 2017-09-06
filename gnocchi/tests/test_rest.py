@@ -33,7 +33,7 @@ from testtools import testcase
 import webtest
 
 from gnocchi import archive_policy
-from gnocchi import rest
+from gnocchi.rest import api
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
@@ -1860,7 +1860,7 @@ class GenericResourceTest(RestTest):
 
 class QueryStringSearchAttrFilterTest(tests_base.TestCase):
     def _do_test(self, expr, expected):
-        req = rest.QueryStringSearchAttrFilter._parse(expr)
+        req = api.QueryStringSearchAttrFilter._parse(expr)
         self.assertEqual(expected, req)
 
     def test_search_query_builder(self):
