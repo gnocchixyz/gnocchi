@@ -724,9 +724,9 @@ tests:
       data:
           in:
              id: []
-      status: 200
-      response_json_paths:
-        $.deleted: 0
+      status: 400
+      response_strings:
+        - length of value must be at least 1
 
     - name: delete something empty b
       desc: use  empty filter for delete

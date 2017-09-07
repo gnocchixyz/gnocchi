@@ -121,6 +121,21 @@ tests:
       response_json_paths:
         $.`len`: 2
 
+    - name: search empty in_
+      POST: /v1/search/resource/generic
+      data:
+        in:
+          id: []
+      status: 400
+      response_strings:
+        - length of value must be at least 1
+
+    - name: search empty in_ query string
+      POST: /v1/search/resource/generic?filter=id%20in%20%5B%5D
+      status: 400
+      response_strings:
+        - length of value must be at least 1
+
     - name: search empty query
       POST: /v1/search/resource/generic
       data: {}
