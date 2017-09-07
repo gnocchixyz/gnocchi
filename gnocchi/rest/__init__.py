@@ -124,13 +124,18 @@ def deserialize(expected_content_types=None):
     return params
 
 
-def deserialize_and_validate(schema, required=True,
-                             expected_content_types=None):
+def validate(schema, data, required=True):
     try:
-        return voluptuous.Schema(schema, required=required)(
-            deserialize(expected_content_types=expected_content_types))
+        return voluptuous.Schema(schema, required=required)(data)
     except voluptuous.Error as e:
         abort(400, "Invalid input: %s" % e)
+
+
+def deserialize_and_validate(schema, required=True,
+                             expected_content_types=None):
+    return validate(schema,
+                    deserialize(expected_content_types=expected_content_types),
+                    required)
 
 
 def PositiveOrNullInt(value):
@@ -1196,8 +1201,7 @@ class QueryStringSearchAttrFilter(object):
     @classmethod
     def parse(cls, query):
         attr_filter = cls._parse(query)
-        return voluptuous.Schema(ResourceSearchSchema,
-                                 required=True)(attr_filter)
+        return validate(ResourceSearchSchema, attr_filter, required=True)
 
 
 def ResourceSearchSchema(v):
