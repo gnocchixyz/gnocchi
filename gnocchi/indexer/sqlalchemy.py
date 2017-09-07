@@ -1104,6 +1104,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
 
 class QueryTransformer(object):
+
     unary_operators = {
         u"not": sqlalchemy.not_,
     }

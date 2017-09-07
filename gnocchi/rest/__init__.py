@@ -1240,8 +1240,12 @@ def _ResourceSearchSchema():
                     u"in",
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
-                    {"id": [_ResourceUUID],
-                     six.text_type: [ResourceSearchSchemaAttributeValue]}
+                    {"id": voluptuous.All(
+                        [_ResourceUUID],
+                        voluptuous.Length(min=1)),
+                     six.text_type: voluptuous.All(
+                         [ResourceSearchSchemaAttributeValue],
+                         voluptuous.Length(min=1))}
                 ),
                 voluptuous.Any(
                     u"and", u"∨",
