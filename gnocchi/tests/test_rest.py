@@ -307,6 +307,18 @@ class MetricTest(RestTest):
         with self.app.use_another_user():
             self.app.get("/v1/metric/%s" % metric_id)
 
+    def test_list_metric_with_another_user(self):
+        metric_created = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy_name": "medium"},
+            status=201)
+
+        metric_id = metric_created.json["id"]
+
+        with self.app.use_another_user():
+            metric_list = self.app.get("/v1/metric")
+            self.assertNotIn(metric_id, [m["id"] for m in metric_list.json])
+
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"},

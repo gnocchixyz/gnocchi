@@ -77,6 +77,9 @@ tests:
 - name: list the one metric
   GET: /v1/metric
   status: 200
+  request_headers:
+    x-user-id: 93180da9-7c15-40d3-a050-a374551e52ee
+    x-project-id: 99d13f22-3618-4288-82b8-6512ded77e4f
   response_json_paths:
       $[0].archive_policy.name: test1
 
