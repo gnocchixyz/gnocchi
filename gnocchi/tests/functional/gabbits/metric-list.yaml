@@ -89,7 +89,7 @@ tests:
     - name: list metrics
       GET: /v1/metric
       response_json_paths:
-          $.`len`: 4
+          $.`len`: 2
 
     - name: list metrics by id
       GET: /v1/metric?id=$HISTORY['create metric 1'].$RESPONSE['id']
@@ -100,6 +100,9 @@ tests:
 
     - name: list metrics by name
       GET: /v1/metric?name=disk.io.rate
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
       response_json_paths:
           $.`len`: 2
           $[0].name: disk.io.rate
@@ -116,6 +119,9 @@ tests:
 
     - name: list metrics by archive_policy
       GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
       response_json_paths:
           $.`len`: 3
           $[0].name: disk.io.rate
