@@ -57,6 +57,14 @@ using query parameters:
 
 {{ scenarios['list-metric-pagination']['doc'] }}
 
+See also :ref:`Resource's named metrics <resource-named-metrics>`.
+
+Measures
+========
+
+Push and retrieve
+-----------------
+
 It is possible to send measures to the metric:
 
 {{ scenarios['post-measures']['doc'] }}
@@ -69,7 +77,6 @@ status code. It is possible to provide any number of measures.
    While it is possible to send any number of (timestamp, value), it is still
    needed to honor constraints defined by the archive policy used by the metric,
    such as the maximum timespan.
-
 
 Once measures are sent, it is possible to retrieve them using *GET* on the same
 endpoint:
@@ -115,6 +122,11 @@ to retrieve, rather than all the granularities available:
 
 {{ scenarios['get-measures-granularity']['doc'] }}
 
+See also :ref:`Aggregation across metrics <aggregation-across-metrics>` and :ref:`Resource's named metrics <resource-named-metrics>` .
+
+Transformations
+------------------------
+
 In addition to granularities defined by the archive policy, measures can be
 resampled to a new granularity.
 
@@ -131,8 +143,9 @@ Supported transformations are `absolute`, `negative` and `resample(sampling-in-s
    Depending on the aggregation method and frequency of measures, resampled
    data may lack accuracy as it is working against previously aggregated data.
 
-Measures batching
-=================
+Batching
+--------
+
 It is also possible to batch measures sending, i.e. send several measures for
 different metrics in a simple call:
 
@@ -283,6 +296,9 @@ It is possible to delete an archive policy rule:
 Resources
 =========
 
+Creation
+--------
+
 Gnocchi provides the ability to store and index resources. Each resource has a
 type. The basic type of resources is *generic*, but more specialized subtypes
 also exist, especially to describe OpenStack resources.
@@ -311,19 +327,31 @@ some requests:
 
 {{ scenarios['create-resource-with-new-metrics']['doc'] }}
 
+Querying
+--------
+
 To retrieve a resource by its URL provided by the `Location` header at creation
 time:
 
 {{ scenarios['get-resource-generic']['doc'] }}
+
+Modification
+------------
 
 It's possible to modify a resource by re-uploading it partially with the
 modified fields:
 
 {{ scenarios['patch-resource']['doc'] }}
 
+History modification
+--------------------
+
 And to retrieve its modification history:
 
 {{ scenarios['get-patched-instance-history']['doc'] }}
+
+Deletion
+--------
 
 It is possible to delete a resource altogether:
 
@@ -348,6 +376,8 @@ or delete resources based on time:
   When a batch of resources are deleted, an attribute filter is required to
   avoid deletion of the entire database.
 
+Listing
+-------
 
 All resources can be listed, either by using the `generic` type that will list
 all types of resources, or by filtering on their resource type:
@@ -373,6 +403,11 @@ Returned results represent a single page of data and are ordered by resouces'
 revision_start time and started_at values:
 
 {{ scenarios['list-resource-generic-pagination']['doc'] }}
+
+.. _resource-named-metrics:
+
+Named metrics
+-------------
 
 Each resource can be linked to any number of metrics. The `metrics` attributes
 is a key/value field where the key is the name of the relationship and
@@ -507,6 +542,8 @@ argument, and in this case the second argument passed is the value, or it.
 
 The operators or (`or` or `∨`), and (`and` or `∧`) and `not` are also
 supported, and take a list of arguments as parameters.
+
+.. _aggregation-across-metrics:
 
 Aggregation across metrics
 ==========================
