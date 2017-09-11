@@ -737,6 +737,7 @@ class ResourceHistoryController(rest.RestController):
 
     @pecan.expose('json')
     def get(self, **kwargs):
+        initial_kwargs = kwargs.copy()
         details = get_details(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
@@ -748,12 +749,7 @@ class ResourceHistoryController(rest.RestController):
 
         enforce("get resource", resource)
 
-        # FIXME(sileht): pagination doesn't work, the marker
-        # expected is currently only the resource id while it should be
-        # the resource_id+revision for the history
         try:
-            # FIXME(sileht): next API version should returns
-            # {'resources': [...], 'links': [ ... pagination rel ...]}
             resources = pecan.request.indexer.list_resources(
                 self.resource_type,
                 attribute_filter={"=": {"id": self.resource_id}},
@@ -762,8 +758,8 @@ class ResourceHistoryController(rest.RestController):
                 **pagination_opts
             )
             if resources and len(resources) >= pagination_opts['limit']:
-                set_resp_link_hdr(str(resources[-1].id), kwargs,
-                                  pagination_opts)
+                marker = "%s@%s" % (resources[-1].id, resources[-1].revision)
+                set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
             return resources
         except indexer.IndexerException as e:
             abort(400, e)
@@ -1086,6 +1082,7 @@ class ResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
+        initial_kwargs = kwargs.copy()
         details = get_details(kwargs)
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
@@ -1104,8 +1101,12 @@ class ResourcesController(rest.RestController):
                 **pagination_opts
             )
             if resources and len(resources) >= pagination_opts['limit']:
-                set_resp_link_hdr(str(resources[-1].id), kwargs,
-                                  pagination_opts)
+                if history:
+                    marker = "%s@%s" % (resources[-1].id,
+                                        resources[-1].revision)
+                else:
+                    marker = str(resources[-1].id)
+                set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
             return resources
         except indexer.IndexerException as e:
             abort(400, e)
@@ -1303,6 +1304,7 @@ class SearchResourceTypeController(rest.RestController):
         self._resource_type = resource_type
 
     def _search(self, **kwargs):
+        initial_kwargs = kwargs.copy()
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
         elif kwargs.get("filter"):
@@ -1326,12 +1328,20 @@ class SearchResourceTypeController(rest.RestController):
             else:
                 attr_filter = policy_filter
 
-        return pecan.request.indexer.list_resources(
+        resources = pecan.request.indexer.list_resources(
             self._resource_type,
             attribute_filter=attr_filter,
             details=details,
             history=history,
             **pagination_opts)
+        if resources and len(resources) >= pagination_opts['limit']:
+            if history:
+                marker = "%s@%s" % (resources[-1].id,
+                                    resources[-1].revision)
+            else:
+                marker = str(resources[-1].id)
+            set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
+        return resources
 
     @pecan.expose('json')
     def post(self, **kwargs):
