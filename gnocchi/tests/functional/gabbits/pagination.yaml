@@ -89,6 +89,8 @@ tests:
 
     - name: list first two items order by id
       GET: /v1/resource/generic?limit=2&sort=id:asc
+      response_headers:
+          link: "<$SCHEME://$NETLOC/v1/resource/generic?limit=2&marker=28593168-52bb-43b5-a6db-fc2343aac02a&sort=id%3Aasc>; rel=\"next\""
       response_json_paths:
           $.`len`: 2
           $[0].id: 1e3d5702-2cbf-46e0-ba13-0ddaa3c71150
