@@ -22,7 +22,6 @@ from oslo_middleware import cors
 
 import gnocchi.archive_policy
 import gnocchi.indexer
-import gnocchi.rest.app
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
@@ -57,6 +56,16 @@ _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
 _INCOMING_OPTS = copy.deepcopy(_STORAGE_OPTS)
 for opt in _INCOMING_OPTS:
     opt.default = '${storage.%s}' % opt.name
+
+
+API_OPTS = (
+    cfg.HostAddressOpt('host',
+                       default="0.0.0.0",
+                       help="Host to listen on"),
+    cfg.PortOpt('port',
+                default=8041,
+                help="Port to listen on"),
+)
 
 
 _cli_options = (
@@ -156,7 +165,7 @@ def list_opts():
                        default=10, min=0,
                        help='Number of seconds before timeout when attempting '
                             'to force refresh of metric.'),
-        ) + gnocchi.rest.app.API_OPTS,
+        ) + API_OPTS,
         ),
         ("storage", _STORAGE_OPTS + gnocchi.storage._CARBONARA_OPTS),
         ("incoming", _INCOMING_OPTS),
