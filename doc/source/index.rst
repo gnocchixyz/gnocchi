@@ -67,7 +67,7 @@ Gnocchi vs Prometheus
 includes everything from polling the metrics to storing and archiving them. It
 offers advanced features such as alerting.
 
-In comparison, Gnocchi does not offer polling has it prefers to leverage
+In comparison, Gnocchi does not offer polling as it prefers to leverage
 existing solutions (e.g. `collectd <http://collectd.org>`_). However, it
 provides high-availability and horizontal scalablity as well as multi-tenancy.
 
