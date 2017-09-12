@@ -36,7 +36,8 @@ class TestTransformParser(base.BaseTestCase):
             "resample(5):resample(10)": [("resample",
                                           (numpy.timedelta64(5, 's'),)),
                                          ("resample",
-                                          (numpy.timedelta64(10, 's'),))]
+                                          (numpy.timedelta64(10, 's'),))],
+            "rolling(mean, 2)": [("rolling", ("mean", '2'))],
         }
         for expr, expected in expressions.items():
             try:
@@ -67,7 +68,8 @@ class TestTransformParser(base.BaseTestCase):
             "resample(, 1.3)",
             "resample(a)",
             "resample(1.5, 1.3)",
-
+            "rolling(mean)",
+            "rolling(mean, mean)",
         ]
         for expr in expressions:
             self.assertRaises(transformation.TransformationParserError,
