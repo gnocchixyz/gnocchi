@@ -28,6 +28,7 @@ import time
 import lz4.block
 import numpy
 import numpy.lib.recfunctions
+from numpy.lib.stride_tricks import as_strided
 from scipy import ndimage
 import six
 
@@ -577,6 +578,28 @@ class AggregatedTimeSerie(TimeSerie):
                 ts = ts.resample(sampling)
                 timestamps = ts["timestamps"]
                 values = ts["values"]
+
+            elif trans.method == "rolling":
+                agg = trans.args[0]
+                if agg not in ('min', 'max', 'mean', 'median',
+                               'std', 'sum', 'var'):
+                    raise TransformError("'%s' aggregation is unsupported" %
+                                         agg)
+                agg = getattr(numpy, agg)
+
+                window = int(trans.args[1])
+                if window < 1:
+                    raise TransformError("Window must be 1 or greater")
+                if window > len(values):
+                    raise TransformError("Window is greater than serie: %s" %
+                                         self)
+
+                # arogozhnikov.github.io/2015/09/30/NumpyTipsAndTricks2.html
+                stride = values.strides[0]
+                timestamps = timestamps[window - 1:]
+                values = agg(as_strided(
+                    values, shape=[len(values) - window + 1, window],
+                    strides=[stride, stride]), axis=1)
 
             else:
                 raise TransformError("Transformation '%s' doesn't exists" %
