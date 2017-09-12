@@ -372,3 +372,17 @@ class TestCase(BaseTestCase):
         self.index.disconnect()
         self.storage.stop()
         super(TestCase, self).tearDown()
+
+    def _create_metric(self, archive_policy_name="low"):
+        """Create a metric and return it"""
+        m = storage.Metric(uuid.uuid4(),
+                           self.archive_policies[archive_policy_name])
+        m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),
+                                         archive_policy_name)
+        return m, m_sql
+
+    def trigger_processing(self, metrics=None):
+        if metrics is None:
+            metrics = [str(self.metric.id)]
+        self.storage.process_background_tasks(
+            self.index, self.incoming, metrics, sync=True)

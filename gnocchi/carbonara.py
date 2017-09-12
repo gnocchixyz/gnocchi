@@ -19,7 +19,6 @@
 import collections
 import functools
 import itertools
-import logging
 import math
 import random
 import re
@@ -29,17 +28,8 @@ import time
 import lz4.block
 import numpy
 import numpy.lib.recfunctions
-import pandas
 from scipy import ndimage
 import six
-
-# NOTE(sileht): pandas relies on time.strptime()
-# and often triggers http://bugs.python.org/issue7980
-# its dues to our heavy threads usage, this is the workaround
-# to ensure the module is correctly loaded before we use really it.
-time.strptime("2016-02-19", "%Y-%m-%d")
-
-LOG = logging.getLogger(__name__)
 
 
 UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
@@ -55,13 +45,6 @@ class BeforeEpochError(Exception):
         self.timestamp = timestamp
         super(BeforeEpochError, self).__init__(
             "%s is before Epoch" % timestamp)
-
-
-class UnAggregableTimeseries(Exception):
-    """Error raised when timeseries cannot be aggregated."""
-    def __init__(self, reason):
-        self.reason = reason
-        super(UnAggregableTimeseries, self).__init__(reason)
 
 
 class UnknownAggregationMethod(Exception):
@@ -920,114 +903,6 @@ class AggregatedTimeSerie(TimeSerie):
                 t1 = time.time()
                 print("  resample(%s) speed: %.2f Hz"
                       % (agg, per_sec(t1, t0)))
-
-    @staticmethod
-    def aggregated(timeseries, aggregation, from_timestamp=None,
-                   to_timestamp=None, needed_percent_of_overlap=100.0,
-                   fill=None):
-
-        index = ['timestamp', 'granularity']
-        columns = ['timestamp', 'granularity', 'value']
-        dataframes = []
-
-        if not timeseries:
-            return []
-
-        for timeserie in timeseries:
-            timeserie_raw = list(timeserie.fetch(from_timestamp, to_timestamp))
-
-            if timeserie_raw:
-                dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
-                dataframe = dataframe.set_index(index)
-                dataframes.append(dataframe)
-
-        if not dataframes:
-            return []
-
-        number_of_distinct_datasource = len(timeseries) / len(
-            set(ts.sampling for ts in timeseries)
-        )
-
-        left_boundary_ts = None
-        right_boundary_ts = None
-        if fill is not None:
-            fill_df = pandas.concat(dataframes, axis=1)
-            if fill != 'null':
-                fill_df = fill_df.fillna(fill)
-            single_df = pandas.concat([series for __, series in
-                                       fill_df.iteritems()]).to_frame()
-            grouped = single_df.groupby(level=index)
-        else:
-            grouped = pandas.concat(dataframes).groupby(level=index)
-            maybe_next_timestamp_is_left_boundary = False
-
-            left_holes = 0
-            right_holes = 0
-            holes = 0
-            for (timestamp, __), group in grouped:
-                if group.count()['value'] != number_of_distinct_datasource:
-                    maybe_next_timestamp_is_left_boundary = True
-                    if left_boundary_ts is not None:
-                        right_holes += 1
-                    else:
-                        left_holes += 1
-                elif maybe_next_timestamp_is_left_boundary:
-                    left_boundary_ts = timestamp
-                    maybe_next_timestamp_is_left_boundary = False
-                else:
-                    right_boundary_ts = timestamp
-                    holes += right_holes
-                    right_holes = 0
-
-            if to_timestamp is not None:
-                holes += left_holes
-            if from_timestamp is not None:
-                holes += right_holes
-
-            if to_timestamp is not None or from_timestamp is not None:
-                maximum = len(grouped)
-                percent_of_overlap = (float(maximum - holes) * 100.0 /
-                                      float(maximum))
-                if percent_of_overlap < needed_percent_of_overlap:
-                    raise UnAggregableTimeseries(
-                        'Less than %f%% of datapoints overlap in this '
-                        'timespan (%.2f%%)' % (needed_percent_of_overlap,
-                                               percent_of_overlap))
-            if (needed_percent_of_overlap > 0 and
-                    (right_boundary_ts == left_boundary_ts or
-                     (right_boundary_ts is None
-                      and maybe_next_timestamp_is_left_boundary))):
-                LOG.debug("We didn't find points that overlap in those "
-                          "timeseries. "
-                          "right_boundary_ts=%(right_boundary_ts)s, "
-                          "left_boundary_ts=%(left_boundary_ts)s, "
-                          "groups=%(groups)s", {
-                              'right_boundary_ts': right_boundary_ts,
-                              'left_boundary_ts': left_boundary_ts,
-                              'groups': list(grouped)
-                          })
-                raise UnAggregableTimeseries('No overlap')
-
-        # NOTE(sileht): this call the aggregation method on already
-        # aggregated values, for some kind of aggregation this can
-        # result can looks weird, but this is the best we can do
-        # because we don't have anymore the raw datapoints in those case.
-        # FIXME(sileht): so should we bailout is case of stddev, percentile
-        # and median?
-        agg_timeserie = getattr(grouped, aggregation)()
-        agg_timeserie = agg_timeserie.dropna().reset_index()
-
-        if from_timestamp is None and left_boundary_ts:
-            agg_timeserie = agg_timeserie[
-                agg_timeserie['timestamp'] >= left_boundary_ts]
-        if to_timestamp is None and right_boundary_ts:
-            agg_timeserie = agg_timeserie[
-                agg_timeserie['timestamp'] <= right_boundary_ts]
-
-        points = agg_timeserie.sort_values(by=['granularity', 'timestamp'],
-                                           ascending=[0, 1])
-        return six.moves.zip(points.timestamp, points.granularity,
-                             points.value)
 
 
 if __name__ == '__main__':

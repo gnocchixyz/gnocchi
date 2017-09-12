@@ -31,7 +31,6 @@ from gnocchi.storage import s3
 from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
-from gnocchi import utils
 
 
 def datetime64(*args):
@@ -43,13 +42,6 @@ class TestStorageDriver(tests_base.TestCase):
         super(TestStorageDriver, self).setUp()
         # A lot of tests wants a metric, create one
         self.metric, __ = self._create_metric()
-
-    def _create_metric(self, archive_policy_name="low"):
-        m = storage.Metric(uuid.uuid4(),
-                           self.archive_policies[archive_policy_name])
-        m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),
-                                         archive_policy_name)
-        return m, m_sql
 
     def test_driver_str(self):
         driver = storage.get_driver(self.conf)
@@ -67,12 +59,6 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual(str(driver), "%s: %s" % (
                          driver.__class__.__name__, s))
-
-    def trigger_processing(self, metrics=None):
-        if metrics is None:
-            metrics = [str(self.metric.id)]
-        self.storage.process_background_tasks(
-            self.index, self.incoming, metrics, sync=True)
 
     def test_get_driver(self):
         driver = storage.get_driver(self.conf)
@@ -840,14 +826,6 @@ class TestStorageDriver(tests_base.TestCase):
                           self.metric,
                           granularity=numpy.timedelta64(42, 's'))
 
-    def test_get_cross_metric_measures_unknown_metric(self):
-        self.assertEqual([],
-                         self.storage.get_cross_metric_measures(
-                             [storage.Metric(uuid.uuid4(),
-                                             self.archive_policies['low']),
-                              storage.Metric(uuid.uuid4(),
-                                             self.archive_policies['low'])]))
-
     def test_get_measure_unknown_aggregation(self):
         self.incoming.add_measures(self.metric, [
             storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -858,205 +836,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertRaises(storage.AggregationDoesNotExist,
                           self.storage.get_measures,
                           self.metric, aggregation='last')
-
-    def test_get_cross_metric_measures_unknown_aggregation(self):
-        metric2 = storage.Metric(uuid.uuid4(),
-                                 self.archive_policies['low'])
-        self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.assertRaises(storage.AggregationDoesNotExist,
-                          self.storage.get_cross_metric_measures,
-                          [self.metric, metric2],
-                          aggregation='last')
-
-    def test_get_cross_metric_measures_unknown_granularity(self):
-        metric2 = storage.Metric(uuid.uuid4(),
-                                 self.archive_policies['low'])
-        self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.assertRaises(storage.GranularityDoesNotExist,
-                          self.storage.get_cross_metric_measures,
-                          [self.metric, metric2],
-                          granularity=numpy.timedelta64(12345456, 'ms'))
-
-    def test_add_and_get_cross_metric_measures_different_archives(self):
-        metric2 = storage.Metric(uuid.uuid4(),
-                                 self.archive_policies['no_granularity_match'])
-        self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-
-        self.assertRaises(storage.MetricUnaggregatable,
-                          self.storage.get_cross_metric_measures,
-                          [self.metric, metric2])
-
-    def test_add_and_get_cross_metric_measures(self):
-        metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
-        ])
-        self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 41), 2),
-            storage.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 13, 10), 4),
-        ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
-
-        values = self.storage.get_cross_metric_measures([self.metric, metric2])
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
-             numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
-             numpy.timedelta64(5, 'm'), 12.5),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
-             numpy.timedelta64(5, 'm'), 24.0)
-        ], values)
-
-        values = self.storage.get_cross_metric_measures([self.metric, metric2],
-                                                        reaggregation='max')
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
-             numpy.timedelta64(1, 'D'), 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(1, 'h'), 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 69),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
-             numpy.timedelta64(5, 'm'), 23),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
-             numpy.timedelta64(5, 'm'), 44)
-        ], values)
-
-        values = self.storage.get_cross_metric_measures(
-            [self.metric, metric2],
-            from_timestamp=datetime64(2014, 1, 1, 12, 10, 0))
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
-             numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12),
-             numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
-             numpy.timedelta64(5, 'm'), 24.0),
-        ], values)
-
-        values = self.storage.get_cross_metric_measures(
-            [self.metric, metric2],
-            to_timestamp=datetime64(2014, 1, 1, 12, 5, 0))
-
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
-             numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 39.0),
-        ], values)
-
-        values = self.storage.get_cross_metric_measures(
-            [self.metric, metric2],
-            from_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
-            to_timestamp=datetime64(2014, 1, 1, 12, 10, 10))
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
-             numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12),
-             numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10),
-             numpy.timedelta64(5, 'm'), 24.0),
-        ], values)
-
-        values = self.storage.get_cross_metric_measures(
-            [self.metric, metric2],
-            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1))
-
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
-             numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 39.0),
-        ], values)
-
-        values = self.storage.get_cross_metric_measures(
-            [self.metric, metric2],
-            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1),
-            granularity=numpy.timedelta64(5, 'm'))
-
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 39.0),
-        ], values)
-
-    def test_add_and_get_cross_metric_measures_with_holes(self):
-        metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 5, 31), 8),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 42),
-        ])
-        self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 2),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
-            storage.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
-        ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
-
-        values = self.storage.get_cross_metric_measures([self.metric, metric2])
-        self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
-             numpy.timedelta64(1, 'D'), 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(1, 'h'), 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
-             numpy.timedelta64(5, 'm'), 11.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
-             numpy.timedelta64(5, 'm'), 22.0)
-        ], values)
 
     def test_search_value(self):
         metric2, __ = self._create_metric()

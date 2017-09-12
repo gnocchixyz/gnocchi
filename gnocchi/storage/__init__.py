@@ -21,7 +21,6 @@ import operator
 
 from concurrent import futures
 import daiquiri
-import iso8601
 import numpy
 from oslo_config import cfg
 import six
@@ -128,17 +127,6 @@ class MetricAlreadyExists(StorageError):
         self.metric = metric
         super(MetricAlreadyExists, self).__init__(
             "Metric %s already exists" % metric)
-
-
-class MetricUnaggregatable(StorageError):
-    """Error raised when metrics can't be aggregated."""
-
-    def __init__(self, metrics, reason):
-        self.metrics = metrics
-        self.reason = reason
-        super(MetricUnaggregatable, self).__init__(
-            "Metrics %s can't be aggregated: %s"
-            % (", ".join((str(m.id) for m in metrics)), reason))
 
 
 class LockedMetric(StorageError):
@@ -642,73 +630,6 @@ class StorageDriver(object):
                   metric.id, len(measures), elapsed, perf)
 
         self._store_unaggregated_timeserie(metric, ts.serialize())
-
-    def get_cross_metric_measures(self, metrics, from_timestamp=None,
-                                  to_timestamp=None, aggregation='mean',
-                                  reaggregation=None,
-                                  granularity=None, needed_overlap=100.0,
-                                  fill=None, transform=None):
-        """Get aggregated measures of multiple entities.
-
-        :param entities: The entities measured to aggregate.
-        :param from timestamp: The timestamp to get the measure from.
-        :param to timestamp: The timestamp to get the measure to.
-        :param granularity: The granularity to retrieve.
-        :param aggregation: The type of aggregation to retrieve.
-        :param reaggregation: The type of aggregation to compute
-                              on the retrieved measures.
-        :param fill: The value to use to fill in missing data in series.
-        :param transform: List of transformation to apply to the series
-        """
-        for metric in metrics:
-            if aggregation not in metric.archive_policy.aggregation_methods:
-                raise AggregationDoesNotExist(metric, aggregation)
-            if granularity is not None:
-                for d in metric.archive_policy.definition:
-                    if d.granularity == granularity:
-                        break
-                else:
-                    raise GranularityDoesNotExist(metric, granularity)
-
-        if reaggregation is None:
-            reaggregation = aggregation
-
-        if granularity is None:
-            granularities = (
-                definition.granularity
-                for metric in metrics
-                for definition in metric.archive_policy.definition
-            )
-            granularities_in_common = [
-                g
-                for g, occurrence in six.iteritems(
-                    collections.Counter(granularities))
-                if occurrence == len(metrics)
-            ]
-
-            if not granularities_in_common:
-                raise MetricUnaggregatable(
-                    metrics, 'No granularity match')
-        else:
-            granularities_in_common = [granularity]
-
-        tss = self._map_in_thread(self._get_measures_timeserie,
-                                  [(metric, aggregation, g,
-                                    from_timestamp, to_timestamp)
-                                   for metric in metrics
-                                   for g in granularities_in_common])
-
-        if transform is not None:
-            tss = list(map(lambda ts: ts.transform(transform), tss))
-
-        try:
-            return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
-                    for timestamp, r, v
-                    in carbonara.AggregatedTimeSerie.aggregated(
-                        tss, reaggregation, from_timestamp, to_timestamp,
-                        needed_overlap, fill)]
-        except carbonara.UnAggregableTimeseries as e:
-            raise MetricUnaggregatable(metrics, e.reason)
 
     def _find_measure(self, metric, aggregation, granularity, predicate,
                       from_timestamp, to_timestamp):
