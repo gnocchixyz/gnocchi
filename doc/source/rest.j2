@@ -5,10 +5,12 @@
 Authentication
 ==============
 
-By default, the authentication is configured to the "basic" mode. You need to
+By default, the authentication is configured to the `"basic" mode`_. You need to
 provide an `Authorization` header in your HTTP requests with a valid username
 (the password is not used). The "admin" username is granted all privileges,
 whereas any other username is recognize as having standard permissions.
+
+.. _"basic" mode: https://tools.ietf.org/html/rfc7617
 
 You can customize permissions by specifying a different `policy_file` than the
 default one.
