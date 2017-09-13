@@ -125,6 +125,7 @@ values are sent, the maximum pessimistic storage size is taken into account.
   * maximum estimated size per metric: 1 057 KiB
 
 - bool
+
   * 1 second granularity over 1 year
   * aggregation methods used: *last*
   * maximum optimistic size per metric: 1 539 KiB
