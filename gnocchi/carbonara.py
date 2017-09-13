@@ -26,6 +26,7 @@ import struct
 import time
 
 import lz4.block
+import numexpr
 import numpy
 import numpy.lib.recfunctions
 from scipy import ndimage
@@ -554,7 +555,13 @@ class AggregatedTimeSerie(TimeSerie):
         sampling = self.sampling
 
         for trans in transform:
-            if trans.method == "absolute":
+            if trans.method == "math":
+                # NOTE(sileht): We pass v into both dict to ensure evaluator
+                # don't use locals() and globals()
+                values = numexpr.evaluate(trans.args[0],
+                                          local_dict={"v": values},
+                                          global_dict={"v": values})
+            elif trans.method == "absolute":
                 values = numpy.abs(values)
 
             elif trans.method == "negative":
