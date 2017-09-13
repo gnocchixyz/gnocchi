@@ -99,28 +99,37 @@ class ScenarioList(list):
 
 
 multiversion_hack = """
+import shutil
 import subprocess
 import sys
 import os
 
+local_branch_path = os.getcwd()
 srcdir = os.path.join("%s", "..", "..")
 os.chdir(srcdir)
 sys.path.insert(0, srcdir)
 
 version = sys.argv[1]
 
-# NOTE(sileht): We delete releasenotes from old documentation
-# only master will have it.
-if os.path.exists("doc/source/releasenotes/index.rst.backup"):
-    os.remove("doc/source/releasenotes/index.rst")
-    os.rename("doc/source/releasenotes/index.rst.backup",
-        "doc/source/releasenotes/index.rst")
+if version not in ["<local>", "master"]:
+    # NOTE(sileht): Update _static files (mainly logos)
+    if not os.path.exists("doc/source/_static"):
+        os.makedirs("doc/source/_static")
+    for f in ("doc/source/_static/gnocchi-icon.ico",
+              "doc/source/_static/gnocchi-logo.png"):
+        if os.path.exists(f):
+            os.remove(f)
+        shutil.copy(local_branch_path + "/" + f, f)
 
-if version not in ["<local>", "master"] and os.path.exists("releasenotes"):
-    os.rename("doc/source/releasenotes/index.rst",
-        "doc/source/releasenotes/index.rst.backup")
-    with open("doc/source/releasenotes/index.rst", "w") as f:
-        f.write(\"\"\"
+    # NOTE(sileht): We delete releasenotes from old documentation
+    # only master will have it.
+    if (os.path.exists("releasenotes")
+            and os.path.exists("doc/source/releasenotes/unreleased.rst")):
+        shutil.rmtree("releasenotes")
+        shutil.move("doc/source/releasenotes", "backup")
+        os.makedirs("doc/source/releasenotes")
+        with open("doc/source/releasenotes/index.rst", "w") as f:
+            f.write(\"\"\"
 Release Notes
 =============
 
@@ -132,6 +141,16 @@ Releases notes can be found `here </releasenotes/index.html>`_
 
 
 \"\"\")
+
+
+
+# NOTE(sileht): entry_points have old and new location mixed,
+# We create symlink to fool pkg_resource so it will find them even
+# if the new location is here.
+try:
+    os.symlink("storage/incoming", "gnocchi/incoming")
+except OSError:
+    pass
 
 class FakeApp(object):
     def info(self, *args, **kwasrgs):
