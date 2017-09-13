@@ -18,7 +18,6 @@ import pkg_resources
 import uuid
 
 import daiquiri
-from oslo_config import cfg
 from oslo_middleware import cors
 from oslo_policy import policy
 from paste import deploy
@@ -35,16 +34,6 @@ from gnocchi import storage as gnocchi_storage
 
 
 LOG = daiquiri.getLogger(__name__)
-
-
-API_OPTS = (
-    cfg.HostAddressOpt('host',
-                       default="0.0.0.0",
-                       help="Host to listen on"),
-    cfg.PortOpt('port',
-                default=8041,
-                help="Port to listen on"),
-)
 
 
 # Register our encoder by default for everything

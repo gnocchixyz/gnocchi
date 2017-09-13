@@ -508,8 +508,11 @@ class MetricsController(rest.RestController):
             metric_id = uuid.UUID(id)
         except ValueError:
             abort(404, indexer.NoSuchMetric(id))
+
+        # NOTE(sileht): Don't get detail for measure
+        details = len(remainder) == 0
         metrics = pecan.request.indexer.list_metrics(
-            id=metric_id, details=True)
+            id=metric_id, details=details)
         if not metrics:
             abort(404, indexer.NoSuchMetric(id))
         return MetricController(metrics[0]), remainder
@@ -653,7 +656,9 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        details = True if pecan.request.method == 'GET' else False
+        # NOTE(sileht): We want detail only when we GET /metric/<id>
+        # and not for /metric/<id>/measures
+        details = pecan.request.method == 'GET' and len(remainder) == 0
         m = pecan.request.indexer.list_metrics(details=details,
                                                name=name,
                                                resource_id=self.resource_id)
