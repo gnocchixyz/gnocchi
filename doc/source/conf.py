@@ -187,11 +187,10 @@ scv_whitelist_tags = ("^$",)
 
 here = os.path.dirname(os.path.realpath(__file__))
 html_static_path_abs = ",".join([os.path.join(here, p) for p in html_static_path])
-# NOTE(sileht): Override some conf for old version. Also, warning as error have
-# been enable in version > 3.1. so we can remove all of this when we don't
-# publish version <= 3.1.X anymore
+# NOTE(sileht): Override some conf for old version.
 scv_overflow = ("-D", "html_theme=sphinx_rtd_theme",
                 "-D", "html_theme_options.logo_only=True",
-                "-D", "html_logo=gnocchi-logo.png",
-                "-D", "html_favicon=gnocchi-icon.ico",
-                "-D", "html_static_path=%s" % html_static_path_abs)
+                "-D", "html_logo=_static/gnocchi-logo.png",
+                "-D", "html_favicon=_static/gnocchi-icon.ico",
+                "-D", "html_static_path=%s" % html_static_path_abs,
+                "-W")
