@@ -39,6 +39,7 @@ def get_connection(conf):
         os_options['region_name'] = conf.swift_region
 
     return swclient.Connection(
+        preauthurl=conf.swift_url,
         auth_version=conf.swift_auth_version,
         authurl=conf.swift_authurl,
         preauthtoken=conf.swift_preauthtoken,

@@ -618,6 +618,7 @@ class MetricsController(rest.RestController):
                 pecan.request)
             if provided_creator and creator != provided_creator:
                 abort(403, "Insufficient privileges to filter by user/project")
+            provided_creator = creator
         attr_filter = {}
         if provided_creator is not None:
             attr_filter['creator'] = provided_creator
