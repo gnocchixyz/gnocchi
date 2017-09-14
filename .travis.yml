@@ -38,6 +38,12 @@ install:
 script:
   - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
+# Build only tags (for releases)
+branches:
+  except:
+  - master
+  - stable/*
+
 notifications:
   email: false
   irc:
