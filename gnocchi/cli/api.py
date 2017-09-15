@@ -1,0 +1,81 @@
+# Copyright (c) 2013 Mirantis Inc.
+# Copyright (c) 2015-2017 Red Hat
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import copy
+from distutils import spawn
+import math
+import os
+import sys
+
+import daiquiri
+from oslo_config import cfg
+
+from gnocchi import opts
+from gnocchi import service
+from gnocchi import utils
+
+
+LOG = daiquiri.getLogger(__name__)
+
+
+def api():
+    # Compat with previous pbr script
+    try:
+        double_dash = sys.argv.index("--")
+    except ValueError:
+        double_dash = None
+    else:
+        sys.argv.pop(double_dash)
+
+    conf = cfg.ConfigOpts()
+    for opt in opts.API_OPTS:
+        # NOTE(jd) Register the API options without a default, so they are only
+        # used to override the one in the config file
+        c = copy.copy(opt)
+        c.default = None
+        conf.register_cli_opt(c)
+    conf = service.prepare_service(conf=conf)
+
+    if double_dash is not None:
+        # NOTE(jd) Wait to this stage to log so we're sure the logging system
+        # is in place
+        LOG.warning(
+            "No need to pass `--' in gnocchi-api command line anymore, "
+            "please remove")
+
+    uwsgi = spawn.find_executable("uwsgi")
+    if not uwsgi:
+        LOG.error("Unable to find `uwsgi'.\n"
+                  "Be sure it is installed and in $PATH.")
+        return 1
+
+    workers = utils.get_default_workers()
+
+    return os.execl(
+        uwsgi, uwsgi,
+        "--http", "%s:%d" % (conf.host or conf.api.host,
+                             conf.port or conf.api.port),
+        "--master",
+        "--enable-threads",
+        "--die-on-term",
+        # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
+        "--add-header", "Connection: close",
+        "--processes", str(math.floor(workers * 1.5)),
+        "--threads", str(workers),
+        "--lazy-apps",
+        "--chdir", "/",
+        "--wsgi", "gnocchi.rest.wsgi",
+        "--pyargv", " ".join(sys.argv[1:]),
+    )
