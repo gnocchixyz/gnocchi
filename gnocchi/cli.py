@@ -83,6 +83,7 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown = threading.Event()
         self._shutdown_done = threading.Event()
 
+    @utils.retry
     def _configure(self):
         self.store = storage.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
