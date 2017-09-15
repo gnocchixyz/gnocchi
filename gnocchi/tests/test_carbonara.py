@@ -310,6 +310,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(1, len(ts))
         self.assertEqual(6, ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
+    def test_unknown_transform(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime64(2014, 1, 1, 12, 0, 0), -3),
+             (datetime64(2014, 1, 1, 12, 1, 0), 5),
+             (datetime64(2014, 1, 1, 12, 2, 0), -6)])
+        ts = carbonara.AggregatedTimeSerie.from_timeseries(
+            [ts], sampling=60, aggregation_method="last")
+        self.assertRaises(carbonara.TransformError, ts.transform,
+                          [carbonara.Transformation("rubbish", tuple())])
+
     def _do_test_aggregation(self, name, v1, v2):
         ts = carbonara.TimeSerie.from_tuples(
             [(datetime64(2014, 1, 1, 12, 0, 0), 3),
