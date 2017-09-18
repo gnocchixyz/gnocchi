@@ -21,6 +21,7 @@ import sys
 
 import daiquiri
 from oslo_config import cfg
+from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
 from gnocchi import service
@@ -28,6 +29,23 @@ from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
+
+
+def prepare_service(conf=None):
+    if conf is None:
+        conf = cfg.ConfigOpts()
+
+    opts.set_defaults()
+    policy_opts.set_defaults(conf)
+    conf = service.prepare_service(conf=conf)
+    cfg_path = conf.oslo_policy.policy_file
+    if not os.path.isabs(cfg_path):
+        cfg_path = conf.find_file(cfg_path)
+    if cfg_path is None or not os.path.exists(cfg_path):
+        cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                   '..', 'rest', 'policy.json'))
+    conf.set_default('policy_file', cfg_path, group='oslo_policy')
+    return conf
 
 
 def api():
@@ -46,7 +64,7 @@ def api():
         c = copy.copy(opt)
         c.default = None
         conf.register_cli_opt(c)
-    conf = service.prepare_service(conf=conf)
+    conf = prepare_service(conf)
 
     if double_dash is not None:
         # NOTE(jd) Wait to this stage to log so we're sure the logging system
