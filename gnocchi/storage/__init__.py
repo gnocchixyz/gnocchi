@@ -50,9 +50,6 @@ _CARBONARA_OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
-Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
-
-
 class Metric(object):
     def __init__(self, id, archive_policy,
                  creator=None,

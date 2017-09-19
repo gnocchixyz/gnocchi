@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 from concurrent import futures
 
 import daiquiri
@@ -27,6 +28,9 @@ from gnocchi import utils
 LOG = daiquiri.getLogger(__name__)
 
 _NUM_WORKERS = utils.get_default_workers()
+
+
+Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
 class ReportGenerationError(Exception):

@@ -422,7 +422,7 @@ def MeasuresListSchema(measures):
     except Exception:
         abort(400, "Invalid input for a value")
 
-    return (storage.Measure(t, v) for t, v in six.moves.zip(
+    return (incoming.Measure(t, v) for t, v in six.moves.zip(
         times.tolist(), values))
 
 

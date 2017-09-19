@@ -59,7 +59,7 @@ class TestIncomingDriver(tests_base.TestCase):
             # NOTE(jd) Retry to send measures. It cannot be done only once as
             # there might be a race condition between the threads
             self.incoming.add_measures(self.metric, [
-                storage.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
+                incoming.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
             ])
         else:
             self.fail("Notification for metric not received")
