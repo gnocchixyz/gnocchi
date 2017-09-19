@@ -20,6 +20,7 @@ import uuid
 import numpy
 
 from gnocchi import carbonara
+from gnocchi import incoming
 from gnocchi.rest import cross_metric
 from gnocchi import storage
 from gnocchi.tests import base
@@ -758,16 +759,16 @@ class CrossMetricAggregated(base.TestCase):
         metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.assertRaises(storage.AggregationDoesNotExist,
                           cross_metric.get_cross_metric_measures,
@@ -779,16 +780,16 @@ class CrossMetricAggregated(base.TestCase):
         metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.assertRaises(storage.GranularityDoesNotExist,
                           cross_metric.get_cross_metric_measures,
@@ -800,16 +801,16 @@ class CrossMetricAggregated(base.TestCase):
         metric2 = storage.Metric(uuid.uuid4(),
                                  self.archive_policies['no_granularity_match'])
         self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
 
         self.assertRaises(cross_metric.MetricUnaggregatable,
@@ -820,16 +821,16 @@ class CrossMetricAggregated(base.TestCase):
     def test_add_and_get_cross_metric_measures(self):
         metric2, __ = self._create_metric()
         self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
         self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 41), 2),
-            storage.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 13, 10), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 4),
         ])
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
@@ -929,17 +930,17 @@ class CrossMetricAggregated(base.TestCase):
     def test_add_and_get_cross_metric_measures_with_holes(self):
         metric2, __ = self._create_metric()
         self.incoming.add_measures(self.metric, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
-            storage.Measure(datetime64(2014, 1, 1, 12, 5, 31), 8),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
-            storage.Measure(datetime64(2014, 1, 1, 12, 12, 45), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 5, 31), 8),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 42),
         ])
         self.incoming.add_measures(metric2, [
-            storage.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
-            storage.Measure(datetime64(2014, 1, 1, 12, 7, 31), 2),
-            storage.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
-            storage.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
         ])
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 

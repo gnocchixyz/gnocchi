@@ -21,6 +21,7 @@ from stevedore import extension
 
 from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
+from gnocchi import incoming
 from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
@@ -44,7 +45,7 @@ class TestAggregates(tests_base.TestCase):
             uuid.uuid4(), self.archive_policies['medium'])
         start_time = utils.datetime_utc(2014, 1, 1, 12)
         incr = datetime.timedelta(seconds=spacing)
-        measures = [storage.Measure(
+        measures = [incoming.Measure(
             utils.dt_in_unix_ns(start_time + incr * n), val)
             for n, val in enumerate(data)]
         self.index.create_metric(metric.id, str(uuid.uuid4()), 'medium')
