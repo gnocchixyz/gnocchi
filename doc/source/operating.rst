@@ -135,7 +135,7 @@ How to plan for Gnocchi’s storage
 =================================
 
 Gnocchi uses a custom file format based on its library *Carbonara*. In Gnocchi,
-a time series is a collection of points, where a point is a given measure, or
+a time series is a collection of points, where a point is a given aggregate, or
 sample, in the lifespan of a time series. The storage format is compressed
 using various techniques, therefore the computing of a time series' size can be
 estimated based on its **worst** case scenario with the following formula::
@@ -170,7 +170,7 @@ maximize CPU utilisation when computing metric aggregation. You can use the
 metric processing. It’ll show you the number of metric to process, known as the
 processing backlog for `gnocchi-metricd`. As long as this backlog is not
 continuously increasing, that means that `gnocchi-metricd` is able to cope with
-the amount of metric that are being sent. In case this number of measure to
+the amount of metric that are being sent. In case this number of measures to
 process is continuously increasing, you will need to (maybe temporarily)
 increase the number of `gnocchi-metricd` daemons. You can run any number of
 metricd daemon on any number of servers.
