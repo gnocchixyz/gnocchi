@@ -601,6 +601,8 @@ class StorageDriver(object):
             new_first_block_timestamp = bound_timeserie.first_block_timestamp()
             computed_points['number'] = len(bound_timeserie)
             for d in definition:
+                LOG.critical("PRE DERIVE : %s/%s" % (
+                    tstamp, carbonara.round_timestamp(tstamp, d.granularity)))
                 ts = bound_timeserie.group_serie(
                     d.granularity, carbonara.round_timestamp(
                         tstamp, d.granularity))
