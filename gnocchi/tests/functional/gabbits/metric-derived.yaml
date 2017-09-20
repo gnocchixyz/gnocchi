@@ -20,6 +20,9 @@ tests:
               - rate:mean
               - rate:max
               - rate:95pct
+              - last
+              - first
+              - mean
               - max
           definition:
               - granularity: 1 minute
@@ -72,14 +75,35 @@ tests:
             value: 110
       status: 202
 
-    - name: get measurements rate:mean
-      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=rate:mean&refresh=true
+    - name: get measurements first
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=first&refresh=true
       status: 200
       response_json_paths:
           $:
-            - ['2015-03-06T14:34:00+00:00', 60.0, 2.0]
-            - ['2015-03-06T14:35:00+00:00', 60.0, 5.833333333333333]
-            - ['2015-03-06T14:36:00+00:00', 60.0, 9.166666666666666]
+            - ['2015-03-06T14:33:00+00:00', 60.0, 10.0]
+            - ['2015-03-06T14:34:00+00:00', 60.0, 13.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 22.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 62.0]
+
+    - name: get measurements mean
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=mean
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:33:00+00:00', 60.0, 10.0]
+            - ['2015-03-06T14:34:00+00:00', 60.0, 15.8]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 33.5]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 96.83333333333333]
+
+    - name: get measurements last
+      GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=last
+      status: 200
+      response_json_paths:
+          $:
+            - ['2015-03-06T14:33:00+00:00', 60.0, 10.0]
+            - ['2015-03-06T14:34:00+00:00', 60.0, 20.0]
+            - ['2015-03-06T14:35:00+00:00', 60.0, 55.0]
+            - ['2015-03-06T14:36:00+00:00', 60.0, 110.0]
 
     - name: get measurements rate:95pct
       GET: /v1/metric/$HISTORY['create valid metric'].$RESPONSE['id']/measures?aggregation=rate:95pct
