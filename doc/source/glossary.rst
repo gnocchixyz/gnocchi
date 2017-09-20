@@ -3,31 +3,42 @@ Glossary
 ========
 
 .. glossary::
+   :sorted:
 
    Resource
      An entity representing anything in your infrastructure that you will
-     associate metric(s) with. It is identified by a unique ID and can contain
-     attributes.
+     associate metric(s) with. It is identified by a unique ID and can
+     contain attributes.
 
    Metric
-     An entity storing measures identified by an UUID. It can be attached to a
-     resource using a name. How a metric stores its measure is defined by the
-     archive policy it is associated to.
+     An entity storing aggregates identified by an UUID. It can be attached
+     to a resource using a name. How a metric stores its aggregates is
+     defined by the archive policy it is associated to.
 
    Measure
-     A datapoint tuple composed of timestamp and a value.
+     An incoming datapoint tuple sent to Gnocchi by the api. It is composed
+     of a timestamp and a value.
 
    Archive policy
-     A measure storage policy attached to a metric. It determines how long
-     measures will be kept in a metric and how they will be aggregated.
+     A aggregate storage policy attached to a metric. It determines how long
+     aggregates will be kept in a metric and how they will be aggregated.
 
    Granularity
-     The time between two measures in an aggregated timeseries of a metric.
+     The time between two aggregates in an aggregated time series of a metric.
 
    Timeseries
-     A list of measures.
+     A list of aggregates ordered by time.
 
    Aggregation method
-     Function used to aggregate multiple measures in one. For example, the
-     `min` aggregation method will aggregate the values of different measures
-     to the minimum value of all the measures in time range.
+     Function used to aggregate multiple measures into an aggregate. For
+     example, the `min` aggregation method will aggregate the values of
+     different measures to the minimum value of all the measures in the time
+     range.
+
+   Aggregate
+     An datapoint tuple generated from several measures according to the
+     archive policy definition. It is composed of a timestamp and a value.
+  
+   Timespan
+     The time period for which a metric keeps its aggregates. It is used in
+     the context of archive policy.

@@ -27,7 +27,7 @@ storage driver) and one for indexing the data (the index driver).
 The *incoming* storage is responsible for storing new measures sent to metrics.
 It is by default – and usually – the same driver as the *storage* one.
 
-The *storage* is responsible for storing measures of created metrics. It
+The *storage* is responsible for storing aggregates of created metrics. It
 receives timestamps and values, and pre-computes aggregations according to the
 defined archive policies.
 

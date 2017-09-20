@@ -38,7 +38,7 @@ Why Gnocchi?
 
 Gnocchi has been created to fulfill the need of a time series database usable
 in the context of cloud computing: providing the ability to store large
-quantities of metrics. It has been designed to handle large amount of measures
+quantities of metrics. It has been designed to handle large amount of aggregates
 being stored, while being performant, scalable and fault-tolerant. While doing
 this, the goal was to be sure to not build any hard dependency on any complex
 storage system.
