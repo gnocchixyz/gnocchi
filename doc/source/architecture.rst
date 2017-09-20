@@ -11,10 +11,12 @@ computing, metric cleanup, etc...) on the received data in the background.
 Both the HTTP REST API and the asynchronous processing daemon are stateless and
 are scalable. Additional workers can be added depending on load.
 
-.. image:: architecture.png
+.. image:: architecture.svg
   :align: center
   :width: 80%
   :alt: Gnocchi architecture
+
+.. image source: https://docs.google.com/drawings/d/1aHV86TPNFt7FlCLEjsTvV9FWoFYxXCaQOzfg7NdXVwM/edit?usp=sharing
 
 
 Back-ends
@@ -27,7 +29,7 @@ storage driver) and one for indexing the data (the index driver).
 The *incoming* storage is responsible for storing new measures sent to metrics.
 It is by default – and usually – the same driver as the *storage* one.
 
-The *storage* is responsible for storing measures of created metrics. It
+The *storage* is responsible for storing aggregates of created metrics. It
 receives timestamps and values, and pre-computes aggregations according to the
 defined archive policies.
 
