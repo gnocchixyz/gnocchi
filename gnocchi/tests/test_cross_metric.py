@@ -21,6 +21,7 @@ import numpy
 
 from gnocchi import carbonara
 from gnocchi import incoming
+from gnocchi import indexer
 from gnocchi.rest import cross_metric
 from gnocchi import storage
 from gnocchi.tests import base
@@ -752,11 +753,11 @@ class CrossMetricAggregated(base.TestCase):
         self.assertRaises(
             cross_metric.MetricUnaggregatable,
             cross_metric.get_cross_metric_measures, self.storage,
-            [storage.Metric(uuid.uuid4(), self.archive_policies['low']),
-             storage.Metric(uuid.uuid4(), self.archive_policies['low'])])
+            [indexer.Metric(uuid.uuid4(), self.archive_policies['low']),
+             indexer.Metric(uuid.uuid4(), self.archive_policies['low'])])
 
     def test_get_cross_metric_measures_unknown_aggregation(self):
-        metric2 = storage.Metric(uuid.uuid4(),
+        metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.incoming.add_measures(self.metric, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -777,7 +778,7 @@ class CrossMetricAggregated(base.TestCase):
                           aggregation='last')
 
     def test_get_cross_metric_measures_unknown_granularity(self):
-        metric2 = storage.Metric(uuid.uuid4(),
+        metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
         self.incoming.add_measures(self.metric, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -798,7 +799,7 @@ class CrossMetricAggregated(base.TestCase):
                           granularity=numpy.timedelta64(12345456, 'ms'))
 
     def test_add_and_get_cross_metric_measures_different_archives(self):
-        metric2 = storage.Metric(uuid.uuid4(),
+        metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['no_granularity_match'])
         self.incoming.add_measures(self.metric, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
