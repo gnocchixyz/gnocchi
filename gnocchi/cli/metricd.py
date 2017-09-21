@@ -13,11 +13,6 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import copy
-from distutils import spawn
-import math
-import os
-import sys
 import threading
 import time
 
@@ -29,91 +24,14 @@ import six
 import tenacity
 import tooz
 
-from gnocchi import archive_policy
-from gnocchi import genconfig
 from gnocchi import incoming
 from gnocchi import indexer
-from gnocchi import opts
 from gnocchi import service
-from gnocchi import statsd as statsd_service
 from gnocchi import storage
 from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
-
-
-def config_generator():
-    return genconfig.prehook(None, sys.argv[1:])
-
-
-_SACK_NUMBER_OPT = cfg.IntOpt(
-    "sacks-number", min=1, max=65535, required=True,
-    help="Number of incoming storage sacks to create.")
-
-
-def upgrade():
-    conf = cfg.ConfigOpts()
-    sack_number_opt = copy.copy(_SACK_NUMBER_OPT)
-    sack_number_opt.default = 128
-    conf.register_cli_opts([
-        cfg.BoolOpt("skip-index", default=False,
-                    help="Skip index upgrade."),
-        cfg.BoolOpt("skip-storage", default=False,
-                    help="Skip storage upgrade."),
-        cfg.BoolOpt("skip-incoming", default=False,
-                    help="Skip incoming storage upgrade."),
-        cfg.BoolOpt("skip-archive-policies-creation", default=False,
-                    help="Skip default archive policies creation."),
-        sack_number_opt,
-    ])
-    conf = service.prepare_service(conf=conf, log_to_std=True)
-    if not conf.skip_index:
-        index = indexer.get_driver(conf)
-        LOG.info("Upgrading indexer %s", index)
-        index.upgrade()
-    if not conf.skip_storage:
-        s = storage.get_driver(conf)
-        LOG.info("Upgrading storage %s", s)
-        s.upgrade()
-    if not conf.skip_incoming:
-        i = incoming.get_driver(conf)
-        LOG.info("Upgrading incoming storage %s", i)
-        i.upgrade(conf.sacks_number)
-
-    if (not conf.skip_archive_policies_creation
-            and not index.list_archive_policies()
-            and not index.list_archive_policy_rules()):
-        if conf.skip_index:
-            index = indexer.get_driver(conf)
-        for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):
-            index.create_archive_policy(ap)
-        index.create_archive_policy_rule("default", "*", "low")
-
-
-def change_sack_size():
-    conf = cfg.ConfigOpts()
-    conf.register_cli_opts([_SACK_NUMBER_OPT])
-    conf = service.prepare_service(conf=conf, log_to_std=True)
-    s = incoming.get_driver(conf)
-    try:
-        report = s.measures_report(details=False)
-    except incoming.SackDetectionError:
-        # issue is already logged by NUM_SACKS, abort.
-        return
-    remainder = report['summary']['measures']
-    if remainder:
-        LOG.error('Cannot change sack when non-empty backlog. Process '
-                  'remaining %s measures and try again', remainder)
-        return
-    LOG.info("Changing sack size to: %s", conf.sacks_number)
-    old_num_sacks = s.get_storage_sacks()
-    s.set_storage_settings(conf.sacks_number)
-    s.remove_sack_group(old_num_sacks)
-
-
-def statsd():
-    statsd_service.start()
 
 
 # Retry with exponential backoff for up to 1 minute
@@ -321,57 +239,6 @@ def metricd_tester(conf):
     s.process_new_measures(
         index, inc,
         list(metrics)[:conf.stop_after_processing_metrics], True)
-
-
-def api():
-    # Compat with previous pbr script
-    try:
-        double_dash = sys.argv.index("--")
-    except ValueError:
-        double_dash = None
-    else:
-        sys.argv.pop(double_dash)
-
-    conf = cfg.ConfigOpts()
-    for opt in opts.API_OPTS:
-        # NOTE(jd) Register the API options without a default, so they are only
-        # used to override the one in the config file
-        c = copy.copy(opt)
-        c.default = None
-        conf.register_cli_opt(c)
-    conf = service.prepare_service(conf=conf)
-
-    if double_dash is not None:
-        # NOTE(jd) Wait to this stage to log so we're sure the logging system
-        # is in place
-        LOG.warning(
-            "No need to pass `--' in gnocchi-api command line anymore, "
-            "please remove")
-
-    uwsgi = spawn.find_executable("uwsgi")
-    if not uwsgi:
-        LOG.error("Unable to find `uwsgi'.\n"
-                  "Be sure it is installed and in $PATH.")
-        return 1
-
-    workers = utils.get_default_workers()
-
-    return os.execl(
-        uwsgi, uwsgi,
-        "--http", "%s:%d" % (conf.host or conf.api.host,
-                             conf.port or conf.api.port),
-        "--master",
-        "--enable-threads",
-        "--die-on-term",
-        # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
-        "--add-header", "Connection: close",
-        "--processes", str(math.floor(workers * 1.5)),
-        "--threads", str(workers),
-        "--lazy-apps",
-        "--chdir", "/",
-        "--wsgi", "gnocchi.rest.wsgi",
-        "--pyargv", " ".join(sys.argv[1:]),
-    )
 
 
 def metricd():

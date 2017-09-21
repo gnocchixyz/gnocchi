@@ -24,7 +24,7 @@ env:
 
 before_script:
   # Travis We need to fetch all tags/branches for documentation target
-  - case $TARGET in
+  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && case $TARGET in
       docs*)
         git config --get-all remote.origin.fetch;
         git config --unset-all remote.origin.fetch;
@@ -34,9 +34,9 @@ before_script:
         ;;
     esac
 install:
-  - docker pull gnocchixyz/ci-tools:latest
+  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && docker pull gnocchixyz/ci-tools:latest
 script:
-  - docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
+  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
 
 notifications:
   email: false
