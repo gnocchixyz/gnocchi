@@ -44,14 +44,10 @@ class S3Storage(incoming.IncomingDriver):
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._bucket_name_measures)
 
-    def get_storage_sacks(self):
-        try:
-            response = self.s3.get_object(Bucket=self._bucket_name_measures,
-                                          Key=self.CFG_PREFIX)
-            return json.loads(response['Body'].read().decode())[self.CFG_SACKS]
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error'].get('Code') == "NoSuchKey":
-                return
+    def _get_storage_sacks(self):
+        response = self.s3.get_object(Bucket=self._bucket_name_measures,
+                                      Key=self.CFG_PREFIX)
+        return json.loads(response['Body'].read().decode())[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
         data = {self.CFG_SACKS: num_sacks}

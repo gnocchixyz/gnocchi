@@ -30,7 +30,7 @@ class RedisStorage(incoming.IncomingDriver):
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)
 
-    def get_storage_sacks(self):
+    def _get_storage_sacks(self):
         return self._client.hget(self.CFG_PREFIX, self.CFG_SACKS)
 
     def set_storage_settings(self, num_sacks):

@@ -40,15 +40,10 @@ class FileStorage(incoming.IncomingDriver):
         super(FileStorage, self).upgrade(num_sacks)
         utils.ensure_paths([self.basepath_tmp])
 
-    def get_storage_sacks(self):
-        try:
-            with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX),
-                      'r') as f:
-                return json.load(f)[self.CFG_SACKS]
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                return
-            raise
+    def _get_storage_sacks(self):
+        with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX),
+                  'r') as f:
+            return json.load(f)[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
         data = {self.CFG_SACKS: num_sacks}

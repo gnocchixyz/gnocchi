@@ -47,7 +47,7 @@ class IncomingDriver(object):
     def NUM_SACKS(self):
         if not hasattr(self, '_num_sacks'):
             try:
-                self._num_sacks = int(self.get_storage_sacks())
+                self._num_sacks = int(self._get_storage_sacks())
             except Exception as e:
                 LOG.error('Unable to detect the number of storage sacks. '
                           'Ensure gnocchi-upgrade has been executed: %s', e)
@@ -63,7 +63,9 @@ class IncomingDriver(object):
         return self.SACK_PREFIX + str(sacks) + '-%s'
 
     def upgrade(self, num_sacks):
-        if not self.get_storage_sacks():
+        try:
+            self.NUM_SACKS
+        except SackDetectionError:
             self.set_storage_settings(num_sacks)
 
     @staticmethod

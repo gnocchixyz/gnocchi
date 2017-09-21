@@ -62,12 +62,9 @@ class CephStorage(incoming.IncomingDriver):
         ceph.close_rados_connection(self.rados, self.ioctx)
         super(CephStorage, self).stop()
 
-    def get_storage_sacks(self):
-        try:
-            return json.loads(
-                self.ioctx.read(self.CFG_PREFIX).decode())[self.CFG_SACKS]
-        except rados.ObjectNotFound:
-            return
+    def _get_storage_sacks(self):
+        return json.loads(
+            self.ioctx.read(self.CFG_PREFIX).decode())[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
         self.ioctx.write_full(self.CFG_PREFIX,
