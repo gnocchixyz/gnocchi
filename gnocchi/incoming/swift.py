@@ -34,13 +34,9 @@ class SwiftStorage(incoming.IncomingDriver):
     def __str__(self):
         return self.__class__.__name__
 
-    def get_storage_sacks(self):
-        try:
-            __, data = self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)
-            return json.loads(data)[self.CFG_SACKS]
-        except swclient.ClientException as e:
-            if e.http_status == 404:
-                return
+    def _get_storage_sacks(self):
+        __, data = self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)
+        return json.loads(data)[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
         self.swift.put_container(self.CFG_PREFIX)

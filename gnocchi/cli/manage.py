@@ -95,6 +95,6 @@ def change_sack_size():
                   'remaining %s measures and try again', remainder)
         return
     LOG.info("Changing sack size to: %s", conf.sacks_number)
-    old_num_sacks = s.get_storage_sacks()
+    old_num_sacks = s.NUM_SACKS
     s.set_storage_settings(conf.sacks_number)
     s.remove_sack_group(old_num_sacks)
