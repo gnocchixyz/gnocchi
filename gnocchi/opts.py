@@ -18,7 +18,6 @@ import pkg_resources
 import uuid
 
 from oslo_config import cfg
-from oslo_middleware import cors
 
 import gnocchi.archive_policy
 import gnocchi.indexer
@@ -196,6 +195,7 @@ def list_opts():
 
 
 def set_defaults():
+    from oslo_middleware import cors
     cfg.set_defaults(cors.CORS_OPTS,
                      allow_headers=[
                          'Authorization',

@@ -17,6 +17,6 @@ if __name__ == '__main__':
     from gnocchi.cli import api
     sys.exit(api.api())
 else:
+    from gnocchi.cli import api
     from gnocchi.rest import app
-    from gnocchi import service
-    application = app.load_app(service.prepare_service())
+    application = app.load_app(api.prepare_service())

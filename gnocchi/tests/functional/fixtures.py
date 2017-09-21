@@ -80,7 +80,7 @@ class ConfigFixture(fixture.GabbiFixture):
             dcf = None
         else:
             dcf = []
-        conf = service.prepare_service([],
+        conf = service.prepare_service([], conf=utils.prepare_conf(),
                                        default_config_files=dcf)
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
             daiquiri.setup(outputs=[])
