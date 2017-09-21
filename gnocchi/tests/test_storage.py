@@ -300,7 +300,7 @@ class TestStorageDriver(tests_base.TestCase):
         apname = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
         self.index.create_archive_policy(ap)
-        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.metric = indexer.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
                                  apname)
 
@@ -421,7 +421,7 @@ class TestStorageDriver(tests_base.TestCase):
         apname = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
         self.index.create_archive_policy(ap)
-        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.metric = indexer.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
                                  apname)
 
@@ -542,7 +542,7 @@ class TestStorageDriver(tests_base.TestCase):
         apname = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
         self.index.create_archive_policy(ap)
-        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.metric = indexer.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
                                  apname)
 
@@ -627,7 +627,7 @@ class TestStorageDriver(tests_base.TestCase):
         apname = str(uuid.uuid4())
         ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60)])
         self.index.create_archive_policy(ap)
-        self.metric = storage.Metric(uuid.uuid4(), ap)
+        self.metric = indexer.Metric(uuid.uuid4(), ap)
         self.index.create_metric(self.metric.id, str(uuid.uuid4()),
                                  apname)
 

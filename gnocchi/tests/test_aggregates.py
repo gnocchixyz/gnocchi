@@ -22,7 +22,7 @@ from stevedore import extension
 from gnocchi import aggregates
 from gnocchi.aggregates import moving_stats
 from gnocchi import incoming
-from gnocchi import storage
+from gnocchi import indexer
 from gnocchi.tests import base as tests_base
 from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
@@ -41,7 +41,7 @@ class TestAggregates(tests_base.TestCase):
                               moving_stats.MovingAverage)
 
     def _test_create_metric_and_data(self, data, spacing):
-        metric = storage.Metric(
+        metric = indexer.Metric(
             uuid.uuid4(), self.archive_policies['medium'])
         start_time = utils.datetime_utc(2014, 1, 1, 12)
         incr = datetime.timedelta(seconds=spacing)

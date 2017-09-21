@@ -70,6 +70,32 @@ class Resource(object):
                                            tzinfo=iso8601.iso8601.UTC)
 
 
+class Metric(object):
+    def __init__(self, id, archive_policy, creator=None,
+                 name=None, resource_id=None):
+        self.id = id
+        self.archive_policy = archive_policy
+        self.creator = creator
+        self.name = name
+        self.resource_id = resource_id
+
+    def __repr__(self):
+        return '<%s %s>' % (self.__class__.__name__, self.id)
+
+    def __str__(self):
+        return str(self.id)
+
+    def __eq__(self, other):
+        return (isinstance(other, Metric)
+                and self.id == other.id
+                and self.archive_policy == other.archive_policy
+                and self.creator == other.creator
+                and self.name == other.name
+                and self.resource_id == other.resource_id)
+
+    __hash__ = object.__hash__
+
+
 def get_driver(conf):
     """Return the configured driver."""
     split = parse.urlsplit(conf.indexer.url)

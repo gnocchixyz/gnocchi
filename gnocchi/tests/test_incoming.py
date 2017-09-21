@@ -19,7 +19,7 @@ import uuid
 import numpy
 
 from gnocchi import incoming
-from gnocchi import storage
+from gnocchi import indexer
 from gnocchi.tests import base as tests_base
 
 
@@ -27,7 +27,7 @@ class TestIncomingDriver(tests_base.TestCase):
     def setUp(self):
         super(TestIncomingDriver, self).setUp()
         # A lot of tests wants a metric, create one
-        self.metric = storage.Metric(
+        self.metric = indexer.Metric(
             uuid.uuid4(),
             self.archive_policies["low"])
 

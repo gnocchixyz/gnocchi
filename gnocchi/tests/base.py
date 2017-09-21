@@ -376,7 +376,7 @@ class TestCase(BaseTestCase):
 
     def _create_metric(self, archive_policy_name="low"):
         """Create a metric and return it"""
-        m = storage.Metric(uuid.uuid4(),
+        m = indexer.Metric(uuid.uuid4(),
                            self.archive_policies[archive_policy_name])
         m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),
                                          archive_policy_name)
