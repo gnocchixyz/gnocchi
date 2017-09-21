@@ -5,7 +5,7 @@ Grafana support
 `Grafana`_ has support for Gnocchi through a plugin. It can be installed with
 grafana-cli::
 
-     sudo grafana-cli plugins install sileht-gnocchi-datasource
+     sudo grafana-cli plugins install gnocchixyz-gnocchi-datasource
 
 `Source`_ and `Documentation`_ are also available.
 
