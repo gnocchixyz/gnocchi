@@ -26,7 +26,7 @@ Glossary
    Granularity
      The time between two aggregates in an aggregated time series of a metric.
 
-   Timeseries
+   Time series
      A list of aggregates ordered by time.
 
    Aggregation method

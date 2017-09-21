@@ -102,7 +102,7 @@ Gnocchi vs Graphite
 
 `Graphite <http://graphite.readthedocs.org/en/latest/>`_ is essentially a data
 metric storage composed of flat files (Whisper), and focuses on rendering those
-timeseries. Each timeseries stored is composed of points that are stored
+time series. Each time series stored is composed of points that are stored
 regularly and are related to the current date and time.
 
 In comparison, Gnocchi offers much more scalability, a better file format and
