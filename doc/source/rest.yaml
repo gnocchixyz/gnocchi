@@ -104,6 +104,18 @@
       "archive_policy_name": "low"
     }
 
+- name: create-metric-3
+  request: |
+    POST /v1/metric HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "archive_policy_name": "medium"
+    }
+
+- name: delete-metric
+  request: DELETE /v1/metric/{{ scenarios['create-metric-3']['response'].json['id'] }} HTTP/1.1
+
 - name: create-archive-policy-rule
   request: |
     POST /v1/archive_policy_rule HTTP/1.1
