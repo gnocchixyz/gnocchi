@@ -37,6 +37,10 @@ ONE_SECOND = numpy.timedelta64(1, 's')
 
 Transformation = collections.namedtuple('Transformation', ["method", "args"])
 
+import logging
+
+LOG = logging.getLogger(__name__)
+
 
 class TransformError(Exception):
     """Error raised when transforming series fails"""
@@ -200,6 +204,7 @@ class GroupedTimeSeries(object):
     def derived(self):
         timestamps = self._ts_for_derive['timestamps'][1:]
         values = numpy.diff(self._ts_for_derive['values'])
+        LOG.critical("DERIVED %s" % self._ts_for_derive)
         # FIXME(sileht): create some alternative __init__ to avoid creating
         # useless Numpy object, recounting, timestamps convertion, ...
         return GroupedTimeSeries(make_timeseries(timestamps, values),
