@@ -11,9 +11,9 @@ computing, metric cleanup, etc...) on the received data in the background.
 Both the HTTP REST API and the asynchronous processing daemon are stateless and
 are scalable. Additional workers can be added depending on load.
 
-.. image:: architecture.svg
+.. image:: _static/architecture.svg
   :align: center
-  :width: 80%
+  :width: 95%
   :alt: Gnocchi architecture
 
 .. image source: https://docs.google.com/drawings/d/1aHV86TPNFt7FlCLEjsTvV9FWoFYxXCaQOzfg7NdXVwM/edit?usp=sharing
