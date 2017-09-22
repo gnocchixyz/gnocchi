@@ -147,6 +147,25 @@
 - name: delete-archive-policy-rule
   request: DELETE /v1/archive_policy_rule/{{ scenarios['create-archive-policy-rule-to-delete']['response'].json['name'] }} HTTP/1.1
 
+- name: create-archive-policy-rule-to-rename
+  request: |
+    POST /v1/archive_policy_rule HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "test_rule_rename",
+      "metric_pattern": "disk.io.*",
+      "archive_policy_name": "low"
+    }
+
+- name: rename-archive-policy-rule
+  request: |
+    PATCH /v1/archive_policy_rule/{{ scenarios['create-archive-policy-rule-to-rename']['response'].json['name'] }} HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "new_name"
+    }
 
 - name: get-metric
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
