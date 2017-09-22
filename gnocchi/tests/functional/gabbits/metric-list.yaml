@@ -131,6 +131,39 @@ tests:
           $[1].archive_policy.name: first_archive
           $[2].archive_policy.name: first_archive
 
+    - name: list metrics by archive_policy with limit and pagination links page 1
+      GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc&limit=2
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      response_headers:
+          Link: "<$SCHEME://$NETLOC/v1/metric?archive_policy_name=first_archive&limit=2&marker=$RESPONSE['$[1].id']&sort=name%3Adesc>; rel=\"next\""
+      response_json_paths:
+          $.`len`: 2
+          $[0].name: disk.io.rate
+          $[1].name: disk.io.rate
+          $[0].archive_policy.name: first_archive
+          $[1].archive_policy.name: first_archive
+
+    - name: list metrics by archive_policy with limit and pagination links page 2
+      GET: /v1/metric?archive_policy_name=first_archive&limit=2&marker=$RESPONSE['$[1].id']&sort=name:desc
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      response_json_paths:
+          $.`len`: 1
+          $[0].name: cpu_util
+          $[0].archive_policy.name: first_archive
+
+    - name: list metrics ensure no Link header
+      GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      xfail: true
+      response_headers:
+          Link: whatever
+
     - name: list metrics by creator jd
       GET: /v1/metric?creator=jd
       request_headers:

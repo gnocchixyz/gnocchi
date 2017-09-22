@@ -49,9 +49,10 @@ timespan = timespan.setParseAction(lambda t: utils.to_timespan(t[0]))
 absolute = transform("absolute")
 negative = transform("negative")
 resample = transform("resample", timespan)
+rolling = transform("rolling", pp.Word(pp.alphas), pp.Word(pp.nums))
 
 transform = pp.delimitedList(
-    absolute | negative | resample,
+    absolute | negative | resample | rolling,
     delim=":")
 
 parse = functools.partial(transform.parseString, parseAll=True)
