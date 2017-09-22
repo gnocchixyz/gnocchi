@@ -38,10 +38,10 @@ Why Gnocchi?
 
 Gnocchi has been created to fulfill the need of a time series database usable
 in the context of cloud computing: providing the ability to store large
-quantities of metrics. It has been designed to handle large amount of measures
-being stored, while being performant, scalable and fault-tolerant. While doing
-this, the goal was to be sure to not build any hard dependency on any complex
-storage system.
+quantities of metrics. It has been designed to handle large amount of
+aggregates being stored, while being performant, scalable and fault-tolerant.
+While doing this, the goal was to be sure to not build any hard dependency on
+any complex storage system.
 
 The Gnocchi project was started in 2014 as a spin-off of the `OpenStack
 Ceilometer`_ project to address the performance issues that Ceilometer
@@ -102,7 +102,7 @@ Gnocchi vs Graphite
 
 `Graphite <http://graphite.readthedocs.org/en/latest/>`_ is essentially a data
 metric storage composed of flat files (Whisper), and focuses on rendering those
-timeseries. Each timeseries stored is composed of points that are stored
+time series. Each time series stored is composed of points that are stored
 regularly and are related to the current date and time.
 
 In comparison, Gnocchi offers much more scalability, a better file format and

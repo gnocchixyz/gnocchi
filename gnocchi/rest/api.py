@@ -505,7 +505,8 @@ class MetricController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, e)
-        except aggregates.CustomAggFailure as e:
+        except (aggregates.CustomAggFailure,
+                carbonara.TransformError) as e:
             abort(400, e)
 
     @pecan.expose()
@@ -1634,6 +1635,8 @@ class MetricsMeasuresBatchController(rest.RestController):
         except (storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, e)
+        except carbonara.TransformError as e:
+            abort(400, e)
 
 
 class SearchController(object):
@@ -1818,6 +1821,8 @@ class AggregationController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, e)
+        except carbonara.TransformError as e:
+            abort(400, e)
 
     MetricIDsSchema = [utils.UUID]
 

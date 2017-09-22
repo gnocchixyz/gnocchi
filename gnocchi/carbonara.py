@@ -38,6 +38,14 @@ ONE_SECOND = numpy.timedelta64(1, 's')
 Transformation = collections.namedtuple('Transformation', ["method", "args"])
 
 
+class TransformError(Exception):
+    """Error raised when transforming series fails"""
+
+    def __init__(self, msg):
+        super(TransformError, self).__init__(
+            "Failed to transform series: %s" % msg)
+
+
 class BeforeEpochError(Exception):
     """Error raised when a timestamp before Epoch is used."""
 
@@ -571,7 +579,8 @@ class AggregatedTimeSerie(TimeSerie):
                 values = ts["values"]
 
             else:
-                raise ValueError("Transformation '%s' doesn't exists" % trans)
+                raise TransformError("Transformation '%s' doesn't exists" %
+                                     trans.method)
         return AggregatedTimeSerie(sampling,
                                    self.aggregation_method,
                                    ts=make_timeseries(timestamps, values),

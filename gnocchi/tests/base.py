@@ -39,6 +39,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
+from gnocchi.tests import utils
 
 
 class SkipNotImplementedMeta(type):
@@ -271,7 +272,7 @@ class TestCase(BaseTestCase):
         super(TestCase, self).setUpClass()
 
         self.conf = service.prepare_service(
-            [],
+            [], conf=utils.prepare_conf(),
             default_config_files=[],
             logging_level=logging.DEBUG)
 
