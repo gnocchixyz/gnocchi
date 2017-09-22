@@ -26,6 +26,7 @@ The list of variants available is:
 * `ceph_recommended_lib` – provides Ceph (>= 0.80) storage support
 * `ceph_alternative_lib` – provides Ceph (>= 12.2.0) storage support
 * `redis` – provides Redis storage support
+* `prometheus` – provides Prometheus Remote Write support
 * `doc` – documentation building support
 * `test` – unit and functional tests support
 

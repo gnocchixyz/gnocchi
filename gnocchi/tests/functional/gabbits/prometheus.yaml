@@ -1,0 +1,79 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    content-type: application/json
+    authorization: "basic YWRtaW46"
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      data:
+          name: space
+          definition:
+              - granularity: 1 second
+      status: 201
+
+    - name: create archive policy rule
+      POST: /v1/archive_policy_rule
+      data:
+        name: test_prom
+        metric_pattern: "*"
+        archive_policy_name: space
+      status: 201
+
+    - name: post some measures
+      POST: /v1/prometheus/write
+      request_headers:
+        authorization: "basic YWRtaW46"
+        content-type: application/x-protobuf
+        content-encoding: snappy
+      data: <@prometheus_fixtures/031b586e-ebe1-4737-812e-cf0ddf26f5ad.dump
+      status: 202
+
+    - name: ensure resource has been created
+      GET: /v1/resource/prometheus
+      response_json_paths:
+          $.`len`: 1
+          $[0].job: "prometheus"
+          $[0].instance: "localhost:9090"
+
+    - name: ensure one resource have all metrics created
+      GET: /v1/resource/prometheus/prometheus@localhost:9090
+      response_json_paths:
+          $.metrics.`len`: 56
+
+    - name: check metrics
+      GET: /v1/resource/prometheus/prometheus@localhost:9090/metric
+      response_json_paths:
+          $[\name].[24].name: 'prometheus_sd_marathon_refresh_duration_seconds_sum'
+
+    - name: check measures
+      GET: /v1/resource/prometheus/prometheus@localhost:9090/metric/scrape_samples_scraped/measures?refresh=true
+      response_json_paths:
+          $[0]: ['2017-09-23T06:02:58+00:00', 1.0, 558.0]
+
+    - name: post some measures second
+      POST: /v1/prometheus/write
+      request_headers:
+        authorization: "basic YWRtaW46"
+        content-type: application/x-protobuf
+        content-encoding: snappy
+      data: <@prometheus_fixtures/a0c06674-a5ef-4621-883c-e94880a2de02.dump
+      status: 202
+
+    - name: post some measures third
+      POST: /v1/prometheus/write
+      request_headers:
+        authorization: "basic YWRtaW46"
+        content-type: application/x-protobuf
+        content-encoding: snappy
+      data: <@prometheus_fixtures/1ea8f6f7-eebe-49d5-8276-ceb2d56c5ba4.dump
+      status: 202
+
+    - name: check measures second
+      GET: /v1/resource/prometheus/prometheus@localhost:9090/metric/scrape_samples_scraped/measures?refresh=true
+      response_json_paths:
+          $[0]: ['2017-09-23T06:02:58+00:00', 1.0, 558.0]

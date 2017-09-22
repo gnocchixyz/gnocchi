@@ -1,0 +1,6 @@
+# remote.proto come from
+
+https://raw.githubusercontent.com/prometheus/prometheus/master/storage/remote/remote.proto
+
+# remote_pb2.py is generated with:
+protoc --proto_path=. --python_out=. remote.proto
