@@ -80,14 +80,15 @@ status code. It is possible to provide any number of measures.
    needed to honor constraints defined by the archive policy used by the metric,
    such as the maximum timespan.
 
-Once measures are sent, it is possible to retrieve them using *GET* on the same
-endpoint:
+Once measures are sent, it is possible to retrieve aggregates using *GET* on
+the same endpoint:
 
 {{ scenarios['get-measures']['doc'] }}
 
 Depending on the driver, there may be some lag after POSTing measures before
-they are processed and queryable. To ensure your query returns all measures
-that have been POSTed, you can force any unprocessed measures to be handled:
+they are processed and queryable. To ensure your query returns all aggregates
+that have been POSTed and processed, you can force any unprocessed measures to
+be handled:
 
 {{ scenarios['get-measures-refresh']['doc'] }}
 
@@ -100,7 +101,7 @@ The list of points returned is composed of tuples with (timestamp, granularity,
 value) sorted by timestamp. The granularity is the timespan covered by
 aggregation for this point.
 
-It is possible to filter the measures over a time range by specifying the
+It is possible to filter the aggregates over a time range by specifying the
 *start* and/or *stop* parameters to the query with timestamp. The timestamp
 format can be either a floating number (UNIX epoch) or an ISO8601 formated
 timestamp:
@@ -129,7 +130,7 @@ See also :ref:`Aggregation across metrics <aggregation-across-metrics>` and :ref
 Transformations
 ------------------------
 
-In addition to granularities defined by the archive policy, measures can be
+In addition to granularities defined by the archive policy, aggregates can be
 resampled to a new granularity.
 
 {{ scenarios['get-measures-resample']['doc'] }}
@@ -232,7 +233,7 @@ It is also possible to list archive policies:
 {{ scenarios['list-archive-policy']['doc'] }}
 
 Existing archive policies can be modified to retain more or less data depending
-on requirements. If the policy coverage is expanded, measures are not
+on requirements. If the policy coverage is expanded, aggregates are not
 retroactively calculated as backfill to accommodate the new timespan:
 
 {{ scenarios['update-archive-policy']['doc'] }}
@@ -581,7 +582,7 @@ requested resource type, and then compute the aggregation:
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup-groupby']['doc'] }}
 
-Similar to retrieving measures for a single metric, the `refresh` parameter
+Similar to retrieving aggregates for a single metric, the `refresh` parameter
 can be provided to force all POSTed measures to be processed across all
 metrics before computing the result. The `resample` parameter may be used as
 well.
@@ -596,7 +597,7 @@ on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
 is set.
 
 When a boundary is set, Gnocchi expects that we have certain percent of
-timestamps common between timeseries. This percent is controlled by
+timestamps common between time series. This percent is controlled by
 needed_overlap, which by default expects 100% overlap. If this percent is not
 reached, an error is returned.
 
@@ -604,12 +605,12 @@ reached, an error is returned.
 
    If no boundaries are set, Gnocchi requires 100% overlap across all series
 
-The ability to fill in points missing from a subset of timeseries is supported
+The ability to fill in points missing from a subset of time series is supported
 by specifying a `fill` value. Valid fill values include any valid float or
 `null` which will compute aggregation with only the points that exist. The
 `fill` parameter will not backfill timestamps which contain no points in any
-of the timeseries. Only timestamps which have datapoints in at least one of
-the timeseries is returned.
+of the time series. Only timestamps which have datapoints in at least one of
+the time series is returned.
 
 .. note::
 
