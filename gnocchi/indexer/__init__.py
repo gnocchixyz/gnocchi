@@ -169,6 +169,16 @@ class NoArchivePolicyRuleMatch(IndexerException):
         self.metric_name = metric_name
 
 
+class UnsupportedArchivePolicyRuleChange(IndexerException):
+    """Error raised when modifying archive policy rule if not supported."""
+    def __init__(self, archive_policy_rule, message):
+        super(UnsupportedArchivePolicyRuleChange, self).__init__(
+            "Archive policy rule %s does not support change: %s" %
+            (archive_policy_rule, message))
+        self.archive_policy_rule = archive_policy_rule
+        self.message = message
+
+
 class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
     def __init__(self, metric):
@@ -318,6 +328,10 @@ class IndexerDriver(object):
 
     @staticmethod
     def create_archive_policy_rule(name, metric_pattern, archive_policy_name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def update_archive_policy_rule(name, new_name):
         raise exceptions.NotImplementedError
 
     @staticmethod
