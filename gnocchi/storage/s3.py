@@ -49,6 +49,11 @@ OPTS = [
                  help="Maximum time to wait checking data consistency when "
                  "writing to S3. Set to 0 to disable data consistency "
                  "validation."),
+    cfg.IntOpt('s3_max_pool_connections',
+               min=1,
+               default=50,
+               help="The maximum number of connections to keep in a "
+               "connection pool."),
 ]
 
 

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    All listing endpoints (/v1/metric, /v1/resource/<type>, /v1/search/resource, ...)
+    now returns a `Link` header as described by the RFC5988. For now, only the
+    next page link is provided.

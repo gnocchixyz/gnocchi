@@ -179,8 +179,12 @@ class MetricdThread(threading.Thread):
     def run(self):
         while self.flag:
             metrics = utils.list_all_incoming_metrics(self.incoming)
-            self.storage.process_background_tasks(
-                self.index, self.incoming, metrics)
+            metrics = self.index.list_metrics(ids=metrics)
+            for metric in metrics:
+                self.storage.refresh_metric(self.index,
+                                            self.incoming,
+                                            metric,
+                                            timeout=None)
             time.sleep(0.1)
 
     def stop(self):
