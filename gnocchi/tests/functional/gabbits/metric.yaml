@@ -221,6 +221,18 @@ tests:
           - ["2015-03-06T14:34:00+00:00", 60.0, -14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, -10.0]
 
+    - name: get measurements from metric and resample, negative and math(v * -1 + 100)
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&transform=resample(60):math(v%20*%20-1%20%2B%20100)&granularity=1
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 56.9]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 86.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 90.0]
+
+    - name: get measurements from metric and resample, negative and invalid math
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&transform=resample(60):math(what)&granularity=1
+      status: 400
+
     - name: push negative measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       data:

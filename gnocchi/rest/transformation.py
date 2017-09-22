@@ -16,6 +16,7 @@
 
 import functools
 
+import numexpr
 import pyparsing as pp
 
 from gnocchi import carbonara
@@ -41,17 +42,42 @@ def transform(name, *args):
         lambda t: carbonara.Transformation(t[0], tuple(t[1])))
 
 
+def math_expression_parser(t):
+    # NOTE(sileht): ensure expression is valid
+    # We pass v into both dict to ensure evaluator don't use locals() and
+    # globals()
+    example = [1, 2, 3]
+    try:
+        res = numexpr.evaluate(t[0], local_dict={"v": example},
+                               global_dict={'v': example})
+    except KeyError as e:
+        raise pp.ParseException("Only argument 'v' is allowed")
+    except Exception as e:
+        raise pp.ParseException(e)
+    if len(res) != len(example):
+        raise pp.ParseException(
+            "math expression input and output must have same length")
+    return t[0]
+
+
 # NOTE(sileht): not sure pp.nums + "." is enough to support all
 # pandas.to_timedelta() formats
 timespan = pp.Word(pp.nums + ".").setName("timespan")
 timespan = timespan.setParseAction(lambda t: utils.to_timespan(t[0]))
 
+# TODO(sileht): maybe allow "(", ")" and "," for
+# sin/cos/abs/ceil/floor/min/max/prod/sum...
+math_expression = pp.Word(pp.alphanums + " +-/*&|~<=!>%"
+                          ).setName("math expression")
+math_expression = math_expression.setParseAction(math_expression_parser)
+
 absolute = transform("absolute")
 negative = transform("negative")
 resample = transform("resample", timespan)
+math = transform("math", math_expression)
 
 transform = pp.delimitedList(
-    absolute | negative | resample,
+    absolute | negative | resample | math,
     delim=":")
 
 parse = functools.partial(transform.parseString, parseAll=True)
