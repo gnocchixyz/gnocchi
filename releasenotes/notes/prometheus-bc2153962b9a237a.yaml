@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Gnocchi API can act as Prometheus Remote Write Adapter to receive
+    Prometheus metrics. The endpoint to configure in Prometheus configuration
+    is https://<gnocchi-host-port>/v1/prometheus/write.
