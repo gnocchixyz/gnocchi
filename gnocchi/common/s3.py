@@ -18,6 +18,7 @@ import daiquiri
 import tenacity
 try:
     import boto3
+    import botocore.config as boto_config
     import botocore.exceptions
 except ImportError:
     boto3 = None
@@ -41,7 +42,9 @@ def get_connection(conf):
         endpoint_url=conf.s3_endpoint_url,
         region_name=conf.s3_region_name,
         aws_access_key_id=conf.s3_access_key_id,
-        aws_secret_access_key=conf.s3_secret_access_key)
+        aws_secret_access_key=conf.s3_secret_access_key,
+        config=boto_config.Config(
+            max_pool_connections=conf.s3_max_pool_connections))
     return conn, conf.s3_region_name, conf.s3_bucket_prefix
 
 

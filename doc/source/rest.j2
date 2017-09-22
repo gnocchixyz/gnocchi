@@ -46,6 +46,10 @@ To retrieve the list of all the metrics created, use the following request:
 
 {{ scenarios['list-metric']['doc'] }}
 
+Metrics can be deleted through a request:
+
+{{ scenarios['delete-metric']['doc'] }}
+
 .. note::
 
   Considering the large volume of metrics Gnocchi will store, query results are
@@ -598,7 +602,7 @@ on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
 is set.
 
 When a boundary is set, Gnocchi expects that we have certain percent of
-timestamps common between timeseries. This percent is controlled by
+timestamps common between time series. This percent is controlled by
 needed_overlap, which by default expects 100% overlap. If this percent is not
 reached, an error is returned.
 
@@ -606,12 +610,12 @@ reached, an error is returned.
 
    If no boundaries are set, Gnocchi requires 100% overlap across all series
 
-The ability to fill in points missing from a subset of timeseries is supported
+The ability to fill in points missing from a subset of time series is supported
 by specifying a `fill` value. Valid fill values include any valid float or
 `null` which will compute aggregation with only the points that exist. The
 `fill` parameter will not backfill timestamps which contain no points in any
-of the timeseries. Only timestamps which have datapoints in at least one of
-the timeseries is returned.
+of the time series. Only timestamps which have datapoints in at least one of
+the time series is returned.
 
 .. note::
 

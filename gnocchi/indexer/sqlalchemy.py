@@ -696,7 +696,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
 
-            sort_keys, sort_dirs = self._build_sort_keys(sorts)
+            sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
 
             if marker:
                 metric_marker = self.list_metrics(ids=[marker])
@@ -981,9 +981,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if history:
                 target_cls = self._get_history_result_mapper(
                     session, resource_type)
+                unique_keys = ["id", "revision"]
             else:
                 target_cls = self._resource_type_to_mappers(
                     session, resource_type)["resource"]
+                unique_keys = ["id"]
 
             q = session.query(target_cls)
 
@@ -1001,10 +1003,24 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                 q = q.filter(f)
 
-            sort_keys, sort_dirs = self._build_sort_keys(sorts)
+            sort_keys, sort_dirs = self._build_sort_keys(sorts, unique_keys)
 
             if marker:
-                resource_marker = self.get_resource(resource_type, marker)
+                marker_q = session.query(target_cls)
+                if history:
+                    try:
+                        rid, rrev = marker.split("@")
+                        rrev = int(rrev)
+                    except ValueError:
+                        resource_marker = None
+                    else:
+                        resource_marker = marker_q.filter(
+                            target_cls.id == rid,
+                            target_cls.revision == rrev).first()
+                else:
+                    resource_marker = marker_q.filter(
+                        target_cls.id == marker).first()
+
                 if resource_marker is None:
                     raise indexer.InvalidPagination(
                         "Invalid marker: `%s'" % marker)
@@ -1086,7 +1102,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.NoSuchMetric(id)
 
     @staticmethod
-    def _build_sort_keys(sorts):
+    def _build_sort_keys(sorts, unique_keys):
         # transform the api-wg representation to the oslo.db one
         sort_keys = []
         sort_dirs = []
@@ -1096,9 +1112,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             sort_dirs.append(sort_dir or 'asc')
 
         # paginate_query require at list one uniq column
-        if 'id' not in sort_keys:
-            sort_keys.append('id')
-            sort_dirs.append('asc')
+        for key in unique_keys:
+            if key not in sort_keys:
+                sort_keys.append(key)
+                sort_dirs.append('asc')
 
         return sort_keys, sort_dirs
 

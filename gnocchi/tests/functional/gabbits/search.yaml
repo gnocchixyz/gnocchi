@@ -142,6 +142,22 @@ tests:
       response_json_paths:
         $.`len`: 2
 
+    - name: search empty query page 1
+      POST: /v1/search/resource/generic?limit=1
+      data: {}
+      response_headers:
+        link: "<$SCHEME://$NETLOC/v1/search/resource/generic?limit=1&marker=faef212f-0bf4-4030-a461-2186fef79be0&sort=revision_start%3Aasc&sort=started_at%3Aasc>; rel=\"next\""
+      response_json_paths:
+        $.`len`: 1
+
+    - name: search empty query last page
+      POST: /v1/search/resource/generic?marker=faef212f-0bf4-4030-a461-2186fef79be0&sort=revision_start:asc&sort=started_at:asc
+      data: {}
+      response_forbidden_headers:
+        - link
+      response_json_paths:
+        $.`len`: 1
+
     - name: post generic resource with project/user
       POST: /v1/resource/generic
       data:
