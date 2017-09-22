@@ -5,10 +5,11 @@
 Authentication
 ==============
 
-By default, the authentication is configured to the `"basic" mode`_. You need to
-provide an `Authorization` header in your HTTP requests with a valid username
-(the password is not used). The "admin" username is granted all privileges,
-whereas any other username is recognize as having standard permissions.
+By default, the authentication is configured to the `"basic" mode`_. You need
+to provide an `Authorization` header in your HTTP requests with a valid
+username(the password is not used). The "admin" username is granted all
+privileges, whereas any other username is recognize as having standard
+permissions.
 
 .. _"basic" mode: https://tools.ietf.org/html/rfc7617
 
@@ -27,22 +28,22 @@ permissions model is the same as the "basic" mode.
 Metrics
 =======
 
-Gnocchi provides an object type that is called *metric*. A metric designates
-any thing that can be measured: the CPU usage of a server, the temperature of a
-room or the number of bytes sent by a network interface.
+Gnocchi provides an object type that is called |metric|. A |metric|
+designates any thing that can be measured: the CPU usage of a server, the
+temperature of a room or the number of bytes sent by a network interface.
 
-A metric only has a few properties: a UUID to identify it, a name, the archive
-policy that will be used to store and aggregate the measures.
+A |metric| only has a few properties: a UUID to identify it, a name, the
+|archive policy| that will be used to store and aggregate the |measures|.
 
-To create a metric, the following API request should be used:
+To create a |metric|, the following API request should be used:
 
 {{ scenarios['create-metric']['doc'] }}
 
-Once created, you can retrieve the metric information:
+Once created, you can retrieve the |metric| information:
 
 {{ scenarios['get-metric']['doc'] }}
 
-To retrieve the list of all the metrics created, use the following request:
+To retrieve the list of all the |metrics| created, use the following request:
 
 {{ scenarios['list-metric']['doc'] }}
 
@@ -52,11 +53,11 @@ Metrics can be deleted through a request:
 
 .. note::
 
-  Considering the large volume of metrics Gnocchi will store, query results are
-  limited to `max_limit` value set in the configuration file. Returned results
-  are ordered by metrics' id values. To retrieve the next page of results, the
-  id of a metric should be given as `marker` for the beginning of the next page
-  of results.
+  Considering the large volume of |metrics| Gnocchi will store, query results
+  are limited to `max_limit` value set in the configuration file. Returned
+  results are ordered by |metrics|' id values. To retrieve the next page of
+  results, the id of a |metric| should be given as `marker` for the beginning
+  of the next page of results.
 
 Default ordering and limits as well as page start can be modified
 using query parameters:
@@ -71,28 +72,28 @@ Measures
 Push and retrieve
 -----------------
 
-It is possible to send measures to the metric:
+It is possible to send |measures| to the |metric|:
 
 {{ scenarios['post-measures']['doc'] }}
 
 If there are no errors, Gnocchi does not return a response body, only a simple
-status code. It is possible to provide any number of measures.
+status code. It is possible to provide any number of |measures|.
 
 .. IMPORTANT::
 
    While it is possible to send any number of (timestamp, value), it is still
-   needed to honor constraints defined by the archive policy used by the metric,
-   such as the maximum timespan.
+   needed to honor constraints defined by the |archive policy| used by the
+   |metric|, such as the maximum |timespan|.
 
-Once measures are sent, it is possible to retrieve aggregates using *GET* on
-the same endpoint:
+Once |measures| are sent, it is possible to retrieve |aggregates| using *GET*
+on the same endpoint:
 
 {{ scenarios['get-measures']['doc'] }}
 
-Depending on the driver, there may be some lag after POSTing measures before
-they are processed and queryable. To ensure your query returns all aggregates
-that have been POSTed and processed, you can force any unprocessed measures to
-be handled:
+Depending on the driver, there may be some lag after POSTing |measures| before
+they are processed and queryable. To ensure your query returns all |aggregates|
+that have been POSTed and processed, you can force any unprocessed |measures|
+to be handled:
 
 {{ scenarios['get-measures-refresh']['doc'] }}
 
@@ -101,31 +102,31 @@ be handled:
    Depending on the amount of data that is unprocessed, `refresh` may add
    some overhead to your query.
 
-The list of points returned is composed of tuples with (timestamp, granularity,
-value) sorted by timestamp. The granularity is the timespan covered by
-aggregation for this point.
+The list of points returned is composed of tuples with (timestamp,
+|granularity|, value) sorted by timestamp. The |granularity| is the |timespan|
+covered by aggregation for this point.
 
-It is possible to filter the aggregates over a time range by specifying the
+It is possible to filter the |aggregates| over a time range by specifying the
 *start* and/or *stop* parameters to the query with timestamp. The timestamp
 format can be either a floating number (UNIX epoch) or an ISO8601 formated
 timestamp:
 
 {{ scenarios['get-measures-from']['doc'] }}
 
-By default, the aggregated values that are returned use the *mean* aggregation
-method. It is possible to request for any other method by specifying the
-*aggregation* query parameter:
+By default, the aggregated values that are returned use the *mean*
+|aggregation method|. It is possible to request for any other method by
+specifying the *aggregation* query parameter:
 
 {{ scenarios['get-measures-max']['doc'] }}
 
-The list of aggregation method available is: *mean*, *sum*, *last*, *max*,
+The list of |aggregation method| available is: *mean*, *sum*, *last*, *max*,
 *min*, *std*, *median*, *first*, *count* and *Npct* (with 0 < N < 100).
 
 They can be prefixed by "rate:" (like rate:last) to compute the rate of change
 before doing the aggregation.
 
-It's possible to provide the `granularity` argument to specify the granularity
-to retrieve, rather than all the granularities available:
+It's possible to provide the |granularity| argument to specify the
+|granularity| to retrieve, rather than all the |granularities| available:
 
 {{ scenarios['get-measures-granularity']['doc'] }}
 
@@ -134,8 +135,8 @@ See also :ref:`Aggregation across metrics <aggregation-across-metrics>` and :ref
 Transformations
 ------------------------
 
-In addition to granularities defined by the archive policy, aggregates can be
-resampled to a new granularity.
+In addition to |granularities| defined by the |archive policy|, |aggregates|
+can be resampled to a new |granularity|.
 
 {{ scenarios['get-measures-resample']['doc'] }}
 
@@ -148,27 +149,27 @@ Supported transformations are `absolute`, `negative`,
 
 .. note::
 
-   Depending on the aggregation method and frequency of measures, resampled
+   Depending on the |aggregation method| and frequency of |measures|, resampled
    data may lack accuracy as it is working against previously aggregated data.
 
 Batching
 --------
 
-It is also possible to batch measures sending, i.e. send several measures for
-different metrics in a simple call:
+It is also possible to batch |measures| sending, i.e. send several |measures|
+for different |metrics| in a simple call:
 
 {{ scenarios['post-measures-batch']['doc'] }}
 
-Or using named metrics of resources:
+Or using named |metrics| of |resources|:
 
 {{ scenarios['post-measures-batch-named']['doc'] }}
 
-If some named metrics specified in the batch request do not exist, Gnocchi can
-try to create them as long as an archive policy rule matches:
+If some named |metrics| specified in the batch request do not exist, Gnocchi
+can try to create them as long as an |archive policy| rule matches:
 
 {{ scenarios['post-measures-batch-named-create']['doc'] }}
 
-Multiple metrics can be retrieved in a single request and returned as
+Multiple |metrics| can be retrieved in a single request and returned as
 independent series:
 
 {{ scenarios['get-measures-batch']['doc'] }}
@@ -176,85 +177,85 @@ independent series:
 Archive Policy
 ==============
 
-When sending measures for a metric to Gnocchi, the values are dynamically
-aggregated. That means that Gnocchi does not store all sent measures, but
+When sending |measures| for a |metric| to Gnocchi, the values are dynamically
+aggregated. That means that Gnocchi does not store all sent |measures|, but
 aggregates them over a certain period of time.
 
-Gnocchi provides several aggregation methods (mean, min, max, sum…) that are
+Gnocchi provides several |aggregation methods| (mean, min, max, sum…) that are
 builtin. Those can be prefix by `rate:` to compute the rate of change before
 doing the aggregation.
 
-An archive policy is defined by a list of items in the `definition` field. Each
-item is composed of the timespan and the level of precision that must be kept
-when aggregating data, determined using at least 2 of the `points`,
-`granularity` and `timespan` fields. For example, an item might be defined
+An |archive policy| is defined by a list of items in the `definition` field.
+Each item is composed of the |timespan| and the level of precision that must be
+kept when aggregating data, determined using at least 2 of the points,
+|granularity| and |timespan| fields. For example, an item might be defined
 as 12 points over 1 hour (one point every 5 minutes), or 1 point every 1 hour
 over 1 day (24 points).
 
-By default, new measures can only be processed if they have timestamps in the
+By default, new |measures| can only be processed if they have timestamps in the
 future or part of the last aggregation period. The last aggregation period size
-is based on the largest granularity defined in the archive policy definition.
-To allow processing measures that are older than the period, the `back_window`
-parameter can be used to set the number of coarsest periods to keep. That way
-it is possible to process measures that are older than the last timestamp
-period boundary.
+is based on the largest |granularity| defined in the |archive policy|
+definition. To allow processing |measures| that are older than the period, the
+`back_window` parameter can be used to set the number of coarsest periods to
+keep. That way it is possible to process |measures| that are older than the
+last timestamp period boundary.
 
-For example, if an archive policy is defined with coarsest aggregation of 1
+For example, if an |archive policy| is defined with coarsest aggregation of 1
 hour, and the last point processed has a timestamp of 14:34, it's possible to
-process measures back to 14:00 with a `back_window` of 0. If the `back_window`
-is set to 2, it will be possible to send measures with timestamp back to 12:00
-(14:00 minus 2 times 1 hour).
+process |measures| back to 14:00 with a `back_window` of 0. If the
+`back_window` is set to 2, it will be possible to send |measures| with
+timestamp back to 12:00 (14:00 minus 2 times 1 hour).
 
-The REST API allows to create archive policies in this way:
+The REST API allows to create |archive policies| in this way:
 
 {{ scenarios['create-archive-policy']['doc'] }}
 
-By default, the aggregation methods computed and stored are the ones defined
+By default, the |aggregation methods| computed and stored are the ones defined
 with `default_aggregation_methods` in the configuration file. It is possible to
-change the aggregation methods used in an archive policy by specifying the list
-of aggregation method to use in the `aggregation_methods` attribute of an
-archive policy.
+change the |aggregation methods| used in an |archive policy| by specifying the
+list of |aggregation method| to use in the `aggregation_methods` attribute of
+an |archive policy|.
 
 {{ scenarios['create-archive-policy-without-max']['doc'] }}
 
-The list of aggregation methods can either be:
+The list of |aggregation methods| can either be:
 
-- a list of aggregation methods to use, e.g. `["mean", "max"]`
+- a list of |aggregation methods| to use, e.g. `["mean", "max"]`
 
 - a list of methods to remove (prefixed by `-`) and/or to add (prefixed by `+`)
   to the default list (e.g. `["+mean", "-last"]`)
 
 If `*` is included in the list, it's substituted by the list of all supported
-aggregation methods.
+|aggregation methods|.
 
-Once the archive policy is created, the complete set of properties is computed
-and returned, with the URL of the archive policy. This URL can be used to
-retrieve the details of the archive policy later:
+Once the |archive policy| is created, the complete set of properties is
+computed and returned, with the URL of the |archive policy|. This URL can be
+used to retrieve the details of the |archive policy| later:
 
 {{ scenarios['get-archive-policy']['doc'] }}
 
-It is also possible to list archive policies:
+It is also possible to list |archive policies|:
 
 {{ scenarios['list-archive-policy']['doc'] }}
 
-Existing archive policies can be modified to retain more or less data depending
-on requirements. If the policy coverage is expanded, aggregates are not
-retroactively calculated as backfill to accommodate the new timespan:
+Existing |archive policies| can be modified to retain more or less data
+depending on requirements. If the policy coverage is expanded, |aggregates| are
+not retroactively calculated as backfill to accommodate the new |timespan|:
 
 {{ scenarios['update-archive-policy']['doc'] }}
 
 .. note::
 
-   Granularities cannot be changed to a different rate. Also, granularities
+   |Granularities| cannot be changed to a different rate. Also, |granularities|
    cannot be added or dropped from a policy.
 
-It is possible to delete an archive policy if it is not used by any metric:
+It is possible to delete an |archive policy| if it is not used by any |metric|:
 
 {{ scenarios['delete-archive-policy']['doc'] }}
 
 .. note::
 
-   An archive policy cannot be deleted until all metrics associated with it
+   An |archive policy| cannot be deleted until all |metrics| associated with it
    are removed by a metricd daemon.
 
 
@@ -262,21 +263,21 @@ Archive Policy Rule
 ===================
 
 Gnocchi provides the ability to define a mapping called `archive_policy_rule`.
-An archive policy rule defines a mapping between a metric and an archive policy.
-This gives users the ability to pre-define rules so an archive policy is assigned to
-metrics based on a matched pattern.
+An |archive policy| rule defines a mapping between a |metric| and an
+|archive policy|. This gives users the ability to pre-define rules so an
+|archive policy| is assigned to |metrics| based on a matched pattern.
 
-An archive policy rule has a few properties: a name to identify it, an archive
-policy name that will be used to store the policy name and metric pattern to
-match metric names.
+An |archive policy| rule has a few properties: a name to identify it, an
+|archive policy| name that will be used to store the policy name and |metric|
+pattern to match |metric| names.
 
-An archive policy rule for example could be a mapping to default a medium archive
-policy for any volume metric with a pattern matching `volume.*`. When a sample metric
-is posted with a name of `volume.size`, that would match the pattern and the
-rule applies and sets the archive policy to medium. If multiple rules match,
-the longest matching rule is taken. For example, if two rules exists which
-match `*` and `disk.*`, a `disk.io.rate` metric would match the `disk.*` rule
-rather than `*` rule.
+An |archive policy| rule for example could be a mapping to default a medium
+|archive policy| for any volume |metric| with a pattern matching `volume.*`.
+When a sample |metric| is posted with a name of `volume.size`, that would match
+the pattern and the rule applies and sets the |archive policy| to medium. If
+multiple rules match, the longest matching rule is taken. For example, if two
+rules exists which match `*` and `disk.*`, a `disk.io.rate` |metric| would
+match the `disk.*` rule rather than `*` rule.
 
 To create a rule, the following API request should be used:
 
@@ -292,12 +293,12 @@ Once created, you can retrieve the rule information:
 
 {{ scenarios['get-archive-policy-rule']['doc'] }}
 
-It is also possible to list archive policy rules. The result set is ordered by
-the `metric_pattern`, in reverse alphabetical order:
+It is also possible to list |archive policy| rules. The result set is ordered
+by the `metric_pattern`, in reverse alphabetical order:
 
 {{ scenarios['list-archive-policy-rule']['doc'] }}
 
-It is possible to delete an archive policy rule:
+It is possible to delete an |archive policy| rule:
 
 {{ scenarios['delete-archive-policy-rule']['doc'] }}
 
@@ -307,46 +308,46 @@ Resources
 Creation
 --------
 
-Gnocchi provides the ability to store and index resources. Each resource has a
-type. The basic type of resources is *generic*, but more specialized subtypes
-also exist, especially to describe OpenStack resources.
+Gnocchi provides the ability to store and index |resources|. Each |resource|
+has a type. The basic type of |resources| is *generic*, but more specialized
+subtypes also exist, especially to describe OpenStack resources.
 
-The REST API allows to manipulate resources. To create a generic resource:
+The REST API allows to manipulate |resources|. To create a generic |resource|:
 
 {{ scenarios['create-resource-generic']['doc'] }}
 
 The *id*, *user_id* and *project_id* attributes must be UUID. The timestamp
-describing the lifespan of the resource are optional, and *started_at* is by
+describing the lifespan of the |resource| are optional, and *started_at* is by
 default set to the current timestamp.
 
-It's possible to retrieve the resource by the URL provided in the `Location`
+It's possible to retrieve the |resource| by the URL provided in the `Location`
 header.
 
-More specialized resources can be created. For example, the *instance* is used
-to describe an OpenStack instance as managed by Nova_.
+More specialized |resources| can be created. For example, the *instance* is
+used to describe an OpenStack instance as managed by Nova_.
 
 {{ scenarios['create-resource-instance']['doc'] }}
 
 All specialized types have their own optional and mandatory attributes,
 but they all include attributes from the generic type as well.
 
-It is possible to create metrics at the same time you create a resource to save
-some requests:
+It is possible to create |metrics| at the same time you create a |resource| to
+save some requests:
 
 {{ scenarios['create-resource-with-new-metrics']['doc'] }}
 
 Querying
 --------
 
-To retrieve a resource by its URL provided by the `Location` header at creation
-time:
+To retrieve a |resource| by its URL provided by the `Location` header at
+creation time:
 
 {{ scenarios['get-resource-generic']['doc'] }}
 
 Modification
 ------------
 
-It's possible to modify a resource by re-uploading it partially with the
+It's possible to modify a |resource| by re-uploading it partially with the
 modified fields:
 
 {{ scenarios['patch-resource']['doc'] }}
@@ -361,40 +362,40 @@ And to retrieve its modification history:
 Deletion
 --------
 
-It is possible to delete a resource altogether:
+It is possible to delete a |resource| altogether:
 
 {{ scenarios['delete-resource-generic']['doc'] }}
 
-It is also possible to delete a batch of resources based on attribute values, and
-returns a number of deleted resources.
+It is also possible to delete a batch of |resources| based on attribute values,
+and returns a number of deleted |resources|.
 
-To delete resources based on ids:
+To delete |resources| based on ids:
 
 {{ scenarios['delete-resources-by-ids']['doc'] }}
 
-or delete resources based on time:
+or delete |resources| based on time:
 
 {{ scenarios['delete-resources-by-time']['doc']}}
 
 .. IMPORTANT::
 
-  When a resource is deleted, all its associated metrics are deleted at the
+  When a |resource| is deleted, all its associated |metrics| are deleted at the
   same time.
 
-  When a batch of resources are deleted, an attribute filter is required to
+  When a batch of |resources| are deleted, an attribute filter is required to
   avoid deletion of the entire database.
 
 Listing
 -------
 
-All resources can be listed, either by using the `generic` type that will list
-all types of resources, or by filtering on their resource type:
+All |resources| can be listed, either by using the `generic` type that will
+list all types of |resources|, or by filtering on their |resource| type:
 
 {{ scenarios['list-resource-generic']['doc'] }}
 
-No attributes specific to the resource type are retrieved when using the
+No attributes specific to the |resource| type are retrieved when using the
 `generic` endpoint. To retrieve the details, either list using the specific
-resource type endpoint:
+|resource| type endpoint:
 
 {{ scenarios['list-resource-instance']['doc'] }}
 
@@ -404,8 +405,8 @@ or using `details=true` in the query parameter:
 
 .. note::
 
-  Similar to metric list, query results are limited to `max_limit` value set in
-  the configuration file.
+  Similar to |metric| list, query results are limited to `max_limit` value set
+  in the configuration file.
 
 Returned results represent a single page of data and are ordered by resouces'
 revision_start time and started_at values:
@@ -417,22 +418,23 @@ revision_start time and started_at values:
 Named metrics
 -------------
 
-Each resource can be linked to any number of metrics. The `metrics` attributes
-is a key/value field where the key is the name of the relationship and
-the value is a metric:
+Each |resource| can be linked to any number of |metrics|. The |metrics|
+attributes is a key/value field where the key is the name of the relationship
+and the value is a |metric|:
 
 {{ scenarios['create-resource-instance-with-metrics']['doc'] }}
 
-It's also possible to create metrics dynamically while creating a resource:
+It's also possible to create |metrics| dynamically while creating a |resource|:
 
 {{ scenarios['create-resource-instance-with-dynamic-metrics']['doc'] }}
 
-The metric associated with a resource can be accessed and manipulated using the
-usual `/v1/metric` endpoint or using the named relationship with the resource:
+The |metric| associated with a |resource| can be accessed and manipulated using
+the usual `/v1/metric` endpoint or using the named relationship with the
+|resource|:
 
 {{ scenarios['get-resource-named-metrics-measures']['doc'] }}
 
-The same endpoint can be used to append metrics to a resource:
+The same endpoint can be used to append |metrics| to a |resource|:
 
 {{ scenarios['append-metrics-to-resource']['doc'] }}
 
@@ -441,9 +443,9 @@ The same endpoint can be used to append metrics to a resource:
 Resource Types
 ==============
 
-Gnocchi is able to manage resource types with custom attributes.
+Gnocchi is able to manage |resource| types with custom attributes.
 
-To create a new resource type:
+To create a new |resource| type:
 
 {{ scenarios['create-resource-type']['doc'] }}
 
@@ -451,11 +453,11 @@ Then to retrieve its description:
 
 {{ scenarios['get-resource-type']['doc'] }}
 
-All resource types can be listed like this:
+All |resource| types can be listed like this:
 
 {{ scenarios['list-resource-type']['doc'] }}
 
-It can also be deleted if no more resources are associated to it:
+It can also be deleted if no more |resources| are associated to it:
 
 {{ scenarios['delete-resource-type']['doc'] }}
 
@@ -463,26 +465,27 @@ Attributes can be added or removed:
 
 {{ scenarios['patch-resource-type']['doc'] }}
 
-Creating resource type means creation of new tables on the indexer backend.
+Creating |resource| type means creation of new tables on the indexer backend.
 This is heavy operation that will lock some tables for a short amount of times.
-When the resource type is created, its initial `state` is `creating`. When the
-new tables have been created, the state switches to `active` and the new
-resource type is ready to be used. If something unexpected occurs during this
+When the |resource| type is created, its initial `state` is `creating`. When
+the new tables have been created, the state switches to `active` and the new
+|resource| type is ready to be used. If something unexpected occurs during this
 step, the state switches to `creation_error`.
 
-The same behavior occurs when the resource type is deleted. The state starts to
-switch to `deleting`, the resource type is no longer usable. Then the tables are
-removed and then finally the resource_type is really deleted from the database.
-If some unexpected error occurs the state switches to `deletion_error`.
+The same behavior occurs when the |resource| type is deleted. The state starts
+to switch to `deleting`, the |resource| type is no longer usable. Then the
+tables are removed and then finally the resource_type is really deleted from
+the database. If some unexpected error occurs the state switches to
+`deletion_error`.
 
 Searching for resources
 =======================
 
-It's possible to search for resources using a query mechanism, using the
+It's possible to search for |resources| using a query mechanism, using the
 `POST` method and uploading a JSON formatted query.
 
-When listing resources, it is possible to filter resources based on attributes
-values:
+When listing |resources|, it is possible to filter |resources| based on
+attributes values:
 
 {{ scenarios['search-resource-for-user']['doc'] }}
 
@@ -494,11 +497,11 @@ Complex operators such as `and` and `or` are also available:
 
 {{ scenarios['search-resource-for-user-after-timestamp']['doc'] }}
 
-Details about the resource can also be retrieved at the same time:
+Details about the |resource| can also be retrieved at the same time:
 
 {{ scenarios['search-resource-for-user-details']['doc'] }}
 
-It's possible to search for old revisions of resources in the same ways:
+It's possible to search for old revisions of |resources| in the same ways:
 
 {{ scenarios['search-resource-history']['doc'] }}
 
@@ -525,20 +528,20 @@ is also available in the filtering queries.
 Searching for values in metrics
 ===============================
 
-It is possible to search for values in metrics. For example, this will look for
-all values that are greater than or equal to 50 if we add 23 to them and that
-are not equal to 55. You have to specify the list of metrics to look into by
-using the `metric_id` query parameter several times.
+It is possible to search for values in |metrics|. For example, this will look
+for all values that are greater than or equal to 50 if we add 23 to them and
+that are not equal to 55. You have to specify the list of |metrics| to look
+into by using the `metric_id` query parameter several times.
 
 {{ scenarios['search-value-in-metric']['doc'] }}
 
-And it is possible to search for values in metrics by using one or multiple
-granularities:
+And it is possible to search for values in |metrics| by using one or multiple
+|granularities|:
 
 {{ scenarios['search-value-in-metrics-by-granularity']['doc'] }}
 
 You can specify a time range to look for by specifying the `start` and/or
-`stop` query parameter, and the aggregation method to use by specifying the
+`stop` query parameter, and the |aggregation method| to use by specifying the
 `aggregation` query parameter.
 
 The supported operators are: equal to (`=`, `==` or `eq`), lesser than (`<` or
@@ -557,47 +560,48 @@ Aggregation across metrics
 ==========================
 
 Gnocchi allows to do on-the-fly aggregation of already aggregated data of
-metrics.
+|metrics|.
 
-It can also be done by providing the list of metrics to aggregate:
+It can also be done by providing the list of |metrics| to aggregate:
 
 {{ scenarios['get-across-metrics-measures-by-metric-ids']['doc'] }}
 
 .. Note::
 
-   This aggregation is done against the aggregates built and updated for
-   a metric when new measurements are posted in Gnocchi. Therefore, the aggregate
-   of this already aggregated data may not have sense for certain kind of
-   aggregation method (e.g. stdev).
+   This aggregation is done against the |aggregates| built and updated for
+   a |metric| when new measurements are posted in Gnocchi. Therefore, the
+   aggregate of this already aggregated data may not have sense for certain
+   kind of |aggregation method| (e.g. stdev).
 
-By default, the measures are aggregated using the aggregation method provided,
-e.g. you'll get a mean of means, or a max of maxs. You can specify what method
-to use over the retrieved aggregation by using the `reaggregation` parameter:
+By default, the |measures| are aggregated using the |aggregation method|
+provided, e.g. you'll get a mean of means, or a max of maxs. You can specify
+what method to use over the retrieved aggregation by using the `reaggregation`
+parameter:
 
 {{ scenarios['get-across-metrics-measures-by-metric-ids-reaggregate']['doc'] }}
 
-It's also possible to do that aggregation on metrics linked to resources. In
-order to select these resources, the following endpoint accepts a query such as
-the one described in `Searching for resources`_.
+It's also possible to do that aggregation on |metrics| linked to |resources|.
+In order to select these |resources|, the following endpoint accepts a query
+such as the one described in `Searching for resources`_.
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
 
-It is possible to group the resource search results by any attribute of the
-requested resource type, and then compute the aggregation:
+It is possible to group the |resource| search results by any attribute of the
+requested |resource| type, and then compute the aggregation:
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup-groupby']['doc'] }}
 
-Similar to retrieving aggregates for a single metric, the `refresh` parameter
-can be provided to force all POSTed measures to be processed across all
-metrics before computing the result. The `resample` parameter may be used as
-well.
+Similar to retrieving |aggregates| for a single |metric|, the `refresh`
+parameter can be provided to force all POSTed |measures| to be processed across
+all |metrics| before computing the result. The `resample` parameter may be used
+as well.
 
 .. note::
 
    Tranformations (eg: resample, absolute, ...) are done prior to any
    reaggregation if both parameters are specified.
 
-Also, aggregation across metrics have different behavior depending
+Also, aggregation across |metrics| have different behavior depending
 on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
 is set.
 
@@ -619,7 +623,7 @@ the time series is returned.
 
 .. note::
 
-   A granularity must be specified when using the `fill` parameter.
+   A |granularity| must be specified when using the `fill` parameter.
 
 {{ scenarios['get-across-metrics-measures-by-metric-ids-fill']['doc'] }}
 
@@ -627,16 +631,17 @@ the time series is returned.
 Capabilities
 ============
 
-The list aggregation methods that can be used in Gnocchi are extendable and
+The list |aggregation methods| that can be used in Gnocchi are extendable and
 can differ between deployments. It is possible to get the supported list of
-aggregation methods from the API server:
+|aggregation methods| from the API server:
 
 {{ scenarios['get-capabilities']['doc'] }}
 
 Status
 ======
 The overall status of the Gnocchi installation can be retrieved via an API call
-reporting values such as the number of new measures to process for each metric:
+reporting values such as the number of new |measures| to process for each
+|metric|:
 
 {{ scenarios['get-status']['doc'] }}
 
@@ -646,9 +651,11 @@ Timestamp format
 
 Timestamps used in Gnocchi are always returned using the ISO 8601 format.
 Gnocchi is able to understand a few formats of timestamp when querying or
-creating resources, for example
+creating |resources|, for example
 
 - "2014-01-01 12:12:34" or "2014-05-20T10:00:45.856219", ISO 8601 timestamps.
 - "10 minutes", which means "10 minutes from now".
 - "-2 days", which means "2 days ago".
 - 1421767030, a Unix epoch based timestamp.
+
+.. include:: include/term-substitution.rst
