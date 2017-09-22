@@ -320,6 +320,38 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertRaises(carbonara.TransformError, ts.transform,
                           [carbonara.Transformation("rubbish", tuple())])
 
+    def test_transform_rolling(self):
+        ts = carbonara.TimeSerie.from_tuples(
+            [(datetime64(2014, 1, 1, 12, 0, 0), 1),
+             (datetime64(2014, 1, 1, 12, 1, 0), 3),
+             (datetime64(2014, 1, 1, 12, 2, 0), 5),
+             (datetime64(2014, 1, 1, 12, 3, 0), 7),
+             (datetime64(2014, 1, 1, 12, 4, 0), 9)])
+        ts = carbonara.AggregatedTimeSerie.from_timeseries(
+            [ts], sampling=60, aggregation_method="last")
+
+        ts1 = ts.transform([
+            carbonara.Transformation("rolling", ('mean', '2'))])
+        self.assertEqual(4, len(ts1))
+        self.assertEqual([2.0, 4.0, 6.0, 8.0], [
+            ts1[datetime64(2014, 1, 1, 12, 1, 0)][1],
+            ts1[datetime64(2014, 1, 1, 12, 2, 0)][1],
+            ts1[datetime64(2014, 1, 1, 12, 3, 0)][1],
+            ts1[datetime64(2014, 1, 1, 12, 4, 0)][1]])
+
+        ts1 = ts.transform([
+            carbonara.Transformation("rolling", ('sum', '4'))])
+        self.assertEqual(2, len(ts1))
+        self.assertEqual([16.0, 24.0], [
+            ts1[datetime64(2014, 1, 1, 12, 3, 0)][1],
+            ts1[datetime64(2014, 1, 1, 12, 4, 0)][1]])
+
+        self.assertRaises(carbonara.TransformError, ts.transform,
+                          [carbonara.Transformation("rolling", ('sum', 0))])
+
+        self.assertRaises(carbonara.TransformError, ts.transform,
+                          [carbonara.Transformation("rolling", ('sum', 10))])
+
     def _do_test_aggregation(self, name, v1, v2):
         ts = carbonara.TimeSerie.from_tuples(
             [(datetime64(2014, 1, 1, 12, 0, 0), 3),

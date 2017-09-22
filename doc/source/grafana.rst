@@ -42,7 +42,7 @@ steps:
    project and a password. Your browser will query Keystone for a token, and
    then query Gnocchi based on what Grafana needs.
 
-.. image:: grafana-screenshot.png
+.. image:: _static/grafana-screenshot.png
   :align: center
   :alt: Grafana screenshot
 

@@ -6,14 +6,14 @@ Gnocchi consists of several services: a HTTP REST API (see :doc:`rest`), an
 optional statsd-compatible daemon (see :doc:`statsd`), and an asynchronous
 processing daemon (named `gnocchi-metricd`). Data is received via the HTTP REST
 API or statsd daemon. `gnocchi-metricd` performs operations (statistics
-computing, metric cleanup, etc...) on the received data in the background.
+computing, |metric| cleanup, etc...) on the received data in the background.
 
 Both the HTTP REST API and the asynchronous processing daemon are stateless and
 are scalable. Additional workers can be added depending on load.
 
-.. image:: architecture.svg
+.. image:: _static/architecture.svg
   :align: center
-  :width: 80%
+  :width: 95%
   :alt: Gnocchi architecture
 
 .. image source: https://docs.google.com/drawings/d/1aHV86TPNFt7FlCLEjsTvV9FWoFYxXCaQOzfg7NdXVwM/edit?usp=sharing
@@ -23,19 +23,21 @@ Back-ends
 ---------
 
 Gnocchi uses three different back-ends for storing data: one for storing new
-incoming measures (the incoming driver), one for storing the time series (the
+incoming |measures| (the incoming driver), one for storing the time series (the
 storage driver) and one for indexing the data (the index driver).
 
-The *incoming* storage is responsible for storing new measures sent to metrics.
-It is by default – and usually – the same driver as the *storage* one.
+The *incoming* storage is responsible for storing new |measures| sent to
+|metrics|. It is by default – and usually – the same driver as the *storage*
+one.
 
-The *storage* is responsible for storing aggregates of created metrics. It
+The *storage* is responsible for storing |aggregates| of created |metrics|. It
 receives timestamps and values, and pre-computes aggregations according to the
-defined archive policies.
+defined |archive policies|.
 
-The *indexer* is responsible for storing the index of all resources, archive
-policies and metrics, along with their definitions, types and properties. The
-indexer is also responsible for linking resources with metrics.
+The *indexer* is responsible for storing the index of all |resources|,
+|archive policies| and |metrics|, along with their definitions, types and
+properties. The indexer is also responsible for linking |resources| with
+|metrics|.
 
 Available incoming and storage back-ends
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -77,8 +79,10 @@ Gnocchi currently offers different index drivers:
 * `MySQL`_ (at least version 5.6.4)
 
 Those drivers offer almost the same performance and features, though PostgreSQL
-tends to be more performant and has some additional features (e.g. resource
+tends to be more performant and has some additional features (e.g. |resource|
 duration computing).
 
 .. _PostgreSQL: http://postgresql.org
 .. _MySQL: http://mysql.org
+
+.. include:: include/term-substitution.rst

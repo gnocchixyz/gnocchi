@@ -98,7 +98,7 @@ options you want to change and configure:
 +---------------------+---------------------------------------------------+
 | Option name         | Help                                              |
 +=====================+===================================================+
-| storage.driver      | The storage driver for metrics.                   |
+| storage.driver      | The storage driver for |metrics|.                 |
 +---------------------+---------------------------------------------------+
 | indexer.url         | URL to your indexer.                              |
 +---------------------+---------------------------------------------------+
@@ -219,3 +219,5 @@ Then, you can start devstack:
     ./stack.sh
 
 .. _devstack: http://devstack.org
+
+.. include:: include/term-substitution.rst
