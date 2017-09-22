@@ -19,7 +19,7 @@ import mock
 import oslo_db.exception
 from oslo_db.sqlalchemy import test_migrations
 import six
-import sqlalchemy as sa
+import sqlalchemy.schema
 import sqlalchemy_utils
 
 from gnocchi import indexer
@@ -50,6 +50,21 @@ class ModelsMigrationsSync(
         self.index.upgrade(nocreate=True)
         self.addCleanup(self._drop_database)
 
+        # NOTE(sileht): remove tables dynamically created by other tests
+        valid_resource_type_tables = []
+        for rt in self.index.list_resource_types():
+            valid_resource_type_tables.append(rt.tablename)
+            valid_resource_type_tables.append("%s_history" % rt.tablename)
+            # NOTE(sileht): load it in sqlalchemy metadata
+            self.index._RESOURCE_TYPE_MANAGER.get_classes(rt)
+
+        for table in sqlalchemy_base.Base.metadata.sorted_tables:
+            if (table.name.startswith("rt_") and
+                    table.name not in valid_resource_type_tables):
+                sqlalchemy_base.Base.metadata.remove(table)
+                self.index._RESOURCE_TYPE_MANAGER._cache.pop(
+                    table.name.replace('_history', ''), None)
+
     def _drop_database(self):
         try:
             sqlalchemy_utils.drop_database(self.conf.indexer.url)
@@ -63,27 +78,3 @@ class ModelsMigrationsSync(
 
     def get_engine(self):
         return self.index.get_engine()
-
-    def db_sync(self, engine):
-        # NOTE(sileht): We ensure all resource type sqlalchemy model are loaded
-        # in this process
-        for rt in self.index.list_resource_types():
-            if rt.state == "active":
-                self.index._RESOURCE_TYPE_MANAGER.get_classes(rt)
-
-    def filter_metadata_diff(self, diff):
-        tables_to_keep = []
-        for rt in self.index.list_resource_types():
-            if rt.name.startswith("indexer_test"):
-                tables_to_keep.extend([rt.tablename,
-                                       "%s_history" % rt.tablename])
-        new_diff = []
-        for line in diff:
-            if len(line) >= 2:
-                item = line[1]
-                # NOTE(sileht): skip resource types created for tests
-                if (isinstance(item, sa.Table)
-                        and item.name in tables_to_keep):
-                    continue
-            new_diff.append(line)
-        return new_diff

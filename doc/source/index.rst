@@ -21,6 +21,7 @@ Gnocchi's main features are:
 - Queryable resource indexer
 - Multi-tenant
 - Grafana support
+- Prometheus Remote Write support
 - Nagios/Icinga support
 - Statsd protocol support
 - Collectd plugin support
@@ -101,6 +102,7 @@ Documentation
    rest
    statsd
    grafana
+   prometheus
    nagios
    collectd
    glossary
