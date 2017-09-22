@@ -42,6 +42,13 @@ from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
 
+try:
+    from gnocchi.rest.prometheus import remote_pb2
+    import snappy
+    PROMETHEUS_SUPPORTED = True
+except ImportError:
+    PROMETHEUS_SUPPORTED = False
+
 
 def arg_to_list(value):
     if isinstance(value, list):
@@ -1884,6 +1891,62 @@ class BatchController(object):
     resources = ResourcesBatchController()
 
 
+class PrometheusController(rest.RestController):
+    @pecan.expose()
+    def post(self):
+        buf = snappy.uncompress(pecan.request.body)
+        f = remote_pb2.WriteRequest()
+        f.ParseFromString(buf)
+        measures = {}
+        for ts in f.timeseries:
+            attrs = dict((l.name, l.value) for l in ts.labels)
+            if ts.samples:
+                measures[attrs['__name__']] = MeasuresListSchema(
+                    [{'timestamp': s.timestamp_ms / 1000.0,
+                      'value': s.value}
+                     for s in ts.samples])
+
+        creator = pecan.request.auth_helper.get_current_user(pecan.request)
+        rid = ResourceUUID('prometheus', creator=creator)
+        r = pecan.request.indexer.get_resource('generic', rid,
+                                               with_metrics=True)
+        if not r:
+            metrics = MetricsSchema(dict((n, {}) for n in measures))
+            try:
+                r = pecan.request.indexer.create_resource(
+                    'generic', rid, creator,
+                    original_resource_id="prometheus",
+                    metrics=metrics
+                )
+            except indexer.ResourceAlreadyExists:
+                # Created in the meantime
+                need_update = True
+            else:
+                need_update = False
+        else:
+            need_update = True
+
+        if need_update:
+            if not r:
+                r = pecan.request.indexer.get_resource('generic', rid,
+                                                       with_metrics=True)
+            metric_names = [m.name for m in r.metrics]
+            metrics = MetricsSchema(dict(
+                (n, {}) for n in measures if n not in metric_names
+            ))
+
+            r = pecan.request.indexer.update_resource(
+                'generic', rid,
+                metrics=metrics,
+                append_metrics=True,
+                create_revision=False)
+
+        measures = dict((metric, measures[metric.name]) for metric in
+                        r.metrics if metric.name in measures)
+        pecan.request.incoming.add_measures_batch(measures)
+        pecan.response.status = 202
+
+
 class V1Controller(object):
 
     def __init__(self):
@@ -1905,6 +1968,8 @@ class V1Controller(object):
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)
+        if PROMETHEUS_SUPPORTED:
+            setattr(self, "prometheus", PrometheusController())
 
     @pecan.expose('json')
     def index(self):
