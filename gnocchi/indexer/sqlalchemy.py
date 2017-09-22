@@ -619,7 +619,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def list_archive_policy_rules(self):
         with self.facade.independent_reader() as session:
             return session.query(ArchivePolicyRule).order_by(
-                ArchivePolicyRule.metric_pattern.desc()).all()
+                ArchivePolicyRule.metric_pattern.desc(),
+                ArchivePolicyRule.name.asc()
+            ).all()
 
     def get_archive_policy_rule(self, name):
         with self.facade.independent_reader() as session:
