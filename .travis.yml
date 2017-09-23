@@ -24,19 +24,25 @@ env:
 
 before_script:
   # Travis We need to fetch all tags/branches for documentation target
-  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && case $TARGET in
-      docs*)
-        git config --get-all remote.origin.fetch;
-        git config --unset-all remote.origin.fetch;
-        git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*;
-        git config --get-all remote.origin.fetch;
-        git fetch --unshallow --tags;
-        ;;
-    esac
+  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+      case $TARGET in
+        docs*)
+          git config --get-all remote.origin.fetch;
+          git config --unset-all remote.origin.fetch;
+          git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*;
+          git config --get-all remote.origin.fetch;
+          git fetch --unshallow --tags;
+          ;;
+      esac ;
+    fi
 install:
-  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && docker pull gnocchixyz/ci-tools:latest
+  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+      docker pull gnocchixyz/ci-tools:latest;
+    fi
 script:
-  - \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \] && docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET}
+  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
+    fi
 
 notifications:
   email: false
