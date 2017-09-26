@@ -208,12 +208,14 @@ def list_opts():
                 'data_source',
                 default='collectd',
                 required=True,
-                help='Data source for amqp1d(currently supporting only collectd)'),
+                help='Data source for amqp1d(currently supporting '
+                     ' only collectd)'),
             cfg.StrOpt(
                 'resource_name',
                 default='collectd_amqp1d',
                 required=True,
-                help='Resource type name to use to identify metrics in Gnocchi'),
+                help='Resource type name to use to identify '
+                     'metrics in Gnocchi'),
             cfg.StrOpt(
                 'creator',
                 help='Creator value to use to amqpd1 in Gnocchi'),

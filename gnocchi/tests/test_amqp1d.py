@@ -67,26 +67,29 @@ class TestAmqp1d(tests_base.TestCase):
 
         metric_in_json = ujson.loads(metrics[0])
         metric_name = amqp1d.CollectdStats.serialize_identifier(
-                                                0, metric_in_json[0])
+            0, metric_in_json[0]
+        )
         host = metric_in_json[0]["host"]
 
         resources = self.stats.indexer.list_resources(
-                                        self.conf.amqp1d.resource_name,
-                                        attribute_filter={"=": {"host": host}})
+            self.conf.amqp1d.resource_name,
+            attribute_filter={"=": {"host": host}}
+        )
 
         self.assertIsNotNone(resources)
         resource = self.stats.indexer.get_resource(
-                                    self.conf.amqp1d.resource_name,
-                                    resources[0].id, with_metrics=True)
+            self.conf.amqp1d.resource_name,
+            resources[0].id, with_metrics=True
+        )
         self.assertIsNotNone(resource)
         metric = resource.get_metric(metric_name)
         self.assertIsNotNone(metric)
 
-        print(metric_name)
-        print(metric)
         self.storage.process_new_measures(
-            self.stats.indexer, self.stats.incoming,
-            [str(metric.id)], sync=True)
+            self.stats.indexer,
+            self.stats.incoming,
+            [str(metric.id)], sync=True
+        )
 
         measures = self.storage.get_measures(metric)
         self.assertEqual([
@@ -116,14 +119,16 @@ class TestAmqp1d(tests_base.TestCase):
         host = metric_in_json[0]["host"]
 
         resources = self.stats.indexer.list_resources(
-                                        self.conf.amqp1d.resource_name,
-                                        attribute_filter={"=": {"host": host}})
+            self.conf.amqp1d.resource_name,
+            attribute_filter={"=": {"host": host}}
+        )
 
         self.assertIsNotNone(resources)
         resource = self.stats.indexer.get_resource(
-                                                self.conf.amqp1d.resource_name,
-                                                resources[0].id,
-                                                with_metrics=True)
+            self.conf.amqp1d.resource_name,
+            resources[0].id,
+            with_metrics=True
+        )
         self.assertIsNotNone(resource)
         for metric_name in metric_names:
             metric = resource.get_metric(metric_name)
