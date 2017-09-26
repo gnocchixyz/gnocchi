@@ -99,7 +99,7 @@ class TestAmqp1d(tests_base.TestCase):
     def _test_counters(self, metrics, utcnow):
         """"
 
-        this creates two metrics names for derived types (collectd counter)
+        this creates two metrics names for derived types (collectd counter).
 
         """
 
