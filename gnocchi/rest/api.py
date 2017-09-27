@@ -251,23 +251,35 @@ class ArchivePolicyController(rest.RestController):
             abort(404, indexer.NoSuchArchivePolicy(self.archive_policy))
         enforce("update archive policy", ap)
 
-        body = deserialize_and_validate(voluptuous.Schema({
-            voluptuous.Required("definition"):
-                voluptuous.All([{
+        accepted_schemas = [
+            voluptuous.Schema({
+                voluptuous.Required("name"): six.text_type,
+                voluptuous.Optional("definition"): voluptuous.All([{
                     "granularity": Timespan,
                     "points": PositiveNotNullInt,
-                    "timespan": Timespan}], voluptuous.Length(min=1)),
-            }))
+                    "timespan": Timespan}], voluptuous.Length(min=1))
+            }),
+            voluptuous.Schema({
+                voluptuous.Optional("name"): six.text_type,
+                voluptuous.Required("definition"): voluptuous.All([{
+                    "granularity": Timespan,
+                    "points": PositiveNotNullInt,
+                    "timespan": Timespan}], voluptuous.Length(min=1))
+            })]
+        body = deserialize_and_validate(voluptuous.Any(*accepted_schemas))
         # Validate the data
+        # If no new definition was passed, use the current one
         try:
             ap_items = [archive_policy.ArchivePolicyItem(**item) for item in
-                        body['definition']]
+                        body.get('definition', ap.definition)]
         except ValueError as e:
             abort(400, e)
 
         try:
             return pecan.request.indexer.update_archive_policy(
-                self.archive_policy, ap_items)
+                self.archive_policy,
+                ap_items,
+                new_name=body.get("name"))
         except indexer.UnsupportedArchivePolicyChange as e:
             abort(400, e)
 
