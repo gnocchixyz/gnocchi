@@ -242,6 +242,15 @@ not retroactively calculated as backfill to accommodate the new |timespan|:
    |Granularities| cannot be changed to a different rate. Also, |granularities|
    cannot be added or dropped from a policy.
 
+Existing |archive policies| can be renamed:
+
+{{ scenarios['rename-archive-policy']['doc'] }}
+
+.. note::
+
+    The `name` and `definition` parameters can both be specified to update and
+    rename an |archive policy| within the same PATCH request.
+
 It is possible to delete an |archive policy| if it is not used by any |metric|:
 
 {{ scenarios['delete-archive-policy']['doc'] }}

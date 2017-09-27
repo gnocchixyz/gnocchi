@@ -17,6 +17,7 @@
 import collections
 import datetime
 import operator
+import uuid
 
 import numpy
 from oslo_config import cfg
@@ -52,7 +53,8 @@ class ArchivePolicy(object):
                 VALID_AGGREGATION_METHODS)))
 
     def __init__(self, name, back_window, definition,
-                 aggregation_methods=None):
+                 aggregation_methods=None, id=None):
+        self.id = id or uuid.uuid4()
         self.name = name
         self.back_window = back_window
         self.definition = []
@@ -119,14 +121,16 @@ class ArchivePolicy(object):
         return cls(d['name'],
                    d['back_window'],
                    d['definition'],
-                   d.get('aggregation_methods'))
+                   d.get('aggregation_methods'),
+                   d.get('id'))
 
     def __eq__(self, other):
         return (isinstance(other, ArchivePolicy)
                 and self.name == other.name
                 and self.back_window == other.back_window
                 and self.definition == other.definition
-                and self.aggregation_methods == other.aggregation_methods)
+                and self.aggregation_methods == other.aggregation_methods
+                and self.id == other.id)
 
     def jsonify(self):
         return {
@@ -134,6 +138,7 @@ class ArchivePolicy(object):
             "back_window": self.back_window,
             "definition": self.definition,
             "aggregation_methods": self.aggregation_methods,
+            "id": self.id
         }
 
     @property

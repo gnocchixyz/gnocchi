@@ -61,14 +61,14 @@ tests:
   GET: $LOCATION
   status: 200
   response_json_paths:
-      $.archive_policy.name: test1
+      $.archive_policy_name: test1
       $.creator: foobar
 
 - name: list the one metric
   GET: /v1/metric
   status: 200
   response_json_paths:
-      $[0].archive_policy.name: test1
+      $[0].archive_policy_name: test1
 
 - name: post a single measure
   desc: post one measure

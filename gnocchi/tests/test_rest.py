@@ -287,6 +287,7 @@ class ArchivePolicyTest(RestTest):
         ]
         self.assertEqual(set(ap['aggregation_methods']),
                          ap_dict['aggregation_methods'])
+        ap['id'] = uuid.UUID(ap['id'])
         del ap['aggregation_methods']
         del ap_dict['aggregation_methods']
         self.assertEqual(ap_dict, ap)
@@ -297,6 +298,7 @@ class ArchivePolicyTest(RestTest):
         # Transform list to set
         for ap in aps:
             ap['aggregation_methods'] = set(ap['aggregation_methods'])
+            ap['id'] = uuid.UUID(ap['id'])
         for name, ap in six.iteritems(self.archive_policies):
             apj = ap.jsonify()
             apj['definition'] = [

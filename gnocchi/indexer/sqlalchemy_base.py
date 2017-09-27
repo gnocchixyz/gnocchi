@@ -149,8 +149,13 @@ class SetType(sqlalchemy_utils.JSONType):
 
 class ArchivePolicy(Base, GnocchiBase, archive_policy.ArchivePolicy):
     __tablename__ = 'archive_policy'
+    __table_args__ = (
+        sqlalchemy.Index('ix_ap_name', 'name'),
+        sqlalchemy.UniqueConstraint("name", name="uniq_ap_name"),
+        COMMON_TABLES_ARGS)
 
-    name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(), primary_key=True)
+    name = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
     back_window = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
     definition = sqlalchemy.Column(ArchivePolicyDefinitionType, nullable=False)
     # TODO(jd) Use an array of string instead, PostgreSQL can do that
@@ -169,14 +174,17 @@ class Metric(Base, GnocchiBase, indexer.Metric):
 
     id = sqlalchemy.Column(sqlalchemy_utils.UUIDType(),
                            primary_key=True)
-    archive_policy_name = sqlalchemy.Column(
-        sqlalchemy.String(255),
+    archive_policy_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey(
-            'archive_policy.name',
+            'archive_policy.id',
             ondelete="RESTRICT",
-            name="fk_metric_ap_name_ap_name"),
+            name="fk_metric_ap_id_ap_id"),
         nullable=False)
-    archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
+    archive_policy = sqlalchemy.orm.relationship(
+        ArchivePolicy,
+        backref="metric",
+        primaryjoin="ArchivePolicy.id == Metric.archive_policy_id")
     creator = sqlalchemy.Column(sqlalchemy.String(255))
     resource_id = sqlalchemy.Column(
         sqlalchemy_utils.UUIDType(),
@@ -202,10 +210,8 @@ class Metric(Base, GnocchiBase, indexer.Metric):
             d['resource_id'] = self.resource_id
         else:
             d['resource'] = self.resource
-        if 'archive_policy' in unloaded:
-            d['archive_policy_name'] = self.archive_policy_name
-        else:
-            d['archive_policy'] = self.archive_policy
+
+        d['archive_policy_name'] = self.archive_policy.name
 
         if self.creator is None:
             d['created_by_user_id'] = d['created_by_project_id'] = None
@@ -218,12 +224,12 @@ class Metric(Base, GnocchiBase, indexer.Metric):
 
     def __eq__(self, other):
         # NOTE(jd) If `other` is a SQL Metric, we only compare
-        # archive_policy_name, and we don't compare archive_policy that might
+        # archive_policy_id, and we don't compare archive_policy that might
         # not be loaded. Otherwise we fallback to the original comparison for
         # indexer.Metric.
         return ((isinstance(other, Metric)
                  and self.id == other.id
-                 and self.archive_policy_name == other.archive_policy_name
+                 and self.archive_policy_id == other.archive_policy_id
                  and self.creator == other.creator
                  and self.name == other.name
                  and self.unit == other.unit
@@ -439,11 +445,22 @@ class ArchivePolicyRule(Base, GnocchiBase):
     __tablename__ = 'archive_policy_rule'
 
     name = sqlalchemy.Column(sqlalchemy.String(255), primary_key=True)
-    archive_policy_name = sqlalchemy.Column(
-        sqlalchemy.String(255),
+    archive_policy_id = sqlalchemy.Column(
+        sqlalchemy_utils.UUIDType(),
         sqlalchemy.ForeignKey(
-            'archive_policy.name',
+            'archive_policy.id',
             ondelete="RESTRICT",
-            name="fk_apr_ap_name_ap_name"),
+            name="fk_apr_ap_id_ap_id"),
         nullable=False)
     metric_pattern = sqlalchemy.Column(sqlalchemy.String(255), nullable=False)
+    archive_policy = sqlalchemy.orm.relationship(
+        ArchivePolicy,
+        backref="archive_policy_rule",
+        primaryjoin="ArchivePolicy.id == ArchivePolicyRule.archive_policy_id")
+
+    def jsonify(self):
+        return {
+            "name": self.name,
+            "metric_pattern": self.metric_pattern,
+            "archive_policy_name": self.archive_policy.name,
+        }

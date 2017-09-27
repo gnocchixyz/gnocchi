@@ -51,6 +51,7 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_get_archive_policy(self):
         ap = self.index.get_archive_policy("low")
+        self.assertIsInstance(ap.id, uuid.UUID)
         self.assertEqual({
             'back_window': 0,
             'aggregation_methods':
@@ -65,7 +66,8 @@ class TestIndexerDriver(tests_base.TestCase):
                 {u'granularity': numpy.timedelta64(86400, 's'),
                  u'points': 30,
                  u'timespan': numpy.timedelta64(2592000, 's')}],
-            'name': u'low'}, dict(ap))
+            'name': u'low',
+            'id': ap.id}, dict(ap))
 
     def test_update_archive_policy(self):
         self.assertRaises(indexer.UnsupportedArchivePolicyChange,
@@ -90,6 +92,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                                       points=24),
                      archive_policy.ArchivePolicyItem(granularity=86400,
                                                       points=30)])
+        self.assertIsInstance(ap.id, uuid.UUID)
         self.assertEqual({
             'back_window': 0,
             'aggregation_methods':
@@ -104,7 +107,8 @@ class TestIndexerDriver(tests_base.TestCase):
                 {u'granularity': numpy.timedelta64(86400, 's'),
                  u'points': 30,
                  u'timespan': numpy.timedelta64(2592000, 's')}],
-            'name': apname}, dict(ap))
+            'name': apname,
+            'id': ap.id}, dict(ap))
         ap = self.index.update_archive_policy(
             apname, [archive_policy.ArchivePolicyItem(granularity=300,
                                                       points=12),
@@ -112,6 +116,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                                       points=24),
                      archive_policy.ArchivePolicyItem(granularity=86400,
                                                       points=30)])
+        self.assertIsInstance(ap.id, uuid.UUID)
         self.assertEqual({
             'back_window': 0,
             'aggregation_methods':
@@ -126,7 +131,51 @@ class TestIndexerDriver(tests_base.TestCase):
                 {u'granularity': numpy.timedelta64(86400, 's'),
                  u'points': 30,
                  u'timespan': numpy.timedelta64(2592000, 's')}],
-            'name': apname}, dict(ap))
+            'name': apname,
+            'id': ap.id}, dict(ap))
+
+    def test_rename_archive_policy(self):
+        apname = str(uuid.uuid4())
+        apname1 = str(uuid.uuid4())
+        self.index.create_archive_policy(archive_policy.ArchivePolicy(
+            apname, 0, [(12, 300), (24, 3600), (30, 86400)]))
+        self.index.create_archive_policy(archive_policy.ArchivePolicy(
+            apname1, 0, [(12, 300), (24, 3600), (30, 86400)]))
+        self.assertRaises(indexer.UnsupportedArchivePolicyChange,
+                          self.index.update_archive_policy, apname,
+                          [archive_policy.ArchivePolicyItem(granularity=300,
+                                                            points=12),
+                           archive_policy.ArchivePolicyItem(granularity=3600,
+                                                            points=24),
+                           archive_policy.ArchivePolicyItem(granularity=86400,
+                                                            points=30)],
+                          apname1)
+        new_apname = str(uuid.uuid4())
+        ap = self.index.update_archive_policy(
+            apname, [archive_policy.ArchivePolicyItem(granularity=300,
+                                                      points=12),
+                     archive_policy.ArchivePolicyItem(granularity=3600,
+                                                      points=24),
+                     archive_policy.ArchivePolicyItem(granularity=86400,
+                                                      points=30)],
+            new_apname)
+        self.assertIsInstance(ap.id, uuid.UUID)
+        self.assertEqual({
+            'back_window': 0,
+            'aggregation_methods':
+            set(self.conf.archive_policy.default_aggregation_methods),
+            'definition': [
+                {u'granularity': numpy.timedelta64(5, 'm'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')},
+                {u'granularity': numpy.timedelta64(3600, 's'),
+                 u'points': 24,
+                 u'timespan': numpy.timedelta64(86400, 's')},
+                {u'granularity': numpy.timedelta64(86400, 's'),
+                 u'points': 30,
+                 u'timespan': numpy.timedelta64(2592000, 's')}],
+            'name': new_apname,
+            'id': ap.id}, dict(ap))
 
     def test_delete_archive_policy(self):
         name = str(uuid.uuid4())
