@@ -23,7 +23,6 @@ from gnocchi import carbonara
 from gnocchi.rest import cross_metric
 from gnocchi import storage
 from gnocchi.tests import base
-from gnocchi import utils
 
 
 def datetime64(*args):
@@ -268,23 +267,23 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(60000000000, 'ns'), 3.0),
-            (datetime.datetime(2014, 1, 1, 12, 1, 0),
+            (datetime64(2014, 1, 1, 12, 1, 0),
              numpy.timedelta64(60000000000, 'ns'), 1.0),
-            (datetime.datetime(2014, 1, 1, 12, 2, 0),
+            (datetime64(2014, 1, 1, 12, 2, 0),
              numpy.timedelta64(60000000000, 'ns'), 6.5),
-            (datetime.datetime(2014, 1, 1, 12, 3, 0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
              numpy.timedelta64(60000000000, 'ns'), 16.5),
-            (datetime.datetime(2014, 1, 1, 12, 4, 0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.5),
-            (datetime.datetime(2014, 1, 1, 12, 5, 0),
+            (datetime64(2014, 1, 1, 12, 5, 0),
              numpy.timedelta64(60000000000, 'ns'), 9.0),
-            (datetime.datetime(2014, 1, 1, 12, 6, 0),
+            (datetime64(2014, 1, 1, 12, 6, 0),
              numpy.timedelta64(60000000000, 'ns'), 9.5),
-            (datetime.datetime(2014, 1, 1, 12, 7, 0),
+            (datetime64(2014, 1, 1, 12, 7, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.5),
-            (datetime.datetime(2014, 1, 1, 12, 8, 0),
+            (datetime64(2014, 1, 1, 12, 8, 0),
              numpy.timedelta64(60000000000, 'ns'), 1.5),
         ], list(output))
 
@@ -323,23 +322,23 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             tsc1['return'], tsc2['return']], aggregation='mean', fill='null')
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(60000000000, 'ns'), 6.0),
-            (datetime.datetime(2014, 1, 1, 12, 1, 0),
+            (datetime64(2014, 1, 1, 12, 1, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.0),
-            (datetime.datetime(2014, 1, 1, 12, 2, 0),
+            (datetime64(2014, 1, 1, 12, 2, 0),
              numpy.timedelta64(60000000000, 'ns'), 13.0),
-            (datetime.datetime(2014, 1, 1, 12, 3, 0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
              numpy.timedelta64(60000000000, 'ns'), 16.5),
-            (datetime.datetime(2014, 1, 1, 12, 4, 0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.5),
-            (datetime.datetime(2014, 1, 1, 12, 5, 0),
+            (datetime64(2014, 1, 1, 12, 5, 0),
              numpy.timedelta64(60000000000, 'ns'), 9.0),
-            (datetime.datetime(2014, 1, 1, 12, 6, 0),
+            (datetime64(2014, 1, 1, 12, 6, 0),
              numpy.timedelta64(60000000000, 'ns'), 9.5),
-            (datetime.datetime(2014, 1, 1, 12, 7, 0),
+            (datetime64(2014, 1, 1, 12, 7, 0),
              numpy.timedelta64(60000000000, 'ns'), 5.0),
-            (datetime.datetime(2014, 1, 1, 12, 8, 0),
+            (datetime64(2014, 1, 1, 12, 8, 0),
              numpy.timedelta64(60000000000, 'ns'), 3.0),
         ], list(output))
 
@@ -374,19 +373,19 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
 
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(60000000000, 'ns'), 3.0),
-            (datetime.datetime(2014, 1, 1, 12, 1, 0),
+            (datetime64(2014, 1, 1, 12, 1, 0),
              numpy.timedelta64(60000000000, 'ns'), 1.0),
-            (datetime.datetime(2014, 1, 1, 12, 2, 0),
+            (datetime64(2014, 1, 1, 12, 2, 0),
              numpy.timedelta64(60000000000, 'ns'), 6.5),
-            (datetime.datetime(2014, 1, 1, 12, 3, 0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
              numpy.timedelta64(60000000000, 'ns'), 16.5),
-            (datetime.datetime(2014, 1, 1, 12, 4, 0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.5),
-            (datetime.datetime(2014, 1, 1, 12, 7, 0),
+            (datetime64(2014, 1, 1, 12, 7, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.5),
-            (datetime.datetime(2014, 1, 1, 12, 8, 0),
+            (datetime64(2014, 1, 1, 12, 8, 0),
              numpy.timedelta64(60000000000, 'ns'), 1.5),
         ], list(output))
 
@@ -476,35 +475,35 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             [tsc1['return'], tsc12['return'], tsc2['return'], tsc22['return']],
             'mean')
         self.assertEqual([
-            (datetime.datetime(2014, 1, 1, 11, 45),
+            (datetime64(2014, 1, 1, 11, 45),
              numpy.timedelta64(300, 's'), 5.75),
-            (datetime.datetime(2014, 1, 1, 11, 50),
+            (datetime64(2014, 1, 1, 11, 50),
              numpy.timedelta64(300, 's'), 27.5),
-            (datetime.datetime(2014, 1, 1, 11, 55),
+            (datetime64(2014, 1, 1, 11, 55),
              numpy.timedelta64(300, 's'), 5.3333333333333339),
-            (datetime.datetime(2014, 1, 1, 12, 0),
+            (datetime64(2014, 1, 1, 12, 0),
              numpy.timedelta64(300, 's'), 6.0),
-            (datetime.datetime(2014, 1, 1, 12, 5),
+            (datetime64(2014, 1, 1, 12, 5),
              numpy.timedelta64(300, 's'), 5.1666666666666661),
-            (datetime.datetime(2014, 1, 1, 11, 54),
+            (datetime64(2014, 1, 1, 11, 54),
              numpy.timedelta64(60, 's'), 4.5),
-            (datetime.datetime(2014, 1, 1, 11, 56),
+            (datetime64(2014, 1, 1, 11, 56),
              numpy.timedelta64(60, 's'), 4.5),
-            (datetime.datetime(2014, 1, 1, 11, 57),
+            (datetime64(2014, 1, 1, 11, 57),
              numpy.timedelta64(60, 's'), 6.5),
-            (datetime.datetime(2014, 1, 1, 11, 58),
+            (datetime64(2014, 1, 1, 11, 58),
              numpy.timedelta64(60, 's'), 5.0),
-            (datetime.datetime(2014, 1, 1, 12, 1),
+            (datetime64(2014, 1, 1, 12, 1),
              numpy.timedelta64(60, 's'), 6.0),
-            (datetime.datetime(2014, 1, 1, 12, 2),
+            (datetime64(2014, 1, 1, 12, 2),
              numpy.timedelta64(60, 's'), 7.0),
-            (datetime.datetime(2014, 1, 1, 12, 3),
+            (datetime64(2014, 1, 1, 12, 3),
              numpy.timedelta64(60, 's'), 4.5),
-            (datetime.datetime(2014, 1, 1, 12, 4),
+            (datetime64(2014, 1, 1, 12, 4),
              numpy.timedelta64(60, 's'), 5.5),
-            (datetime.datetime(2014, 1, 1, 12, 5),
+            (datetime64(2014, 1, 1, 12, 5),
              numpy.timedelta64(60, 's'), 6.75),
-            (datetime.datetime(2014, 1, 1, 12, 6),
+            (datetime64(2014, 1, 1, 12, 6),
              numpy.timedelta64(60, 's'), 2.0),
         ], list(output))
 
@@ -721,30 +720,30 @@ class CrossMetricAggregated(base.TestCase):
         values = cross_metric.get_cross_metric_measures(
             self.storage, [self.metric, metric2])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+            (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+            (datetime64(2014, 1, 1, 12, 5, 0),
              numpy.timedelta64(5, 'm'), 12.5),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+            (datetime64(2014, 1, 1, 12, 10, 0),
              numpy.timedelta64(5, 'm'), 24.0)
         ], values)
 
         values = cross_metric.get_cross_metric_measures(
             self.storage, [self.metric, metric2], reaggregation='max')
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+            (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 39.75),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 69),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+            (datetime64(2014, 1, 1, 12, 5, 0),
              numpy.timedelta64(5, 'm'), 23),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+            (datetime64(2014, 1, 1, 12, 10, 0),
              numpy.timedelta64(5, 'm'), 44)
         ], values)
 
@@ -752,11 +751,11 @@ class CrossMetricAggregated(base.TestCase):
             self.storage, [self.metric, metric2],
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 0))
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
+            (datetime64(2014, 1, 1),
              numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12),
+            (datetime64(2014, 1, 1, 12),
              numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+            (datetime64(2014, 1, 1, 12, 10, 0),
              numpy.timedelta64(5, 'm'), 24.0),
         ], values)
 
@@ -765,11 +764,11 @@ class CrossMetricAggregated(base.TestCase):
             to_timestamp=datetime64(2014, 1, 1, 12, 5, 0))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+            (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
@@ -778,11 +777,11 @@ class CrossMetricAggregated(base.TestCase):
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
             to_timestamp=datetime64(2014, 1, 1, 12, 10, 10))
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
+            (datetime64(2014, 1, 1),
              numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12),
+            (datetime64(2014, 1, 1, 12),
              numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 10),
+            (datetime64(2014, 1, 1, 12, 10),
              numpy.timedelta64(5, 'm'), 24.0),
         ], values)
 
@@ -792,11 +791,11 @@ class CrossMetricAggregated(base.TestCase):
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 1))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1),
+            (datetime64(2014, 1, 1),
              numpy.timedelta64(1, 'D'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 22.25),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
@@ -807,7 +806,7 @@ class CrossMetricAggregated(base.TestCase):
             granularity=numpy.timedelta64(5, 'm'))
 
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 39.0),
         ], values)
 
@@ -831,14 +830,14 @@ class CrossMetricAggregated(base.TestCase):
         values = cross_metric.get_cross_metric_measures(
             self.storage, [self.metric, metric2])
         self.assertEqual([
-            (utils.datetime_utc(2014, 1, 1, 0, 0, 0),
+            (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 18.875),
-            (utils.datetime_utc(2014, 1, 1, 12, 0, 0),
+            (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(5, 'm'), 39.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 5, 0),
+            (datetime64(2014, 1, 1, 12, 5, 0),
              numpy.timedelta64(5, 'm'), 11.0),
-            (utils.datetime_utc(2014, 1, 1, 12, 10, 0),
+            (datetime64(2014, 1, 1, 12, 10, 0),
              numpy.timedelta64(5, 'm'), 22.0)
         ], values)
