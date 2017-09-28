@@ -41,7 +41,7 @@ size = 0
 for g, t in utils.grouper(sys.argv[1:], 2):
     granularity = utils.to_timespan(g)
     timespan = utils.to_timespan(t)
-    points = timespan.total_seconds() / granularity.total_seconds()
+    points = timespan / granularity
     cursize = points * WORST_CASE_BYTES_PER_POINT
     size += cursize
     print("%s over %s = %d points = %s" % (g, t, points, sizeof_fmt(cursize)))
