@@ -334,6 +334,15 @@ class ArchivePoliciesController(rest.RestController):
 
 
 class ArchivePolicyRulesController(rest.RestController):
+    @pecan.expose()
+    def _lookup(self, archive_policy_rule, *remainder):
+        apr = pecan.request.indexer.get_archive_policy_rule(
+            archive_policy_rule
+        )
+        if apr:
+            return ArchivePolicyRuleController(apr), remainder
+        abort(404, indexer.NoSuchArchivePolicyRule(archive_policy_rule))
+
     @pecan.expose('json')
     def post(self):
         enforce("create archive policy rule", {})
@@ -359,26 +368,43 @@ class ArchivePolicyRulesController(rest.RestController):
         return ap
 
     @pecan.expose('json')
-    def get_one(self, name):
-        ap = pecan.request.indexer.get_archive_policy_rule(name)
-        if ap:
-            enforce("get archive policy rule", ap)
-            return ap
-        abort(404, indexer.NoSuchArchivePolicyRule(name))
-
-    @pecan.expose('json')
     def get_all(self):
         enforce("list archive policy rule", {})
         return pecan.request.indexer.list_archive_policy_rules()
 
+
+class ArchivePolicyRuleController(rest.RestController):
+    def __init__(self, archive_policy_rule):
+        self.archive_policy_rule = archive_policy_rule
+
+    @pecan.expose('json')
+    def get(self):
+        enforce("get archive policy rule", self.archive_policy_rule)
+        return self.archive_policy_rule
+
+    @pecan.expose('json')
+    def patch(self):
+        ArchivePolicyRuleSchema = voluptuous.Schema({
+            voluptuous.Required("name"): six.text_type,
+            })
+        body = deserialize_and_validate(ArchivePolicyRuleSchema)
+        enforce("update archive policy rule", {})
+        try:
+            return pecan.request.indexer.update_archive_policy_rule(
+                self.archive_policy_rule.name, body["name"])
+        except indexer.UnsupportedArchivePolicyRuleChange as e:
+            abort(400, e)
+
     @pecan.expose()
-    def delete(self, name):
+    def delete(self):
         # NOTE(jd) I don't think there's any point in fetching and passing the
         # archive policy rule here, as the rule is probably checking the actual
         # role of the user, not the content of the AP rule.
         enforce("delete archive policy rule", {})
         try:
-            pecan.request.indexer.delete_archive_policy_rule(name)
+            pecan.request.indexer.delete_archive_policy_rule(
+                self.archive_policy_rule.name
+            )
         except indexer.NoSuchArchivePolicyRule as e:
             abort(404, e)
 

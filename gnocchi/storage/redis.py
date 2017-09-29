@@ -30,7 +30,7 @@ OPTS = [
 class RedisStorage(storage.StorageDriver):
     WRITE_FULL = True
 
-    STORAGE_PREFIX = "timeseries"
+    STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
 
     def __init__(self, conf, coord=None):
@@ -41,7 +41,7 @@ class RedisStorage(storage.StorageDriver):
         return "%s: %s" % (self.__class__.__name__, self._client)
 
     def _metric_key(self, metric):
-        return redis.SEP.join([self.STORAGE_PREFIX, str(metric.id)])
+        return redis.SEP.join([self.STORAGE_PREFIX, str(metric.id).encode()])
 
     @staticmethod
     def _unaggregated_field(version=3):

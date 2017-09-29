@@ -39,6 +39,12 @@ To create a |metric|, the following API request should be used:
 
 {{ scenarios['create-metric']['doc'] }}
 
+.. note::
+
+  Once the |metric| is created, the |archive policy| attribute is fixed and
+  unchangeable. The definition of the |archive policy| can be changed through
+  the :ref:`archive_policy endpoint<archive-policy-patch>` though.
+
 Once created, you can retrieve the |metric| information:
 
 {{ scenarios['get-metric']['doc'] }}
@@ -238,6 +244,8 @@ It is also possible to list |archive policies|:
 
 {{ scenarios['list-archive-policy']['doc'] }}
 
+.. _archive-policy-patch:
+
 Existing |archive policies| can be modified to retain more or less data
 depending on requirements. If the policy coverage is expanded, |aggregates| are
 not retroactively calculated as backfill to accommodate the new |timespan|:
@@ -301,6 +309,10 @@ by the `metric_pattern`, in reverse alphabetical order:
 It is possible to delete an |archive policy| rule:
 
 {{ scenarios['delete-archive-policy-rule']['doc'] }}
+
+It is possible to rename an archive policy rule:
+
+{{ scenarios['rename-archive-policy-rule']['doc'] }}
 
 Resources
 =========
