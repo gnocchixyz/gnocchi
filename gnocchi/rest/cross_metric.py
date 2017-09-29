@@ -126,19 +126,10 @@ def aggregated(timeseries, aggregation, from_timestamp=None,
                to_timestamp=None, needed_percent_of_overlap=100.0, fill=None):
 
     series = collections.defaultdict(list)
-    has_content = False
     for timeserie in timeseries:
         from_ = (None if from_timestamp is None else
                  carbonara.round_timestamp(from_timestamp, timeserie.sampling))
-        ts = timeserie[from_:to_timestamp]
-        # FIXME(gordc): a test expect empty result if all series empty. it
-        # should not matter, and continue to check overlap.
-        if ts.size > 0:
-            has_content = True
-        series[timeserie.sampling].append(ts)
-
-    if not series or not has_content:
-        return []
+        series[timeserie.sampling].append(timeserie[from_:to_timestamp])
 
     result = {'timestamps': [], 'granularity': [], 'values': []}
     for key in sorted(series, reverse=True):

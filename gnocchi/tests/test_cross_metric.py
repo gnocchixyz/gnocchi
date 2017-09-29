@@ -747,14 +747,12 @@ class CrossMetricAggregated(base.TestCase):
         # A lot of tests wants a metric, create one
         self.metric, __ = self._create_metric()
 
-    def test_get_cross_metric_measures_unknown_metric(self):
-        self.assertEqual([],
-                         cross_metric.get_cross_metric_measures(
-                             self.storage,
-                             [storage.Metric(uuid.uuid4(),
-                                             self.archive_policies['low']),
-                              storage.Metric(uuid.uuid4(),
-                                             self.archive_policies['low'])]))
+    def test_get_cross_metric_measures_empty_metrics_no_overlap(self):
+        self.assertRaises(
+            cross_metric.MetricUnaggregatable,
+            cross_metric.get_cross_metric_measures, self.storage,
+            [storage.Metric(uuid.uuid4(), self.archive_policies['low']),
+             storage.Metric(uuid.uuid4(), self.archive_policies['low'])])
 
     def test_get_cross_metric_measures_unknown_aggregation(self):
         metric2 = storage.Metric(uuid.uuid4(),
