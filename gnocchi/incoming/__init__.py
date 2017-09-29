@@ -173,6 +173,11 @@ class IncomingDriver(object):
     def get_sack_name(self, sack):
         return self.get_sack_prefix() % sack
 
+    @staticmethod
+    def iter_on_sacks_to_process():
+        """Return an iterable of sack that got new measures to process."""
+        raise exceptions.NotImplementedError
+
 
 def get_driver(conf):
     """Return configured incoming driver only

@@ -290,6 +290,11 @@ class StopWatch(object):
         self._state = self._STOPPED
         return self
 
+    def reset(self):
+        """Stop and re-start the watch."""
+        self.stop()
+        return self.start()
+
 
 def get_driver_class(namespace, conf):
     """Return the storage driver class.

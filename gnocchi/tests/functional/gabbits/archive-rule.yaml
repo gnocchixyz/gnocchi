@@ -158,6 +158,47 @@ tests:
         authorization: "basic YWRtaW46"
       status: 400
 
+# rename an archive policy rule
+
+    - name: rename archive policy rule with missing name
+      PATCH: /v1/archive_policy_rule/test_rule3
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      status: 400
+
+    - name: rename archive policy rule
+      PATCH: /v1/archive_policy_rule/test_rule3
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: test_rule3_renamed
+      status: 200
+
+    - name: get renamed archive policy rule
+      GET: /v1/archive_policy_rule/test_rule3_renamed
+      status: 200
+      response_json_paths:
+        $.metric_pattern: disk.*
+        $.archive_policy_name: low
+        $.name: test_rule3_renamed
+
+    - name: old archive policy rule doesn't exist
+      GET: /v1/archive_policy_rule/test_rule3
+      status: 404
+
+    - name: rename archive policy rule with existing name
+      PATCH: /v1/archive_policy_rule/test_rule2
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: test_rule3_renamed
+      status: 400
+      response_strings:
+          - 'Archive policy rule test_rule3_renamed already exists.'
+
 # delete rule as non admin
 
     - name: delete archive policy rule non admin
@@ -182,7 +223,7 @@ tests:
 
 
     - name: delete archive policy rule3
-      DELETE: /v1/archive_policy_rule/test_rule3
+      DELETE: /v1/archive_policy_rule/test_rule3_renamed
       request_headers:
         # User admin
         authorization: "basic YWRtaW46"

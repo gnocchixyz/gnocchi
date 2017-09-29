@@ -647,6 +647,21 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             raise indexer.ArchivePolicyRuleAlreadyExists(name)
         return apr
 
+    def update_archive_policy_rule(self, name, new_name):
+        apr = self.get_archive_policy_rule(name)
+        if not apr:
+            raise indexer.NoSuchArchivePolicyRule(name)
+        apr.name = new_name
+        try:
+            with self.facade.writer() as session:
+                session.add(apr)
+        except exception.DBDuplicateEntry:
+            raise indexer.UnsupportedArchivePolicyRuleChange(
+                name,
+                'Archive policy rule %s already exists.'
+                % new_name)
+        return apr
+
     @retry_on_deadlock
     def create_metric(self, id, creator, archive_policy_name,
                       name=None, unit=None, resource_id=None):
