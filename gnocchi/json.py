@@ -17,7 +17,6 @@ import datetime
 import uuid
 
 import numpy
-import pandas
 import six
 import ujson
 
@@ -36,11 +35,6 @@ def to_primitive(obj):
         return str(obj).rpartition(".000000000")[0] + "+00:00"
     if isinstance(obj, numpy.timedelta64):
         return obj / numpy.timedelta64(1, 's')
-    if isinstance(obj, pandas.Timedelta):
-        # >>> pandas.Timedelta("1 minute").total_seconds()
-        # 60.00000000000001
-        # Never forget that bro.
-        return obj.delta / 10e8
     if isinstance(obj, datetime.timedelta):
         return obj.total_seconds()
     # This mimics what Pecan implements in its default JSON encoder

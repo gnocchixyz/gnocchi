@@ -17,16 +17,23 @@
 """Timeseries cross-aggregation."""
 import collections
 
-
 import daiquiri
-import iso8601
-import pandas
+import numpy
 import six
 
+from gnocchi import carbonara
 from gnocchi import storage as gnocchi_storage
 
 
 LOG = daiquiri.getLogger(__name__)
+
+
+AGG_MAP = {'mean': numpy.nanmean,
+           'median': numpy.nanmedian,
+           'std': numpy.nanstd,
+           'min': numpy.nanmin,
+           'max': numpy.nanmax,
+           'sum': numpy.nansum}
 
 
 class UnAggregableTimeseries(Exception):
@@ -108,116 +115,68 @@ def get_cross_metric_measures(storage, metrics, from_timestamp=None,
         tss = list(map(lambda ts: ts.transform(transform), tss))
 
     try:
-        return [(timestamp.replace(tzinfo=iso8601.iso8601.UTC), r, v)
-                for timestamp, r, v
-                in aggregated(tss, reaggregation, from_timestamp, to_timestamp,
-                              needed_overlap, fill)]
-    except UnAggregableTimeseries as e:
+        return [(timestamp, r, v) for timestamp, r, v
+                in aggregated(tss, reaggregation, from_timestamp,
+                              to_timestamp, needed_overlap, fill)]
+    except (UnAggregableTimeseries, carbonara.UnknownAggregationMethod) as e:
         raise MetricUnaggregatable(metrics, e.reason)
 
 
 def aggregated(timeseries, aggregation, from_timestamp=None,
-               to_timestamp=None, needed_percent_of_overlap=100.0,
-               fill=None):
-    index = ['timestamp', 'granularity']
-    columns = ['timestamp', 'granularity', 'value']
-    dataframes = []
+               to_timestamp=None, needed_percent_of_overlap=100.0, fill=None):
 
-    if not timeseries:
-        return []
-
+    series = collections.defaultdict(list)
     for timeserie in timeseries:
-        timeserie_raw = list(timeserie.fetch(from_timestamp, to_timestamp))
+        from_ = (None if from_timestamp is None else
+                 carbonara.round_timestamp(from_timestamp, timeserie.sampling))
+        series[timeserie.sampling].append(timeserie[from_:to_timestamp])
 
-        if timeserie_raw:
-            dataframe = pandas.DataFrame(timeserie_raw, columns=columns)
-            dataframe = dataframe.set_index(index)
-            dataframes.append(dataframe)
+    result = {'timestamps': [], 'granularity': [], 'values': []}
+    for key in sorted(series, reverse=True):
+        combine = numpy.concatenate(series[key])
+        # np.unique sorts results for us
+        times, indices = numpy.unique(combine['timestamps'],
+                                      return_inverse=True)
 
-    if not dataframes:
-        return []
+        # create nd-array (unique series x unique times) and fill
+        filler = fill if fill is not None and fill != 'null' else numpy.NaN
+        val_grid = numpy.full((len(series[key]), len(times)), filler)
+        start = 0
+        for i, split in enumerate(series[key]):
+            size = len(split)
+            val_grid[i][indices[start:start + size]] = split['values']
+            start += size
+        values = val_grid.T
 
-    number_of_distinct_datasource = len(timeseries) / len(
-        set(ts.sampling for ts in timeseries)
-    )
-
-    left_boundary_ts = None
-    right_boundary_ts = None
-    if fill is not None:
-        fill_df = pandas.concat(dataframes, axis=1)
-        if fill != 'null':
-            fill_df = fill_df.fillna(fill)
-        single_df = pandas.concat([series for __, series in
-                                   fill_df.iteritems()]).to_frame()
-        grouped = single_df.groupby(level=index)
-    else:
-        grouped = pandas.concat(dataframes).groupby(level=index)
-        maybe_next_timestamp_is_left_boundary = False
-
-        left_holes = 0
-        right_holes = 0
-        holes = 0
-        for (timestamp, __), group in grouped:
-            if group.count()['value'] != number_of_distinct_datasource:
-                maybe_next_timestamp_is_left_boundary = True
-                if left_boundary_ts is not None:
-                    right_holes += 1
-                else:
-                    left_holes += 1
-            elif maybe_next_timestamp_is_left_boundary:
-                left_boundary_ts = timestamp
-                maybe_next_timestamp_is_left_boundary = False
-            else:
-                right_boundary_ts = timestamp
-                holes += right_holes
-                right_holes = 0
-
-        if to_timestamp is not None:
-            holes += left_holes
-        if from_timestamp is not None:
-            holes += right_holes
-
-        if to_timestamp is not None or from_timestamp is not None:
-            maximum = len(grouped)
-            percent_of_overlap = (float(maximum - holes) * 100.0 /
-                                  float(maximum))
+        if fill is None:
+            overlap = numpy.flatnonzero(~numpy.any(numpy.isnan(values),
+                                                   axis=1))
+            if overlap.size == 0 and needed_percent_of_overlap > 0:
+                raise UnAggregableTimeseries('No overlap')
+            # if no boundary set, use first/last timestamp which overlap
+            if to_timestamp is None and overlap.size:
+                times = times[:overlap[-1] + 1]
+                values = values[:overlap[-1] + 1]
+            if from_timestamp is None and overlap.size:
+                times = times[overlap[0]:]
+                values = values[overlap[0]:]
+            percent_of_overlap = overlap.size * 100.0 / times.size
             if percent_of_overlap < needed_percent_of_overlap:
                 raise UnAggregableTimeseries(
                     'Less than %f%% of datapoints overlap in this '
                     'timespan (%.2f%%)' % (needed_percent_of_overlap,
                                            percent_of_overlap))
-        if (needed_percent_of_overlap > 0 and
-                (right_boundary_ts == left_boundary_ts or
-                 (right_boundary_ts is None
-                  and maybe_next_timestamp_is_left_boundary))):
-            LOG.debug("We didn't find points that overlap in those "
-                      "timeseries. "
-                      "right_boundary_ts=%(right_boundary_ts)s, "
-                      "left_boundary_ts=%(left_boundary_ts)s, "
-                      "groups=%(groups)s", {
-                          'right_boundary_ts': right_boundary_ts,
-                          'left_boundary_ts': left_boundary_ts,
-                          'groups': list(grouped)
-                      })
-            raise UnAggregableTimeseries('No overlap')
 
-    # NOTE(sileht): this call the aggregation method on already
-    # aggregated values, for some kind of aggregation this can
-    # result can looks weird, but this is the best we can do
-    # because we don't have anymore the raw datapoints in those case.
-    # FIXME(sileht): so should we bailout is case of stddev, percentile
-    # and median?
-    agg_timeserie = getattr(grouped, aggregation)()
-    agg_timeserie = agg_timeserie.dropna().reset_index()
+        if aggregation in AGG_MAP:
+            values = AGG_MAP[aggregation](values, axis=1)
+        elif aggregation == 'count':
+            values = numpy.count_nonzero(~numpy.isnan(values), axis=1)
+        else:
+            raise carbonara.UnknownAggregationMethod(aggregation)
 
-    if from_timestamp is None and left_boundary_ts:
-        agg_timeserie = agg_timeserie[
-            agg_timeserie['timestamp'] >= left_boundary_ts]
-    if to_timestamp is None and right_boundary_ts:
-        agg_timeserie = agg_timeserie[
-            agg_timeserie['timestamp'] <= right_boundary_ts]
+        result['timestamps'].extend(times)
+        result['granularity'].extend([key] * len(times))
+        result['values'].extend(values)
 
-    points = agg_timeserie.sort_values(by=['granularity', 'timestamp'],
-                                       ascending=[0, 1])
-    return six.moves.zip(points.timestamp, points.granularity,
-                         points.value)
+    return six.moves.zip(result['timestamps'], result['granularity'],
+                         result['values'])

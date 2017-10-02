@@ -50,6 +50,13 @@ class Stats(object):
         self.gauges = {}
         self.counters = {}
         self.times = {}
+        self.metrics = {
+            metric.name: metric
+            for metric
+            in self.indexer.get_resource('generic',
+                                         self.conf.statsd.resource_id,
+                                         with_metrics=True).metrics
+        }
 
     def reset(self):
         self.gauges.clear()
@@ -88,10 +95,6 @@ class Stats(object):
             raise ValueError("Unknown metric type `%s'" % metric_type)
 
     def flush(self):
-        resource = self.indexer.get_resource('generic',
-                                             self.conf.statsd.resource_id,
-                                             with_metrics=True)
-
         for metric_name, measure in itertools.chain(
                 six.iteritems(self.gauges),
                 six.iteritems(self.counters),
@@ -101,7 +104,7 @@ class Stats(object):
                 # is not designed to run in parallel and we do not envision
                 # operators manipulating the resource/metrics using the Gnocchi
                 # API at the same time.
-                metric = resource.get_metric(metric_name)
+                metric = self.metrics.get(metric_name)
                 if not metric:
                     ap_name = self._get_archive_policy_name(metric_name)
                     metric = self.indexer.create_metric(
@@ -110,6 +113,7 @@ class Stats(object):
                         archive_policy_name=ap_name,
                         name=metric_name,
                         resource_id=self.conf.statsd.resource_id)
+                    self.metrics[metric_name] = metric
                 self.incoming.add_measures(metric, (measure,))
             except Exception as e:
                 LOG.error("Unable to add measure %s: %s",
