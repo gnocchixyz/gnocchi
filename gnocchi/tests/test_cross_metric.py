@@ -232,6 +232,111 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             ), numpy.timedelta64(60000000000, 'ns'), 4.0),
         ], list(output))
 
+    def test_cross_metric_with_random_holes_derived_boundaries(self):
+        tsc1 = {'sampling': numpy.timedelta64(60, 's'),
+                'size': 10, 'agg': 'mean'}
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
+        tsc2 = {'sampling': numpy.timedelta64(60, 's'),
+                'size': 10, 'agg': 'mean'}
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
+
+        tsb1.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 1, 0), 9),
+            (datetime64(2014, 1, 1, 12, 2, 0), 1),
+            (datetime64(2014, 1, 1, 12, 4, 0), 5),
+            (datetime64(2014, 1, 1, 12, 6, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
+
+        tsb2.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 0, 0), 6),
+            (datetime64(2014, 1, 1, 12, 1, 0), 2),
+            (datetime64(2014, 1, 1, 12, 2, 0), 13),
+            (datetime64(2014, 1, 1, 12, 3, 0), 24),
+            (datetime64(2014, 1, 1, 12, 4, 0), 4)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
+
+        output = cross_metric.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean',
+            needed_percent_of_overlap=50.0)
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 1, 0),
+             numpy.timedelta64(60000000000, 'ns'), 5.5),
+            (datetime64(2014, 1, 1, 12, 2, 0),
+             numpy.timedelta64(60000000000, 'ns'), 7.0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
+             numpy.timedelta64(60000000000, 'ns'), 24.0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
+             numpy.timedelta64(60000000000, 'ns'), 4.5),
+        ], list(output))
+
+    def test_cross_metric_derived_missing_boundary(self):
+        tsc1 = {'sampling': numpy.timedelta64(60, 's'),
+                'size': 10, 'agg': 'mean'}
+        tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
+        tsc2 = {'sampling': numpy.timedelta64(60, 's'),
+                'size': 10, 'agg': 'mean'}
+        tsb2 = carbonara.BoundTimeSerie(block_size=tsc2['sampling'])
+
+        tsb1.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 1, 0), 9),
+            (datetime64(2014, 1, 1, 12, 2, 0), 1),
+            (datetime64(2014, 1, 1, 12, 4, 0), 5),
+            (datetime64(2014, 1, 1, 12, 6, 0), 3)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc1))
+
+        tsb2.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 0, 0), 6),
+            (datetime64(2014, 1, 1, 12, 1, 0), 2),
+            (datetime64(2014, 1, 1, 12, 2, 0), 13),
+            (datetime64(2014, 1, 1, 12, 3, 0), 24),
+            (datetime64(2014, 1, 1, 12, 4, 0), 4)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=tsc2))
+
+        output = cross_metric.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean',
+            from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
+            needed_percent_of_overlap=50.0)
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(60000000000, 'ns'), 6.0),
+            (datetime64(2014, 1, 1, 12, 1, 0),
+             numpy.timedelta64(60000000000, 'ns'), 5.5),
+            (datetime64(2014, 1, 1, 12, 2, 0),
+             numpy.timedelta64(60000000000, 'ns'), 7.0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
+             numpy.timedelta64(60000000000, 'ns'), 24.0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
+             numpy.timedelta64(60000000000, 'ns'), 4.5),
+        ], list(output))
+
+        output = cross_metric.aggregated([
+            tsc1['return'], tsc2['return']], aggregation='mean',
+            to_timestamp=datetime64(2014, 1, 1, 12, 7, 0),
+            needed_percent_of_overlap=50.0)
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 1, 0),
+             numpy.timedelta64(60000000000, 'ns'), 5.5),
+            (datetime64(2014, 1, 1, 12, 2, 0),
+             numpy.timedelta64(60000000000, 'ns'), 7.0),
+            (datetime64(2014, 1, 1, 12, 3, 0),
+             numpy.timedelta64(60000000000, 'ns'), 24.0),
+            (datetime64(2014, 1, 1, 12, 4, 0),
+             numpy.timedelta64(60000000000, 'ns'), 4.5),
+            (datetime64(2014, 1, 1, 12, 6, 0),
+             numpy.timedelta64(60000000000, 'ns'), 3.0),
+        ], list(output))
+
     def test_aggregated_some_overlap_with_fill_zero(self):
         tsc1 = {'sampling': numpy.timedelta64(60, 's'),
                 'size': 10, 'agg': 'mean'}
@@ -571,6 +676,19 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             (datetime64(
                 2015, 12, 3, 13, 24, 15
             ), numpy.timedelta64(1, 's'), 10.0),
+        ], list(output))
+
+        # Check boundaries are set when overlap=0
+        output = cross_metric.aggregated(
+            [tsc1['return'], tsc2['return']],
+            aggregation="sum", needed_percent_of_overlap=0)
+        self.assertEqual([
+            (datetime64(
+                2015, 12, 3, 13, 21, 15
+            ), numpy.timedelta64(1, 's'), 11.0),
+            (datetime64(
+                2015, 12, 3, 13, 22, 15
+            ), numpy.timedelta64(1, 's'), 11.0),
         ], list(output))
 
         # By default we require 100% of point that overlap
