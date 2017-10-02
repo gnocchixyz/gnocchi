@@ -187,6 +187,11 @@ class MetricProcessor(MetricProcessBase):
                     i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
+        except tooz.NotImplemented:
+            # Do not log anything. If `run_watchers` is not implemented, it's
+            # likely that partitioning is not implemented either, so it already
+            # has been logged at startup with a warning.
+            pass
         except Exception as e:
             LOG.error('Unexpected error updating the task partitioner: %s', e)
         finally:
