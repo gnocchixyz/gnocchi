@@ -146,7 +146,7 @@ class MetricProcessor(MetricProcessBase):
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
-        except NotImplementedError:
+        except tooz.NotImplemented:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
         except tooz.ToozError as e:
