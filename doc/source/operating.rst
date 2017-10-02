@@ -66,28 +66,31 @@ seconds: there might be a gap if data is fed irregularly.
 
 There is no expiry of data relative to the current timestamp.
 
+Each |archive policy| also defines which |aggregation methods| will be used.
+The default is set to `default_aggregation_methods` which is by default set to
+*mean*, *min*, *max*, *sum*, *std*, *count*.
+
 Therefore, both the |archive policy| and the |granularity| entirely depends on
 your use case. Depending on the usage of your data, you can define several
 |archive policies|. A typical low grained use case could be::
 
-    3600 points with a granularity of 1 second = 1 hour
     1440 points with a granularity of 1 minute = 24 hours
-    720 points with a granularity of 1 hour = 30 days
-    365 points with a granularity of 1 day = 1 year
 
-This would represent 6125 points × 9 = 54 KiB per |aggregation method|. If
-you use the 8 standard |aggregation method|, your |metric| will take up to
-8 × 54 KiB = 432 KiB of disk space.
+The worst case scenario for storing compressed data points is 8.04 bytes per
+point, whereas best case scenario can compress up to 0.05 bytes per point.
+Knowing that, it is possible to compute the worst case scenario for storage in
+order to plan for data storage capacity.
+
+An archive policy of 1440 points would need 1440 points × 8.04 bytes = 11.3 KiB
+per |aggregation method|. If you use the 6 standard |aggregation method|
+proposed by Gnocchi, your |metric| will take up to 6 × 11.3 KiB = 67.8 KiB of
+disk space per metric.
 
 Be aware that the more definitions you set in an |archive policy|, the more CPU
 it will consume. Therefore, creating an |archive policy| with 2 definitons
 (e.g. 1 second granularity for 1 day and 1 minute granularity for 1 month) may
 consume twice CPU than just one definition (e.g. just 1 second granularity for
 1 day).
-
-Each |archive policy| also defines which |aggregation methods| will be used.
-The default is set to `default_aggregation_methods` which is by default set to
-*mean*, *min*, *max*, *sum*, *std*, *count*.
 
 Default archive policies
 ========================
