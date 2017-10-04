@@ -71,7 +71,7 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
@@ -92,7 +92,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
@@ -126,7 +126,7 @@ class TestStatsd(tests_base.TestCase):
         metric = r.get_metric(metric_key)
         self.assertIsNotNone(metric)
 
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
@@ -146,7 +146,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 

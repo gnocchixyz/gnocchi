@@ -234,7 +234,7 @@ class MetricProcessor(MetricProcessBase):
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(
+                self.store.process_new_measures(
                     self.index, self.incoming, metrics)
                 s_count += 1
             except Exception:
