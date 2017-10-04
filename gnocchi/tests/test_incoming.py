@@ -19,7 +19,7 @@ import uuid
 import numpy
 
 from gnocchi import incoming
-from gnocchi import storage
+from gnocchi import indexer
 from gnocchi.tests import base as tests_base
 
 
@@ -27,7 +27,7 @@ class TestIncomingDriver(tests_base.TestCase):
     def setUp(self):
         super(TestIncomingDriver, self).setUp()
         # A lot of tests wants a metric, create one
-        self.metric = storage.Metric(
+        self.metric = indexer.Metric(
             uuid.uuid4(),
             self.archive_policies["low"])
 
@@ -59,7 +59,7 @@ class TestIncomingDriver(tests_base.TestCase):
             # NOTE(jd) Retry to send measures. It cannot be done only once as
             # there might be a race condition between the threads
             self.incoming.add_measures(self.metric, [
-                storage.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
+                incoming.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
             ])
         else:
             self.fail("Notification for metric not received")

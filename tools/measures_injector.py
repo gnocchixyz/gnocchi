@@ -20,9 +20,9 @@ from concurrent import futures
 from oslo_config import cfg
 import six
 
+from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
-from gnocchi import storage
 from gnocchi import utils
 
 
@@ -37,7 +37,7 @@ def injector():
     ])
     conf = service.prepare_service(conf=conf)
     index = indexer.get_driver(conf)
-    s = storage.get_driver(conf)
+    instore = incoming.get_driver(conf)
 
     def todo():
         metric = index.create_metric(
@@ -47,10 +47,10 @@ def injector():
 
         for _ in six.moves.range(conf.batch_of_measures):
             measures = [
-                storage.Measure(
+                incoming.Measure(
                     utils.dt_in_unix_ns(utils.utcnow()), random.random())
                 for __ in six.moves.range(conf.measures_per_batch)]
-            s.incoming.add_measures(metric, measures)
+            instore.add_measures(metric, measures)
 
     with futures.ThreadPoolExecutor(max_workers=conf.metrics) as executor:
         for m in six.moves.range(conf.metrics):

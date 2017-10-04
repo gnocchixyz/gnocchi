@@ -31,7 +31,6 @@ import sqlalchemy_utils
 from gnocchi import archive_policy
 from gnocchi import indexer
 from gnocchi import resource_type
-from gnocchi import storage
 from gnocchi import utils
 
 Base = declarative.declarative_base()
@@ -159,7 +158,7 @@ class ArchivePolicy(Base, GnocchiBase, archive_policy.ArchivePolicy):
                                             nullable=False)
 
 
-class Metric(Base, GnocchiBase, storage.Metric):
+class Metric(Base, GnocchiBase, indexer.Metric):
     __tablename__ = 'metric'
     __table_args__ = (
         sqlalchemy.Index('ix_metric_status', 'status'),
@@ -221,7 +220,7 @@ class Metric(Base, GnocchiBase, storage.Metric):
         # NOTE(jd) If `other` is a SQL Metric, we only compare
         # archive_policy_name, and we don't compare archive_policy that might
         # not be loaded. Otherwise we fallback to the original comparison for
-        # storage.Metric.
+        # indexer.Metric.
         return ((isinstance(other, Metric)
                  and self.id == other.id
                  and self.archive_policy_name == other.archive_policy_name
@@ -229,9 +228,9 @@ class Metric(Base, GnocchiBase, storage.Metric):
                  and self.name == other.name
                  and self.unit == other.unit
                  and self.resource_id == other.resource_id)
-                or (storage.Metric.__eq__(self, other)))
+                or (indexer.Metric.__eq__(self, other)))
 
-    __hash__ = storage.Metric.__hash__
+    __hash__ = indexer.Metric.__hash__
 
 
 RESOURCE_TYPE_SCHEMA_MANAGER = resource_type.ResourceTypeSchemaManager(

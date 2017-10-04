@@ -234,11 +234,11 @@ class MetricProcessor(MetricProcessBase):
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
-            finally:
-                lock.release()
                 # If processing failed, re-add it to the sack list
                 if notified:
                     self.sacks_with_measures_to_process.add(s)
+            finally:
+                lock.release()
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
