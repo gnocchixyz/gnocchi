@@ -190,6 +190,41 @@ def list_opts():
                 default=10,
                 help='Delay between flushes'),
         )),
+        ("amqp1d", (
+            cfg.HostAddressOpt('host',
+                               default='localhost',
+                               required=True,
+                               help='The listener IP for amqp1.0 '),
+            cfg.PortOpt('port',
+                        default=5672,
+                        required=True,
+                        help='The port for amqp 1.0'),
+            cfg.StrOpt(
+                'topic',
+                default='u/collectd/telemetry',
+                required=True,
+                help='Topic name to listen to for  1.0'),
+            cfg.StrOpt(
+                'data_source',
+                default='collectd',
+                required=True,
+                help='Data source for amqp1d(currently supporting only collectd)'),
+            cfg.StrOpt(
+                'resource_name',
+                default='collectd_amqp1d',
+                required=True,
+                help='Resource type name to use to identify metrics in Gnocchi'),
+            cfg.StrOpt(
+                'creator',
+                help='Creator value to use to amqpd1 in Gnocchi'),
+            cfg.StrOpt(
+                'archive_policy_name',
+                help='Archive policy name to use when creating metrics'),
+            cfg.FloatOpt(
+                'flush_delay',
+                default=5,
+                help='Delay between flushes in secs'),
+        )),
         ("archive_policy", gnocchi.archive_policy.OPTS),
     ]
 
