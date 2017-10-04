@@ -385,5 +385,5 @@ class TestCase(BaseTestCase):
     def trigger_processing(self, metrics=None):
         if metrics is None:
             metrics = [str(self.metric.id)]
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.index, self.incoming, metrics, sync=True)
