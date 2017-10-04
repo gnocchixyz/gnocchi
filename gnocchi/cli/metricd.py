@@ -211,27 +211,17 @@ class MetricProcessor(MetricProcessBase):
             if not lock.acquire(blocking=False):
                 continue
 
-            # Discard the sack from the notified sacks if it's in since we are
-            # going to process it
-            try:
-                self.sacks_with_measures_to_process.remove(s)
-            except KeyError:
-                notified = False
-            else:
-                notified = True
-
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
                 self.store.process_background_tasks(
                     self.index, self.incoming, metrics)
                 s_count += 1
+                self.incoming.finish_sack_processing(s)
+                self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
-                # If processing failed, re-add it to the sack list
-                if notified:
-                    self.sacks_with_measures_to_process.add(s)
             finally:
                 lock.release()
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)

@@ -41,16 +41,24 @@ class RedisStorage(incoming.IncomingDriver):
         # NOTE(gordc): redis doesn't maintain keys with empty values
         pass
 
+    def _build_measure_path_with_sack(self, metric_id, sack_name):
+        return redis.SEP.join([sack_name.encode(), str(metric_id).encode()])
+
     def _build_measure_path(self, metric_id):
-        return redis.SEP.join([
-            self.get_sack_name(self.sack_for_metric(metric_id)).encode(),
-            str(metric_id).encode()])
+        return self._build_measure_path_with_sack(
+            metric_id, self.get_sack_name(self.sack_for_metric(metric_id)))
 
     def add_measures_batch(self, metrics_and_measures):
+        notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
         for metric, measures in six.iteritems(metrics_and_measures):
-            path = self._build_measure_path(metric.id)
+            sack_name = self.get_sack_name(self.sack_for_metric(metric.id))
+            path = self._build_measure_path_with_sack(metric.id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
+            if sack_name not in notified_sacks:
+                # value has no meaning, we just use this for notification
+                pipe.setnx(sack_name, 1)
+                notified_sacks.add(sack_name)
         pipe.execute()
 
     def _build_report(self, details):
@@ -110,13 +118,19 @@ class RedisStorage(incoming.IncomingDriver):
         self._client.ltrim(key, item_len + 1, -1)
 
     def iter_on_sacks_to_process(self):
-        self._client.config_set("notify-keyspace-events", "El")
+        self._client.config_set("notify-keyspace-events", "K$")
         p = self._client.pubsub()
         db = self._client.connection_pool.connection_kwargs['db']
-        channel = b"__keyevent@" + str(db).encode() + b"__:rpush"
-        p.subscribe(channel)
+        keyspace = b"__keyspace@" + str(db).encode() + b"__:"
+        pattern = keyspace + self.SACK_PREFIX.encode() + b"*"
+        p.psubscribe(pattern)
         for message in p.listen():
-            if message['type'] == 'message' and message['channel'] == channel:
-                # Format is defined by _build_measure_path:
-                # incoming128-17:d8ade376-01c0-4fe8-838a-00542437c791
-                yield int(message['data'].split(redis.SEP)[0].split(b"-")[-1])
+            if message['type'] == 'pmessage' and message['pattern'] == pattern:
+                # FIXME(jd) This is awful, we need a better way to extract this
+                # Format is defined by get_sack_prefix: incoming128-17
+                yield int(message['channel'].split(b"-")[-1])
+
+    def finish_sack_processing(self, sack):
+        # Delete the sack key which handles no data but is used to get a SET
+        # notification in iter_on_sacks_to_process
+        self._client.delete(self.get_sack_name(sack))
