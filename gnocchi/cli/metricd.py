@@ -16,6 +16,7 @@
 import threading
 import time
 
+import cachetools.func
 import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
@@ -126,6 +127,11 @@ class MetricProcessor(MetricProcessBase):
         # This stores the last time the processor did a scan on all the sack it
         # is responsible for
         self._last_full_sack_scan = utils.StopWatch().start()
+        # Only update the list of sacks to process every
+        # metric_processing_delay
+        self._get_sacks_to_process = cachetools.func.ttl_cache(
+            ttl=conf.metricd.metric_processing_delay
+        )(self._get_sacks_to_process)
 
     @tenacity.retry(
         wait=_wait_exponential,
