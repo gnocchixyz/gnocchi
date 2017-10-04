@@ -58,6 +58,7 @@ class TestIncomingDriver(tests_base.TestCase):
                 break
             # NOTE(jd) Retry to send measures. It cannot be done only once as
             # there might be a race condition between the threads
+            self.incoming.finish_sack_processing(sack_to_find)
             self.incoming.add_measures(self.metric, [
                 incoming.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
             ])
