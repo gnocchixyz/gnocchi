@@ -20,6 +20,7 @@ import uuid
 import warnings
 
 import jsonpatch
+import pbr.version
 import pecan
 from pecan import rest
 import pyparsing
@@ -1972,6 +1973,7 @@ class VersionsController(object):
     @pecan.expose('json')
     def index():
         return {
+            "build": pbr.version.VersionInfo('gnocchi').version_string(),
             "versions": [
                 {
                     "status": "CURRENT",

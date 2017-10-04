@@ -26,6 +26,7 @@ import uuid
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
+import pbr.version
 import six
 from stevedore import extension
 import testscenarios
@@ -212,6 +213,13 @@ class RootTest(RestTest):
             self.assertEqual(
                 ['test_aggregation'],
                 result['dynamic_aggregation_methods'])
+
+    def test_version(self):
+        with self.app.use_admin_user():
+            r = self.app.get("/")
+        self.assertEqual(
+            json.loads(r.text)['build'],
+            pbr.version.VersionInfo('gnocchi').version_string())
 
     def test_status(self):
         with self.app.use_admin_user():
