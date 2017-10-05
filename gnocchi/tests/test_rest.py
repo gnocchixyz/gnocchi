@@ -130,7 +130,7 @@ class TestingApp(webtest.TestApp):
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.indexer, self.incoming, metrics, sync=True)
         return response
 

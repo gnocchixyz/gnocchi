@@ -472,26 +472,6 @@ class StorageDriver(object):
                 LOG.error("Unable to expunge metric %s from storage", m,
                           exc_info=True)
 
-    def process_background_tasks(self, index, incoming, metrics, sync=False):
-        """Process background tasks for this storage.
-
-        This calls :func:`process_new_measures` to process new measures
-
-        :param index: An indexer to be used for querying metrics
-        :param incoming: The incoming storage
-        :param metrics: The list of metrics waiting for processing
-        :param sync: If True, then process everything synchronously and raise
-                     on error
-        :type sync: bool
-        """
-        try:
-            self.process_new_measures(index, incoming, metrics, sync)
-        except Exception:
-            if sync:
-                raise
-            LOG.error("Unexpected error during measures processing",
-                      exc_info=True)
-
     def process_new_measures(self, indexer, incoming, metrics_to_process,
                              sync=False):
         """Process added measures in background.

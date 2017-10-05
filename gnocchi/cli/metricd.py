@@ -16,6 +16,7 @@
 import threading
 import time
 
+import cachetools.func
 import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
@@ -126,6 +127,11 @@ class MetricProcessor(MetricProcessBase):
         # This stores the last time the processor did a scan on all the sack it
         # is responsible for
         self._last_full_sack_scan = utils.StopWatch().start()
+        # Only update the list of sacks to process every
+        # metric_processing_delay
+        self._get_sacks_to_process = cachetools.func.ttl_cache(
+            ttl=conf.metricd.metric_processing_delay
+        )(self._get_sacks_to_process)
 
     @tenacity.retry(
         wait=_wait_exponential,
@@ -216,27 +222,17 @@ class MetricProcessor(MetricProcessBase):
             if not lock.acquire(blocking=False):
                 continue
 
-            # Discard the sack from the notified sacks if it's in since we are
-            # going to process it
-            try:
-                self.sacks_with_measures_to_process.remove(s)
-            except KeyError:
-                notified = False
-            else:
-                notified = True
-
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(
+                self.store.process_new_measures(
                     self.index, self.incoming, metrics)
                 s_count += 1
+                self.incoming.finish_sack_processing(s)
+                self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
-                # If processing failed, re-add it to the sack list
-                if notified:
-                    self.sacks_with_measures_to_process.add(s)
             finally:
                 lock.release()
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
