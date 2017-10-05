@@ -67,7 +67,12 @@ class MetricProcessBase(cotyledon.Service):
 
         while not self._shutdown.is_set():
             with utils.StopWatch() as timer:
-                self._run_job()
+                try:
+                    self._run_job()
+                except Exception:
+                    LOG.error("Unexpected error during %s job",
+                              self.name,
+                              exc_info=True)
             self._wake_up.wait(max(0, self.interval_delay - timer.elapsed()))
             self._wake_up.clear()
         self._shutdown_done.set()
@@ -108,9 +113,6 @@ class MetricReporting(MetricProcessBase):
         except incoming.ReportGenerationError:
             LOG.warning("Unable to compute backlog. Retrying at next "
                         "interval.")
-        except Exception:
-            LOG.error("Unexpected error during pending measures reporting",
-                      exc_info=True)
 
 
 class MetricProcessor(MetricProcessBase):
@@ -257,11 +259,8 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
-        try:
-            self.store.expunge_metrics(self.incoming, self.index)
-            LOG.debug("Metrics marked for deletion removed from backend")
-        except Exception:
-            LOG.error("Unexpected error during metric cleanup", exc_info=True)
+        self.store.expunge_metrics(self.incoming, self.index)
+        LOG.debug("Metrics marked for deletion removed from backend")
 
 
 class MetricdServiceManager(cotyledon.ServiceManager):
