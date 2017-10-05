@@ -29,7 +29,7 @@ The list of variants available is:
 * s3 – provides Amazon S3 storage support
 * ceph – provides common part of Ceph storage support
 * ceph_recommended_lib – provides Ceph (>=0.80) storage support
-* ceph_alternative_lib – provides Ceph (>=10.1.0) storage support
+* ceph_alternative_lib – provides Ceph (>=12.2.0) storage support
 * file – provides file driver support
 * redis – provides Redis storage support
 * doc – documentation building support
@@ -59,11 +59,11 @@ be created for example with:
 
 
 Gnocchi leverages some librados features (omap, async, operation context)
-available in python binding only since python-rados >= 10.1.0. To handle this,
+available in python binding only since python-rados >= 12.2.0. To handle this,
 Gnocchi uses 'cradox' python library which has exactly the same API but works
 with Ceph >= 0.80.0.
 
-If Ceph and python-rados are >= 10.1.0, cradox python library becomes optional
+If Ceph and python-rados are >= 12.2.0, cradox python library becomes optional
 but is still recommended.
 
 
