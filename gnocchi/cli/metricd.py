@@ -16,6 +16,7 @@
 import threading
 import time
 
+import cachetools.func
 import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
@@ -126,6 +127,11 @@ class MetricProcessor(MetricProcessBase):
         # This stores the last time the processor did a scan on all the sack it
         # is responsible for
         self._last_full_sack_scan = utils.StopWatch().start()
+        # Only update the list of sacks to process every
+        # metric_processing_delay
+        self._get_sacks_to_process = cachetools.func.ttl_cache(
+            ttl=conf.metricd.metric_processing_delay
+        )(self._get_sacks_to_process)
 
     @tenacity.retry(
         wait=_wait_exponential,
@@ -146,7 +152,7 @@ class MetricProcessor(MetricProcessBase):
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
-        except NotImplementedError:
+        except tooz.NotImplemented:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
         except tooz.ToozError as e:
@@ -187,6 +193,11 @@ class MetricProcessor(MetricProcessBase):
                     i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
+        except tooz.NotImplemented:
+            # Do not log anything. If `run_watchers` is not implemented, it's
+            # likely that partitioning is not implemented either, so it already
+            # has been logged at startup with a warning.
+            pass
         except Exception as e:
             LOG.error('Unexpected error updating the task partitioner: %s', e)
         finally:
@@ -214,7 +225,7 @@ class MetricProcessor(MetricProcessBase):
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(
+                self.store.process_new_measures(
                     self.index, self.incoming, metrics)
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
