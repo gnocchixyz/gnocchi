@@ -38,7 +38,7 @@ OPTS = [
 
 _CARBONARA_OPTS = [
     cfg.IntOpt('aggregation_workers_number',
-               default=1, min=1,
+               min=1,
                help='Number of threads to process and store aggregates. '
                'Set value roughly equal to number of aggregates to be '
                'computed per metric'),

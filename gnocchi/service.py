@@ -44,7 +44,9 @@ def prepare_service(args=None, conf=None,
 
     conf.register_cli_opts(opts._cli_options)
 
-    conf.set_default("workers", utils.get_default_workers(), group="metricd")
+    workers = utils.get_default_workers()
+    conf.set_default("workers", workers, group="metricd")
+    conf.set_default("aggregation_workers_number", workers, group="storage")
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
