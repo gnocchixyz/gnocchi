@@ -182,6 +182,11 @@ class IncomingDriver(object):
         """Return an iterable of sack that got new measures to process."""
         raise exceptions.NotImplementedError
 
+    @staticmethod
+    def finish_sack_processing(sack):
+        """Mark sack processing has finished."""
+        pass
+
 
 def get_driver(conf):
     """Return configured incoming driver only
