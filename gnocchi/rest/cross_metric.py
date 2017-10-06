@@ -105,11 +105,12 @@ def get_cross_metric_measures(storage, metrics, from_timestamp=None,
     else:
         granularities_in_common = [granularity]
 
-    tss = storage._map_in_thread(storage._get_measures_timeserie,
-                                 [(metric, aggregation, g,
-                                   from_timestamp, to_timestamp)
-                                  for metric in metrics
-                                  for g in granularities_in_common])
+    tss = [
+        storage._get_measures_timeserie(metric, aggregation, g,
+                                        from_timestamp, to_timestamp)
+        for metric in metrics
+        for g in granularities_in_common
+    ]
 
     if transform is not None:
         tss = list(map(lambda ts: ts.transform(transform), tss))

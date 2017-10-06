@@ -19,7 +19,6 @@ import functools
 import itertools
 import operator
 
-from concurrent import futures
 import daiquiri
 import numpy
 from oslo_config import cfg
@@ -37,11 +36,6 @@ OPTS = [
 ]
 
 _CARBONARA_OPTS = [
-    cfg.IntOpt('aggregation_workers_number',
-               default=1, min=1,
-               help='Number of threads to process and store aggregates. '
-               'Set value roughly equal to number of aggregates to be '
-               'computed per metric'),
     cfg.StrOpt('coordination_url',
                secret=True,
                help='Coordination driver URL'),
@@ -126,12 +120,6 @@ def get_driver(conf, coord=None):
 class StorageDriver(object):
 
     def __init__(self, conf, coord=None):
-        self.aggregation_workers_number = conf.aggregation_workers_number
-        if self.aggregation_workers_number == 1:
-            # NOTE(jd) Avoid using futures at all if we don't want any threads.
-            self._map_in_thread = self._map_no_thread
-        else:
-            self._map_in_thread = self._map_in_futures_threads
         self.coord = (coord if coord else
                       utils.get_coordinator_and_start(conf.coordination_url))
         self.shared_coord = bool(coord)
@@ -224,11 +212,12 @@ class StorageDriver(object):
             raise AggregationDoesNotExist(metric, aggregation)
 
         if granularity is None:
-            agg_timeseries = self._map_in_thread(
-                self._get_measures_timeserie,
-                ((metric, aggregation, ap.granularity,
-                  from_timestamp, to_timestamp)
-                 for ap in reversed(metric.archive_policy.definition)))
+            agg_timeseries = [
+                self._get_measures_timeserie(
+                    metric, aggregation, ap.granularity,
+                    from_timestamp, to_timestamp)
+                for ap in reversed(metric.archive_policy.definition)
+            ]
         else:
             agg_timeseries = [self._get_measures_timeserie(
                 metric, aggregation, granularity,
@@ -287,12 +276,11 @@ class StorageDriver(object):
 
         timeseries = list(filter(
             lambda x: x is not None,
-            self._map_in_thread(
-                self._get_measures_and_unserialize,
-                ((metric, key, aggregation)
-                 for key in sorted(all_keys)
-                 if ((not from_timestamp or key >= from_timestamp)
-                     and (not to_timestamp or key <= to_timestamp))))
+            (self._get_measures_and_unserialize(
+                metric, key, aggregation)
+             for key in sorted(all_keys)
+             if ((not from_timestamp or key >= from_timestamp)
+                 and (not to_timestamp or key <= to_timestamp)))
         ))
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
@@ -554,12 +542,10 @@ class StorageDriver(object):
                     d.granularity, carbonara.round_timestamp(
                         tstamp, d.granularity))
 
-                self._map_in_thread(
-                    self._add_measures,
-                    ((aggregation, d, metric, ts,
-                        current_first_block_timestamp,
-                        new_first_block_timestamp)
-                        for aggregation in agg_methods))
+                for aggregation in agg_methods:
+                    self._add_measures(aggregation, d, metric, ts,
+                                       current_first_block_timestamp,
+                                       new_first_block_timestamp)
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,
@@ -607,16 +593,16 @@ class StorageDriver(object):
         granularity = granularity or []
         predicate = MeasureQuery(query)
 
-        results = self._map_in_thread(
-            self._find_measure,
-            [(metric, aggregation,
-              gran, predicate,
-              from_timestamp, to_timestamp)
-             for metric in metrics
-             for gran in granularity or
-             (defin.granularity
-              for defin in metric.archive_policy.definition)])
         result = collections.defaultdict(list)
+        results = (
+            self._find_measure(metric, aggregation,
+                               gran, predicate,
+                               from_timestamp, to_timestamp)
+            for metric in metrics
+            for gran in granularity or
+            (defin.granularity
+             for defin in metric.archive_policy.definition)
+        )
         for r in results:
             for metric, metric_result in six.iteritems(r):
                 result[metric].extend(metric_result)
@@ -627,17 +613,6 @@ class StorageDriver(object):
             r.sort(key=lambda t: (t[0], - t[1]))
 
         return result
-
-    @staticmethod
-    def _map_no_thread(method, list_of_args):
-        return list(itertools.starmap(method, list_of_args))
-
-    def _map_in_futures_threads(self, method, list_of_args):
-        with futures.ThreadPoolExecutor(
-                max_workers=self.aggregation_workers_number) as executor:
-            # We use 'list' to iterate all threads here to raise the first
-            # exception now, not much choice
-            return list(executor.map(lambda args: method(*args), list_of_args))
 
 
 class MeasureQuery(object):
