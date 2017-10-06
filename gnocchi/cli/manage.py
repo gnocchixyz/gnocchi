@@ -87,7 +87,8 @@ def change_sack_size():
     try:
         report = s.measures_report(details=False)
     except incoming.SackDetectionError:
-        # issue is already logged by NUM_SACKS, abort.
+        LOG.error('Unable to detect the number of storage sacks.\n'
+                  'Ensure gnocchi-upgrade has been executed.')
         return
     remainder = report['summary']['measures']
     if remainder:
