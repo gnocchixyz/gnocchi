@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    The `aggregation_workers_number` option has been removed.
