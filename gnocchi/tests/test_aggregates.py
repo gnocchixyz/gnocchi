@@ -37,11 +37,13 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         """Helper method that mimics _add_measures workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
-        agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, agg_dict['sampling'], agg_dict['agg'],
-            max_size=agg_dict.get('size'), truncate=True)
+        agg_dict['return'] = (
+            ["foo", 'mean'],
+            carbonara.AggregatedTimeSerie.from_grouped_serie(
+                grouped, agg_dict['sampling'], agg_dict['agg'],
+                max_size=agg_dict.get('size'), truncate=True))
         if existing:
-            existing.merge(agg_dict['return'])
+            existing[1].merge(agg_dict['return'][1])
             agg_dict['return'] = existing
 
     def test_aggregated_different_archive_no_overlap(self):
@@ -65,7 +67,9 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         self.assertRaises(processor.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
-                          from_timestamp=dtfrom, aggregation='mean')
+                          from_timestamp=dtfrom,
+                          operations=["aggregate", "mean", [
+                              "metric", ["foo", "mean"]]])
 
     def test_aggregated_different_archive_no_overlap2(self):
         tsc1 = {'sampling': numpy.timedelta64(60, 's'),
@@ -82,7 +86,11 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                             self._resample_and_merge, agg_dict=tsc1))
         self.assertRaises(processor.UnAggregableTimeseries,
                           processor.aggregated,
-                          [tsc1['return'], tsc2], aggregation='mean')
+                          [tsc1['return'], (("bar", "mean"), tsc2)],
+                          operations=["aggregate", "mean",
+                                      ["metric",
+                                       ["foo", "mean"],
+                                       ["bar", "mean"]]])
 
     def test_aggregated_different_archive_overlap(self):
         tsc1 = {'sampling': numpy.timedelta64(60, 's'),
@@ -132,13 +140,19 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
                           from_timestamp=dtfrom,
-                          to_timestamp=dtto, aggregation='mean')
+                          to_timestamp=dtto,
+                          operations=["aggregate", "mean", [
+                              "metric", tsc1['return'][0], tsc2['return'][0],
+                          ]])
 
         # Retry with 80% and it works
         output = processor.aggregated([
             tsc1['return'], tsc2['return']],
             from_timestamp=dtfrom, to_timestamp=dtto,
-            aggregation='mean', needed_percent_of_overlap=80.0)
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0],
+            ]],
+            needed_percent_of_overlap=80.0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 1, 0),
@@ -194,7 +208,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         # but we allow that the last datapoint is missing
         # of the precisest granularity
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='sum')
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]])["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 3, 0),
@@ -227,7 +244,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                             self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated(
-            [tsc1['return'], tsc2['return']], aggregation='mean')
+            [tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]])["aggregated"]
         self.assertEqual([
             (datetime64(
                 2014, 1, 1, 12, 3, 0
@@ -262,8 +282,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean',
-            needed_percent_of_overlap=50.0)
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], needed_percent_of_overlap=50.0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 1, 0),
@@ -304,9 +326,12 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean',
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
-            needed_percent_of_overlap=50.0)
+            needed_percent_of_overlap=50.0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -322,9 +347,12 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         ], list(output))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean',
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0],
+            ]],
             to_timestamp=datetime64(2014, 1, 1, 12, 7, 0),
-            needed_percent_of_overlap=50.0)
+            needed_percent_of_overlap=50.0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 1, 0),
@@ -371,7 +399,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], fill=0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -426,7 +457,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean', fill='null')
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], fill='null')["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -477,7 +511,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated([
-            tsc1['return'], tsc2['return']], aggregation='mean', fill=0)
+            tsc1['return'], tsc2['return']],
+            operations=["aggregate", "mean", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], fill=0)["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -511,34 +548,42 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         def ts1_update(ts):
             grouped = ts.group_serie(tsc1['sampling'])
             existing = tsc1.get('return')
-            tsc1['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, tsc1['sampling'], tsc1['agg'],
-                max_size=tsc1['size'], truncate=True)
+            tsc1['return'] = (
+                ['foobar', 'mean'],
+                carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, tsc1['sampling'], tsc1['agg'],
+                    max_size=tsc1['size'], truncate=True))
             if existing:
-                existing.merge(tsc1['return'])
+                existing[1].merge(tsc1['return'][1])
             grouped = ts.group_serie(tsc12['sampling'])
             existing = tsc12.get('return')
-            tsc12['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, tsc12['sampling'], tsc12['agg'],
-                max_size=tsc12['size'], truncate=True)
+            tsc12['return'] = (
+                ['foobar', 'mean'],
+                carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, tsc12['sampling'], tsc12['agg'],
+                    max_size=tsc12['size'], truncate=True))
             if existing:
-                existing.merge(tsc12['return'])
+                existing[1].merge(tsc12['return'][1])
 
         def ts2_update(ts):
             grouped = ts.group_serie(tsc2['sampling'])
             existing = tsc2.get('return')
-            tsc2['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, tsc2['sampling'], tsc2['agg'],
-                max_size=tsc2['size'], truncate=True)
+            tsc2['return'] = (
+                ['foobar', 'mean'],
+                carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, tsc2['sampling'], tsc2['agg'],
+                    max_size=tsc2['size'], truncate=True))
             if existing:
-                existing.merge(tsc2['return'])
+                existing[1].merge(tsc2['return'][1])
             grouped = ts.group_serie(tsc22['sampling'])
             existing = tsc22.get('return')
-            tsc22['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, tsc22['sampling'], tsc22['agg'],
-                max_size=tsc22['size'], truncate=True)
+            tsc22['return'] = (
+                ['foobar', 'mean'],
+                carbonara.AggregatedTimeSerie.from_grouped_serie(
+                    grouped, tsc22['sampling'], tsc22['agg'],
+                    max_size=tsc22['size'], truncate=True))
             if existing:
-                existing.merge(tsc22['return'])
+                existing[1].merge(tsc22['return'][1])
         tsb1.set_values(numpy.array([
             (datetime64(2014, 1, 1, 11, 46, 4), 4),
             (datetime64(2014, 1, 1, 11, 47, 34), 8),
@@ -580,7 +625,11 @@ class TestAggregatedTimeseries(base.BaseTestCase):
             before_truncate_callback=ts2_update)
         output = processor.aggregated(
             [tsc1['return'], tsc12['return'], tsc2['return'], tsc22['return']],
-            'mean')
+            operations=["aggregate", "mean", [
+                "metric",
+                tsc1['return'][0], tsc12['return'][0],
+                tsc2['return'][0], tsc22['return'][0]
+            ]])["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1, 11, 45),
              numpy.timedelta64(300, 's'), 5.75),
@@ -641,7 +690,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=tsc2))
 
         output = processor.aggregated(
-            [tsc1['return'], tsc2['return']], aggregation="sum")
+            [tsc1['return'], tsc2['return']],
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]])["aggregated"]
 
         self.assertEqual([
             (datetime64(
@@ -658,7 +710,9 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         output = processor.aggregated(
             [tsc1['return'], tsc2['return']],
             from_timestamp=dtfrom, to_timestamp=dtto,
-            aggregation="sum", needed_percent_of_overlap=0)
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], needed_percent_of_overlap=0)["aggregated"]
         self.assertEqual([
             (datetime64(
                 2015, 12, 3, 13, 19, 15
@@ -683,7 +737,9 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         # Check boundaries are set when overlap=0
         output = processor.aggregated(
             [tsc1['return'], tsc2['return']],
-            aggregation="sum", needed_percent_of_overlap=0)
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], needed_percent_of_overlap=0)["aggregated"]
         self.assertEqual([
             (datetime64(
                 2015, 12, 3, 13, 21, 15
@@ -698,16 +754,23 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         self.assertRaises(processor.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
-                          to_timestamp=dtto, aggregation='mean')
+                          to_timestamp=dtto,
+                          operations=["aggregate", "sum", [
+                              "metric", tsc1['return'][0], tsc2['return'][0]
+                          ]])
         self.assertRaises(processor.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
-                          from_timestamp=dtfrom, aggregation='mean')
+                          from_timestamp=dtfrom,
+                          operations=["aggregate", "sum", [
+                              "metric", tsc1['return'][0], tsc2['return'][0]
+                          ]])
         # Retry with 50% and it works
         output = processor.aggregated(
             [tsc1['return'], tsc2['return']], from_timestamp=dtfrom,
-            aggregation="sum",
-            needed_percent_of_overlap=50.0)
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], needed_percent_of_overlap=50.0)["aggregated"]
         self.assertEqual([
             (datetime64(
                 2015, 12, 3, 13, 19, 15
@@ -725,8 +788,9 @@ class TestAggregatedTimeseries(base.BaseTestCase):
 
         output = processor.aggregated(
             [tsc1['return'], tsc2['return']], to_timestamp=dtto,
-            aggregation="sum",
-            needed_percent_of_overlap=50.0)
+            operations=["aggregate", "sum", [
+                "metric", tsc1['return'][0], tsc2['return'][0]
+            ]], needed_percent_of_overlap=50.0)["aggregated"]
         self.assertEqual([
             (datetime64(
                 2015, 12, 3, 13, 21, 15
@@ -753,8 +817,13 @@ class CrossMetricAggregated(base.TestCase):
         self.assertRaises(
             processor.MetricUnaggregatable,
             processor.get_measures, self.storage,
-            [indexer.Metric(uuid.uuid4(), self.archive_policies['low']),
-             indexer.Metric(uuid.uuid4(), self.archive_policies['low'])])
+            [(indexer.Metric(uuid.uuid4(),
+                             self.archive_policies['low']), 'mean'),
+             (indexer.Metric(uuid.uuid4(),
+                             self.archive_policies['low']), 'mean')],
+            operations=["aggregate", "mean", [
+                "metric", ["whatever", "mean"], ["everwhat", "mean"],
+            ]])
 
     def test_get_measures_unknown_aggregation(self):
         metric2 = indexer.Metric(uuid.uuid4(),
@@ -774,8 +843,12 @@ class CrossMetricAggregated(base.TestCase):
         self.assertRaises(storage.AggregationDoesNotExist,
                           processor.get_measures,
                           self.storage,
-                          [self.metric, metric2],
-                          aggregation='last')
+                          [(self.metric, 'last'), (metric2, 'last')],
+                          operations=["aggregate", "mean", [
+                              "metric",
+                              [str(self.metric.id), "last"],
+                              [(metric2.id), "last"],
+                          ]])
 
     def test_get_measures_unknown_granularity(self):
         metric2 = indexer.Metric(uuid.uuid4(),
@@ -795,7 +868,12 @@ class CrossMetricAggregated(base.TestCase):
         self.assertRaises(storage.GranularityDoesNotExist,
                           processor.get_measures,
                           self.storage,
-                          [self.metric, metric2],
+                          [(self.metric, "mean"), (metric2, "mean")],
+                          operations=["aggregate", "mean", [
+                              "metric",
+                              [str(self.metric.id), "mean"],
+                              [str(metric2.id), "mean"],
+                          ]],
                           granularity=numpy.timedelta64(12345456, 'ms'))
 
     def test_add_and_get_measures_different_archives(self):
@@ -817,7 +895,12 @@ class CrossMetricAggregated(base.TestCase):
         self.assertRaises(processor.MetricUnaggregatable,
                           processor.get_measures,
                           self.storage,
-                          [self.metric, metric2])
+                          [(self.metric, "mean"), (metric2, "mean")],
+                          operations=["aggregate", "mean", [
+                              "metric",
+                              [str(self.metric.id), "mean"],
+                              [str(metric2.id), "mean"],
+                          ]])
 
     def test_add_and_get_measures(self):
         metric2, __ = self._create_metric()
@@ -836,7 +919,12 @@ class CrossMetricAggregated(base.TestCase):
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2])
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]])["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 22.25),
@@ -851,7 +939,12 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2], reaggregation='max')
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "max", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]])["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 39.75),
@@ -866,8 +959,13 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2],
-            from_timestamp=datetime64(2014, 1, 1, 12, 10, 0))
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]],
+            from_timestamp=datetime64(2014, 1, 1, 12, 10, 0))["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1),
              numpy.timedelta64(1, 'D'), 22.25),
@@ -878,8 +976,13 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2],
-            to_timestamp=datetime64(2014, 1, 1, 12, 5, 0))
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]],
+            to_timestamp=datetime64(2014, 1, 1, 12, 5, 0))["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 0, 0, 0),
@@ -891,9 +994,14 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2],
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]],
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
-            to_timestamp=datetime64(2014, 1, 1, 12, 10, 10))
+            to_timestamp=datetime64(2014, 1, 1, 12, 10, 10))["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1),
              numpy.timedelta64(1, 'D'), 22.25),
@@ -904,9 +1012,14 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2],
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
-            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1))
+            to_timestamp=datetime64(2014, 1, 1, 12, 0, 1))["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1),
@@ -918,10 +1031,15 @@ class CrossMetricAggregated(base.TestCase):
         ], values)
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2],
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 1),
-            granularity=numpy.timedelta64(5, 'm'))
+            granularity=numpy.timedelta64(5, 'm'))["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -946,7 +1064,12 @@ class CrossMetricAggregated(base.TestCase):
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 
         values = processor.get_measures(
-            self.storage, [self.metric, metric2])
+            self.storage, [(self.metric, 'mean'), (metric2, 'mean')],
+            operations=["aggregate", "mean", [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"],
+            ]])["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1, 0, 0, 0),
              numpy.timedelta64(1, 'D'), 18.875),
