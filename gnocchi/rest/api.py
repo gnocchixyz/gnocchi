@@ -1705,6 +1705,13 @@ class AggregationController(rest.RestController):
                 % (aggregation,
                    archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
+        if reaggregation is None:
+            reaggregation = aggregation
+
+        metrics_and_aggregations = [[str(m.id), aggregation] for m in metrics]
+        operations = ["aggregate", reaggregation,
+                      ["metric"] + metrics_and_aggregations]
+
         for metric in metrics:
             enforce("get metric", metric)
 
@@ -1754,9 +1761,10 @@ class AggregationController(rest.RestController):
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,
-                metrics, start, stop, aggregation,
-                reaggregation, granularity, needed_overlap, fill,
-                resample)
+                [(m, aggregation) for m in metrics],
+                operations, start, stop,
+                granularity, needed_overlap, fill,
+                resample)["aggregated"]
         except processor.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
