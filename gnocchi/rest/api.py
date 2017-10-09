@@ -33,13 +33,11 @@ import werkzeug.http
 
 from gnocchi import aggregates
 from gnocchi import archive_policy
-from gnocchi import carbonara
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
 from gnocchi.rest import cross_metric
-from gnocchi.rest import transformation
 from gnocchi import storage
 from gnocchi import utils
 
@@ -430,13 +428,6 @@ def MeasuresListSchema(measures):
         times.tolist(), values))
 
 
-def TransformSchema(transform):
-    try:
-        return transformation.parse(transform)
-    except transformation.TransformationParserError as e:
-        abort(400, str(e))
-
-
 class MetricController(rest.RestController):
     _custom_actions = {
         'measures': ['POST', 'GET']
@@ -470,7 +461,6 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     def get_measures(self, start=None, stop=None, aggregation='mean',
                      granularity=None, resample=None, refresh=False,
-                     transform=None,
                      **param):
         self.enforce_metric("get measures")
         if not (aggregation
@@ -495,21 +485,13 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
-        if transform is not None:
-            transform = TransformSchema(transform)
-
         if resample:
-            # TODO(sileht): This have to be deprecated at some point
-            if transform:
-                abort(400, 'transform and resample are exclusive')
-
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
-            transform = [carbonara.Transformation("resample", (resample,))]
 
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric)):
@@ -530,13 +512,12 @@ class MetricController(rest.RestController):
                 self.metric, start, stop, aggregation,
                 utils.to_timespan(granularity)
                 if granularity is not None else None,
-                transform)
+                resample)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except (aggregates.CustomAggFailure,
-                carbonara.TransformError) as e:
+        except aggregates.CustomAggFailure as e:
             abort(400, six.text_type(e))
 
     @pecan.expose()
@@ -1665,8 +1646,6 @@ class MetricsMeasuresBatchController(rest.RestController):
         except (storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except carbonara.TransformError as e:
-            abort(400, six.text_type(e))
 
 
 class SearchController(object):
@@ -1682,8 +1661,7 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
-             groupby=None, fill=None, refresh=False, resample=None,
-             transform=None):
+             groupby=None, fill=None, refresh=False, resample=None):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1707,8 +1685,7 @@ class AggregationResourceController(rest.RestController):
                                    for r in resources)))
             return AggregationController.get_cross_metric_measures_from_objs(
                 metrics, start, stop, aggregation, reaggregation,
-                granularity, needed_overlap, fill, refresh, resample,
-                transform)
+                granularity, needed_overlap, fill, refresh, resample)
 
         def groupper(r):
             return tuple((attr, r[attr]) for attr in groupby)
@@ -1722,8 +1699,7 @@ class AggregationResourceController(rest.RestController):
                 "group": dict(key),
                 "measures": AggregationController.get_cross_metric_measures_from_objs(  # noqa
                     metrics, start, stop, aggregation, reaggregation,
-                    granularity, needed_overlap, fill, refresh, resample,
-                    transform)
+                    granularity, needed_overlap, fill, refresh, resample)
             })
 
         return results
@@ -1754,8 +1730,7 @@ class AggregationController(rest.RestController):
                                             reaggregation=None,
                                             granularity=None,
                                             needed_overlap=100.0, fill=None,
-                                            refresh=False, resample=None,
-                                            transform=None):
+                                            refresh=False, resample=None):
         try:
             needed_overlap = float(needed_overlap)
         except ValueError:
@@ -1796,21 +1771,13 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 abort(400, six.text_type(e))
 
-        if transform is not None:
-            transform = TransformSchema(transform)
-
         if resample:
-            # TODO(sileht): This have to be deprecated at some point
-            if transform:
-                abort(400, 'transform and resample are exclusive')
-
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
-            transform = [carbonara.Transformation("resample", (resample,))]
 
         if fill is not None:
             if granularity is None:
@@ -1838,12 +1805,12 @@ class AggregationController(rest.RestController):
                 # metric
                 return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
-                    granularity, transform)
+                    granularity, resample)
             return cross_metric.get_cross_metric_measures(
                 pecan.request.storage,
                 metrics, start, stop, aggregation,
                 reaggregation, granularity, needed_overlap, fill,
-                transform)
+                resample)
         except cross_metric.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
@@ -1851,8 +1818,6 @@ class AggregationController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except carbonara.TransformError as e:
-            abort(400, six.text_type(e))
 
     MetricIDsSchema = [utils.UUID]
 
@@ -1860,7 +1825,7 @@ class AggregationController(rest.RestController):
     def get_metric(self, metric=None, start=None, stop=None,
                    aggregation='mean', reaggregation=None, granularity=None,
                    needed_overlap=100.0, fill=None,
-                   refresh=False, resample=None, transform=None):
+                   refresh=False, resample=None):
         if pecan.request.method == 'GET':
             try:
                 metric_ids = voluptuous.Schema(
@@ -1882,7 +1847,7 @@ class AggregationController(rest.RestController):
                 missing_metric_ids.pop())))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
-            granularity, needed_overlap, fill, refresh, resample, transform)
+            granularity, needed_overlap, fill, refresh, resample)
 
     post_metric = get_metric
 

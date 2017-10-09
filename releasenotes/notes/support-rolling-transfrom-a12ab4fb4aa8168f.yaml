@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added support for defining 'rolling' transform. This provides ability to
-    compute the mean, min, max, stdev and various other computations across
-    a rolling or moving window of a specified size.

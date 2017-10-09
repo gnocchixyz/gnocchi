@@ -210,7 +210,7 @@ class StorageDriver(object):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, transform=None):
+                     aggregation='mean', granularity=None, resample=None):
         """Get a measure to a metric.
 
         :param metric: The metric measured.
@@ -218,7 +218,7 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
         :param granularity: The granularity to retrieve.
-        :param transform: List of transformation to apply to the series
+        :param resample: The granularity to resample to.
         """
         if aggregation not in metric.archive_policy.aggregation_methods:
             raise AggregationDoesNotExist(metric, aggregation)
@@ -234,8 +234,8 @@ class StorageDriver(object):
                 metric, aggregation, granularity,
                 from_timestamp, to_timestamp)]
 
-        if transform is not None:
-            agg_timeseries = list(map(lambda agg: agg.transform(transform),
+        if resample and granularity:
+            agg_timeseries = list(map(lambda agg: agg.resample(resample),
                                       agg_timeseries))
 
         return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)

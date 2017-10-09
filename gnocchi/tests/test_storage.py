@@ -921,15 +921,13 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_resample_no_metric(self):
         """https://github.com/gnocchixyz/gnocchi/issues/69"""
-        transform = [carbonara.Transformation(
-            "resample", (numpy.timedelta64(1, 'h'),))]
         self.assertEqual([],
                          self.storage.get_measures(
                              self.metric,
                              datetime64(2014, 1, 1),
                              datetime64(2015, 1, 1),
                              granularity=numpy.timedelta64(300, 's'),
-                             transform=transform))
+                             resample=numpy.timedelta64(1, 'h')))
 
 
 class TestMeasureQuery(tests_base.TestCase):

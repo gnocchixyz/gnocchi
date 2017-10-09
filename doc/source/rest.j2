@@ -138,20 +138,10 @@ It's possible to provide the |granularity| argument to specify the
 
 See also :ref:`Aggregation across metrics <aggregation-across-metrics>` and :ref:`Resource's named metrics <resource-named-metrics>` .
 
-Transformations
-------------------------
-
 In addition to |granularities| defined by the |archive policy|, |aggregates|
 can be resampled to a new |granularity|.
 
 {{ scenarios['get-measures-resample']['doc'] }}
-
-Or we can apply absolute to the values and then negate them for example.
-
-{{ scenarios['get-measures-transform']['doc'] }}
-
-Supported transformations are `absolute`, `negative`,
-`rolling(aggregation-method, window-size)` and `resample(sampling-in-second)`.
 
 .. note::
 
