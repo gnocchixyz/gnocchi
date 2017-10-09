@@ -16,7 +16,6 @@
 # under the License.
 """Time series data manipulation, better with pancetta."""
 
-import collections
 import functools
 import itertools
 import math
@@ -28,23 +27,12 @@ import time
 import lz4.block
 import numpy
 import numpy.lib.recfunctions
-from numpy.lib.stride_tricks import as_strided
 from scipy import ndimage
 import six
 
 
 UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
 ONE_SECOND = numpy.timedelta64(1, 's')
-
-Transformation = collections.namedtuple('Transformation', ["method", "args"])
-
-
-class TransformError(Exception):
-    """Error raised when transforming series fails"""
-
-    def __init__(self, msg):
-        super(TransformError, self).__init__(
-            "Failed to transform series: %s" % msg)
 
 
 class BeforeEpochError(Exception):
@@ -556,58 +544,6 @@ class AggregatedTimeSerie(TimeSerie):
     def resample(self, sampling):
         return AggregatedTimeSerie.from_grouped_serie(
             self.group_serie(sampling), sampling, self.aggregation_method)
-
-    def transform(self, transform):
-        timestamps = self.ts["timestamps"]
-        values = self.ts["values"]
-        sampling = self.sampling
-
-        for trans in transform:
-            if trans.method == "absolute":
-                values = numpy.abs(values)
-
-            elif trans.method == "negative":
-                values = numpy.negative(values)
-
-            elif trans.method == "resample":
-                ts = AggregatedTimeSerie.from_data(sampling,
-                                                   self.aggregation_method,
-                                                   timestamps, values,
-                                                   self.max_size)
-                sampling = trans.args[0]
-                ts = ts.resample(sampling)
-                timestamps = ts["timestamps"]
-                values = ts["values"]
-
-            elif trans.method == "rolling":
-                agg = trans.args[0]
-                if agg not in ('min', 'max', 'mean', 'median',
-                               'std', 'sum', 'var'):
-                    raise TransformError("'%s' aggregation is unsupported" %
-                                         agg)
-                agg = getattr(numpy, agg)
-
-                window = int(trans.args[1])
-                if window < 1:
-                    raise TransformError("Window must be 1 or greater")
-                if window > len(values):
-                    raise TransformError("Window is greater than serie: %s" %
-                                         self)
-
-                # arogozhnikov.github.io/2015/09/30/NumpyTipsAndTricks2.html
-                stride = values.strides[0]
-                timestamps = timestamps[window - 1:]
-                values = agg(as_strided(
-                    values, shape=[len(values) - window + 1, window],
-                    strides=[stride, stride]), axis=1)
-
-            else:
-                raise TransformError("Transformation '%s' doesn't exists" %
-                                     trans.method)
-        return AggregatedTimeSerie(sampling,
-                                   self.aggregation_method,
-                                   ts=make_timeseries(timestamps, values),
-                                   max_size=self.max_size)
 
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps,

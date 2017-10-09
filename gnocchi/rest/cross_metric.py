@@ -58,7 +58,7 @@ def get_cross_metric_measures(storage, metrics, from_timestamp=None,
                               to_timestamp=None, aggregation='mean',
                               reaggregation=None,
                               granularity=None, needed_overlap=100.0,
-                              fill=None, transform=None):
+                              fill=None, resample=None):
     """Get aggregated measures of multiple entities.
 
     :param storage: The storage driver.
@@ -70,7 +70,7 @@ def get_cross_metric_measures(storage, metrics, from_timestamp=None,
     :param reaggregation: The type of aggregation to compute
                           on the retrieved measures.
     :param fill: The value to use to fill in missing data in series.
-    :param transform: List of transformation to apply to the series
+    :param resample: The granularity to resample to.
     """
     for metric in metrics:
         if aggregation not in metric.archive_policy.aggregation_methods:
@@ -111,8 +111,8 @@ def get_cross_metric_measures(storage, metrics, from_timestamp=None,
                                   for metric in metrics
                                   for g in granularities_in_common])
 
-    if transform is not None:
-        tss = list(map(lambda ts: ts.transform(transform), tss))
+    if resample and granularity:
+        tss = list(map(lambda ts: ts.resample(resample), tss))
 
     try:
         return [(timestamp, r, v) for timestamp, r, v

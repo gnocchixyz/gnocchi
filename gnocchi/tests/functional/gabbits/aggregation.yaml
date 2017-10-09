@@ -131,19 +131,6 @@ tests:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
 
-    - name: get measure aggregates transform and resample
-      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&transform=absolute&resample=60
-      status: 400
-      response_strings:
-        - 'transform and resample are exclusive'
-
-    - name: get measure aggregates and transform
-      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&transform=resample(60)
-      response_json_paths:
-        $:
-          - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
-          - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
-
     - name: get measure aggregates with fill zero
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=0
       response_json_paths:
@@ -241,19 +228,6 @@ tests:
 
     - name: get measure aggregates by granularity from resources and resample
       POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&resample=60
-      response_json_paths:
-        $:
-          - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
-          - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
-
-    - name: get measure aggregates by granularity from resources transform and resample
-      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&transform=absolute&resample=60
-      status: 400
-      response_strings:
-        - 'transform and resample are exclusive'
-
-    - name: get measure aggregates by granularity from resources and transform
-      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&transform=resample(60)
       response_json_paths:
         $:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
