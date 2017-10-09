@@ -815,7 +815,7 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_get_measures_empty_metrics_no_overlap(self):
         self.assertRaises(
-            processor.MetricUnaggregatable,
+            processor.UnAggregableTimeseries,
             processor.get_measures, self.storage,
             [(indexer.Metric(uuid.uuid4(),
                              self.archive_policies['low']), 'mean'),
@@ -865,7 +865,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.assertRaises(storage.GranularityDoesNotExist,
+        self.assertRaises(processor.UnAggregableTimeseries,
                           processor.get_measures,
                           self.storage,
                           [(self.metric, "mean"), (metric2, "mean")],
@@ -892,7 +892,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
 
-        self.assertRaises(processor.MetricUnaggregatable,
+        self.assertRaises(processor.UnAggregableTimeseries,
                           processor.get_measures,
                           self.storage,
                           [(self.metric, "mean"), (metric2, "mean")],
