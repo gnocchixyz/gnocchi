@@ -14,12 +14,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
+
 import pecan
 from pecan import rest
 import pyparsing
 import six
 import voluptuous
 
+from gnocchi import indexer
 from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi.rest.aggregates import processor
@@ -207,5 +210,94 @@ class FetchController(rest.RestController):
             ref_identifier="id")
 
 
+def ResourceTypeSchema(resource_type):
+    try:
+        pecan.request.indexer.get_resource_type(resource_type)
+    except indexer.NoSuchResourceType as e:
+        api.abort(400, e)
+    return resource_type
+
+
+class SearchAndFetchController(rest.RestController):
+    SearchAndFetchSchema = {
+        "resource_type": ResourceTypeSchema,
+        "search": voluptuous.Any(api.ResourceSearchSchema,
+                                 api.QueryStringSearchAttrFilter.parse),
+        "operations": OperationsSchema,
+    }
+
+    @pecan.expose('json')
+    def post(self, start=None, stop=None, granularity=None,
+             needed_overlap=100.0, fill=None, groupby=None):
+        start, stop, granularity, needed_overlap, fill = api.validate_qs(
+            start, stop, granularity, needed_overlap, fill)
+        body = api.deserialize_and_validate(self.SearchAndFetchSchema)
+
+        references = list(extract_references(body["operations"]))
+        if not references:
+            api.abort(400, {"cause": "operations is invalid",
+                            "reason": "at least one 'metric' is required",
+                            "detail": body["operations"]})
+
+        attr_filter = body["search"]
+        policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
+            pecan.request, "search resource", body["resource_type"])
+        if policy_filter:
+            if attr_filter:
+                attr_filter = {"and": [
+                    policy_filter,
+                    attr_filter
+                ]}
+            else:
+                attr_filter = policy_filter
+
+        groupby = sorted(set(api.arg_to_list(groupby)))
+        resources = pecan.request.indexer.list_resources(
+            body["resource_type"],
+            attribute_filter=attr_filter,
+            sorts=groupby)
+
+        if not groupby:
+            return self._get_measures(resources, references,
+                                      body["operations"], start, stop,
+                                      granularity,
+                                      needed_overlap, fill)
+
+        def groupper(r):
+            return tuple((attr, r[attr]) for attr in groupby)
+
+        results = []
+        for key, resources in itertools.groupby(resources, groupper):
+            results.append({
+                "group": dict(key),
+                "measures": self._get_measures(resources, references,
+                                               body["operations"], start, stop,
+                                               granularity,
+                                               needed_overlap, fill)
+            })
+        return results
+
+    def _get_measures(self, resources, metric_names, operations, start, stop,
+                      granularity, needed_overlap, fill):
+
+        metrics_and_aggregations = list(filter(
+            lambda x: x[0] is not None, ([r.get_metric(metric_name), agg]
+                                         for (metric_name, agg) in metric_names
+                                         for r in resources)))
+        if not metrics_and_aggregations:
+            api.abort(400, {"cause": "Metrics not found",
+                            "detail": set((m for (m, a) in metric_names))})
+
+        return get_measures_or_abort(metrics_and_aggregations, operations,
+                                     start, stop, granularity, needed_overlap,
+                                     fill, ref_identifier="name")
+
+
 class AggregatesController(object):
-    fetch = FetchController()
+    def __init__(self):
+        ctrls = {
+            "fetch": FetchController(),
+            "search-and-fetch": SearchAndFetchController(),
+        }
+        for name, ctrl in ctrls.items():
+            setattr(self, name, ctrl)
