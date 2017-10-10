@@ -602,7 +602,16 @@ least one of the time series is returned.
 
 {{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
 
+It's also possible to do that aggregation on |metrics| linked to |resources|.
+In order to select these |resources|, the following endpoint accepts a query
+such as the one described in `Searching for resources`_.
 
+{{ scenarios['get-aggregates-by-attributes-lookup']['doc'] }}
+
+It is possible to group the |resource| search results by any attribute of the
+requested |resource| type, and then compute the aggregation:
+
+{{ scenarios['get-aggregates-by-attributes-lookup-groupby']['doc'] }}
 
 List of supported <operations>
 ------------------------------
