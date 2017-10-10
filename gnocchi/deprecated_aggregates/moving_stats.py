@@ -17,11 +17,11 @@ import numpy
 import pandas
 import six
 
-from gnocchi import aggregates
+from gnocchi import deprecated_aggregates
 from gnocchi import utils
 
 
-class MovingAverage(aggregates.CustomAggregator):
+class MovingAverage(deprecated_aggregates.CustomAggregator):
 
     @staticmethod
     def retrieve_data(storage_obj, metric, start, stop, window):
@@ -36,7 +36,7 @@ class MovingAverage(aggregates.CustomAggregator):
             msg = ("No data available that is either full-res or "
                    "of a granularity that factors into the window size "
                    "you specified.")
-            raise aggregates.CustomAggFailure(msg)
+            raise deprecated_aggregates.CustomAggFailure(msg)
 
         data = list(zip(*storage_obj.get_measures(metric, start, stop,
                                                   granularity=min_grain)))
@@ -110,7 +110,7 @@ class MovingAverage(aggregates.CustomAggregator):
             return [(t.to_datetime64(), window, r) for t, r
                     in six.iteritems(result[~result.isnull()])]
         except Exception as e:
-            raise aggregates.CustomAggFailure(str(e))
+            raise deprecated_aggregates.CustomAggFailure(str(e))
 
     def compute(self, storage_obj, metric, start, stop, window=None,
                 center=False):
@@ -127,13 +127,14 @@ class MovingAverage(aggregates.CustomAggregator):
             leftmost timestamp)
         """
         if window is None:
-            raise aggregates.CustomAggFailure(
+            raise deprecated_aggregates.CustomAggFailure(
                 'Moving aggregate must have window specified.'
             )
         try:
             window = utils.to_timespan(window)
         except ValueError:
-            raise aggregates.CustomAggFailure('Invalid value for window')
+            raise deprecated_aggregates.CustomAggFailure(
+                'Invalid value for window')
 
         min_grain, data = self.retrieve_data(storage_obj, metric, start,
                                              stop, window)

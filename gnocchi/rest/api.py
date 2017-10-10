@@ -31,13 +31,13 @@ import voluptuous
 import webob.exc
 import werkzeug.http
 
-from gnocchi import aggregates
 from gnocchi import archive_policy
+from gnocchi import deprecated_aggregates
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
-from gnocchi.rest import cross_metric
+from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
 
@@ -517,7 +517,7 @@ class MetricController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except aggregates.CustomAggFailure as e:
+        except deprecated_aggregates.CustomAggFailure as e:
             abort(400, six.text_type(e))
 
     @pecan.expose()
@@ -1806,12 +1806,12 @@ class AggregationController(rest.RestController):
                 return pecan.request.storage.get_measures(
                     metrics[0], start, stop, aggregation,
                     granularity, resample)
-            return cross_metric.get_cross_metric_measures(
+            return processor.get_measures(
                 pecan.request.storage,
                 metrics, start, stop, aggregation,
                 reaggregation, granularity, needed_overlap, fill,
                 resample)
-        except cross_metric.MetricUnaggregatable as e:
+        except processor.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
         except (storage.MetricDoesNotExist,
@@ -1866,6 +1866,8 @@ class CapabilityController(rest.RestController):
         return dict(aggregation_methods=aggregation_methods,
                     dynamic_aggregation_methods=[
                         ext.name for ext in extension.ExtensionManager(
+                            # NOTE(sileht): Known as deprecated_aggregates
+                            # but we can't change the namespace
                             namespace='gnocchi.aggregates')
                     ])
 
