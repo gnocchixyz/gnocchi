@@ -109,7 +109,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
 
     - name: get aggregates
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
       response_json_paths:
@@ -134,7 +134,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
 
     - name: get aggregates start and stop
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       query_parameters:
         start: "2015-03-06T14:34:00"
         stop: "2015-03-06T14:35:13"
@@ -156,7 +156,7 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
 
     - name: get aggregates granularity
-      POST: /v1/aggregates/fetch?granularity=60
+      POST: /v1/aggregates?granularity=60
       data:
         operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "max"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "min"]]
       response_json_paths:
@@ -171,7 +171,7 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
     - name: get aggregates simple with array
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: ["+", ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]], 2.0]
       response_json_paths:
@@ -196,7 +196,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
 
     - name: get aggregates resample
-      POST: /v1/aggregates/fetch?granularity=1
+      POST: /v1/aggregates?granularity=1
       data:
         operations:
           - resample
@@ -215,7 +215,7 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
 
     - name: get aggregates rolling
-      POST: /v1/aggregates/fetch?granularity=1
+      POST: /v1/aggregates?granularity=1
       data:
         operations:
           - rolling
@@ -237,7 +237,7 @@ tests:
 
 
     - name: get one metric
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)"
       response_json_paths:
@@ -253,7 +253,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
 
     - name: get aggregates one metric
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(aggregate mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       response_json_paths:
@@ -269,7 +269,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
 
     - name: get aggregates math with string
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(+ (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)) 2.0)"
       response_json_paths:
@@ -294,7 +294,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
 
     - name: get aggregates substact
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(- (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean) (metric $HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       response_json_paths:
@@ -310,7 +310,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, -4.0]
 
     - name: get aggregates mean aggregate
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       response_json_paths:
@@ -326,7 +326,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
 
     - name: get aggregates negative absolute
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(negative (absolute (aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))))"
       response_json_paths:
@@ -344,7 +344,7 @@ tests:
 # Negative tests
 
     - name: get no operations
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -356,7 +356,7 @@ tests:
         - "Invalid input: Operation must not be empty"
 
     - name: get operations without list
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -369,7 +369,7 @@ tests:
         - "Invalid input: Expected a tuple/list, got a "
 
     - name: invalid operations string
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -384,7 +384,7 @@ tests:
         $.description.detail: "Expected \")\" (at char 15), (line:1, col:16)"
 
     - name: get invalid metric operations
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -396,7 +396,7 @@ tests:
         - "Invalid input: Operation need at least one argument for dictionary value"
 
     - name: get unknown metrics
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -417,7 +417,7 @@ tests:
             - "e4864464-1b27-4622-9fbb-dc900e06c192"
 
     - name: get not matching granularity
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -437,7 +437,7 @@ tests:
         $.description.detail.`len`: 3
 
     - name: get unknown granularity
-      POST: /v1/aggregates/fetch?granularity=123
+      POST: /v1/aggregates?granularity=123
       request_headers:
         accept: application/json
         content-type: application/json
@@ -456,7 +456,7 @@ tests:
         - ["$HISTORY['create metric1'].$RESPONSE['$.id']", mean]
 
     - name: get unknown aggregation
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -474,7 +474,7 @@ tests:
         - ["$HISTORY['create metric1'].$RESPONSE['$.id']", "what?"]
 
     - name: invalid start
-      POST: /v1/aggregates/fetch?start=notadate
+      POST: /v1/aggregates?start=notadate
       request_headers:
         accept: application/json
         content-type: application/json
@@ -487,7 +487,7 @@ tests:
         $.description.reason: "Must be a datetime or a timestamp"
 
     - name: invalid stop
-      POST: /v1/aggregates/fetch?stop=notadate
+      POST: /v1/aggregates?stop=notadate
       request_headers:
         accept: application/json
         content-type: application/json
@@ -500,7 +500,7 @@ tests:
         $.description.reason: "Must be a datetime or a timestamp"
 
     - name: invalid needed_overlap
-      POST: /v1/aggregates/fetch?needed_overlap=notnumber
+      POST: /v1/aggregates?needed_overlap=notnumber
       request_headers:
         accept: application/json
         content-type: application/json
@@ -513,7 +513,7 @@ tests:
         $.description.reason: "Must be a number"
 
     - name: incomplete needed_overlap
-      POST: /v1/aggregates/fetch?needed_overlap=50
+      POST: /v1/aggregates?needed_overlap=50
       request_headers:
         accept: application/json
         content-type: application/json
@@ -526,7 +526,7 @@ tests:
         $.description.reason: "start and/or stop must be provided if specifying needed_overlap"
 
     - name: invalid granularity
-      POST: /v1/aggregates/fetch?granularity=foobar
+      POST: /v1/aggregates?granularity=foobar
       request_headers:
         accept: application/json
         content-type: application/json
@@ -539,7 +539,7 @@ tests:
         $.description.reason: "Unable to parse timespan"
 
     - name: incomplete fill
-      POST: /v1/aggregates/fetch?fill=123
+      POST: /v1/aggregates?fill=123
       request_headers:
         accept: application/json
         content-type: application/json
@@ -552,7 +552,7 @@ tests:
         $.description.reason: "Unable to fill without a granularity"
 
     - name: invalid fill
-      POST: /v1/aggregates/fetch?fill=foobar&granularity=5
+      POST: /v1/aggregates?fill=foobar&granularity=5
       request_headers:
         accept: application/json
         content-type: application/json
@@ -565,7 +565,7 @@ tests:
         $.description.reason: "Must be a float or 'null', got 'foobar'"
 
     - name: get rolling bad aggregate
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -577,7 +577,7 @@ tests:
         - "Invalid input: 'rolling' operation invalid for dictionary value"
 
     - name: get rolling-mean missing window
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -589,7 +589,7 @@ tests:
         - "Invalid input: 'rolling' operation invalid for dictionary value"
 
     - name: get measurements from metric and invalid operations
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
@@ -601,7 +601,7 @@ tests:
         - "Invalid input: 'notexist' operation invalid for dictionary value"
 
     - name: invalid resample
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       request_headers:
         accept: application/json
         content-type: application/json
