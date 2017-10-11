@@ -551,10 +551,88 @@ argument, and in this case the second argument passed is the value, or it.
 The operators or (`or` or `∨`), and (`and` or `∧`) and `not` are also
 supported, and take a list of arguments as parameters.
 
+.. _aggregates:
+
+Aggregates: on the fly, measurements modification and aggregatation
+===================================================================
+
+Gnocchi allows to do on-the-fly aggregation and modification of already
+aggregated data of |metrics|.
+
+It can also be done by providing the list of |metrics| to aggregate:
+
+{{ scenarios['get-aggregates-by-metric-ids']['doc'] }}
+
+This example computes the mean aggregates with `all` metrics listed in
+`metrics` and then multiple it by `4`.
+
+.. Note:
+
+   `operations` can also be passed as a lisp string, for this example:
+   `"operations": "(aggregate mean (metric all))"`
+
+
+It's also possible to do that aggregation on |metrics| linked to |resources|.
+In order to select these |resources|, the following endpoint accepts a query
+such as the one described in `Searching for resources`_.
+
+{{ scenarios['get-aggregates-by-attributes-lookup']['doc'] }}
+
+It is possible to group the |resource| search results by any attribute of the
+requested |resource| type, and then compute the aggregation:
+
+{{ scenarios['get-aggregates-by-attributes-lookup-groupby']['doc'] }}
+
+.. Incomplete list of supported maths/aggregation::
+
+    ```
+    (rolling mean 2 (...))
+    (aggregate min (...))
+    (resample sum 60 (...))
+    (absolute (...))
+    (negative (...))
+    (>= (...) 2)
+    (* (...) 5)
+    (mod (...) 2)
+    ```
+
+Also, aggregation across |metrics| have different behavior depending
+on whether boundary values are set ('start' and 'stop') and if 'needed_overlap'
+is set.
+
+Gnocchi expects that we have a certain percent of timestamps common between
+time series. This percent is controlled by needed_overlap, which by default
+expects 100% overlap. If this percent is not reached, an error is returned.
+
+.. note::
+
+   If a start and end boundary are not set, Gnocchi will set the missing
+   boundary to the first or last timestamp common across all series.
+
+The ability to fill in points missing from a subset of time series is supported
+by specifying a `fill` value. Valid fill values include any valid float or
+`null` which will compute aggregation with only the points that exist. The
+`fill` parameter will not backfill timestamps which contain no points in any
+of the time series. Only timestamps which have datapoints in at least one of
+the time series is returned.
+
+.. note::
+
+   A |granularity| must be specified when using the `fill` parameter.
+
+{{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
+
+
+
 .. _aggregation-across-metrics:
 
-Aggregation across metrics
-==========================
+Aggregation across metrics (deprecated)
+=======================================
+
+.. Note::
+
+   This API have been replaced by the more flexible :ref:`aggregates API <aggregates>`
+
 
 Gnocchi allows to do on-the-fly aggregation of already aggregated data of
 |metrics|.
