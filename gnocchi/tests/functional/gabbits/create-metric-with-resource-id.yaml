@@ -1,0 +1,62 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+    content-type: application/json
+    accept: application/json
+
+tests:
+    - name: create archive policy
+      POST: /v1/archive_policy
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+        name: medium
+        definition:
+          - granularity: 1 second
+      status: 201
+
+    - name: create resource
+      POST: /v1/resource/generic
+      data:
+        id: foobar
+      status: 201
+
+    - name: create metric with a resource id
+      POST: /v1/metric
+      data:
+        resource_id: foobar
+        archive_policy_name: medium
+        name: cpu
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: medium
+          $.resource_id: 2fbfbb20-8d56-5e1e-afb9-b3007da11fdf
+          $.creator: foobar
+          $.name: cpu
+
+    - name: create metric with a resource id and an already existing name
+      POST: /v1/metric
+      data:
+        resource_id: foobar
+        archive_policy_name: medium
+        name: cpu
+      status: 400
+      response_json_paths:
+          $.description.cause: Named metric already exists
+          $.description.detail: cpu
+
+    - name: create metric with a resource id but no name
+      POST: /v1/metric
+      data:
+        resource_id: foobar
+        archive_policy_name: medium
+      status: 400
+      response_json_paths:
+          $.description.cause: Attribute value error
+          $.description.detail: name
+          $.description.reason: Name cannot be null if resource_id is not null

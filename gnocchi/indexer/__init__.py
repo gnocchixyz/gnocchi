@@ -207,10 +207,14 @@ class UnsupportedArchivePolicyRuleChange(IndexerException):
 
 class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
-    def __init__(self, metric):
+    def __init__(self, metric_name):
         super(NamedMetricAlreadyExists, self).__init__(
-            "Named metric %s already exists" % metric)
-        self.metric = metric
+            "Named metric %s already exists" % metric_name)
+        self.metric_name = metric_name
+
+    def jsonify(self):
+        return {"cause": "Named metric already exists",
+                "detail": self.metric_name}
 
 
 class ResourceAlreadyExists(IndexerException):
