@@ -52,13 +52,13 @@ def arg_to_list(value):
     return []
 
 
-def abort(status_code, detail='', headers=None, comment=None, **kw):
+def abort(status_code, detail=''):
     """Like pecan.abort, but make sure detail is a string."""
     if status_code == 404 and not detail:
         raise RuntimeError("http code 404 must have 'detail' set")
     if isinstance(detail, Exception):
         detail = six.text_type(detail)
-    return pecan.abort(status_code, detail, headers, comment, **kw)
+    return pecan.abort(status_code, detail)
 
 
 def flatten_dict_to_keypairs(d, separator=':'):
