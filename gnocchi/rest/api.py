@@ -547,19 +547,22 @@ class MetricsController(rest.RestController):
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
 
-    _MetricSchema = voluptuous.Schema({
-        "archive_policy_name": six.text_type,
-        "name": six.text_type,
-        voluptuous.Optional("unit"):
-            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
-    })
-
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
     # smarter version of a voluptuous schema, no?
-    @classmethod
-    def MetricSchema(cls, definition):
+    @staticmethod
+    def MetricSchema(definition):
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request)
+
         # First basic validation
-        definition = cls._MetricSchema(definition)
+        schema = voluptuous.Schema({
+            "archive_policy_name": six.text_type,
+            "resource_id": functools.partial(ResourceID, creator=creator),
+            "name": six.text_type,
+            voluptuous.Optional("unit"):
+            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
+        })
+        definition = schema(definition)
         archive_policy_name = definition.get('archive_policy_name')
 
         name = definition.get('name')
@@ -580,12 +583,23 @@ class MetricsController(rest.RestController):
             else:
                 definition['archive_policy_name'] = ap.name
 
-        creator = pecan.request.auth_helper.get_current_user(
-            pecan.request)
+        resource_id = definition.get('resource_id')
+        if resource_id is None:
+            original_resource_id = None
+        else:
+            if name is None:
+                abort(400,
+                      {"cause": "Attribute value error",
+                       "detail": "name",
+                       "reason": "Name cannot be null "
+                       "if resource_id is not null"})
+            original_resource_id, resource_id = resource_id
 
         enforce("create metric", {
             "creator": creator,
             "archive_policy_name": archive_policy_name,
+            "resource_id": resource_id,
+            "original_resource_id": original_resource_id,
             "name": name,
             "unit": definition.get('unit'),
         })
@@ -597,15 +611,23 @@ class MetricsController(rest.RestController):
         creator = pecan.request.auth_helper.get_current_user(
             pecan.request)
         body = deserialize_and_validate(self.MetricSchema)
+
+        resource_id = body.get('resource_id')
+        if resource_id is not None:
+            resource_id = resource_id[1]
+
         try:
             m = pecan.request.indexer.create_metric(
                 uuid.uuid4(),
                 creator,
+                resource_id=resource_id,
                 name=body.get('name'),
                 unit=body.get('unit'),
                 archive_policy_name=body['archive_policy_name'])
         except indexer.NoSuchArchivePolicy as e:
             abort(400, six.text_type(e))
+        except indexer.NamedMetricAlreadyExists as e:
+            abort(400, e)
         set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
         return m
@@ -1046,6 +1068,10 @@ def ResourceUUID(value, creator):
 
 
 def ResourceID(value, creator):
+    """Convert value to a resource ID.
+
+    :return: A tuple (original_resource_id, resource_id)
+    """
     return (six.text_type(value), ResourceUUID(value, creator))
 
 
