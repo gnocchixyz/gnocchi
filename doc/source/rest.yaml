@@ -226,10 +226,6 @@
       ]
     }
 
-- name: get-measures-batch
-  request: |
-    GET /v1/batch/metrics/measures?metric={{ scenarios['create-metric']['response'].json['id'] }}&metric={{ scenarios['create-metric-2']['response'].json['id'] }} HTTP/1.1
-
 - name: search-value-in-metric
   request: |
     POST /v1/search/metric?metric_id={{ scenarios['create-metric']['response'].json['id'] }} HTTP/1.1
