@@ -160,7 +160,10 @@ def aggregated(timeseries, aggregation, from_timestamp=None,
             if from_timestamp is None and overlap.size:
                 times = times[overlap[0]:]
                 values = values[overlap[0]:]
-            percent_of_overlap = overlap.size * 100.0 / times.size
+            if times.size:
+                percent_of_overlap = overlap.size * 100.0 / times.size
+            else:
+                percent_of_overlap = 0.0
             if percent_of_overlap < needed_percent_of_overlap:
                 raise UnAggregableTimeseries(
                     'Less than %f%% of datapoints overlap in this '
