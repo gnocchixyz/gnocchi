@@ -53,8 +53,6 @@ class IncomingDriver(object):
             try:
                 self._num_sacks = int(self._get_storage_sacks())
             except Exception as e:
-                LOG.error('Unable to detect the number of storage sacks. '
-                          'Ensure gnocchi-upgrade has been executed: %s', e)
                 raise SackDetectionError(e)
         return self._num_sacks
 
