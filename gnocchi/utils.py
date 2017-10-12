@@ -22,6 +22,7 @@ import multiprocessing
 import os
 import uuid
 
+from concurrent import futures
 import daiquiri
 import iso8601
 import monotonic
@@ -303,3 +304,19 @@ def get_driver_class(namespace, conf):
     """
     return driver.DriverManager(namespace,
                                 conf.driver).driver
+
+
+def parallel_map(fn, list_of_args):
+    """Run a function in parallel."""
+
+    if parallel_map.MAX_WORKERS == 1:
+        return list(itertools.starmap(fn, list_of_args))
+
+    with futures.ThreadPoolExecutor(
+            max_workers=parallel_map.MAX_WORKERS) as executor:
+        # We use 'list' to iterate all threads here to raise the first
+        # exception now, not much choice
+        return list(executor.map(lambda args: fn(*args), list_of_args))
+
+
+parallel_map.MAX_WORKERS = get_default_workers()

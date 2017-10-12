@@ -108,13 +108,13 @@ def get_measures(storage, metrics_and_aggregations,
     else:
         granularities_in_common = [granularity]
 
-    tss = storage._map_in_thread(_get_measures_timeserie,
-                                 [(storage, metric, aggregation,
-                                   ref_identifier,
-                                   g, from_timestamp, to_timestamp)
-                                  for (metric, aggregation)
-                                  in metrics_and_aggregations
-                                  for g in granularities_in_common])
+    tss = utils.parallel_map(_get_measures_timeserie,
+                             [(storage, metric, aggregation,
+                               ref_identifier,
+                               g, from_timestamp, to_timestamp)
+                              for (metric, aggregation)
+                              in metrics_and_aggregations
+                              for g in granularities_in_common])
 
     if resample and granularity:
         tss = list(map(lambda ref_and_ts: (
