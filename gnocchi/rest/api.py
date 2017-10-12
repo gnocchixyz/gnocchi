@@ -37,6 +37,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
@@ -1790,7 +1791,7 @@ class AggregationController(rest.RestController):
                 operations, start, stop,
                 granularity, needed_overlap, fill,
                 resample)["aggregated"]
-        except processor.UnAggregableTimeseries as e:
+        except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,

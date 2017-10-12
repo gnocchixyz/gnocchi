@@ -22,27 +22,13 @@ import numpy
 import six
 
 from gnocchi import carbonara
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi import storage as gnocchi_storage
 from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
-
-
-class UnAggregableTimeseries(Exception):
-    """Error raised when timeseries cannot be aggregated."""
-    def __init__(self, references, reason):
-        self.references = references
-        self.reason = reason
-        super(UnAggregableTimeseries, self).__init__(reason)
-
-    def jsonify(self):
-        return {
-            "cause": "Metrics can't being aggregated",
-            "reason": self.reason,
-            "detail": self.references
-        }
 
 
 def _get_measures_timeserie(storage, metric, aggregation, ref_identifier,
@@ -82,7 +68,7 @@ def get_measures(storage, metrics_and_aggregations,
                     (getattr(metric, ref_identifier), aggregation))
 
     if references_with_missing_granularity:
-        raise UnAggregableTimeseries(
+        raise exceptions.UnAggregableTimeseries(
             references_with_missing_granularity,
             "granularity '%d' is missing" %
             utils.timespan_total_seconds(granularity))
@@ -101,7 +87,7 @@ def get_measures(storage, metrics_and_aggregations,
         ]
 
         if not granularities_in_common:
-            raise UnAggregableTimeseries(
+            raise exceptions.UnAggregableTimeseries(
                 list((str(getattr(m, ref_identifier)), a)
                      for (m, a) in metrics_and_aggregations),
                 'No granularity match')
@@ -158,7 +144,8 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             overlap = numpy.flatnonzero(~numpy.any(numpy.isnan(values),
                                                    axis=1))
             if overlap.size == 0 and needed_percent_of_overlap > 0:
-                raise UnAggregableTimeseries(references[key], 'No overlap')
+                raise exceptions.UnAggregableTimeseries(references[key],
+                                                        'No overlap')
             # if no boundary set, use first/last timestamp which overlap
             if to_timestamp is None and overlap.size:
                 times = times[:overlap[-1] + 1]
@@ -168,7 +155,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                 values = values[overlap[0]:]
             percent_of_overlap = overlap.size * 100.0 / times.size
             if percent_of_overlap < needed_percent_of_overlap:
-                raise UnAggregableTimeseries(
+                raise exceptions.UnAggregableTimeseries(
                     references[key],
                     'Less than %f%% of datapoints overlap in this '
                     'timespan (%.2f%%)' % (needed_percent_of_overlap,

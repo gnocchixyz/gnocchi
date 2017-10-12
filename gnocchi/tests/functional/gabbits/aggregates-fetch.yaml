@@ -170,6 +170,112 @@ tests:
           - ["2015-03-06T14:34:00+00:00", 60.0, 4.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
+    - name: get aggregates simple with array
+      POST: /v1/aggregates/fetch
+      data:
+        operations: ["+", ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]], 2.0]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 45.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 0.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 45.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 14.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -14.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 4.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 14.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 6.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 7.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
+
+    - name: get aggregates resample
+      POST: /v1/aggregates/fetch?granularity=1
+      data:
+        operations:
+          - resample
+          - mean
+          - 60
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+
+    - name: get aggregates rolling
+      POST: /v1/aggregates/fetch?granularity=1
+      data:
+        operations:
+          - rolling
+          - mean
+          - 2
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:12+00:00", 1.0, 27.55]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -2.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -3.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 10.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:12+00:00", 1.0, 3.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 4.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 7.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 12.5]
+
+    - name: get aggregates math with string
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(+ (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)) 2.0)"
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 45.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 0.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 45.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 14.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -14.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 4.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 14.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 6.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 7.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
+
+    - name: get aggregates substact
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(- (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean) (metric $HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 41.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -2.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 41.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -21.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -1.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -4.0]
+
     - name: get aggregates mean aggregate
       POST: /v1/aggregates/fetch
       data:
@@ -186,6 +292,22 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 9.5]
           - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
 
+    - name: get aggregates negative absolute
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(negative (absolute (aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, -22.55]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -1.25]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -11.25]
+          - ["2015-03-06T14:33:57+00:00", 1.0, -22.55]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -5.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -9.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -13.0]
+
 # Negative tests
 
     - name: get no operations
@@ -198,7 +320,20 @@ tests:
         operations: []
       status: 400
       response_strings:
-        - "'metric' is invalid"
+        - "Invalid input: Operation must not be empty"
+
+    - name: get operations without list
+      POST: /v1/aggregates/fetch
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          foo: bar
+      status: 400
+      response_strings:
+        - "Invalid input: Expected a tuple/list, got a "
 
     - name: invalid operations string
       POST: /v1/aggregates/fetch
@@ -225,7 +360,7 @@ tests:
         operations: ["metric"]
       status: 400
       response_strings:
-        - "'metric' is invalid"
+        - "Invalid input: Operation need at least one argument for dictionary value"
 
     - name: get unknown metrics
       POST: /v1/aggregates/fetch
@@ -395,3 +530,51 @@ tests:
         $.description.cause: "Argument value error"
         $.description.detail: "fill"
         $.description.reason: "Must be a float or 'null', got 'foobar'"
+
+    - name: get rolling bad aggregate
+      POST: /v1/aggregates/fetch
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(rolling blah 2 (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'rolling' operation invalid for dictionary value"
+
+    - name: get rolling-mean missing window
+      POST: /v1/aggregates/fetch
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(rolling mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'rolling' operation invalid for dictionary value"
+
+    - name: get measurements from metric and invalid operations
+      POST: /v1/aggregates/fetch
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(notexist (absolute (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'notexist' operation invalid for dictionary value"
+
+    - name: invalid resample
+      POST: /v1/aggregates/fetch
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(resample mean invalid (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'resample' operation invalid for dictionary value"

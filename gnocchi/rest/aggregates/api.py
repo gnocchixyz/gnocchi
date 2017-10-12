@@ -20,6 +20,7 @@ import pyparsing
 import six
 import voluptuous
 
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi.rest.aggregates import processor
 from gnocchi.rest import api
@@ -42,8 +43,19 @@ def MetricSchema(v):
 
     ["metric, ["metric-ref", "aggregation"], ["metric-ref", "aggregation"]]
     """
-    if not isinstance(v, (list, tuple)) or len(v) <= 2 or v[0] != u"metric":
-        raise voluptuous.Invalid("'metric' is invalid")
+    if not isinstance(v, (list, tuple)):
+        raise voluptuous.Invalid("Expected a tuple/list, got a %s" % type(v))
+    elif not v:
+        raise voluptuous.Invalid("Operation must not be empty")
+    elif len(v) < 2:
+        raise voluptuous.Invalid("Operation need at least one argument")
+    elif v[0] != u"metric":
+        # NOTE(sileht): this error message doesn't looks related to "metric",
+        # but because that the last schema validated by voluptuous, we have
+        # good chance (voluptuous.Any is not predictable) to print this
+        # message even if it's an other operation that invalid.
+        raise voluptuous.Invalid("'%s' operation invalid" % v[0])
+
     return [u"metric"] + voluptuous.Schema(voluptuous.Any(
         voluptuous.ExactSequence([six.text_type, six.text_type]),
         voluptuous.All(
@@ -55,10 +67,34 @@ def MetricSchema(v):
 OperationsSchemaBase = [
     MetricSchema,
     voluptuous.ExactSequence(
+        [voluptuous.Any(*list(
+            agg_operations.binary_operators.keys())),
+         _OperationsSubNodeSchema, _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
+        [voluptuous.Any(*list(
+            agg_operations.unary_operators.keys())),
+         _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
         [u"aggregate",
          voluptuous.Any(*list(agg_operations.AGG_MAP.keys())),
          _OperationsSubNodeSchema]
     ),
+    voluptuous.ExactSequence(
+        [u"resample",
+         voluptuous.Any(*list(agg_operations.AGG_MAP.keys())),
+         utils.to_timespan, _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
+        [u"rolling",
+         voluptuous.Any(*list(agg_operations.AGG_MAP.keys())),
+         voluptuous.All(
+             voluptuous.Coerce(int),
+             voluptuous.Range(min=1),
+         ),
+         _OperationsSubNodeSchema]
+    )
 ]
 
 
@@ -106,7 +142,7 @@ def get_measures_or_abort(metrics_and_aggregations, operations, start,
             start, stop,
             granularity, needed_overlap, fill,
             ref_identifier=ref_identifier)
-    except processor.UnAggregableTimeseries as e:
+    except exceptions.UnAggregableTimeseries as e:
         api.abort(400, e)
     # TODO(sileht): We currently got only one metric for these exceptions but
     # we can improve processor to returns all missing metrics at once, so we

@@ -131,6 +131,15 @@ tests:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
 
+    - name: get measure aggregates and operations
+      POST: /v1/aggregates/fetch?granularity=1
+      data:
+        operations: "(aggregate mean (resample mean 60 (metric ($HISTORY['get metric list'].$RESPONSE['$[0].id'] mean) ($HISTORY['get metric list'].$RESPONSE['$[1].id'] mean))))"
+      response_json_paths:
+        $.aggregated:
+          - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
+          - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+
     - name: get measure aggregates with fill zero
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=0
       response_json_paths:
