@@ -1,5 +1,7 @@
 #!/bin/bash -x
 set -e
+
+PYTEST_OPTS="--ignore=gnocchi/tests/functional_live ${*:-gnocchi/tests}"
 PIDS=""
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
@@ -11,7 +13,7 @@ do
         {
         case $GNOCCHI_TEST_STORAGE_DRIVER in
             ceph|redis)
-                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
+                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- pytest $PYTEST_OPTS
                 ;;
             s3)
                 if ! which s3rver >/dev/null 2>&1
@@ -21,12 +23,10 @@ do
                     npm install s3rver --global
                     export PATH=$PWD/npm-s3rver/bin:$PATH
                 fi
-                pifpaf -e GNOCCHI_STORAGE run s3rver -- \
-                       pifpaf -e GNOCCHI_INDEXER run $indexer -- \
-                       ./tools/pretty_tox.sh $*
+                pifpaf -e GNOCCHI_STORAGE run s3rver -- pifpaf -e GNOCCHI_INDEXER run $indexer -- pytest $PYTEST_OPTS
                 ;;
             *)
-                pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
+                pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- pytest $PYTEST_OPTS
                 ;;
         esac
         # NOTE(sileht): Start all storage tests at once

@@ -187,8 +187,8 @@ def setup(app):
     with open("doc/source/rest.yaml") as f:
         scenarios = ScenarioList(yaml.load(f))
 
-    test = test_rest.RestTest()
-    test.auth_mode = "basic"
+    test_rest.BasicRestTest.runTest = staticmethod(lambda: True)
+    test = test_rest.BasicRestTest()
     test.setUpClass()
     test.setUp()
     webapp = test.app

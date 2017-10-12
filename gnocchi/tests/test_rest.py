@@ -28,7 +28,6 @@ from keystonemiddleware import fixture as ksm_fixture
 import mock
 import pbr.version
 import six
-import testscenarios
 from testtools import testcase
 import webtest
 
@@ -40,10 +39,7 @@ from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
 
 
-load_tests = testscenarios.load_tests_apply_scenarios
-
-
-class TestingApp(webtest.TestApp):
+class FakeApp(webtest.TestApp):
     VALID_TOKEN_ADMIN = str(uuid.uuid4())
     USER_ID_ADMIN = str(uuid.uuid4())
     PROJECT_ID_ADMIN = str(uuid.uuid4())
@@ -63,7 +59,7 @@ class TestingApp(webtest.TestApp):
         self.storage = kwargs.pop('storage')
         self.indexer = kwargs.pop('indexer')
         self.incoming = kwargs.pop('incoming')
-        super(TestingApp, self).__init__(*args, **kwargs)
+        super(FakeApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.token = self.VALID_TOKEN
         # Setup default user for basic auth
@@ -127,68 +123,97 @@ class TestingApp(webtest.TestApp):
             )
         elif self.auth_mode == "remoteuser":
             req.remote_user = self.user
-        response = super(TestingApp, self).do_request(req, *args, **kwargs)
+        response = super(FakeApp, self).do_request(req, *args, **kwargs)
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.storage.process_new_measures(
             self.indexer, self.incoming, metrics, sync=True)
         return response
 
 
-class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
-
-    scenarios = [
-        ('basic', dict(auth_mode="basic")),
-        ('keystone', dict(auth_mode="keystone")),
-        ('remoteuser', dict(auth_mode="remoteuser")),
-    ]
+class BasicRestTest(tests_base.TestCase):
+    auth_mode = "basic"
 
     def setUp(self):
-        super(RestTest, self).setUp()
+        super(BasicRestTest, self).setUp()
 
         if self.auth_mode == "keystone":
             self.auth_token_fixture = self.useFixture(
                 ksm_fixture.AuthTokenFixture())
             self.auth_token_fixture.add_token_data(
                 is_v2=True,
-                token_id=TestingApp.VALID_TOKEN_ADMIN,
-                user_id=TestingApp.USER_ID_ADMIN,
+                token_id=FakeApp.VALID_TOKEN_ADMIN,
+                user_id=FakeApp.USER_ID_ADMIN,
                 user_name='adminusername',
-                project_id=TestingApp.PROJECT_ID_ADMIN,
+                project_id=FakeApp.PROJECT_ID_ADMIN,
                 role_list=['admin'])
             self.auth_token_fixture.add_token_data(
                 is_v2=True,
-                token_id=TestingApp.VALID_TOKEN,
-                user_id=TestingApp.USER_ID,
+                token_id=FakeApp.VALID_TOKEN,
+                user_id=FakeApp.USER_ID,
                 user_name='myusername',
-                project_id=TestingApp.PROJECT_ID,
+                project_id=FakeApp.PROJECT_ID,
                 role_list=["member"])
             self.auth_token_fixture.add_token_data(
                 is_v2=True,
-                token_id=TestingApp.VALID_TOKEN_2,
-                user_id=TestingApp.USER_ID_2,
+                token_id=FakeApp.VALID_TOKEN_2,
+                user_id=FakeApp.USER_ID_2,
                 user_name='myusername2',
-                project_id=TestingApp.PROJECT_ID_2,
+                project_id=FakeApp.PROJECT_ID_2,
                 role_list=["member"])
 
         self.conf.set_override("auth_mode", self.auth_mode, group="api")
 
-        self.app = TestingApp(app.load_app(conf=self.conf,
-                                           indexer=self.index,
-                                           storage=self.storage,
-                                           incoming=self.incoming,
-                                           not_implemented_middleware=False),
-                              storage=self.storage,
-                              indexer=self.index,
-                              incoming=self.incoming,
-                              auth_mode=self.auth_mode)
+        self.app = FakeApp(app.load_app(conf=self.conf,
+                                        indexer=self.index,
+                                        storage=self.storage,
+                                        incoming=self.incoming,
+                                        not_implemented_middleware=False),
+                           storage=self.storage,
+                           indexer=self.index,
+                           incoming=self.incoming,
+                           auth_mode=self.auth_mode)
 
-    # NOTE(jd) Used at least by docs
-    @staticmethod
-    def runTest():
-        pass
+        self.attributes = {
+            "id": str(uuid.uuid4()),
+            "started_at": "2014-01-03T02:02:02+00:00",
+            "user_id": str(uuid.uuid4()),
+            "project_id": str(uuid.uuid4()),
+            "name": "my-name",
+        }
+        self.patchable_attributes = {
+            "ended_at": "2014-01-03T02:02:02+00:00",
+            "name": "new-name",
+        }
+        self.resource = self.attributes.copy()
+        # Set original_resource_id
+        self.resource['original_resource_id'] = self.resource['id']
+        self.resource['created_by_user_id'] = FakeApp.USER_ID
+        if self.auth_mode == "keystone":
+            self.resource['created_by_project_id'] = FakeApp.PROJECT_ID
+            self.resource['creator'] = (
+                FakeApp.USER_ID + ":" + FakeApp.PROJECT_ID
+            )
+        elif self.auth_mode in ["basic", "remoteuser"]:
+            self.resource['created_by_project_id'] = ""
+            self.resource['creator'] = FakeApp.USER_ID
+        self.resource['ended_at'] = None
+        self.resource['metrics'] = {}
+        if 'user_id' not in self.resource:
+            self.resource['user_id'] = None
+        if 'project_id' not in self.resource:
+            self.resource['project_id'] = None
 
+        mgr = self.index.get_resource_type_schema()
+        self.resource_type = str(uuid.uuid4())
+        self.index.create_resource_type(
+            mgr.resource_type_from_dict(self.resource_type, {
+                "name": {"type": "string",
+                         "min_length": 1,
+                         "max_length": 40,
+                         "required": True}
+            }, "creating"))
+        self.resource['type'] = self.resource_type
 
-class RootTest(RestTest):
     def test_deserialize_force_json(self):
         with self.app.use_admin_user():
             self.app.post(
@@ -218,13 +243,6 @@ class RootTest(RestTest):
         self.assertIsInstance(status['storage']['measures_to_process'], dict)
         self.assertIsInstance(status['storage']['summary']['metrics'], int)
         self.assertIsInstance(status['storage']['summary']['measures'], int)
-
-
-class ArchivePolicyTest(RestTest):
-    """Test the ArchivePolicies REST API.
-
-    See also gnocchi/tests/gabbi/gabbits/archive.yaml
-    """
 
     # TODO(chdent): The tests left here involve inspecting the
     # aggregation methods which gabbi can't currently handle because
@@ -295,17 +313,14 @@ class ArchivePolicyTest(RestTest):
             ]
             self.assertIn(apj, aps)
 
-
-class MetricTest(RestTest):
-
     def test_get_metric_with_another_user_linked_resource(self):
         result = self.app.post_json(
             "/v1/resource/generic",
             params={
                 "id": str(uuid.uuid4()),
                 "started_at": "2014-01-01 02:02:02",
-                "user_id": TestingApp.USER_ID_2,
-                "project_id": TestingApp.PROJECT_ID_2,
+                "user_id": FakeApp.USER_ID_2,
+                "project_id": FakeApp.PROJECT_ID_2,
                 "metrics": {"foobar": {"archive_policy_name": "low"}},
             })
         resource = json.loads(result.text)
@@ -440,7 +455,7 @@ class MetricTest(RestTest):
         self.app.post_json("/v1/resource/generic",
                            params={
                                "id": rid,
-                               "project_id": TestingApp.PROJECT_ID_2,
+                               "project_id": FakeApp.PROJECT_ID_2,
                                "metrics": {
                                    "disk": {"archive_policy_name": "low"},
                                }
@@ -623,51 +638,6 @@ class MetricTest(RestTest):
             {metric1: [[u'2013-01-01T12:00:00+00:00', 1.0, 1234.2]],
              metric2: []},
             result)
-
-
-class ResourceTest(RestTest):
-    def setUp(self):
-        super(ResourceTest, self).setUp()
-        self.attributes = {
-            "id": str(uuid.uuid4()),
-            "started_at": "2014-01-03T02:02:02+00:00",
-            "user_id": str(uuid.uuid4()),
-            "project_id": str(uuid.uuid4()),
-            "name": "my-name",
-        }
-        self.patchable_attributes = {
-            "ended_at": "2014-01-03T02:02:02+00:00",
-            "name": "new-name",
-        }
-        self.resource = self.attributes.copy()
-        # Set original_resource_id
-        self.resource['original_resource_id'] = self.resource['id']
-        self.resource['created_by_user_id'] = TestingApp.USER_ID
-        if self.auth_mode == "keystone":
-            self.resource['created_by_project_id'] = TestingApp.PROJECT_ID
-            self.resource['creator'] = (
-                TestingApp.USER_ID + ":" + TestingApp.PROJECT_ID
-            )
-        elif self.auth_mode in ["basic", "remoteuser"]:
-            self.resource['created_by_project_id'] = ""
-            self.resource['creator'] = TestingApp.USER_ID
-        self.resource['ended_at'] = None
-        self.resource['metrics'] = {}
-        if 'user_id' not in self.resource:
-            self.resource['user_id'] = None
-        if 'project_id' not in self.resource:
-            self.resource['project_id'] = None
-
-        mgr = self.index.get_resource_type_schema()
-        self.resource_type = str(uuid.uuid4())
-        self.index.create_resource_type(
-            mgr.resource_type_from_dict(self.resource_type, {
-                "name": {"type": "string",
-                         "min_length": 1,
-                         "max_length": 40,
-                         "required": True}
-            }, "creating"))
-        self.resource['type'] = self.resource_type
 
     @mock.patch.object(utils, 'utcnow')
     def test_post_resource(self, utcnow):
@@ -1357,7 +1327,7 @@ class ResourceTest(RestTest):
                 "id": str(uuid.uuid4()),
                 "started_at": "2014-01-01 02:02:02",
                 "user_id": u1,
-                "project_id": TestingApp.PROJECT_ID_2,
+                "project_id": FakeApp.PROJECT_ID_2,
             })
         g = json.loads(result.text)
 
@@ -1520,8 +1490,8 @@ class ResourceTest(RestTest):
             params={
                 "id": str(uuid.uuid4()),
                 "started_at": "2014-01-01 02:02:02",
-                "user_id": TestingApp.USER_ID_2,
-                "project_id": TestingApp.PROJECT_ID_2,
+                "user_id": FakeApp.USER_ID_2,
+                "project_id": FakeApp.PROJECT_ID_2,
             })
         g = json.loads(result.text)
 
@@ -1800,8 +1770,6 @@ class ResourceTest(RestTest):
         resources = json.loads(result.text)
         self.assertEqual([], resources)
 
-
-class GenericResourceTest(RestTest):
     def test_list_resources_tied_to_user(self):
         resource_id = str(uuid.uuid4())
         self.app.post_json(
@@ -1827,8 +1795,8 @@ class GenericResourceTest(RestTest):
             params={
                 "id": resource_id,
                 "started_at": "2014-01-01 02:02:02",
-                "user_id": TestingApp.USER_ID_2,
-                "project_id": TestingApp.PROJECT_ID_2,
+                "user_id": FakeApp.USER_ID_2,
+                "project_id": FakeApp.PROJECT_ID_2,
                 "metrics": {"foobar": {"archive_policy_name": "low"}},
             })
 
@@ -1920,3 +1888,11 @@ class QueryStringSearchAttrFilterTest(tests_base.TestCase):
                           ]},
                           {"=": {"foo": "quote"}},
                       ]})
+
+
+class KeystoneRestTest(BasicRestTest):
+    auth_mode = "keystone"
+
+
+class RemoteUserRestTest(BasicRestTest):
+    auth_mode = "remoteuser"
