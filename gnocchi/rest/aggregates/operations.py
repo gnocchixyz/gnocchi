@@ -14,9 +14,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import numbers
+
 import numpy
+from numpy.lib.stride_tricks import as_strided
 
 from gnocchi import carbonara
+from gnocchi.rest.aggregates import exceptions
 
 
 AGG_MAP = {
@@ -32,12 +36,167 @@ AGG_MAP = {
 }
 
 
-def handle_aggregate(agg, granularity, timestamps, values, is_aggregated):
+# TODO(sileht): expose all operators in capability API
+binary_operators = {
+    u"=": numpy.equal,
+    u"==": numpy.equal,
+    u"eq": numpy.equal,
+
+    u"<": numpy.less,
+    u"lt": numpy.less,
+
+    u">": numpy.greater,
+    u"gt": numpy.greater,
+
+    u"<=": numpy.less_equal,
+    u"≤": numpy.less_equal,
+    u"le": numpy.less_equal,
+
+    u">=": numpy.greater_equal,
+    u"≥": numpy.greater_equal,
+    u"ge": numpy.greater_equal,
+
+    u"!=": numpy.not_equal,
+    u"≠": numpy.not_equal,
+    u"ne": numpy.not_equal,
+
+    u"%": numpy.mod,
+    u"mod": numpy.mod,
+
+    u"+": numpy.add,
+    u"add": numpy.add,
+
+    u"-": numpy.subtract,
+    u"sub": numpy.subtract,
+
+    u"*": numpy.multiply,
+    u"×": numpy.multiply,
+    u"mul": numpy.multiply,
+
+    u"/": numpy.true_divide,
+    u"÷": numpy.true_divide,
+    u"div": numpy.true_divide,
+
+    u"**": numpy.power,
+    u"^": numpy.power,
+    u"pow": numpy.power,
+
+}
+
+# TODO(sileht): around it take a decimal arg
+unary_operators = {
+    u"abs": numpy.absolute,
+    u"absolute": numpy.absolute,
+
+    u"neg": numpy.negative,
+    u"negative": numpy.negative,
+
+    u"cos": numpy.cos,
+    u"sin": numpy.sin,
+    u"tan": numpy.tan,
+    u"floor": numpy.floor,
+    u"ceil": numpy.ceil,
+}
+
+
+def handle_unary_operator(nodes, granularity, timestamps, initial_values,
+                          is_aggregated, references):
+    op = nodes[0]
+    granularity, timestamps, values, is_aggregated = evaluate(
+        nodes[1], granularity, timestamps, initial_values,
+        is_aggregated, references)
+
+    values = unary_operators[op](values)
+    return granularity, timestamps, values, is_aggregated
+
+
+def handle_binary_operator(nodes, granularity, timestamps,
+                           initial_values, is_aggregated, references):
+    op = nodes[0]
+    g1, t1, v1, is_a1 = evaluate(nodes[1], granularity, timestamps,
+                                 initial_values, is_aggregated, references)
+    g2, t2, v2, is_a2 = evaluate(nodes[2], granularity, timestamps,
+                                 initial_values, is_aggregated, references)
+
+    is_aggregated = is_a1 or is_a2
+    # We keep the computed timeseries
+    if isinstance(v1, numpy.ndarray) and isinstance(v2, numpy.ndarray):
+        if not numpy.array_equal(t1, t2) or g1 != g2:
+            raise exceptions.UnAggregableTimeseries(
+                references,
+                "Can't compute timeseries with different "
+                "granularity %s <> %s" % (nodes[1], nodes[2]))
+        timestamps = t1
+        granularity = g1
+        is_aggregated = True
+
+    elif isinstance(v1, numpy.ndarray):
+        timestamps = t1
+        granularity = g1
+    elif isinstance(v1, numpy.ndarray):
+        timestamps = t2
+        granularity = g2
+    else:
+        timestamps = t1
+        granularity = g1
+
+    values = binary_operators[op](v1, v2)
+    return granularity, timestamps, values, is_aggregated
+
+
+def handle_aggregate(agg, granularity, timestamps, values, is_aggregated,
+                     references):
     values = numpy.array([AGG_MAP[agg](values, axis=1)]).T
     if values.shape[1] != 1:
         raise RuntimeError("Unexpected resulting aggregated array shape: %s" %
                            values)
     return (granularity, timestamps, values, True)
+
+
+def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
+                   references, window):
+    if window > len(values):
+        raise exceptions.UnAggregableTimeseries(
+            references,
+            "Rolling window '%d' is greater than serie length '%d'" %
+            (window, len(values))
+        )
+
+    # TODO(sileht): make a more optimised version that
+    # compute the data across the whole matrix
+    new_values = None
+    timestamps = timestamps[window - 1:]
+    for ts in values.T:
+        # arogozhnikov.github.io/2015/09/30/NumpyTipsAndTricks2.html
+        stride = ts.strides[0]
+        ts = AGG_MAP[agg](as_strided(
+            ts, shape=[len(ts) - window + 1, window],
+            strides=[stride, stride]), axis=1)
+        if new_values is None:
+            new_values = numpy.array([ts])
+        else:
+            new_values = numpy.append(new_values, [ts], axis=0)
+    return granularity, timestamps, new_values.T, is_aggregated
+
+
+def handle_resample(agg, granularity, timestamps, values, is_aggregated,
+                    references, sampling):
+    # TODO(sileht): make a more optimised version that
+    # compute the data across the whole matrix
+    new_values = None
+    result_timestamps = timestamps
+    for ts in values.T:
+        ts = carbonara.AggregatedTimeSerie.from_data(None, agg, timestamps, ts)
+        try:
+            ts = ts.resample(sampling)
+        except carbonara.UnknownAggregationMethod:
+            raise RuntimeError("Unknown aggregation method: %s" % agg)
+        result_timestamps = ts["timestamps"]
+        if new_values is None:
+            new_values = numpy.array([ts["values"]])
+        else:
+            new_values = numpy.append(new_values, [ts["values"]], axis=0)
+    return sampling, result_timestamps, new_values.T, is_aggregated
 
 
 def handle_aggregation_operator(nodes, granularity, timestamps, initial_values,
@@ -47,24 +206,37 @@ def handle_aggregation_operator(nodes, granularity, timestamps, initial_values,
     subnodes = nodes[-1]
     args = nodes[2:-1]
     if agg not in AGG_MAP:
-        raise carbonara.UnknownAggregationMethod(agg)
+        raise RuntimeError("Unknown aggregation method: %s" % agg)
     granularity, timestamps, values, is_aggregated = evaluate(
         subnodes, granularity, timestamps, initial_values,
         is_aggregated, references)
-    return op(agg, granularity, timestamps, values, is_aggregated, *args)
+    return op(agg, granularity, timestamps, values, is_aggregated,
+              references, *args)
 
 
 aggregation_operators = {
     u"aggregate": handle_aggregate,
+    u"rolling": handle_rolling,
+    u"resample": handle_resample,
 }
 
 
 def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
              references):
-    if nodes[0] in aggregation_operators:
+    if isinstance(nodes, numbers.Number):
+        return granularity, timestamps, nodes, is_aggregated
+    elif nodes[0] in aggregation_operators:
         return handle_aggregation_operator(nodes, granularity, timestamps,
                                            initial_values, is_aggregated,
                                            references)
+    elif nodes[0] in binary_operators:
+        return handle_binary_operator(nodes, granularity, timestamps,
+                                      initial_values, is_aggregated,
+                                      references)
+    elif nodes[0] in unary_operators:
+        return handle_unary_operator(nodes, granularity, timestamps,
+                                     initial_values, is_aggregated,
+                                     references)
     elif nodes[0] == "metric":
         if isinstance(nodes[1], list):
             predicat = lambda r: r in nodes[1:]
