@@ -46,11 +46,13 @@ def prepare_service(args=None, conf=None,
 
     workers = utils.get_default_workers()
     conf.set_default("workers", workers, group="metricd")
-    conf.set_default("aggregation_workers_number", workers, group="storage")
+    conf.set_default("parallel_operations", workers)
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
+
+    utils.parallel_map.NUM_WORKERS = conf.parallel_operations
 
     if not log_to_std and (conf.log_dir or conf.log_file):
         outputs = [daiquiri.output.File(filename=conf.log_file,
