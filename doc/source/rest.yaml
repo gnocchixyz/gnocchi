@@ -773,6 +773,49 @@
 
     {"memory": {"archive_policy_name": "low"}}
 
+- name: get-aggregates-by-metric-ids
+  request: |
+    POST /v1/aggregates/fetch?start=2014-10-06T14:34&stop=2017-10-06T14:34 HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "operations": [
+        "*",
+        ["aggregate", "mean", [
+            "metric",
+            ["{{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}", "mean"],
+            ["{{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}", "mean"]
+        ]],
+        4
+      ]
+    }
+
+- name: get-aggregates-between-metrics
+  request: |
+    POST /v1/aggregates/fetch?start=2014-10-06T14:34&stop=2017-10-06T14:34 HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "operations": [
+        "absolute",
+        [
+          "**",
+          ["metric", "{{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }}", "mean"],
+          ["metric", "{{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['metrics']['cpu.util'] }}", "mean"]
+        ]
+      ]
+    }
+
+
+- name: get-aggregates-by-metric-ids-fill
+  request: |
+    POST /v1/aggregates/fetch?fill=0&granularity=1 HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "operations": "(* (aggregate mean (metric {{ scenarios['create-resource-instance-with-metrics']['response'].json['metrics']['cpu.util'] }} mean)) 4)"
+    }
+
 - name: get-capabilities
   request: GET /v1/capabilities HTTP/1.1
 

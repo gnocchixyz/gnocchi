@@ -213,6 +213,16 @@ tests:
           - ["2015-03-06T14:34:00+00:00", 60.0, 14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
+    - name: get measurements from metric and resample and negative
+      POST: /v1/aggregates/fetch?granularity=1
+      data:
+        operations: "(negative (resample mean 60 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
+      response_json_paths:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, -43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -14.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -10.0]
+
     - name: push negative measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
       data:
@@ -221,6 +231,57 @@ tests:
           - timestamp: "2015-03-06T14:37:15"
             value: -23
       status: 202
+
+    - name: refresh metric
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
+
+    - name: get absolute measurements from metric
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
+      response_json_paths:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:36:15+00:00", 1.0, 16.0]
+          - ["2015-03-06T14:37:15+00:00", 1.0, 23.0]
+
+    - name: rolling-mean
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(rolling mean 2 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
+      status: 200
+      response_json_paths:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+          - ["2015-03-06T14:34:12+00:00", 1.0, 27.55]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 14.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 12.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 10.0]
+          - ["2015-03-06T14:36:15+00:00", 1.0, -2.5]
+          - ["2015-03-06T14:37:15+00:00", 1.0, -19.5]
+
+    - name: get measurements from metric and two operations
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(negative (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
+      response_json_paths:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+          - ["2015-03-06T14:33:57+00:00", 1.0, -43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -11.0]
+          - ["2015-03-06T14:36:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:37:15+00:00", 1.0, -23.0]
+
+    - name: get measurements from metric and invalid operations
+      POST: /v1/aggregates/fetch
+      data:
+        operations: "(notexist (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
+      status: 400
 
     - name: get measurements from metric and resample no granularity
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60
