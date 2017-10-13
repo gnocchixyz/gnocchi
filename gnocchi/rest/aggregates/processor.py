@@ -54,11 +54,11 @@ class MetricUnaggregatable(Exception):
             % (", ".join((str(m.id) for m in metrics)), reason))
 
 
-def get_cross_metric_measures(storage, metrics, from_timestamp=None,
-                              to_timestamp=None, aggregation='mean',
-                              reaggregation=None,
-                              granularity=None, needed_overlap=100.0,
-                              fill=None, resample=None):
+def get_measures(storage, metrics, from_timestamp=None,
+                 to_timestamp=None, aggregation='mean',
+                 reaggregation=None,
+                 granularity=None, needed_overlap=100.0,
+                 fill=None, resample=None):
     """Get aggregated measures of multiple entities.
 
     :param storage: The storage driver.
