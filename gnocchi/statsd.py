@@ -128,7 +128,7 @@ class Stats(object):
         return ap.name
 
 
-class StatsdServer(object):
+class StatsdServer(asyncio.Protocol):
     def __init__(self, stats):
         self.stats = stats
 
