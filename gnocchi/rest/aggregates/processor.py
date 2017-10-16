@@ -42,7 +42,7 @@ def get_measures(storage, metrics_and_aggregations,
                  operations,
                  from_timestamp=None, to_timestamp=None,
                  granularity=None, needed_overlap=100.0,
-                 fill=None, resample=None, ref_identifier="id"):
+                 fill=None, ref_identifier="id"):
     """Get aggregated measures of multiple entities.
 
     :param storage: The storage driver.
@@ -52,7 +52,6 @@ def get_measures(storage, metrics_and_aggregations,
     :param to timestamp: The timestamp to get the measure to.
     :param granularity: The granularity to retrieve.
     :param fill: The value to use to fill in missing data in series.
-    :param resample: The granularity to resample to.
     """
 
     references_with_missing_granularity = []
@@ -101,10 +100,6 @@ def get_measures(storage, metrics_and_aggregations,
                               for (metric, aggregation)
                               in metrics_and_aggregations
                               for g in granularities_in_common])
-
-    if resample and granularity:
-        tss = list(map(lambda ref_and_ts: (
-            ref_and_ts[0], ref_and_ts[1].resample(resample)), tss))
 
     return aggregated(tss, operations, from_timestamp, to_timestamp,
                       needed_overlap, fill)
