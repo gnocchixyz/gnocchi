@@ -1748,10 +1748,6 @@ class AggregationController(rest.RestController):
         if reaggregation is None:
             reaggregation = aggregation
 
-        metrics_and_aggregations = [[str(m.id), aggregation] for m in metrics]
-        operations = ["aggregate", reaggregation,
-                      ["metric"] + metrics_and_aggregations]
-
         for metric in metrics:
             enforce("get metric", metric)
 
@@ -1766,6 +1762,19 @@ class AggregationController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
+
+        operations = ["aggregate", reaggregation, []]
+        if resample:
+            operations[2].extend(
+                ["resample", aggregation, resample,
+                 ["metric"] + [[str(m.id), aggregation]
+                               for m in metrics]]
+            )
+        else:
+            operations[2].extend(
+                ["metric"] + [[str(m.id), aggregation]
+                              for m in metrics]
+            )
 
         try:
             if strtobool("refresh", refresh):
@@ -1789,8 +1798,7 @@ class AggregationController(rest.RestController):
                 pecan.request.storage,
                 [(m, aggregation) for m in metrics],
                 operations, start, stop,
-                granularity, needed_overlap, fill,
-                resample)["aggregated"]
+                granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except (storage.MetricDoesNotExist,
