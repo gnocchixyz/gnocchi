@@ -37,6 +37,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
@@ -1747,10 +1748,6 @@ class AggregationController(rest.RestController):
         if reaggregation is None:
             reaggregation = aggregation
 
-        metrics_and_aggregations = [[str(m.id), aggregation] for m in metrics]
-        operations = ["aggregate", reaggregation,
-                      ["metric"] + metrics_and_aggregations]
-
         for metric in metrics:
             enforce("get metric", metric)
 
@@ -1765,6 +1762,19 @@ class AggregationController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
+
+        operations = ["aggregate", reaggregation, []]
+        if resample:
+            for m in metrics:
+                operations[2].append(
+                    ["resample", aggregation, resample,
+                     ["metric", str(m.id), aggregation]]
+                )
+        else:
+            operations[2].extend(
+                ["metric"] + [[str(m.id), aggregation]
+                              for m in metrics]
+            )
 
         try:
             if strtobool("refresh", refresh):
@@ -1788,9 +1798,8 @@ class AggregationController(rest.RestController):
                 pecan.request.storage,
                 [(m, aggregation) for m in metrics],
                 operations, start, stop,
-                granularity, needed_overlap, fill,
-                resample)["aggregated"]
-        except processor.UnAggregableTimeseries as e:
+                granularity, needed_overlap, fill)["aggregated"]
+        except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,

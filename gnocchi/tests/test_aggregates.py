@@ -22,6 +22,7 @@ import numpy
 from gnocchi import carbonara
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi.tests import base
@@ -64,7 +65,7 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                             self._resample_and_merge, agg_dict=tsc2))
 
         dtfrom = datetime64(2014, 1, 1, 11, 0, 0)
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
                           from_timestamp=dtfrom,
@@ -84,7 +85,7 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                                     dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
                         before_truncate_callback=functools.partial(
                             self._resample_and_merge, agg_dict=tsc1))
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], (("bar", "mean"), tsc2)],
                           operations=["aggregate", "mean",
@@ -136,7 +137,7 @@ class TestAggregatedTimeseries(base.BaseTestCase):
 
         # By default we require 100% of point that overlap
         # so that fail
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
                           from_timestamp=dtfrom,
@@ -751,14 +752,14 @@ class TestAggregatedTimeseries(base.BaseTestCase):
 
         # By default we require 100% of point that overlap
         # so that fail if from or to is set
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
                           to_timestamp=dtto,
                           operations=["aggregate", "sum", [
                               "metric", tsc1['return'][0], tsc2['return'][0]
                           ]])
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.aggregated,
                           [tsc1['return'], tsc2['return']],
                           from_timestamp=dtfrom,
@@ -815,7 +816,7 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_get_measures_empty_metrics_no_overlap(self):
         self.assertRaises(
-            processor.UnAggregableTimeseries,
+            exceptions.UnAggregableTimeseries,
             processor.get_measures, self.storage,
             [(indexer.Metric(uuid.uuid4(),
                              self.archive_policies['low']), 'mean'),
@@ -865,7 +866,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.get_measures,
                           self.storage,
                           [(self.metric, "mean"), (metric2, "mean")],
@@ -892,7 +893,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
 
-        self.assertRaises(processor.UnAggregableTimeseries,
+        self.assertRaises(exceptions.UnAggregableTimeseries,
                           processor.get_measures,
                           self.storage,
                           [(self.metric, "mean"), (metric2, "mean")],
@@ -1082,3 +1083,265 @@ class CrossMetricAggregated(base.TestCase):
             (datetime64(2014, 1, 1, 12, 10, 0),
              numpy.timedelta64(5, 'm'), 22.0)
         ], values)
+
+    def test_resample_minus_2(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            ["-", ["resample", "mean", numpy.timedelta64(1, 'D'),
+                   ["metric",
+                    [str(self.metric.id), "mean"],
+                    [str(metric2.id), "mean"]]], 2],
+            granularity=numpy.timedelta64(1, 'h'))
+
+        self.assertEqual({
+            "%s_%s" % (self.metric.id, "mean"): [
+                (datetime64(2014, 1, 1, 0, 0, 0),
+                 numpy.timedelta64(1, 'D'), 37.75)],
+            "%s_%s" % (metric2.id, "mean"): [
+                (datetime64(2014, 1, 1, 0, 0, 0),
+                 numpy.timedelta64(1, 'D'), 2.75)],
+        }, values)
+
+    def test_rolling(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 5, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 15, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 5, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 15, 10), 4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            ["/", ["rolling", "sum", 2,
+                   ["metric", [str(self.metric.id), "mean"],
+                    [str(metric2.id), "mean"]]], 2],
+            granularity=numpy.timedelta64(5, 'm'))
+
+        self.assertEqual({
+            "%s_%s" % (self.metric.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 5, 0),
+                 numpy.timedelta64(5, 'm'), 55.5),
+                (datetime64(2014, 1, 1, 12, 10, 0),
+                 numpy.timedelta64(5, 'm'), 23),
+                (datetime64(2014, 1, 1, 12, 15, 0),
+                 numpy.timedelta64(5, 'm'), 24)
+            ],
+            "%s_%s" % (metric2.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 5, 0),
+                 numpy.timedelta64(5, 'm'), 5.5),
+                (datetime64(2014, 1, 1, 12, 10, 0),
+                 numpy.timedelta64(5, 'm'), 3),
+                (datetime64(2014, 1, 1, 12, 15, 0),
+                 numpy.timedelta64(5, 'm'), 4),
+            ],
+        }, values)
+
+        # By references
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            ["/", ["rolling", "sum", 2, [
+                "metric",
+                [str(self.metric.id), "mean"],
+                [str(metric2.id), "mean"]
+            ]], 2],
+            granularity=numpy.timedelta64(5, 'm'))
+
+        self.assertEqual({
+            "%s_%s" % (self.metric.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 5, 0),
+                 numpy.timedelta64(5, 'm'), 55.5),
+                (datetime64(2014, 1, 1, 12, 10, 0),
+                 numpy.timedelta64(5, 'm'), 23),
+                (datetime64(2014, 1, 1, 12, 15, 0),
+                 numpy.timedelta64(5, 'm'), 24)
+            ],
+            "%s_%s" % (metric2.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 5, 0),
+                 numpy.timedelta64(5, 'm'), 5.5),
+                (datetime64(2014, 1, 1, 12, 10, 0),
+                 numpy.timedelta64(5, 'm'), 3),
+                (datetime64(2014, 1, 1, 12, 15, 0),
+                 numpy.timedelta64(5, 'm'), 4),
+            ],
+        }, values)
+
+    def test_binary_operator_with_two_references(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            ["*", ["metric", str(self.metric.id), "mean"],
+                  ["metric", str(metric2.id), "mean"]],
+            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 621),
+            (datetime64(2014, 1, 1, 13, 0, 0),
+             numpy.timedelta64(1, 'h'), 84),
+            (datetime64(2014, 1, 1, 14, 0, 0),
+             numpy.timedelta64(1, 'h'), 16),
+            (datetime64(2014, 1, 1, 15, 0, 0),
+             numpy.timedelta64(1, 'h'), 176),
+        ], values)
+
+    def test_mix(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            [
+                "rolling",
+                "sum",
+                2,
+                ["*", ["metric", str(self.metric.id), "mean"],
+                      ["metric", str(metric2.id), "mean"]],
+            ],
+            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 13, 0, 0),
+             numpy.timedelta64(1, 'h'), 705),
+            (datetime64(2014, 1, 1, 14, 0, 0),
+             numpy.timedelta64(1, 'h'), 100),
+            (datetime64(2014, 1, 1, 15, 0, 0),
+             numpy.timedelta64(1, 'h'), 192),
+        ], values)
+
+    def test_bool(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            [
+                "gt",
+                [
+                    "/",
+                    [
+                        "*",
+                        ["*", ["metric", str(self.metric.id), "mean"],
+                              ["metric", str(metric2.id), "mean"]],
+                        100,
+                    ],
+                    1000
+                ],
+                10
+            ],
+            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(1, 'h'), 1),
+            (datetime64(2014, 1, 1, 13, 0, 0),
+             numpy.timedelta64(1, 'h'), 0),
+            (datetime64(2014, 1, 1, 14, 0, 0),
+             numpy.timedelta64(1, 'h'), 0),
+            (datetime64(2014, 1, 1, 15, 0, 0),
+             numpy.timedelta64(1, 'h'), 1),
+        ], values)
+
+    def test_unary_operator(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), -69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), -4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), -9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), -2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), -4),
+        ])
+        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+
+        values = processor.get_measures(
+            self.storage, [(self.metric, "mean"), (metric2, "mean")],
+            ["abs", ["metric", [str(self.metric.id), "mean"],
+                     [str(metric2.id), "mean"]]],
+            granularity=numpy.timedelta64(1, 'h'))
+
+        self.assertEqual({
+            "%s_%s" % (self.metric.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 0, 0),
+                 numpy.timedelta64(1, 'h'), 69),
+                (datetime64(2014, 1, 1, 13, 0, 0),
+                 numpy.timedelta64(1, 'h'), 42),
+                (datetime64(2014, 1, 1, 14, 0, 0),
+                 numpy.timedelta64(1, 'h'), 4),
+                (datetime64(2014, 1, 1, 15, 0, 0),
+                 numpy.timedelta64(1, 'h'), 44)
+            ],
+            "%s_%s" % (metric2.id, "mean"): [
+                (datetime64(2014, 1, 1, 12, 0, 0),
+                 numpy.timedelta64(1, 'h'), 9),
+                (datetime64(2014, 1, 1, 13, 0, 0),
+                 numpy.timedelta64(1, 'h'), 2),
+                (datetime64(2014, 1, 1, 14, 0, 0),
+                 numpy.timedelta64(1, 'h'), 4),
+                (datetime64(2014, 1, 1, 15, 0, 0),
+                 numpy.timedelta64(1, 'h'), 4),
+            ],
+        }, values)

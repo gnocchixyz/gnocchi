@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Two new API endpoints allow to retrieve, modify, aggregates measurements
+    on the fly in an flexible way. The endpoint locations are
+    /v1/aggregates/fetch and /v1/aggregates/search-and-fetch. These endpoints
+    allow to describe `operations` to be done on a metrics list. Example:
+    (* 5  (rolling mean 3 (aggregate sum (metric (metric1 mean) (metric2 mean))))).
+    More details are avialable in the documentation.
