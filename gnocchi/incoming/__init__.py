@@ -15,7 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import collections
-from concurrent import futures
 
 import daiquiri
 import numpy
@@ -26,8 +25,6 @@ from gnocchi import exceptions
 from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)
-
-_NUM_WORKERS = utils.get_default_workers()
 
 
 Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
@@ -124,12 +121,11 @@ class IncomingDriver(object):
         :param metrics_and_measures: A dict where keys
         are metrics and value are measure.
         """
-        with futures.ThreadPoolExecutor(max_workers=_NUM_WORKERS) as executor:
-            list(executor.map(
-                lambda args: self._store_new_measures(*args),
-                ((metric, self._encode_measures(measures))
-                 for metric, measures
-                 in six.iteritems(metrics_and_measures))))
+        utils.parallel_map(
+            self._store_new_measures,
+            ((metric, self._encode_measures(measures))
+             for metric, measures
+             in six.iteritems(metrics_and_measures)))
 
     @staticmethod
     def _store_new_measures(metric, data):
