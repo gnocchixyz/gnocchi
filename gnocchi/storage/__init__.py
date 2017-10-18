@@ -111,7 +111,7 @@ class SackLockTimeoutError(StorageError):
         pass
 
 
-def get_driver(conf, coord=None):
+def get_driver(conf, coord):
     """Return the configured driver."""
     return utils.get_driver_class('gnocchi.storage', conf.storage)(
         conf.storage, coord)
@@ -119,14 +119,8 @@ def get_driver(conf, coord=None):
 
 class StorageDriver(object):
 
-    def __init__(self, conf, coord=None):
-        self.coord = (coord if coord else
-                      utils.get_coordinator_and_start(conf.coordination_url))
-        self.shared_coord = bool(coord)
-
-    def stop(self):
-        if not self.shared_coord:
-            self.coord.stop()
+    def __init__(self, conf, coord):
+        self.coord = coord
 
     @staticmethod
     def upgrade():

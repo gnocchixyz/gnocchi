@@ -36,6 +36,7 @@ from gnocchi import service
 from gnocchi import storage
 from gnocchi.tests import base
 from gnocchi.tests import utils
+from gnocchi import utils as g_utils
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
 # pass to the WSGI app used per test suite. LOAD_APP_KWARGS are the olso
@@ -126,12 +127,15 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
-        s = storage.get_driver(conf)
+        self.coord = g_utils.get_coordinator_and_start(
+            conf.storage.coordination_url)
+        s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
 
         LOAD_APP_KWARGS = {
+            'coord': self.coord,
             'storage': s,
             'indexer': index,
             'incoming': i,
@@ -160,6 +164,9 @@ class ConfigFixture(fixture.GabbiFixture):
 
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
+
+        if hasattr(self, 'coord'):
+            self.coord.stop()
 
         self.conf.reset()
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
