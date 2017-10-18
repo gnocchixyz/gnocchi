@@ -292,6 +292,80 @@ tests:
       response_strings:
           - Archive policy large already exists
 
+# Create another one, rename it and delete it
+
+    - name: create to_rename policy
+      POST: /v1/archive_policy
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: to_rename
+          definition:
+              - granularity: 1 second
+                points: 20
+              - granularity: 2 second
+      response_headers:
+          location: $SCHEME://$NETLOC/v1/archive_policy/to_rename
+      status: 201
+
+    - name: rename archive policy with existing name
+      PATCH: /v1/archive_policy/to_rename
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: medium
+      status: 400
+      response_strings:
+          - "Archive policy medium already exists."
+
+    - name: rename archive policy
+      PATCH: $LAST_URL
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: renamed
+      status: 200
+      response_json_paths:
+          $.name: renamed
+          $.definition[0].granularity: "0:00:01"
+          $.definition[0].points: 20
+          $.definition[0].timespan: "0:00:20"
+          $.definition[1].granularity: "0:00:02"
+          $.definition[1].points: null
+          $.definition[1].timespan: null
+
+    - name: confirm rename
+      GET: $LAST_URL
+      status: 404
+
+    - name: rename and update archive policy
+      PATCH: /v1/archive_policy/renamed
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: renamed_twice
+          definition:
+              - granularity: 1 second
+                points: 50
+              - granularity: 2 second
+      status: 200
+      response_json_paths:
+          $.name: renamed_twice
+          $.definition[0].granularity: "0:00:01"
+          $.definition[0].points: 50
+          $.definition[0].timespan: "0:00:50"
+
+    - name: delete renamed policy
+      DELETE: /v1/archive_policy/renamed_twice
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      status: 204
+
 # Create a unicode named policy
 
     - name: post unicode policy name

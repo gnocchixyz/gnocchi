@@ -174,7 +174,8 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         sqlalchemy.ForeignKey(
             'archive_policy.name',
             ondelete="RESTRICT",
-            name="fk_metric_ap_name_ap_name"),
+            name="fk_metric_ap_name_ap_name",
+            onupdate="CASCADE"),
         nullable=False)
     archive_policy = sqlalchemy.orm.relationship(ArchivePolicy, lazy="joined")
     creator = sqlalchemy.Column(sqlalchemy.String(255))

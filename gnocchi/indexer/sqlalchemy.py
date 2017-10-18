@@ -568,25 +568,33 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with self.facade.independent_reader() as session:
             return session.query(ArchivePolicy).get(name)
 
-    def update_archive_policy(self, name, ap_items):
-        with self.facade.independent_writer() as session:
-            ap = session.query(ArchivePolicy).get(name)
-            if not ap:
-                raise indexer.NoSuchArchivePolicy(name)
-            current = sorted(ap.definition,
-                             key=operator.attrgetter('granularity'))
-            new = sorted(ap_items, key=operator.attrgetter('granularity'))
-            if len(current) != len(new):
+    def update_archive_policy(self, name, ap_items, new_name=None):
+        ap = self.get_archive_policy(name)
+        if not ap:
+            raise indexer.NoSuchArchivePolicy(name)
+        current = sorted(ap.definition,
+                         key=operator.attrgetter('granularity'))
+        new = sorted(ap_items, key=operator.attrgetter('granularity'))
+        if len(current) != len(new):
+            raise indexer.UnsupportedArchivePolicyChange(
+                name, 'Cannot add or drop granularities')
+        for c, n in zip(current, new):
+            if c.granularity != n.granularity:
                 raise indexer.UnsupportedArchivePolicyChange(
-                    name, 'Cannot add or drop granularities')
-            for c, n in zip(current, new):
-                if c.granularity != n.granularity:
-                    raise indexer.UnsupportedArchivePolicyChange(
-                        name, '%s granularity interval was changed'
-                        % utils.timespan_total_seconds(c.granularity))
-            # NOTE(gordc): ORM doesn't update JSON column unless new
-            ap.definition = ap_items
-            return ap
+                    name, '%s granularity interval was changed'
+                    % utils.timespan_total_seconds(c.granularity))
+        # NOTE(gordc): ORM doesn't update JSON column unless new
+        ap.definition = ap_items
+        if new_name:
+            ap.name = new_name
+        try:
+            with self.facade.independent_writer() as session:
+                session.add(ap)
+        except exception.DBDuplicateEntry:
+            raise indexer.UnsupportedArchivePolicyChange(
+                name,
+                'Archive policy %s already exists.' % new_name)
+        return ap
 
     def delete_archive_policy(self, name):
         constraints = [
