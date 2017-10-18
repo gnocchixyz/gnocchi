@@ -61,7 +61,10 @@ def upgrade():
         LOG.info("Upgrading indexer %s", index)
         index.upgrade()
     if not conf.skip_storage:
-        s = storage.get_driver(conf)
+        # FIXME(jd) Pass None as coordinator because it's not needed in this
+        # case. This will be removed when the storage will stop requiring a
+        # coordinator object.
+        s = storage.get_driver(conf, None)
         LOG.info("Upgrading storage %s", s)
         s.upgrade()
     if not conf.skip_incoming:
