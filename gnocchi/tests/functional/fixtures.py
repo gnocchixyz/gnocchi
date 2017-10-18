@@ -28,6 +28,7 @@ from oslo_config import cfg
 from oslo_middleware import cors
 import sqlalchemy_utils
 
+from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
@@ -36,7 +37,6 @@ from gnocchi import service
 from gnocchi import storage
 from gnocchi.tests import base
 from gnocchi.tests import utils
-from gnocchi import utils as g_utils
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
 # pass to the WSGI app used per test suite. LOAD_APP_KWARGS are the olso
@@ -127,7 +127,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
-        self.coord = g_utils.get_coordinator_and_start(
+        self.coord = metricd.get_coordinator_and_start(
             conf.storage.coordination_url)
         s = storage.get_driver(conf, self.coord)
         s.upgrade()

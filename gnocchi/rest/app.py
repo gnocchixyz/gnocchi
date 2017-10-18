@@ -26,12 +26,12 @@ from pecan import jsonify
 from stevedore import driver
 import webob.exc
 
+from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi import storage as gnocchi_storage
-from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -93,7 +93,7 @@ def load_app(conf, indexer=None, storage=None, incoming=None, coord=None,
             # NOTE(jd) This coordinator is never stop. I don't think it's a
             # real problem since the Web app can never really be stopped
             # anyway, except by quitting it entirely.
-            coord = utils.get_coordinator_and_start(
+            coord = metricd.get_coordinator_and_start(
                 conf.storage.coordination_url)
         storage = gnocchi_storage.get_driver(conf, coord)
     if not incoming:

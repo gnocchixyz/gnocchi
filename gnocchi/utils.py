@@ -30,7 +30,6 @@ import numpy
 import pytimeparse
 import six
 from stevedore import driver
-from tooz import coordination
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -69,12 +68,6 @@ def UUID(value):
         return uuid.UUID(value)
     except Exception as e:
         raise ValueError(e)
-
-
-def get_coordinator_and_start(url):
-    coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
-    coord.start(start_heart=True)
-    return coord
 
 
 unix_universal_start64 = numpy.datetime64("1970")

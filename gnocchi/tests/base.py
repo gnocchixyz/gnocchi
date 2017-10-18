@@ -33,13 +33,13 @@ except ImportError:
 from testtools import testcase
 
 from gnocchi import archive_policy
+from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
 from gnocchi.tests import utils
-from gnocchi import utils as g_utils
 
 
 class SkipNotImplementedMeta(type):
@@ -300,7 +300,7 @@ class TestCase(BaseTestCase):
 
         self.index = indexer.get_driver(self.conf)
 
-        self.coord = g_utils.get_coordinator_and_start(
+        self.coord = metricd.get_coordinator_and_start(
             self.conf.storage.coordination_url)
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
