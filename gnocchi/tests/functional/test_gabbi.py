@@ -16,14 +16,12 @@
 """A test module to exercise the Gnocchi API with gabbi."""
 
 import os
+import unittest
 
 from gabbi import driver
-# We need test_pytest so that pytest test collection works properly.
-# Without this, the pytest_generate_tests method below will not be
-# called.
-from gabbi.driver import test_pytest  # noqa
 import wsgi_intercept
 
+from gnocchi.tests import base
 from gnocchi.tests.functional import fixtures
 
 
@@ -32,9 +30,46 @@ TESTS_DIR = 'gabbits'
 PREFIX = '/gnocchi'
 
 
-def pytest_generate_tests(metafunc):
-    test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
-    driver.py_test_generator(test_dir, prefix=PREFIX,
-                             intercept=fixtures.setup_app,
-                             fixture_module=fixtures, metafunc=metafunc,
-                             safe_yaml=False)
+class TestFunctional(base.BaseTestCase):
+    # NOTE(sileht): This run each yaml file into one testcase
+    # instead of one testcase per yaml line
+    # This permits to use pytest-xdist any --dist
+
+    def _do_test(self, test):
+        with open(os.devnull, 'w') as stream:
+            result = unittest.TextTestRunner(
+                stream=stream, verbosity=0, failfast=True
+            ).run(test)
+
+        if not result.wasSuccessful():
+            failures = (result.errors + result.failures +
+                        result.unexpectedSuccesses)
+            if failures:
+                test, bt = failures[0]
+                name = test.test_data.get('name', test.id())
+                msg = 'From test "%s" :\n%s' % (name, bt)
+                self.fail(msg)
+
+        self.assertTrue(result.wasSuccessful())
+
+    @staticmethod
+    def _test_maker(name, t):
+        def test(self):
+            self._do_test(t)
+            test.__name__ = name
+        return test
+
+    @classmethod
+    def generate_tests(cls):
+        test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
+        loader = unittest.TestLoader()
+        tests = driver.build_tests(test_dir, loader,
+                                   intercept=fixtures.setup_app,
+                                   fixture_module=fixtures,
+                                   prefix=PREFIX, safe_yaml=False)
+        for test in tests:
+            name = test._tests[0].__class__.__name__
+            setattr(cls, name, cls._test_maker(name, test))
+
+
+TestFunctional.generate_tests()
