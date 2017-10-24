@@ -179,7 +179,9 @@ class AggregatesController(rest.RestController):
 
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
-             needed_overlap=100.0, fill=None, groupby=None):
+             needed_overlap=None, fill=None, groupby=None):
+        if fill is None and needed_overlap is None:
+            fill = "dropna"
         start, stop, granularity, needed_overlap, fill = api.validate_qs(
             start, stop, granularity, needed_overlap, fill)
 

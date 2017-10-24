@@ -1652,15 +1652,21 @@ class AggregationResourceController(rest.RestController):
         return results
 
 
+FillSchema = voluptuous.Schema(
+    voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
+                   msg="Must be a float, 'dropna' or 'null'"))
+
+
 # FIXME(sileht): should be in aggregates.api but we need to split all
 # controllers to do this
 def validate_qs(start, stop, granularity, needed_overlap, fill):
-    try:
-        needed_overlap = float(needed_overlap)
-    except ValueError:
-        abort(400, {"cause": "Argument value error",
-                    "detail": "needed_overlap",
-                    "reason": "Must be a number"})
+    if needed_overlap is not None:
+        try:
+            needed_overlap = float(needed_overlap)
+        except ValueError:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "needed_overlap",
+                        "reason": "Must be a number"})
 
     if start is not None:
         try:
@@ -1687,15 +1693,13 @@ def validate_qs(start, stop, granularity, needed_overlap, fill):
                         "reason": six.text_type(e)})
 
     if fill is not None:
-        if fill != "null":
-            try:
-                fill = float(fill)
-            except ValueError:
-                    abort(400,
-                          {"cause": "Argument value error",
-                           "detail": "fill",
-                           "reason": "Must be a float or \'null\', got '%s'" %
-                           fill})
+        try:
+            fill = FillSchema(fill)
+        except voluptuous.Error as e:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "fill",
+                        "reason": str(e)})
+
     return start, stop, granularity, needed_overlap, fill
 
 
