@@ -214,7 +214,7 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
     - name: get measurements from metric and resample and negative
-      POST: /v1/aggregates/fetch?granularity=1
+      POST: /v1/aggregates?granularity=1
       data:
         operations: "(negative (resample mean 60 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
@@ -236,7 +236,7 @@ tests:
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
 
     - name: get absolute measurements from metric
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       response_json_paths:
@@ -250,7 +250,7 @@ tests:
           - ["2015-03-06T14:37:15+00:00", 1.0, 23.0]
 
     - name: rolling-mean
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(rolling mean 2 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       status: 200
@@ -264,7 +264,7 @@ tests:
           - ["2015-03-06T14:37:15+00:00", 1.0, -19.5]
 
     - name: get measurements from metric and two operations
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(negative (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
@@ -278,7 +278,7 @@ tests:
           - ["2015-03-06T14:37:15+00:00", 1.0, -23.0]
 
     - name: get measurements from metric and invalid operations
-      POST: /v1/aggregates/fetch
+      POST: /v1/aggregates
       data:
         operations: "(notexist (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       status: 400
