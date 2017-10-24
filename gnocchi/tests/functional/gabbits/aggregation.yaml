@@ -139,6 +139,7 @@ tests:
         $.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+          - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
 
     - name: get measure aggregates with fill zero
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=0
@@ -244,6 +245,7 @@ tests:
         $.aggregated:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+          - ['2015-03-06T14:35:12+00:00', 1.0, 5.0]
 
     - name: get measure aggregates by granularity from resources and resample
       POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&resample=60
@@ -262,6 +264,7 @@ tests:
         $.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+          - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
 
     - name: get measure aggregates by granularity from resources and operations
       POST: /v1/aggregates?granularity=1
@@ -273,6 +276,7 @@ tests:
         $.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
+          - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
 
     - name: get measure aggregates by granularity from resources and bad resample
       POST: /v1/aggregation/resource/generic/metric/agg_meter?resample=abc

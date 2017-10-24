@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Aggregates API and cross metrics aggregation API can take `dropna` for the
+    `fill` parameter. This acts like `null`, but NaN values are removed from
+    the result.

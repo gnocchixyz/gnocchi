@@ -126,7 +126,8 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                                       return_inverse=True)
 
         # create nd-array (unique series x unique times) and fill
-        filler = fill if fill is not None and fill != 'null' else numpy.NaN
+        filler = (numpy.NaN if fill in [None, 'null', 'dropna']
+                  else fill)
         val_grid = numpy.full((len(series[key]), len(times)), filler)
         start = 0
         for i, split in enumerate(series[key]):
@@ -162,16 +163,20 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
 
         values = values.T
         if is_aggregated:
-            result["aggregated"]["timestamps"].extend(times)
-            result["aggregated"]['granularity'].extend([granularity] *
-                                                       len(times))
-            result["aggregated"]['values'].extend(values[0])
+            idents = ["aggregated"]
         else:
-            for i, ref in enumerate(references[key]):
-                ident = "%s_%s" % tuple(ref)
-                result[ident]["timestamps"].extend(times)
-                result[ident]['granularity'].extend([granularity] * len(times))
-                result[ident]['values'].extend(values[i])
+            idents = ["%s_%s" % tuple(ref) for ref in references[key]]
+        for i, ident in enumerate(idents):
+            if fill == "dropna":
+                pos = ~numpy.isnan(values[i])
+                v = values[i][pos]
+                t = times[pos]
+            else:
+                v = values[i]
+                t = times
+            result[ident]["timestamps"].extend(t)
+            result[ident]['granularity'].extend([granularity] * len(t))
+            result[ident]['values'].extend(v)
 
     return dict(((ident, list(six.moves.zip(result[ident]['timestamps'],
                                             result[ident]['granularity'],

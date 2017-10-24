@@ -51,6 +51,12 @@ tests:
           archive_policy_name: cookies
       status: 201
 
+    - name: create metric4
+      POST: /v1/metric
+      data:
+          archive_policy_name: cookies
+      status: 201
+
     - name: push measurements to metric1
       POST: /v1/metric/$HISTORY['create metric1'].$RESPONSE['$.id']/measures
       data:
@@ -79,6 +85,15 @@ tests:
             value: 10
           - timestamp: "2015-03-06T14:35:15"
             value: 15
+      status: 202
+
+    - name: push measurements to metric4
+      POST: /v1/metric/$HISTORY['create metric4'].$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2017-04-06T14:33:57"
+            value: 20
+          - timestamp: "2017-04-06T14:34:12"
+            value: 10
       status: 202
 
     - name: get measurements from metric1
@@ -387,6 +402,86 @@ tests:
           - ['2015-03-06T14:37:00+00:00', 1.0, 123.0]
           - ['2015-03-06T14:38:00+00:00', 1.0, 123.0]
 
+    - name: no overlap dropna
+      POST: /v1/aggregates
+      data:
+        operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric4'].$RESPONSE['$.id'] mean))"
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ['2015-03-06T14:37:00+00:00', 60.0, 15.0]
+          - ['2015-03-06T14:38:00+00:00', 60.0, 15.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+          - ['2015-03-06T14:37:00+00:00', 1.0, 15.0]
+          - ['2015-03-06T14:38:00+00:00', 1.0, 15.0]
+        $."$HISTORY['create metric4'].$RESPONSE['$.id']_mean":
+          - ["2017-04-06T14:33:00+00:00", 60.0, 20.0]
+          - ["2017-04-06T14:34:00+00:00", 60.0, 10.0]
+          - ["2017-04-06T14:33:57+00:00", 1.0, 20.0]
+          - ["2017-04-06T14:34:12+00:00", 1.0, 10.0]
+
+    - name: no overlap null
+      POST: /v1/aggregates?fill=null
+      xfail: gabbi use assertEqual to compare .NAN which is always false
+      data:
+        operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric4'].$RESPONSE['$.id'] mean))"
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ['2015-03-06T14:37:00+00:00', 60.0, 15.0]
+          - ['2015-03-06T14:38:00+00:00', 60.0, 15.0]
+          - ["2017-04-06T14:33:00+00:00", 60.0, .NAN]
+          - ["2017-04-06T14:34:00+00:00", 60.0, .NAN]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+          - ['2015-03-06T14:37:00+00:00', 1.0, 15.0]
+          - ['2015-03-06T14:38:00+00:00', 1.0, 15.0]
+          - ["2017-04-06T14:33:57+00:00", 1.0, .NAN]
+          - ["2017-04-06T14:34:12+00:00", 1.0, .NAN]
+        $."$HISTORY['create metric4'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, .NAN]
+          - ["2015-03-06T14:34:00+00:00", 60.0, .NAN]
+          - ["2015-03-06T14:35:00+00:00", 60.0, .NAN]
+          - ['2015-03-06T14:37:00+00:00', 60.0, .NAN]
+          - ['2015-03-06T14:38:00+00:00', 60.0, .NAN]
+          - ["2017-04-06T14:33:00+00:00", 60.0, 20.0]
+          - ["2017-04-06T14:34:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, .NAN]
+          - ["2015-03-06T14:34:12+00:00", 1.0, .NAN]
+          - ["2015-03-06T14:34:15+00:00", 1.0, .NAN]
+          - ["2015-03-06T14:35:12+00:00", 1.0, .NAN]
+          - ["2015-03-06T14:35:15+00:00", 1.0, .NAN]
+          - ['2015-03-06T14:37:00+00:00', 1.0, .NAN]
+          - ['2015-03-06T14:38:00+00:00', 1.0, .NAN]
+          - ["2017-04-06T14:33:57+00:00", 1.0, 20.0]
+          - ["2017-04-06T14:34:12+00:00", 1.0, 10.0]
+
+    - name: no overlap null light check due to previous xfail
+      POST: /v1/aggregates?fill=null
+      data:
+        operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric4'].$RESPONSE['$.id'] mean))"
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean".`len`: 16
+        $."$HISTORY['create metric4'].$RESPONSE['$.id']_mean".`len`: 16
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean"[0]: ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean"[7]: ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+        $."$HISTORY['create metric4'].$RESPONSE['$.id']_mean"[5]: ["2017-04-06T14:33:00+00:00", 60.0, 20.0]
+        $."$HISTORY['create metric4'].$RESPONSE['$.id']_mean"[14]: ["2017-04-06T14:33:57+00:00", 1.0, 20.0]
+
 # Negative tests
 
     - name: get no operations
@@ -582,7 +677,7 @@ tests:
         $.code: 400
         $.description.cause: "Argument value error"
         $.description.detail: "fill"
-        $.description.reason: "Must be a float or 'null', got 'foobar'"
+        $.description.reason: "Must be a float, 'dropna' or 'null'"
 
     - name: get rolling bad aggregate
       POST: /v1/aggregates

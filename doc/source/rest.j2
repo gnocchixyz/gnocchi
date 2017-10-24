@@ -590,15 +590,12 @@ error is returned.
    boundary to the first or last timestamp common across all series.
 
 The ability to fill in missing points from a subset of time series is supported
-by specifying a `fill` value. Valid fill values include any float or `null`. In
-the case of `null`, Gnocchi will compute the aggregation using only the
-existing points. The `fill` parameter will not backfill timestamps which contain no
-points in any of the time series. Only timestamps which have datapoints in at
-least one of the time series is returned.
-
-.. note::
-
-   A |granularity| must be specified when using the `fill` parameter.
+by specifying a `fill` value. Valid fill values include any float, `dropna` or
+`null`. In the case of `null`, Gnocchi will compute the aggregation using only
+the existing points. `dropna` is like `null` but remove NaN from the result.
+The `fill` parameter will not backfill timestamps which contain no points in
+any of the time series. Only timestamps which have datapoints in at least one
+of the time series is returned.
 
 {{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
 
@@ -739,16 +736,13 @@ expects 100% overlap. If this percentage is not reached, an error is returned.
    If `start` or `stop` boundary is not set, Gnocchi will set the missing
    boundary to the first or last timestamp common across all series.
 
-The ability to fill in  missing points from a subset of time series is supported
-by specifying a `fill` value. Valid fill values include any float or `null`. In
-the case of `null`, Gnocchi will compute the aggregation using only the
-existing points. The `fill` parameter will not backfill timestamps which contain no
-points in any of the time series. Only timestamps which have datapoints in at
-least one of the time series is returned.
-
-.. note::
-
-   A |granularity| must be specified when using the `fill` parameter.
+The ability to fill in missing points from a subset of time series is supported
+by specifying a `fill` value. Valid fill values include any float, `dropna` or
+`null`. In the case of `null`, Gnocchi will compute the aggregation using only
+the existing points. `dropna` is like `null` but remove NaN from the result.
+The `fill` parameter will not backfill timestamps which contain no points in
+any of the time series. Only timestamps which have datapoints in at least one
+of the time series is returned.
 
 {{ scenarios['get-across-metrics-measures-by-metric-ids-fill']['doc'] }}
 
