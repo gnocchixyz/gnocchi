@@ -159,20 +159,13 @@ def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
             (window, len(values))
         )
 
-    # TODO(sileht): make a more optimised version that
-    # compute the data across the whole matrix
-    new_values = None
     timestamps = timestamps[window - 1:]
-    for ts in values.T:
-        # arogozhnikov.github.io/2015/09/30/NumpyTipsAndTricks2.html
-        stride = ts.strides[0]
-        ts = AGG_MAP[agg](as_strided(
-            ts, shape=[len(ts) - window + 1, window],
-            strides=[stride, stride]), axis=1)
-        if new_values is None:
-            new_values = numpy.array([ts])
-        else:
-            new_values = numpy.append(new_values, [ts], axis=0)
+    values = values.T
+    # rigtorp.se/2011/01/01/rolling-statistics-numpy.html
+    shape = values.shape[:-1] + (values.shape[-1] - window + 1, window)
+    strides = values.strides + (values.strides[-1],)
+    new_values = AGG_MAP[agg](as_strided(values, shape=shape, strides=strides),
+                              axis=-1)
     return granularity, timestamps, new_values.T, is_aggregated
 
 
