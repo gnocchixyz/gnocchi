@@ -1692,10 +1692,6 @@ def validate_qs(start, stop, granularity, needed_overlap, fill):
                         "reason": six.text_type(e)})
 
     if fill is not None:
-        if granularity is None:
-            abort(400, {"cause": "Argument value error",
-                        "detail": "granularity",
-                        "reason": "Unable to fill without a granularity"})
         if fill != "null":
             try:
                 fill = float(fill)
