@@ -100,25 +100,24 @@ unary_operators = {
 
 
 def handle_unary_operator(nodes, granularity, timestamps, initial_values,
-                          is_aggregated, references):
+                          references):
     op = nodes[0]
-    granularity, timestamps, values, is_aggregated = evaluate(
+    granularity, timestamps, values = evaluate(
         nodes[1], granularity, timestamps, initial_values,
-        is_aggregated, references)
+        references)
 
     values = unary_operators[op](values)
-    return granularity, timestamps, values, is_aggregated
+    return granularity, timestamps, values
 
 
 def handle_binary_operator(nodes, granularity, timestamps,
-                           initial_values, is_aggregated, references):
+                           initial_values, references):
     op = nodes[0]
-    g1, t1, v1, is_a1 = evaluate(nodes[1], granularity, timestamps,
-                                 initial_values, is_aggregated, references)
-    g2, t2, v2, is_a2 = evaluate(nodes[2], granularity, timestamps,
-                                 initial_values, is_aggregated, references)
+    g1, t1, v1 = evaluate(nodes[1], granularity, timestamps,
+                          initial_values, references)
+    g2, t2, v2 = evaluate(nodes[2], granularity, timestamps,
+                          initial_values, references)
 
-    is_aggregated = is_a1 or is_a2
     # We keep the computed timeseries
     if isinstance(v1, numpy.ndarray) and isinstance(v2, numpy.ndarray):
         if not numpy.array_equal(t1, t2) or g1 != g2:
@@ -128,7 +127,6 @@ def handle_binary_operator(nodes, granularity, timestamps,
                 "granularity %s <> %s" % (nodes[1], nodes[2]))
         timestamps = t1
         granularity = g1
-        is_aggregated = True
 
     elif isinstance(v2, numpy.ndarray):
         timestamps = t2
@@ -138,20 +136,18 @@ def handle_binary_operator(nodes, granularity, timestamps,
         granularity = g1
 
     values = binary_operators[op](v1, v2)
-    return granularity, timestamps, values, is_aggregated
+    return granularity, timestamps, values
 
 
-def handle_aggregate(agg, granularity, timestamps, values, is_aggregated,
-                     references):
+def handle_aggregate(agg, granularity, timestamps, values, references):
     values = numpy.array([AGG_MAP[agg](values, axis=1)]).T
     if values.shape[1] != 1:
         raise RuntimeError("Unexpected resulting aggregated array shape: %s" %
                            values)
-    return (granularity, timestamps, values, True)
+    return granularity, timestamps, values
 
 
-def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
-                   references, window):
+def handle_rolling(agg, granularity, timestamps, values, references, window):
     if window > len(values):
         raise exceptions.UnAggregableTimeseries(
             references,
@@ -173,10 +169,10 @@ def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
             new_values = numpy.array([ts])
         else:
             new_values = numpy.append(new_values, [ts], axis=0)
-    return granularity, timestamps, new_values.T, is_aggregated
+    return granularity, timestamps, new_values.T
 
 
-def handle_resample(agg, granularity, timestamps, values, is_aggregated,
+def handle_resample(agg, granularity, timestamps, values,
                     references, sampling):
     # TODO(sileht): make a more optimised version that
     # compute the data across the whole matrix
@@ -190,20 +186,18 @@ def handle_resample(agg, granularity, timestamps, values, is_aggregated,
             new_values = numpy.array([ts["values"]])
         else:
             new_values = numpy.append(new_values, [ts["values"]], axis=0)
-    return sampling, result_timestamps, new_values.T, is_aggregated
+    return sampling, result_timestamps, new_values.T
 
 
 def handle_aggregation_operator(nodes, granularity, timestamps, initial_values,
-                                is_aggregated, references):
+                                references):
     op = aggregation_operators[nodes[0]]
     agg = nodes[1]
     subnodes = nodes[-1]
     args = nodes[2:-1]
-    granularity, timestamps, values, is_aggregated = evaluate(
-        subnodes, granularity, timestamps, initial_values,
-        is_aggregated, references)
-    return op(agg, granularity, timestamps, values, is_aggregated,
-              references, *args)
+    granularity, timestamps, values = evaluate(
+        subnodes, granularity, timestamps, initial_values, references)
+    return op(agg, granularity, timestamps, values, references, *args)
 
 
 aggregation_operators = {
@@ -219,8 +213,7 @@ def sanity_check(method):
     # unexpected.
 
     def inner(*args, **kwargs):
-        granularity, timestamps, values, is_aggregated = method(
-            *args, **kwargs)
+        granularity, timestamps, values = method(*args, **kwargs)
 
         t_len = len(timestamps)
         if t_len > 2 and not ((timestamps[1] - timestamps[0]) /
@@ -237,34 +230,29 @@ def sanity_check(method):
             raise RuntimeError("timestamps and values length are different: "
                                "%s vs %s" % (t_len, len(values)))
 
-        return granularity, timestamps, values, is_aggregated
+        return granularity, timestamps, values
     return inner
 
 
 @sanity_check
-def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
-             references):
+def evaluate(nodes, granularity, timestamps, initial_values, references):
     if isinstance(nodes, numbers.Number):
-        return granularity, timestamps, nodes, is_aggregated
+        return granularity, timestamps, nodes
     elif nodes[0] in aggregation_operators:
         return handle_aggregation_operator(nodes, granularity, timestamps,
-                                           initial_values, is_aggregated,
-                                           references)
+                                           initial_values, references)
     elif nodes[0] in binary_operators:
         return handle_binary_operator(nodes, granularity, timestamps,
-                                      initial_values, is_aggregated,
-                                      references)
+                                      initial_values, references)
     elif nodes[0] in unary_operators:
         return handle_unary_operator(nodes, granularity, timestamps,
-                                     initial_values, is_aggregated,
-                                     references)
+                                     initial_values, references)
     elif nodes[0] == "metric":
         if isinstance(nodes[1], list):
             predicat = lambda r: r in nodes[1:]
         else:
             predicat = lambda r: r == nodes[1:]
         indexes = [i for i, r in enumerate(references) if predicat(r)]
-        return (granularity, timestamps, initial_values.T[indexes].T,
-                is_aggregated)
+        return granularity, timestamps, initial_values.T[indexes].T
     else:
         raise RuntimeError("Operation node tree is malformed: %s" % nodes)

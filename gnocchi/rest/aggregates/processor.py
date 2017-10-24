@@ -156,21 +156,22 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                     'timespan (%.2f%%)' % (needed_percent_of_overlap,
                                            percent_of_overlap))
 
-        granularity, times, values, is_aggregated = (
+        granularity, times, values = (
             agg_operations.evaluate(operations, key, times, values,
-                                    False, references[key]))
+                                    references[key]))
 
-        if is_aggregated:
+        values = values.T
+        if len(values) == 1 and len(references[key]) > 1:
             result["aggregated"]["timestamps"].extend(times)
             result["aggregated"]['granularity'].extend([granularity] *
                                                        len(times))
-            result["aggregated"]['values'].extend(values.T[0])
+            result["aggregated"]['values'].extend(values[0])
         else:
             for i, ref in enumerate(references[key]):
                 ident = "%s_%s" % tuple(ref)
                 result[ident]["timestamps"].extend(times)
                 result[ident]['granularity'].extend([granularity] * len(times))
-                result[ident]['values'].extend(values.T[i])
+                result[ident]['values'].extend(values[i])
 
     return dict(((ident, list(six.moves.zip(result[ident]['timestamps'],
                                             result[ident]['granularity'],
