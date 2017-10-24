@@ -156,9 +156,15 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 5.0]
 
-    - name: get measure aggregates with fill missing granularity
+    - name: get measure aggregates with fill all granularities
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&fill=0
-      status: 400
+      response_json_paths:
+        $:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
+          - ['2015-03-06T14:35:00+00:00', 300.0, 2.5]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
+          - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
 
     - name: get measure aggregates with bad fill
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=asdf
