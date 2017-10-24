@@ -160,17 +160,18 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             agg_operations.evaluate(operations, key, times, values,
                                     False, references[key]))
 
+        values = values.T
         if is_aggregated:
             result["aggregated"]["timestamps"].extend(times)
             result["aggregated"]['granularity'].extend([granularity] *
                                                        len(times))
-            result["aggregated"]['values'].extend(values.T[0])
+            result["aggregated"]['values'].extend(values[0])
         else:
             for i, ref in enumerate(references[key]):
                 ident = "%s_%s" % tuple(ref)
                 result[ident]["timestamps"].extend(times)
                 result[ident]['granularity'].extend([granularity] * len(times))
-                result[ident]['values'].extend(values.T[i])
+                result[ident]['values'].extend(values[i])
 
     return dict(((ident, list(six.moves.zip(result[ident]['timestamps'],
                                             result[ident]['granularity'],
