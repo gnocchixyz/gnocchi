@@ -158,7 +158,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
 
         granularity, times, values, is_aggregated = (
             agg_operations.evaluate(operations, key, times, values,
-                                    False, references[key]))
+                                    references[key]))
 
         values = values.T
         if is_aggregated:
