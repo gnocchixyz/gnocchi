@@ -26,6 +26,7 @@ from pecan import jsonify
 from stevedore import driver
 import webob.exc
 
+from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
@@ -83,14 +84,18 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, indexer=None, storage=None, incoming=None,
+def load_app(conf, indexer=None, storage=None, incoming=None, coord=None,
              not_implemented_middleware=True):
     global APPCONFIGS
 
-    # NOTE(sileht): We load config, storage and indexer,
-    # so all
     if not storage:
-        storage = gnocchi_storage.get_driver(conf)
+        if not coord:
+            # NOTE(jd) This coordinator is never stop. I don't think it's a
+            # real problem since the Web app can never really be stopped
+            # anyway, except by quitting it entirely.
+            coord = metricd.get_coordinator_and_start(
+                conf.storage.coordination_url)
+        storage = gnocchi_storage.get_driver(conf, coord)
     if not incoming:
         incoming = gnocchi_incoming.get_driver(conf)
     if not indexer:

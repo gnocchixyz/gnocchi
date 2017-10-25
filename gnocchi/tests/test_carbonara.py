@@ -276,82 +276,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5.9000000000000004,
                          ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
-    def test_transform(self):
-        ts = carbonara.TimeSerie.from_tuples(
-            [(datetime64(2014, 1, 1, 12, 0, 0), -3),
-             (datetime64(2014, 1, 1, 12, 1, 0), 5),
-             (datetime64(2014, 1, 1, 12, 2, 0), -6)])
-        ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            [ts], sampling=60, aggregation_method="last")
-        ts = ts.transform([
-            carbonara.Transformation("absolute", tuple())])
-
-        self.assertEqual(3, len(ts))
-        self.assertEqual([3, 5, 6], [
-            ts[datetime64(2014, 1, 1, 12, 0, 0)][1],
-            ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
-            ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
-
-        ts = ts.transform([
-            carbonara.Transformation("absolute", tuple()),
-            carbonara.Transformation("negative", tuple())])
-
-        self.assertEqual(3, len(ts))
-        self.assertEqual([-3, -5, -6], [
-            ts[datetime64(2014, 1, 1, 12, 0, 0)][1],
-            ts[datetime64(2014, 1, 1, 12, 1, 0)][1],
-            ts[datetime64(2014, 1, 1, 12, 2, 0)][1]])
-
-        ts = ts.transform([
-            carbonara.Transformation("absolute", tuple()),
-            carbonara.Transformation(
-                "resample", (numpy.timedelta64(360, 's'),))])
-
-        self.assertEqual(1, len(ts))
-        self.assertEqual(6, ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
-
-    def test_unknown_transform(self):
-        ts = carbonara.TimeSerie.from_tuples(
-            [(datetime64(2014, 1, 1, 12, 0, 0), -3),
-             (datetime64(2014, 1, 1, 12, 1, 0), 5),
-             (datetime64(2014, 1, 1, 12, 2, 0), -6)])
-        ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            [ts], sampling=60, aggregation_method="last")
-        self.assertRaises(carbonara.TransformError, ts.transform,
-                          [carbonara.Transformation("rubbish", tuple())])
-
-    def test_transform_rolling(self):
-        ts = carbonara.TimeSerie.from_tuples(
-            [(datetime64(2014, 1, 1, 12, 0, 0), 1),
-             (datetime64(2014, 1, 1, 12, 1, 0), 3),
-             (datetime64(2014, 1, 1, 12, 2, 0), 5),
-             (datetime64(2014, 1, 1, 12, 3, 0), 7),
-             (datetime64(2014, 1, 1, 12, 4, 0), 9)])
-        ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            [ts], sampling=60, aggregation_method="last")
-
-        ts1 = ts.transform([
-            carbonara.Transformation("rolling", ('mean', '2'))])
-        self.assertEqual(4, len(ts1))
-        self.assertEqual([2.0, 4.0, 6.0, 8.0], [
-            ts1[datetime64(2014, 1, 1, 12, 1, 0)][1],
-            ts1[datetime64(2014, 1, 1, 12, 2, 0)][1],
-            ts1[datetime64(2014, 1, 1, 12, 3, 0)][1],
-            ts1[datetime64(2014, 1, 1, 12, 4, 0)][1]])
-
-        ts1 = ts.transform([
-            carbonara.Transformation("rolling", ('sum', '4'))])
-        self.assertEqual(2, len(ts1))
-        self.assertEqual([16.0, 24.0], [
-            ts1[datetime64(2014, 1, 1, 12, 3, 0)][1],
-            ts1[datetime64(2014, 1, 1, 12, 4, 0)][1]])
-
-        self.assertRaises(carbonara.TransformError, ts.transform,
-                          [carbonara.Transformation("rolling", ('sum', 0))])
-
-        self.assertRaises(carbonara.TransformError, ts.transform,
-                          [carbonara.Transformation("rolling", ('sum', 10))])
-
     def _do_test_aggregation(self, name, v1, v2):
         ts = carbonara.TimeSerie.from_tuples(
             [(datetime64(2014, 1, 1, 12, 0, 0), 3),
@@ -927,13 +851,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(3, len(agg_ts))
 
         agg_ts = agg_ts.resample(numpy.timedelta64(10, 's'))
-        self.assertEqual(2, len(agg_ts))
-        self.assertEqual(5, agg_ts[0][1])
-        self.assertEqual(3, agg_ts[1][1])
-
-        agg_ts = agg_ts.transform([
-            carbonara.Transformation(
-                "resample", (numpy.timedelta64(10, 's'), ))])
         self.assertEqual(2, len(agg_ts))
         self.assertEqual(5, agg_ts[0][1])
         self.assertEqual(3, agg_ts[1][1])

@@ -214,9 +214,11 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
     - name: get measurements from metric and resample and negative
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&transform=resample(60):negative&granularity=1
+      POST: /v1/aggregates?granularity=1
+      data:
+        operations: "(negative (resample mean 60 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
-        $:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
           - ["2015-03-06T14:33:00+00:00", 60.0, -43.1]
           - ["2015-03-06T14:34:00+00:00", 60.0, -14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, -10.0]
@@ -230,10 +232,15 @@ tests:
             value: -23
       status: 202
 
-    - name: get measurements from metric and transform
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute&refresh=true
+    - name: refresh metric
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
+
+    - name: get absolute measurements from metric
+      POST: /v1/aggregates
+      data:
+        operations: "(absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       response_json_paths:
-        $:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
           - ["2015-03-06T14:34:15+00:00", 1.0, 16.0]
@@ -242,11 +249,13 @@ tests:
           - ["2015-03-06T14:36:15+00:00", 1.0, 16.0]
           - ["2015-03-06T14:37:15+00:00", 1.0, 23.0]
 
-    - name: rolling-mean transform
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=rolling(mean,2)
+    - name: rolling-mean
+      POST: /v1/aggregates
+      data:
+        operations: "(rolling mean 2 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       status: 200
       response_json_paths:
-        $:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
           - ["2015-03-06T14:34:12+00:00", 1.0, 27.55]
           - ["2015-03-06T14:34:15+00:00", 1.0, 14.0]
           - ["2015-03-06T14:35:12+00:00", 1.0, 12.5]
@@ -254,10 +263,12 @@ tests:
           - ["2015-03-06T14:36:15+00:00", 1.0, -2.5]
           - ["2015-03-06T14:37:15+00:00", 1.0, -19.5]
 
-    - name: get measurements from metric and two transforms
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute:negative
+    - name: get measurements from metric and two operations
+      POST: /v1/aggregates
+      data:
+        operations: "(negative (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
-        $:
+        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
           - ["2015-03-06T14:33:57+00:00", 1.0, -43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, -12.0]
           - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
@@ -266,8 +277,10 @@ tests:
           - ["2015-03-06T14:36:15+00:00", 1.0, -16.0]
           - ["2015-03-06T14:37:15+00:00", 1.0, -23.0]
 
-    - name: get measurements from metric and invalid transform
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=absolute:notexists
+    - name: get measurements from metric and invalid operations
+      POST: /v1/aggregates
+      data:
+        operations: "(notexist (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       status: 400
 
     - name: get measurements from metric and resample no granularity
@@ -278,20 +291,6 @@ tests:
 
     - name: get measurements from metric and bad resample
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=abc
-      status: 400
-
-    - name: get measurements from metric resample and transform
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=60&transform=absolute
-      status: 400
-      response_strings:
-        - 'transform and resample are exclusive'
-
-    - name: get rolling bad aggregate
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=rolling(blah,2)
-      status: 400
-
-    - name: get rolling-mean missing window
-      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?transform=rolling(mean)
       status: 400
 
     - name: create valid metric two

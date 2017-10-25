@@ -26,6 +26,7 @@ import uuid
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
+import pbr.version
 import six
 from stevedore import extension
 import testscenarios
@@ -129,7 +130,7 @@ class TestingApp(webtest.TestApp):
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.storage.process_background_tasks(
+        self.storage.process_new_measures(
             self.indexer, self.incoming, metrics, sync=True)
         return response
 
@@ -212,6 +213,13 @@ class RootTest(RestTest):
             self.assertEqual(
                 ['test_aggregation'],
                 result['dynamic_aggregation_methods'])
+
+    def test_version(self):
+        with self.app.use_admin_user():
+            r = self.app.get("/")
+        self.assertEqual(
+            json.loads(r.text)['build'],
+            pbr.version.VersionInfo('gnocchi').version_string())
 
     def test_status(self):
         with self.app.use_admin_user():
@@ -1628,8 +1636,7 @@ class ResourceTest(RestTest):
             + self.resource_type + "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             status=400)
-        self.assertIn(b"One of the metrics being aggregated doesn't have "
-                      b"matching granularity",
+        self.assertIn(b"Metrics can't being aggregated",
                       result.body)
 
     def test_get_res_named_metric_measure_aggregation_nooverlap(self):

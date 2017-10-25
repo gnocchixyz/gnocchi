@@ -94,6 +94,14 @@ _cli_options = (
 def list_opts():
     return [
         ("DEFAULT", _cli_options + (
+            cfg.IntOpt(
+                'parallel_operations',
+                min=1,
+                deprecated_name='aggregation_workers_number',
+                deprecated_group='storage',
+                help='Number of threads to use to parallelize '
+                'some operations. '
+                'Default is set to the number of CPU available.'),
             cfg.BoolOpt(
                 'use-syslog',
                 default=False,

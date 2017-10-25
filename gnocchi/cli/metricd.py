@@ -15,7 +15,9 @@
 # limitations under the License.
 import threading
 import time
+import uuid
 
+import cachetools.func
 import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
@@ -23,6 +25,7 @@ from oslo_config import cfg
 import six
 import tenacity
 import tooz
+from tooz import coordination
 
 from gnocchi import exceptions
 from gnocchi import incoming
@@ -42,6 +45,12 @@ _wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
 retry_on_exception = tenacity.Retrying(wait=_wait_exponential)
 
 
+def get_coordinator_and_start(url):
+    coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
+    coord.start(start_heart=True)
+    return coord
+
+
 class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
@@ -56,7 +65,10 @@ class MetricProcessBase(cotyledon.Service):
         self._wake_up.set()
 
     def _configure(self):
-        self.store = retry_on_exception(storage.get_driver, self.conf)
+        self.coord = retry_on_exception(get_coordinator_and_start,
+                                        self.conf.storage.coordination_url)
+        self.store = retry_on_exception(
+            storage.get_driver, self.conf, self.coord)
         self.incoming = retry_on_exception(incoming.get_driver, self.conf)
         self.index = retry_on_exception(indexer.get_driver, self.conf)
 
@@ -67,7 +79,12 @@ class MetricProcessBase(cotyledon.Service):
 
         while not self._shutdown.is_set():
             with utils.StopWatch() as timer:
-                self._run_job()
+                try:
+                    self._run_job()
+                except Exception:
+                    LOG.error("Unexpected error during %s job",
+                              self.name,
+                              exc_info=True)
             self._wake_up.wait(max(0, self.interval_delay - timer.elapsed()))
             self._wake_up.clear()
         self._shutdown_done.set()
@@ -79,9 +96,8 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown_done.wait()
         self.close_services()
 
-    @staticmethod
-    def close_services():
-        pass
+    def close_services(self):
+        self.coord.stop()
 
     @staticmethod
     def _run_job():
@@ -98,6 +114,10 @@ class MetricReporting(MetricProcessBase):
     def _configure(self):
         self.incoming = retry_on_exception(incoming.get_driver, self.conf)
 
+    @staticmethod
+    def close_services():
+        pass
+
     def _run_job(self):
         try:
             report = self.incoming.measures_report(details=False)
@@ -108,9 +128,6 @@ class MetricReporting(MetricProcessBase):
         except incoming.ReportGenerationError:
             LOG.warning("Unable to compute backlog. Retrying at next "
                         "interval.")
-        except Exception:
-            LOG.error("Unexpected error during pending measures reporting",
-                      exc_info=True)
 
 
 class MetricProcessor(MetricProcessBase):
@@ -126,18 +143,18 @@ class MetricProcessor(MetricProcessBase):
         # This stores the last time the processor did a scan on all the sack it
         # is responsible for
         self._last_full_sack_scan = utils.StopWatch().start()
+        # Only update the list of sacks to process every
+        # metric_processing_delay
+        self._get_sacks_to_process = cachetools.func.ttl_cache(
+            ttl=conf.metricd.metric_processing_delay
+        )(self._get_sacks_to_process)
 
     @tenacity.retry(
         wait=_wait_exponential,
         # Never retry except when explicitly asked by raising TryAgain
         retry=tenacity.retry_never)
     def _configure(self):
-        self.coord = retry_on_exception(utils.get_coordinator_and_start,
-                                        self.conf.storage.coordination_url)
-        self.store = retry_on_exception(storage.get_driver,
-                                        self.conf, self.coord)
-        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
-        self.index = retry_on_exception(indexer.get_driver, self.conf)
+        super(MetricProcessor, self)._configure()
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(
@@ -146,7 +163,7 @@ class MetricProcessor(MetricProcessBase):
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
             LOG.info('Joined coordination group: %s', self.GROUP_ID)
-        except NotImplementedError:
+        except tooz.NotImplemented:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
         except tooz.ToozError as e:
@@ -187,6 +204,11 @@ class MetricProcessor(MetricProcessBase):
                     i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
+        except tooz.NotImplemented:
+            # Do not log anything. If `run_watchers` is not implemented, it's
+            # likely that partitioning is not implemented either, so it already
+            # has been logged at startup with a warning.
+            pass
         except Exception as e:
             LOG.error('Unexpected error updating the task partitioner: %s', e)
         finally:
@@ -211,29 +233,19 @@ class MetricProcessor(MetricProcessBase):
             if not lock.acquire(blocking=False):
                 continue
 
-            # Discard the sack from the notified sacks if it's in since we are
-            # going to process it
-            try:
-                self.sacks_with_measures_to_process.remove(s)
-            except KeyError:
-                notified = False
-            else:
-                notified = True
-
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_background_tasks(
+                self.store.process_new_measures(
                     self.index, self.incoming, metrics)
                 s_count += 1
+                self.incoming.finish_sack_processing(s)
+                self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
             finally:
                 lock.release()
-                # If processing failed, re-add it to the sack list
-                if notified:
-                    self.sacks_with_measures_to_process.add(s)
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
@@ -252,11 +264,8 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
-        try:
-            self.store.expunge_metrics(self.incoming, self.index)
-            LOG.debug("Metrics marked for deletion removed from backend")
-        except Exception:
-            LOG.error("Unexpected error during metric cleanup", exc_info=True)
+        self.store.expunge_metrics(self.incoming, self.index)
+        LOG.debug("Metrics marked for deletion removed from backend")
 
 
 class MetricdServiceManager(cotyledon.ServiceManager):

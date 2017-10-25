@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The `storage.aggregation_workers_number` parameter has been replaced by a
+    more general `parallel_operations` option. It controls the number of
+    parallel jobs that can be run by a worker using threads in various code
+    paths.

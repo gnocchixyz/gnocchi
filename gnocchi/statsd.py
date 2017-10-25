@@ -26,7 +26,6 @@ import six
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
-from gnocchi import storage
 from gnocchi import utils
 
 
@@ -70,14 +69,14 @@ class Stats(object):
                 raise ValueError(
                     "Invalid sampling for ms: `%d`, should be none"
                     % sampling)
-            self.times[metric_name] = storage.Measure(
+            self.times[metric_name] = incoming.Measure(
                 utils.dt_in_unix_ns(utils.utcnow()), value)
         elif metric_type == "g":
             if sampling is not None:
                 raise ValueError(
                     "Invalid sampling for g: `%d`, should be none"
                     % sampling)
-            self.gauges[metric_name] = storage.Measure(
+            self.gauges[metric_name] = incoming.Measure(
                 utils.dt_in_unix_ns(utils.utcnow()), value)
         elif metric_type == "c":
             sampling = 1 if sampling is None else sampling
@@ -85,7 +84,7 @@ class Stats(object):
                 current_value = self.counters[metric_name].value
             else:
                 current_value = 0
-            self.counters[metric_name] = storage.Measure(
+            self.counters[metric_name] = incoming.Measure(
                 utils.dt_in_unix_ns(utils.utcnow()),
                 current_value + (value * (1 / sampling)))
         # TODO(jd) Support "set" type
@@ -129,7 +128,7 @@ class Stats(object):
         return ap.name
 
 
-class StatsdServer(object):
+class StatsdServer(asyncio.Protocol):
     def __init__(self, stats):
         self.stats = stats
 

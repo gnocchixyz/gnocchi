@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 from concurrent import futures
 
 import daiquiri
@@ -27,6 +28,9 @@ from gnocchi import utils
 LOG = daiquiri.getLogger(__name__)
 
 _NUM_WORKERS = utils.get_default_workers()
+
+
+Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
 class ReportGenerationError(Exception):
@@ -49,8 +53,6 @@ class IncomingDriver(object):
             try:
                 self._num_sacks = int(self._get_storage_sacks())
             except Exception as e:
-                LOG.error('Unable to detect the number of storage sacks. '
-                          'Ensure gnocchi-upgrade has been executed: %s', e)
                 raise SackDetectionError(e)
         return self._num_sacks
 
@@ -177,6 +179,11 @@ class IncomingDriver(object):
     def iter_on_sacks_to_process():
         """Return an iterable of sack that got new measures to process."""
         raise exceptions.NotImplementedError
+
+    @staticmethod
+    def finish_sack_processing(sack):
+        """Mark sack processing has finished."""
+        pass
 
 
 def get_driver(conf):

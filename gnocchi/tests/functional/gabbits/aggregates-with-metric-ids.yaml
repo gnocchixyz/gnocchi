@@ -1,0 +1,613 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: cookies
+          definition:
+              - granularity: 1 second
+              - granularity: 60 second
+      status: 201
+
+    - name: create second archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: cake
+          definition:
+              - granularity: 5 second
+      status: 201
+
+    - name: create metric1
+      POST: /v1/metric
+      data:
+          archive_policy_name: cookies
+      status: 201
+
+    - name: create metric3
+      POST: /v1/metric
+      data:
+          archive_policy_name: cake
+      status: 201
+
+    - name: create metric2
+      POST: /v1/metric
+      data:
+          archive_policy_name: cookies
+      status: 201
+
+    - name: push measurements to metric1
+      POST: /v1/metric/$HISTORY['create metric1'].$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 43.1
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+          - timestamp: "2015-03-06T14:34:15"
+            value: -16
+          - timestamp: "2015-03-06T14:35:12"
+            value: 9
+          - timestamp: "2015-03-06T14:35:15"
+            value: 11
+      status: 202
+
+    - name: push measurements to metric2
+      POST: /v1/metric/$HISTORY['create metric2'].$RESPONSE['$.id']/measures
+      data:
+          - timestamp: "2015-03-06T14:33:57"
+            value: 2
+          - timestamp: "2015-03-06T14:34:12"
+            value: 4
+          - timestamp: "2015-03-06T14:34:15"
+            value: 5
+          - timestamp: "2015-03-06T14:35:12"
+            value: 10
+          - timestamp: "2015-03-06T14:35:15"
+            value: 15
+      status: 202
+
+    - name: get measurements from metric1
+      GET: /v1/metric/$HISTORY['create metric1'].$RESPONSE['$.id']/measures?refresh=true
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+
+
+    - name: get measurements from metric2
+      GET: /v1/metric/$HISTORY['create metric2'].$RESPONSE['$.id']/measures?refresh=true
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 2.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 5.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
+
+    - name: get aggregates
+      POST: /v1/aggregates
+      data:
+        operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 2.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 5.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
+
+    - name: get aggregates start and stop
+      POST: /v1/aggregates
+      query_parameters:
+        start: "2015-03-06T14:34:00"
+        stop: "2015-03-06T14:35:13"
+      data:
+        operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 5.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
+
+    - name: get aggregates granularity
+      POST: /v1/aggregates?granularity=60
+      data:
+        operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "max"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "min"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_max":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 11.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_min":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+
+    - name: get aggregates simple with array
+      POST: /v1/aggregates
+      data:
+        operations: ["+", ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]], 2.0]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 45.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 0.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 45.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 14.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -14.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 4.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 14.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 6.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 7.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
+
+    - name: get aggregates resample
+      POST: /v1/aggregates?granularity=1
+      data:
+        operations:
+          - resample
+          - mean
+          - 60
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+
+    - name: get aggregates rolling
+      POST: /v1/aggregates?granularity=1
+      data:
+        operations:
+          - rolling
+          - mean
+          - 2
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:12+00:00", 1.0, 27.55]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -2.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -3.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 10.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:34:12+00:00", 1.0, 3.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 4.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 7.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 12.5]
+
+
+    - name: get one metric
+      POST: /v1/aggregates
+      data:
+        operations: "(metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)"
+      response_json_paths:
+        $.`len`: 1
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+
+    - name: get aggregates one metric
+      POST: /v1/aggregates
+      data:
+        operations: "(aggregate mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+
+    - name: get aggregates math with string
+      POST: /v1/aggregates
+      data:
+        operations: "(+ (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)) 2.0)"
+      response_json_paths:
+        $.`len`: 2
+        $."$HISTORY['create metric1'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 45.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 0.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 45.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 14.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -14.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 11.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+        $."$HISTORY['create metric2'].$RESPONSE['$.id']_mean":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 4.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 14.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 6.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 7.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
+
+    - name: get aggregates substact
+      POST: /v1/aggregates
+      data:
+        operations: "(- (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean) (metric $HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 41.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -6.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -2.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 41.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -21.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -1.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -4.0]
+
+    - name: get aggregates mean aggregate
+      POST: /v1/aggregates
+      data:
+        operations: "(aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, 22.55]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 1.25]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 11.25]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 22.55]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -5.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+
+    - name: get aggregates negative absolute
+      POST: /v1/aggregates
+      data:
+        operations: "(negative (absolute (aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))))"
+      response_json_paths:
+        $.`len`: 1
+        $."aggregated":
+          - ["2015-03-06T14:33:00+00:00", 60.0, -22.55]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -1.25]
+          - ["2015-03-06T14:35:00+00:00", 60.0, -11.25]
+          - ["2015-03-06T14:33:57+00:00", 1.0, -22.55]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -5.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, -9.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, -13.0]
+
+# Negative tests
+
+    - name: get no operations
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: []
+      status: 400
+      response_strings:
+        - "Invalid input: Operation must not be empty"
+
+    - name: get operations without list
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          foo: bar
+      status: 400
+      response_strings:
+        - "Invalid input: Expected a tuple/list, got a "
+
+    - name: invalid operations string
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(metroc foo bar"
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Invalid operations"
+        $.description.reason: "Fail to parse the operations string"
+        $.description.detail: "Expected \")\" (at char 15), (line:1, col:16)"
+
+    - name: get invalid metric operations
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: ["metric"]
+      status: 400
+      response_strings:
+        - "Invalid input: Operation need at least one argument for dictionary value"
+
+    - name: get unknown metrics
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          - metric
+          - ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"]
+          - ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]
+          - ["8c062a7e-9f9f-4b1c-9996-9d0328512ab7", "mean"]
+          - ["e4864464-1b27-4622-9fbb-dc900e06c192", "mean"]
+      status: 404
+      response_json_paths:
+        $.code: 404
+        $.description.cause: "Unknown metrics"
+        $.description.detail.`sorted`:
+            - "8c062a7e-9f9f-4b1c-9996-9d0328512ab7"
+            - "e4864464-1b27-4622-9fbb-dc900e06c192"
+
+    - name: get not matching granularity
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          - metric
+          - ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"]
+          - ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]
+          - ["$HISTORY['create metric3'].$RESPONSE['$.id']", "mean"]
+
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Metrics can't being aggregated"
+        $.description.reason: "No granularity match"
+        $.description.detail.`len`: 3
+
+    - name: get unknown granularity
+      POST: /v1/aggregates?granularity=123
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          - metric
+          - "$HISTORY['create metric1'].$RESPONSE['$.id']"
+          - "mean"
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Metrics can't being aggregated"
+        $.description.reason: "granularity '123' is missing"
+        $.description.detail:
+        - ["$HISTORY['create metric1'].$RESPONSE['$.id']", mean]
+
+    - name: get unknown aggregation
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations:
+          - metric
+          - ["$HISTORY['create metric1'].$RESPONSE['$.id']", "what?"]
+          - ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]
+      status: 404
+      response_json_paths:
+        $.code: 404
+        $.description.cause: "Metrics with unknown aggregation"
+        $.description.detail:
+        - ["$HISTORY['create metric1'].$RESPONSE['$.id']", "what?"]
+
+    - name: invalid start
+      POST: /v1/aggregates?start=notadate
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "start"
+        $.description.reason: "Must be a datetime or a timestamp"
+
+    - name: invalid stop
+      POST: /v1/aggregates?stop=notadate
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "stop"
+        $.description.reason: "Must be a datetime or a timestamp"
+
+    - name: invalid needed_overlap
+      POST: /v1/aggregates?needed_overlap=notnumber
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "needed_overlap"
+        $.description.reason: "Must be a number"
+
+    - name: incomplete needed_overlap
+      POST: /v1/aggregates?needed_overlap=50
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "needed_overlap"
+        $.description.reason: "start and/or stop must be provided if specifying needed_overlap"
+
+    - name: invalid granularity
+      POST: /v1/aggregates?granularity=foobar
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "granularity"
+        $.description.reason: "Unable to parse timespan"
+
+    - name: incomplete fill
+      POST: /v1/aggregates?fill=123
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "granularity"
+        $.description.reason: "Unable to fill without a granularity"
+
+    - name: invalid fill
+      POST: /v1/aggregates?fill=foobar&granularity=5
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Argument value error"
+        $.description.detail: "fill"
+        $.description.reason: "Must be a float or 'null', got 'foobar'"
+
+    - name: get rolling bad aggregate
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(rolling blah 2 (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'rolling' operation invalid for dictionary value"
+
+    - name: get rolling-mean missing window
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(rolling mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'rolling' operation invalid for dictionary value"
+
+    - name: get measurements from metric and invalid operations
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(notexist (absolute (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'notexist' operation invalid for dictionary value"
+
+    - name: invalid resample
+      POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        operations: "(resample mean invalid (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
+      status: 400
+      response_strings:
+        - "Invalid input: 'resample' operation invalid for dictionary value"

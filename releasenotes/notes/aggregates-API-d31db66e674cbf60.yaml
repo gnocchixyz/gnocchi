@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    New API endpoint allows to retrieve, transform, aggregates measurements on the
+    fly in an flexible way. The endpoint location is `/v1/aggregates`.
+    This endpoint allows to describe `operations` to be done on a metrics list.
+    Example: `(* 5  (rolling mean 3 (aggregate sum (metric (metric1 mean)
+    (metric2 mean)))))`. The metrics list can be retrieved by searching in
+    resources by setting 'resource_type' and 'search'. More details are
+    available in the documentation.
