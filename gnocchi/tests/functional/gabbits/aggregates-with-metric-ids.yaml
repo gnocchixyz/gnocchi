@@ -512,19 +512,6 @@ tests:
         $.description.detail: "needed_overlap"
         $.description.reason: "Must be a number"
 
-    - name: incomplete needed_overlap
-      POST: /v1/aggregates?needed_overlap=50
-      request_headers:
-        accept: application/json
-        content-type: application/json
-        authorization: "basic Zm9vYmFyOg=="
-      status: 400
-      response_json_paths:
-        $.code: 400
-        $.description.cause: "Argument value error"
-        $.description.detail: "needed_overlap"
-        $.description.reason: "start and/or stop must be provided if specifying needed_overlap"
-
     - name: invalid granularity
       POST: /v1/aggregates?granularity=foobar
       request_headers:

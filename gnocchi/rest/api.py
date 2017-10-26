@@ -1661,11 +1661,6 @@ def validate_qs(start, stop, granularity, needed_overlap, fill):
         abort(400, {"cause": "Argument value error",
                     "detail": "needed_overlap",
                     "reason": "Must be a number"})
-    if needed_overlap != 100.0 and start is None and stop is None:
-        abort(400, {"cause": "Argument value error",
-                    "detail": "needed_overlap",
-                    "reason": "start and/or stop must be provided "
-                    "if specifying needed_overlap"})
 
     if start is not None:
         try:

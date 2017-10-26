@@ -171,13 +171,6 @@ tests:
       response_strings:
         - Granularity '42.0' for metric
 
-    - name: get measure aggregates no boundary custom overlap
-      desc: https://github.com/gnocchixyz/gnocchi/issues/17
-      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&needed_overlap=50
-      status: 400
-      response_strings:
-        - start and/or stop must be provided if specifying needed_overlap
-
 # Aggregation by resource and metric_name
 
     - name: post a resource
