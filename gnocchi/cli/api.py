@@ -81,8 +81,7 @@ def api():
 
     workers = utils.get_default_workers()
 
-    return os.execl(
-        uwsgi, uwsgi,
+    args = [
         "--http", "%s:%d" % (conf.host or conf.api.host,
                              conf.port or conf.api.port),
         "--master",
@@ -96,4 +95,10 @@ def api():
         "--chdir", "/",
         "--wsgi", "gnocchi.rest.wsgi",
         "--pyargv", " ".join(sys.argv[1:]),
-    )
+    ]
+
+    virtual_env = os.getenv("VIRTUAL_ENV")
+    if virtual_env is not None:
+        args.extend(["-H", os.getenv("VIRTUAL_ENV", ".")])
+
+    return os.execl(uwsgi, uwsgi, *args)
