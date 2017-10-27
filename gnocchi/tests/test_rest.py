@@ -28,7 +28,6 @@ from keystonemiddleware import fixture as ksm_fixture
 import mock
 import pbr.version
 import six
-from stevedore import extension
 import testscenarios
 from testtools import testcase
 import webtest
@@ -198,21 +197,12 @@ class RootTest(RestTest):
                 status=415)
 
     def test_capabilities(self):
-        custom_agg = extension.Extension('test_aggregation', None, None, None)
-        mgr = extension.ExtensionManager.make_test_instance(
-            [custom_agg], 'gnocchi.aggregates')
         aggregation_methods = set(
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-
-        with mock.patch.object(extension, 'ExtensionManager',
-                               return_value=mgr):
-            result = self.app.get("/v1/capabilities").json
-            self.assertEqual(
-                sorted(aggregation_methods),
-                sorted(result['aggregation_methods']))
-            self.assertEqual(
-                ['test_aggregation'],
-                result['dynamic_aggregation_methods'])
+        result = self.app.get("/v1/capabilities").json
+        self.assertEqual(
+            sorted(aggregation_methods),
+            sorted(result['aggregation_methods']))
 
     def test_version(self):
         with self.app.use_admin_user():
@@ -511,59 +501,6 @@ class MetricTest(RestTest):
                           [u'2013-01-01T12:00:00+00:00', 3600.0, 12345.2],
                           [u'2013-01-01T12:00:00+00:00', 60.0, 12345.2]],
                          result)
-
-    def test_get_moving_average(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "medium"})
-        metric = json.loads(result.text)
-        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": '2013-01-01 12:00:00',
-                                    "value": 69},
-                                   {"timestamp": '2013-01-01 12:00:20',
-                                    "value": 42},
-                                   {"timestamp": '2013-01-01 12:00:40',
-                                    "value": 6},
-                                   {"timestamp": '2013-01-01 12:01:00',
-                                    "value": 44},
-                                   {"timestamp": '2013-01-01 12:01:20',
-                                    "value": 7}])
-
-        path = "/v1/metric/%s/measures?aggregation=%s&window=%ds"
-        ret = self.app.get(path % (metric['id'], 'moving-average', 120),
-                           status=200)
-        result = json.loads(ret.text)
-        expected = [[u'2013-01-01T12:00:00+00:00', 120.0, 32.25]]
-        self.assertEqual(expected, result)
-        ret = self.app.get(path % (metric['id'], 'moving-average', 90),
-                           status=400)
-        self.assertIn('No data available that is either full-res',
-                      ret.text)
-        path = "/v1/metric/%s/measures?aggregation=%s"
-        ret = self.app.get(path % (metric['id'], 'moving-average'),
-                           status=400)
-        self.assertIn('Moving aggregate must have window specified',
-                      ret.text)
-
-    def test_get_moving_average_invalid_window(self):
-        result = self.app.post_json("/v1/metric",
-                                    params={"archive_policy_name": "medium"})
-        metric = json.loads(result.text)
-        self.app.post_json("/v1/metric/%s/measures" % metric['id'],
-                           params=[{"timestamp": '2013-01-01 12:00:00',
-                                    "value": 69},
-                                   {"timestamp": '2013-01-01 12:00:20',
-                                    "value": 42},
-                                   {"timestamp": '2013-01-01 12:00:40',
-                                    "value": 6},
-                                   {"timestamp": '2013-01-01 12:01:00',
-                                    "value": 44},
-                                   {"timestamp": '2013-01-01 12:01:20',
-                                    "value": 7}])
-
-        path = "/v1/metric/%s/measures?aggregation=%s&window=foobar"
-        ret = self.app.get(path % (metric['id'], 'moving-average'),
-                           status=400)
-        self.assertIn('Invalid value for window', ret.text)
 
     def test_get_resource_missing_named_metric_measure_aggregation(self):
         mgr = self.index.get_resource_type_schema()
