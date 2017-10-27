@@ -17,7 +17,6 @@
 import functools
 import itertools
 import uuid
-import warnings
 
 import jsonpatch
 import pbr.version
@@ -26,13 +25,11 @@ from pecan import rest
 import pyparsing
 import six
 from six.moves.urllib import parse as urllib_parse
-from stevedore import extension
 import voluptuous
 import webob.exc
 import werkzeug.http
 
 from gnocchi import archive_policy
-from gnocchi import deprecated_aggregates
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
@@ -436,9 +433,6 @@ class MetricController(rest.RestController):
 
     def __init__(self, metric):
         self.metric = metric
-        mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
-                                         invoke_on_load=True)
-        self.custom_agg = dict((x.name, x.obj) for x in mgr)
 
     def enforce_metric(self, rule):
         enforce(rule, json.to_primitive(self.metric))
@@ -464,15 +458,13 @@ class MetricController(rest.RestController):
                      granularity=None, resample=None, refresh=False,
                      **param):
         self.enforce_metric("get measures")
-        if not (aggregation
-                in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
-                or aggregation in self.custom_agg):
+        if (aggregation not in
+           archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
                      or %(custom)s'''
             abort(400, msg % dict(
                 agg=aggregation,
-                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
-                custom=str(self.custom_agg.keys())))
+                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         if start is not None:
             try:
@@ -503,12 +495,6 @@ class MetricController(rest.RestController):
             except storage.SackLockTimeoutError as e:
                 abort(503, six.text_type(e))
         try:
-            if aggregation in self.custom_agg:
-                warnings.warn("moving_average aggregation is deprecated.",
-                              category=DeprecationWarning)
-                return self.custom_agg[aggregation].compute(
-                    pecan.request.storage, self.metric,
-                    start, stop, **param)
             return pecan.request.storage.get_measures(
                 self.metric, start, stop, aggregation,
                 utils.to_timespan(granularity)
@@ -518,8 +504,6 @@ class MetricController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except deprecated_aggregates.CustomAggFailure as e:
-            abort(400, six.text_type(e))
 
     @pecan.expose()
     def delete(self):
@@ -1869,15 +1853,8 @@ class CapabilityController(rest.RestController):
     @staticmethod
     @pecan.expose('json')
     def get():
-        aggregation_methods = set(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-        return dict(aggregation_methods=aggregation_methods,
-                    dynamic_aggregation_methods=[
-                        ext.name for ext in extension.ExtensionManager(
-                            # NOTE(sileht): Known as deprecated_aggregates
-                            # but we can't change the namespace
-                            namespace='gnocchi.aggregates')
-                    ])
+        return dict(aggregation_methods=set(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
 
 class StatusController(rest.RestController):
