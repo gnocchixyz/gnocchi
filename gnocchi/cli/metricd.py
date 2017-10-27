@@ -66,7 +66,7 @@ class MetricProcessBase(cotyledon.Service):
 
     def _configure(self):
         self.coord = retry_on_exception(get_coordinator_and_start,
-                                        self.conf.storage.coordination_url)
+                                        self.conf.coordination_url)
         self.store = retry_on_exception(
             storage.get_driver, self.conf, self.coord)
         self.incoming = retry_on_exception(incoming.get_driver, self.conf)

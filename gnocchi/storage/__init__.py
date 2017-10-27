@@ -35,11 +35,6 @@ OPTS = [
                help='Storage driver to use'),
 ]
 
-_CARBONARA_OPTS = [
-    cfg.StrOpt('coordination_url',
-               secret=True,
-               help='Coordination driver URL'),
-]
 
 LOG = daiquiri.getLogger(__name__)
 

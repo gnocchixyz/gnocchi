@@ -127,8 +127,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
-        self.coord = metricd.get_coordinator_and_start(
-            conf.storage.coordination_url)
+        self.coord = metricd.get_coordinator_and_start(conf.coordination_url)
         s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)
