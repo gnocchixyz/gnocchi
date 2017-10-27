@@ -142,20 +142,21 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             if overlap.size == 0 and needed_percent_of_overlap > 0:
                 raise exceptions.UnAggregableTimeseries(references[key],
                                                         'No overlap')
-            # if no boundary set, use first/last timestamp which overlap
-            if to_timestamp is None and overlap.size:
-                times = times[:overlap[-1] + 1]
-                values = values[:overlap[-1] + 1]
-            if from_timestamp is None and overlap.size:
-                times = times[overlap[0]:]
-                values = values[overlap[0]:]
-            percent_of_overlap = overlap.size * 100.0 / times.size
-            if percent_of_overlap < needed_percent_of_overlap:
-                raise exceptions.UnAggregableTimeseries(
-                    references[key],
-                    'Less than %f%% of datapoints overlap in this '
-                    'timespan (%.2f%%)' % (needed_percent_of_overlap,
-                                           percent_of_overlap))
+            if times.size:
+                # if no boundary set, use first/last timestamp which overlap
+                if to_timestamp is None and overlap.size:
+                    times = times[:overlap[-1] + 1]
+                    values = values[:overlap[-1] + 1]
+                if from_timestamp is None and overlap.size:
+                    times = times[overlap[0]:]
+                    values = values[overlap[0]:]
+                percent_of_overlap = overlap.size * 100.0 / times.size
+                if percent_of_overlap < needed_percent_of_overlap:
+                    raise exceptions.UnAggregableTimeseries(
+                        references[key],
+                        'Less than %f%% of datapoints overlap in this '
+                        'timespan (%.2f%%)' % (needed_percent_of_overlap,
+                                               percent_of_overlap))
 
         granularity, times, values, is_aggregated = (
             agg_operations.evaluate(operations, key, times, values,

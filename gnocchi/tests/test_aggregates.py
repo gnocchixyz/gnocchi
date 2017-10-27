@@ -878,6 +878,13 @@ class CrossMetricAggregated(base.TestCase):
                 "metric", ["whatever", "mean"], ["everwhat", "mean"],
             ]])
 
+    def test_get_measures_empty_metric_needed_overlap_zero(self):
+        m_id = str(self.metric.id)
+        result = processor.get_measures(
+            self.storage, [(self.metric, "mean")],
+            operations=["metric", m_id, "mean"], needed_overlap=0)
+        self.assertEqual({'%s_mean' % m_id: []}, result)
+
     def test_get_measures_unknown_aggregation(self):
         metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
