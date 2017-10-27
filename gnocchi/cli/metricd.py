@@ -15,6 +15,7 @@
 # limitations under the License.
 import threading
 import time
+import uuid
 
 import cachetools.func
 import cotyledon
@@ -24,6 +25,7 @@ from oslo_config import cfg
 import six
 import tenacity
 import tooz
+from tooz import coordination
 
 from gnocchi import exceptions
 from gnocchi import incoming
@@ -43,6 +45,12 @@ _wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
 retry_on_exception = tenacity.Retrying(wait=_wait_exponential)
 
 
+def get_coordinator_and_start(url):
+    coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
+    coord.start(start_heart=True)
+    return coord
+
+
 class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
@@ -57,7 +65,10 @@ class MetricProcessBase(cotyledon.Service):
         self._wake_up.set()
 
     def _configure(self):
-        self.store = retry_on_exception(storage.get_driver, self.conf)
+        self.coord = retry_on_exception(get_coordinator_and_start,
+                                        self.conf.coordination_url)
+        self.store = retry_on_exception(
+            storage.get_driver, self.conf, self.coord)
         self.incoming = retry_on_exception(incoming.get_driver, self.conf)
         self.index = retry_on_exception(indexer.get_driver, self.conf)
 
@@ -85,9 +96,8 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown_done.wait()
         self.close_services()
 
-    @staticmethod
-    def close_services():
-        pass
+    def close_services(self):
+        self.coord.stop()
 
     @staticmethod
     def _run_job():
@@ -103,6 +113,10 @@ class MetricReporting(MetricProcessBase):
 
     def _configure(self):
         self.incoming = retry_on_exception(incoming.get_driver, self.conf)
+
+    @staticmethod
+    def close_services():
+        pass
 
     def _run_job(self):
         try:
@@ -140,12 +154,7 @@ class MetricProcessor(MetricProcessBase):
         # Never retry except when explicitly asked by raising TryAgain
         retry=tenacity.retry_never)
     def _configure(self):
-        self.coord = retry_on_exception(utils.get_coordinator_and_start,
-                                        self.conf.storage.coordination_url)
-        self.store = retry_on_exception(storage.get_driver,
-                                        self.conf, self.coord)
-        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
-        self.index = retry_on_exception(indexer.get_driver, self.conf)
+        super(MetricProcessor, self)._configure()
 
         # create fallback in case paritioning fails or assigned no tasks
         self.fallback_tasks = list(

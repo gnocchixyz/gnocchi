@@ -115,3 +115,17 @@ class StopWatchTest(tests_base.TestCase):
         with utils.StopWatch() as watch:
             pass
         self.assertGreater(watch.elapsed(), 0)
+
+
+class ParallelMap(tests_base.TestCase):
+    def test_parallel_map_one(self):
+        utils.parallel_map.NUM_WORKERS = 1
+        self.assertEqual([1, 2, 3],
+                         utils.parallel_map(lambda x: x,
+                                            [[1], [2], [3]]))
+
+    def test_parallel_map_four(self):
+        utils.parallel_map.NUM_WORKERS = 4
+        self.assertEqual([1, 2, 3],
+                         utils.parallel_map(lambda x: x,
+                                            [[1], [2], [3]]))

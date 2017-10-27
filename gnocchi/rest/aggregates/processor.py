@@ -22,30 +22,13 @@ import numpy
 import six
 
 from gnocchi import carbonara
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi import storage as gnocchi_storage
+from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
-
-
-class UnAggregableTimeseries(Exception):
-    """Error raised when timeseries cannot be aggregated."""
-    def __init__(self, reason):
-        self.reason = reason
-        super(UnAggregableTimeseries, self).__init__(reason)
-
-
-class MetricUnaggregatable(Exception):
-    """Error raised when metrics can't be aggregated."""
-
-    def __init__(self, metrics_and_aggregations, reason):
-        self.metrics_and_aggregations = metrics_and_aggregations
-        self.reason = reason
-        metrics = ("%s/%s" % (m.id, a) for (m, a) in metrics_and_aggregations)
-        super(MetricUnaggregatable, self).__init__(
-            "Metrics %s can't be aggregated: %s" % (
-                ", ".join(metrics), reason))
 
 
 def _get_measures_timeserie(storage, metric, aggregation, ref_identifier,
@@ -59,7 +42,7 @@ def get_measures(storage, metrics_and_aggregations,
                  operations,
                  from_timestamp=None, to_timestamp=None,
                  granularity=None, needed_overlap=100.0,
-                 fill=None, resample=None, ref_identifier="id"):
+                 fill=None, ref_identifier="id"):
     """Get aggregated measures of multiple entities.
 
     :param storage: The storage driver.
@@ -69,8 +52,9 @@ def get_measures(storage, metrics_and_aggregations,
     :param to timestamp: The timestamp to get the measure to.
     :param granularity: The granularity to retrieve.
     :param fill: The value to use to fill in missing data in series.
-    :param resample: The granularity to resample to.
     """
+
+    references_with_missing_granularity = []
     for (metric, aggregation) in metrics_and_aggregations:
         if aggregation not in metric.archive_policy.aggregation_methods:
             raise gnocchi_storage.AggregationDoesNotExist(metric, aggregation)
@@ -79,8 +63,14 @@ def get_measures(storage, metrics_and_aggregations,
                 if d.granularity == granularity:
                     break
             else:
-                raise gnocchi_storage.GranularityDoesNotExist(
-                    metric, granularity)
+                references_with_missing_granularity.append(
+                    (getattr(metric, ref_identifier), aggregation))
+
+    if references_with_missing_granularity:
+        raise exceptions.UnAggregableTimeseries(
+            references_with_missing_granularity,
+            "granularity '%d' is missing" %
+            utils.timespan_total_seconds(granularity))
 
     if granularity is None:
         granularities = (
@@ -96,28 +86,23 @@ def get_measures(storage, metrics_and_aggregations,
         ]
 
         if not granularities_in_common:
-            raise MetricUnaggregatable(
-                metrics_and_aggregations, 'No granularity match')
+            raise exceptions.UnAggregableTimeseries(
+                list((str(getattr(m, ref_identifier)), a)
+                     for (m, a) in metrics_and_aggregations),
+                'No granularity match')
     else:
         granularities_in_common = [granularity]
 
-    tss = storage._map_in_thread(_get_measures_timeserie,
-                                 [(storage, metric, aggregation,
-                                   ref_identifier,
-                                   g, from_timestamp, to_timestamp)
-                                  for (metric, aggregation)
-                                  in metrics_and_aggregations
-                                  for g in granularities_in_common])
+    tss = utils.parallel_map(_get_measures_timeserie,
+                             [(storage, metric, aggregation,
+                               ref_identifier,
+                               g, from_timestamp, to_timestamp)
+                              for (metric, aggregation)
+                              in metrics_and_aggregations
+                              for g in granularities_in_common])
 
-    if resample and granularity:
-        tss = list(map(lambda ref_and_ts: (
-            ref_and_ts[0], ref_and_ts[1].resample(resample)), tss))
-
-    try:
-        return aggregated(tss, operations, from_timestamp, to_timestamp,
-                          needed_overlap, fill)
-    except (UnAggregableTimeseries, carbonara.UnknownAggregationMethod) as e:
-        raise MetricUnaggregatable(metrics_and_aggregations, e.reason)
+    return aggregated(tss, operations, from_timestamp, to_timestamp,
+                      needed_overlap, fill)
 
 
 def aggregated(refs_and_timeseries, operations, from_timestamp=None,
@@ -141,7 +126,8 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                                       return_inverse=True)
 
         # create nd-array (unique series x unique times) and fill
-        filler = fill if fill is not None and fill != 'null' else numpy.NaN
+        filler = (numpy.NaN if fill in [None, 'null', 'dropna']
+                  else fill)
         val_grid = numpy.full((len(series[key]), len(times)), filler)
         start = 0
         for i, split in enumerate(series[key]):
@@ -154,36 +140,44 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             overlap = numpy.flatnonzero(~numpy.any(numpy.isnan(values),
                                                    axis=1))
             if overlap.size == 0 and needed_percent_of_overlap > 0:
-                raise UnAggregableTimeseries('No overlap')
-            # if no boundary set, use first/last timestamp which overlap
-            if to_timestamp is None and overlap.size:
-                times = times[:overlap[-1] + 1]
-                values = values[:overlap[-1] + 1]
-            if from_timestamp is None and overlap.size:
-                times = times[overlap[0]:]
-                values = values[overlap[0]:]
-            percent_of_overlap = overlap.size * 100.0 / times.size
-            if percent_of_overlap < needed_percent_of_overlap:
-                raise UnAggregableTimeseries(
-                    'Less than %f%% of datapoints overlap in this '
-                    'timespan (%.2f%%)' % (needed_percent_of_overlap,
-                                           percent_of_overlap))
+                raise exceptions.UnAggregableTimeseries(references[key],
+                                                        'No overlap')
+            if times.size:
+                # if no boundary set, use first/last timestamp which overlap
+                if to_timestamp is None and overlap.size:
+                    times = times[:overlap[-1] + 1]
+                    values = values[:overlap[-1] + 1]
+                if from_timestamp is None and overlap.size:
+                    times = times[overlap[0]:]
+                    values = values[overlap[0]:]
+                percent_of_overlap = overlap.size * 100.0 / times.size
+                if percent_of_overlap < needed_percent_of_overlap:
+                    raise exceptions.UnAggregableTimeseries(
+                        references[key],
+                        'Less than %f%% of datapoints overlap in this '
+                        'timespan (%.2f%%)' % (needed_percent_of_overlap,
+                                               percent_of_overlap))
 
         granularity, times, values, is_aggregated = (
             agg_operations.evaluate(operations, key, times, values,
                                     False, references[key]))
 
+        values = values.T
         if is_aggregated:
-            result["aggregated"]["timestamps"].extend(times)
-            result["aggregated"]['granularity'].extend([granularity] *
-                                                       len(times))
-            result["aggregated"]['values'].extend(values.T[0])
+            idents = ["aggregated"]
         else:
-            for i, ref in enumerate(references[key]):
-                ident = "%s_%s" % tuple(ref)
-                result[ident]["timestamps"].extend(times)
-                result[ident]['granularity'].extend([granularity] * len(times))
-                result[ident]['values'].extend(values.T[i])
+            idents = ["%s_%s" % tuple(ref) for ref in references[key]]
+        for i, ident in enumerate(idents):
+            if fill == "dropna":
+                pos = ~numpy.isnan(values[i])
+                v = values[i][pos]
+                t = times[pos]
+            else:
+                v = values[i]
+                t = times
+            result[ident]["timestamps"].extend(t)
+            result[ident]['granularity'].extend([granularity] * len(t))
+            result[ident]['values'].extend(v)
 
     return dict(((ident, list(six.moves.zip(result[ident]['timestamps'],
                                             result[ident]['granularity'],

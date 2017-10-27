@@ -19,7 +19,6 @@ import functools
 import itertools
 import operator
 
-from concurrent import futures
 import daiquiri
 import numpy
 from oslo_config import cfg
@@ -36,16 +35,6 @@ OPTS = [
                help='Storage driver to use'),
 ]
 
-_CARBONARA_OPTS = [
-    cfg.IntOpt('aggregation_workers_number',
-               min=1,
-               help='Number of threads to process and store aggregates. '
-               'Set value roughly equal to number of aggregates to be '
-               'computed per metric'),
-    cfg.StrOpt('coordination_url',
-               secret=True,
-               help='Coordination driver URL'),
-]
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -117,7 +106,7 @@ class SackLockTimeoutError(StorageError):
         pass
 
 
-def get_driver(conf, coord=None):
+def get_driver(conf, coord):
     """Return the configured driver."""
     return utils.get_driver_class('gnocchi.storage', conf.storage)(
         conf.storage, coord)
@@ -125,20 +114,8 @@ def get_driver(conf, coord=None):
 
 class StorageDriver(object):
 
-    def __init__(self, conf, coord=None):
-        self.aggregation_workers_number = conf.aggregation_workers_number
-        if self.aggregation_workers_number == 1:
-            # NOTE(jd) Avoid using futures at all if we don't want any threads.
-            self._map_in_thread = self._map_no_thread
-        else:
-            self._map_in_thread = self._map_in_futures_threads
-        self.coord = (coord if coord else
-                      utils.get_coordinator_and_start(conf.coordination_url))
-        self.shared_coord = bool(coord)
-
-    def stop(self):
-        if not self.shared_coord:
-            self.coord.stop()
+    def __init__(self, conf, coord):
+        self.coord = coord
 
     @staticmethod
     def upgrade():
@@ -224,7 +201,7 @@ class StorageDriver(object):
             raise AggregationDoesNotExist(metric, aggregation)
 
         if granularity is None:
-            agg_timeseries = self._map_in_thread(
+            agg_timeseries = utils.parallel_map(
                 self._get_measures_timeserie,
                 ((metric, aggregation, ap.granularity,
                   from_timestamp, to_timestamp)
@@ -287,7 +264,7 @@ class StorageDriver(object):
 
         timeseries = list(filter(
             lambda x: x is not None,
-            self._map_in_thread(
+            utils.parallel_map(
                 self._get_measures_and_unserialize,
                 ((metric, key, aggregation)
                  for key in sorted(all_keys)
@@ -554,7 +531,7 @@ class StorageDriver(object):
                     d.granularity, carbonara.round_timestamp(
                         tstamp, d.granularity))
 
-                self._map_in_thread(
+                utils.parallel_map(
                     self._add_measures,
                     ((aggregation, d, metric, ts,
                         current_first_block_timestamp,
@@ -607,7 +584,7 @@ class StorageDriver(object):
         granularity = granularity or []
         predicate = MeasureQuery(query)
 
-        results = self._map_in_thread(
+        results = utils.parallel_map(
             self._find_measure,
             [(metric, aggregation,
               gran, predicate,
@@ -627,17 +604,6 @@ class StorageDriver(object):
             r.sort(key=lambda t: (t[0], - t[1]))
 
         return result
-
-    @staticmethod
-    def _map_no_thread(method, list_of_args):
-        return list(itertools.starmap(method, list_of_args))
-
-    def _map_in_futures_threads(self, method, list_of_args):
-        with futures.ThreadPoolExecutor(
-                max_workers=self.aggregation_workers_number) as executor:
-            # We use 'list' to iterate all threads here to raise the first
-            # exception now, not much choice
-            return list(executor.map(lambda args: method(*args), list_of_args))
 
 
 class MeasureQuery(object):

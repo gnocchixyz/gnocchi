@@ -37,6 +37,7 @@ from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
+from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
@@ -1677,6 +1678,57 @@ class AggregationResourceController(rest.RestController):
         return results
 
 
+FillSchema = voluptuous.Schema(
+    voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
+                   msg="Must be a float, 'dropna' or 'null'"))
+
+
+# FIXME(sileht): should be in aggregates.api but we need to split all
+# controllers to do this
+def validate_qs(start, stop, granularity, needed_overlap, fill):
+    if needed_overlap is not None:
+        try:
+            needed_overlap = float(needed_overlap)
+        except ValueError:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "needed_overlap",
+                        "reason": "Must be a number"})
+
+    if start is not None:
+        try:
+            start = utils.to_timestamp(start)
+        except Exception:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "start",
+                        "reason": "Must be a datetime or a timestamp"})
+
+    if stop is not None:
+        try:
+            stop = utils.to_timestamp(stop)
+        except Exception:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "stop",
+                        "reason": "Must be a datetime or a timestamp"})
+
+    if granularity is not None:
+        try:
+            granularity = utils.to_timespan(granularity)
+        except ValueError as e:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "granularity",
+                        "reason": six.text_type(e)})
+
+    if fill is not None:
+        try:
+            fill = FillSchema(fill)
+        except voluptuous.Error as e:
+            abort(400, {"cause": "Argument value error",
+                        "detail": "fill",
+                        "reason": str(e)})
+
+    return start, stop, granularity, needed_overlap, fill
+
+
 class AggregationController(rest.RestController):
     _custom_actions = {
         'metric': ['POST', 'GET'],
@@ -1703,25 +1755,8 @@ class AggregationController(rest.RestController):
                                             granularity=None,
                                             needed_overlap=100.0, fill=None,
                                             refresh=False, resample=None):
-        try:
-            needed_overlap = float(needed_overlap)
-        except ValueError:
-            abort(400, 'needed_overlap must be a number')
-        if needed_overlap != 100.0 and start is None and stop is None:
-            abort(400, 'start and/or stop must be provided if specifying '
-                  'needed_overlap')
-
-        if start is not None:
-            try:
-                start = utils.to_timestamp(start)
-            except Exception:
-                abort(400, "Invalid value for start")
-
-        if stop is not None:
-            try:
-                stop = utils.to_timestamp(stop)
-            except Exception:
-                abort(400, "Invalid value for stop")
+        start, stop, granularity, needed_overlap, fill = validate_qs(
+            start, stop, granularity, needed_overlap, fill)
 
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
@@ -1734,21 +1769,12 @@ class AggregationController(rest.RestController):
         if reaggregation is None:
             reaggregation = aggregation
 
-        metrics_and_aggregations = [[str(m.id), aggregation] for m in metrics]
-        operations = ["aggregate", reaggregation,
-                      ["metric"] + metrics_and_aggregations]
-
         for metric in metrics:
             enforce("get metric", metric)
 
         number_of_metrics = len(metrics)
         if number_of_metrics == 0:
             return []
-        if granularity is not None:
-            try:
-                granularity = utils.to_timespan(granularity)
-            except ValueError as e:
-                abort(400, six.text_type(e))
 
         if resample:
             if not granularity:
@@ -1758,14 +1784,18 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 abort(400, six.text_type(e))
 
-        if fill is not None:
-            if granularity is None:
-                abort(400, "Unable to fill without a granularity")
-            try:
-                fill = float(fill)
-            except ValueError as e:
-                if fill != 'null':
-                    abort(400, "fill must be a float or \'null\': %s" % e)
+        operations = ["aggregate", reaggregation, []]
+        if resample:
+            operations[2].extend(
+                ["resample", aggregation, resample,
+                 ["metric"] + [[str(m.id), aggregation]
+                               for m in metrics]]
+            )
+        else:
+            operations[2].extend(
+                ["metric"] + [[str(m.id), aggregation]
+                              for m in metrics]
+            )
 
         try:
             if strtobool("refresh", refresh):
@@ -1789,11 +1819,9 @@ class AggregationController(rest.RestController):
                 pecan.request.storage,
                 [(m, aggregation) for m in metrics],
                 operations, start, stop,
-                granularity, needed_overlap, fill,
-                resample)["aggregated"]
-        except processor.MetricUnaggregatable as e:
-            abort(400, ("One of the metrics being aggregated doesn't have "
-                        "matching granularity: %s") % str(e))
+                granularity, needed_overlap, fill)["aggregated"]
+        except exceptions.UnAggregableTimeseries as e:
+            abort(400, e)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
@@ -1888,6 +1916,9 @@ class BatchController(object):
 class V1Controller(object):
 
     def __init__(self):
+        # FIXME(sileht): split controllers to avoid lazy loading
+        from gnocchi.rest.aggregates import api as agg_api
+
         self.sub_controllers = {
             "search": SearchController(),
             "archive_policy": ArchivePoliciesController(),
@@ -1899,6 +1930,7 @@ class V1Controller(object):
             "aggregation": AggregationController(),
             "capabilities": CapabilityController(),
             "status": StatusController(),
+            "aggregates": agg_api.AggregatesController(),
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)

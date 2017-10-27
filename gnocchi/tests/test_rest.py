@@ -1636,8 +1636,7 @@ class ResourceTest(RestTest):
             + self.resource_type + "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             status=400)
-        self.assertIn(b"One of the metrics being aggregated doesn't have "
-                      b"matching granularity",
+        self.assertIn(b"Metrics can't being aggregated",
                       result.body)
 
     def test_get_res_named_metric_measure_aggregation_nooverlap(self):

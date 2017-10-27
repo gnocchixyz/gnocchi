@@ -46,11 +46,13 @@ def prepare_service(args=None, conf=None,
 
     workers = utils.get_default_workers()
     conf.set_default("workers", workers, group="metricd")
-    conf.set_default("aggregation_workers_number", workers, group="storage")
+    conf.set_default("parallel_operations", workers)
 
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
+
+    utils.parallel_map.NUM_WORKERS = conf.parallel_operations
 
     if not log_to_std and (conf.log_dir or conf.log_file):
         outputs = [daiquiri.output.File(filename=conf.log_file,
@@ -82,15 +84,13 @@ def prepare_service(args=None, conf=None,
 
     # If no coordination URL is provided, default to using the indexer as
     # coordinator
-    if conf.storage.coordination_url is None:
+    if conf.coordination_url is None:
         if conf.storage.driver == "redis":
             conf.set_default("coordination_url",
-                             conf.storage.redis_url,
-                             "storage")
+                             conf.storage.redis_url)
         elif conf.incoming.driver == "redis":
             conf.set_default("coordination_url",
-                             conf.incoming.redis_url,
-                             "storage")
+                             conf.incoming.redis_url)
         else:
             parsed = urlparse.urlparse(conf.indexer.url)
             proto, _, _ = parsed.scheme.partition("+")
@@ -98,8 +98,7 @@ def prepare_service(args=None, conf=None,
             # Set proto without the + part
             parsed[0] = proto
             conf.set_default("coordination_url",
-                             urlparse.urlunparse(parsed),
-                             "storage")
+                             urlparse.urlunparse(parsed))
 
     conf.log_opt_values(LOG, logging.DEBUG)
 

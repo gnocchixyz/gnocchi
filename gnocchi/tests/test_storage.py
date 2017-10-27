@@ -45,7 +45,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.metric, __ = self._create_metric()
 
     def test_driver_str(self):
-        driver = storage.get_driver(self.conf)
+        driver = storage.get_driver(self.conf, None)
 
         if isinstance(driver, file.FileStorage):
             s = driver.basepath
@@ -62,7 +62,7 @@ class TestStorageDriver(tests_base.TestCase):
                          driver.__class__.__name__, s))
 
     def test_get_driver(self):
-        driver = storage.get_driver(self.conf)
+        driver = storage.get_driver(self.conf, None)
         self.assertIsInstance(driver, storage.StorageDriver)
 
     def test_corrupted_data(self):

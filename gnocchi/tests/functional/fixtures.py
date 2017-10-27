@@ -28,6 +28,7 @@ from oslo_config import cfg
 from oslo_middleware import cors
 import sqlalchemy_utils
 
+from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
@@ -126,12 +127,14 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
-        s = storage.get_driver(conf)
+        self.coord = metricd.get_coordinator_and_start(conf.coordination_url)
+        s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
 
         LOAD_APP_KWARGS = {
+            'coord': self.coord,
             'storage': s,
             'indexer': index,
             'incoming': i,
@@ -160,6 +163,9 @@ class ConfigFixture(fixture.GabbiFixture):
 
         if self.tmp_dir:
             shutil.rmtree(self.tmp_dir)
+
+        if hasattr(self, 'coord'):
+            self.coord.stop()
 
         self.conf.reset()
         if not os.getenv("GNOCCHI_TEST_DEBUG"):

@@ -31,9 +31,9 @@ try:
 except ImportError:
     swexc = None
 from testtools import testcase
-from tooz import coordination
 
 from gnocchi import archive_policy
+from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
 from gnocchi import indexer
@@ -300,21 +300,16 @@ class TestCase(BaseTestCase):
 
         self.index = indexer.get_driver(self.conf)
 
+        self.coord = metricd.get_coordinator_and_start(
+            self.conf.coordination_url)
+
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
         # checkfirst=True, so what we do here is we force the upgrade code
         # path to be sequential to avoid race conditions as the tests run
         # in parallel.
-        self.coord = coordination.get_coordinator(
-            self.conf.storage.coordination_url,
-            str(uuid.uuid4()).encode('ascii'))
-
-        self.coord.start(start_heart=True)
-
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
-
-        self.coord.stop()
 
         self.archive_policies = self.ARCHIVE_POLICIES.copy()
         for name, ap in six.iteritems(self.archive_policies):
@@ -356,7 +351,7 @@ class TestCase(BaseTestCase):
         self.conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
                                "storage")
 
-        self.storage = storage.get_driver(self.conf)
+        self.storage = storage.get_driver(self.conf, self.coord)
         self.incoming = incoming.get_driver(self.conf)
 
         if self.conf.storage.driver == 'redis':
@@ -371,8 +366,12 @@ class TestCase(BaseTestCase):
 
     def tearDown(self):
         self.index.disconnect()
-        self.storage.stop()
         super(TestCase, self).tearDown()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.coord.stop()
+        super(TestCase, cls).tearDownClass()
 
     def _create_metric(self, archive_policy_name="low"):
         """Create a metric and return it"""
