@@ -94,6 +94,11 @@ _cli_options = (
 def list_opts():
     return [
         ("DEFAULT", _cli_options + (
+            cfg.StrOpt(
+                'coordination_url',
+                secret=True,
+                deprecated_group="storage",
+                help='Coordination driver URL'),
             cfg.IntOpt(
                 'parallel_operations',
                 min=1,
@@ -174,7 +179,7 @@ def list_opts():
                             'to force refresh of metric.'),
         ) + API_OPTS,
         ),
-        ("storage", _STORAGE_OPTS + gnocchi.storage._CARBONARA_OPTS),
+        ("storage", _STORAGE_OPTS),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
             cfg.HostAddressOpt('host',

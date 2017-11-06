@@ -14,7 +14,11 @@ Be sure to include a title and clear description, as much relevant information
 as possible, and a code sample or an executable test case demonstrating the
 expected behavior that is not occurring.
 
+If you are looking to contribute for the first time, some issues are tagged
+with the "`good first issue`_" label and are easy targets for newcomers.
+
 .. _`GitHub issue tracker`: https://github.com/gnocchixyz/gnocchi/issues
+.. _`good first issue`: https://github.com/gnocchixyz/gnocchi/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22
 
 
 Pull-requests

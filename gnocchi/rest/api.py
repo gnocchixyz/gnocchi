@@ -17,7 +17,6 @@
 import functools
 import itertools
 import uuid
-import warnings
 
 import jsonpatch
 import pbr.version
@@ -26,13 +25,11 @@ from pecan import rest
 import pyparsing
 import six
 from six.moves.urllib import parse as urllib_parse
-from stevedore import extension
 import voluptuous
 import webob.exc
 import werkzeug.http
 
 from gnocchi import archive_policy
-from gnocchi import deprecated_aggregates
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
@@ -436,9 +433,6 @@ class MetricController(rest.RestController):
 
     def __init__(self, metric):
         self.metric = metric
-        mgr = extension.ExtensionManager(namespace='gnocchi.aggregates',
-                                         invoke_on_load=True)
-        self.custom_agg = dict((x.name, x.obj) for x in mgr)
 
     def enforce_metric(self, rule):
         enforce(rule, json.to_primitive(self.metric))
@@ -464,15 +458,13 @@ class MetricController(rest.RestController):
                      granularity=None, resample=None, refresh=False,
                      **param):
         self.enforce_metric("get measures")
-        if not (aggregation
-                in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
-                or aggregation in self.custom_agg):
+        if (aggregation not in
+           archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
                      or %(custom)s'''
             abort(400, msg % dict(
                 agg=aggregation,
-                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS,
-                custom=str(self.custom_agg.keys())))
+                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         if start is not None:
             try:
@@ -503,12 +495,6 @@ class MetricController(rest.RestController):
             except storage.SackLockTimeoutError as e:
                 abort(503, six.text_type(e))
         try:
-            if aggregation in self.custom_agg:
-                warnings.warn("moving_average aggregation is deprecated.",
-                              category=DeprecationWarning)
-                return self.custom_agg[aggregation].compute(
-                    pecan.request.storage, self.metric,
-                    start, stop, **param)
             return pecan.request.storage.get_measures(
                 self.metric, start, stop, aggregation,
                 utils.to_timespan(granularity)
@@ -518,8 +504,6 @@ class MetricController(rest.RestController):
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
-        except deprecated_aggregates.CustomAggFailure as e:
-            abort(400, six.text_type(e))
 
     @pecan.expose()
     def delete(self):
@@ -547,19 +531,22 @@ class MetricsController(rest.RestController):
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
 
-    _MetricSchema = voluptuous.Schema({
-        "archive_policy_name": six.text_type,
-        "name": six.text_type,
-        voluptuous.Optional("unit"):
-            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
-    })
-
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
     # smarter version of a voluptuous schema, no?
-    @classmethod
-    def MetricSchema(cls, definition):
+    @staticmethod
+    def MetricSchema(definition):
+        creator = pecan.request.auth_helper.get_current_user(
+            pecan.request)
+
         # First basic validation
-        definition = cls._MetricSchema(definition)
+        schema = voluptuous.Schema({
+            "archive_policy_name": six.text_type,
+            "resource_id": functools.partial(ResourceID, creator=creator),
+            "name": six.text_type,
+            voluptuous.Optional("unit"):
+            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
+        })
+        definition = schema(definition)
         archive_policy_name = definition.get('archive_policy_name')
 
         name = definition.get('name')
@@ -580,12 +567,23 @@ class MetricsController(rest.RestController):
             else:
                 definition['archive_policy_name'] = ap.name
 
-        creator = pecan.request.auth_helper.get_current_user(
-            pecan.request)
+        resource_id = definition.get('resource_id')
+        if resource_id is None:
+            original_resource_id = None
+        else:
+            if name is None:
+                abort(400,
+                      {"cause": "Attribute value error",
+                       "detail": "name",
+                       "reason": "Name cannot be null "
+                       "if resource_id is not null"})
+            original_resource_id, resource_id = resource_id
 
         enforce("create metric", {
             "creator": creator,
             "archive_policy_name": archive_policy_name,
+            "resource_id": resource_id,
+            "original_resource_id": original_resource_id,
             "name": name,
             "unit": definition.get('unit'),
         })
@@ -597,15 +595,23 @@ class MetricsController(rest.RestController):
         creator = pecan.request.auth_helper.get_current_user(
             pecan.request)
         body = deserialize_and_validate(self.MetricSchema)
+
+        resource_id = body.get('resource_id')
+        if resource_id is not None:
+            resource_id = resource_id[1]
+
         try:
             m = pecan.request.indexer.create_metric(
                 uuid.uuid4(),
                 creator,
+                resource_id=resource_id,
                 name=body.get('name'),
                 unit=body.get('unit'),
                 archive_policy_name=body['archive_policy_name'])
         except indexer.NoSuchArchivePolicy as e:
             abort(400, six.text_type(e))
+        except indexer.NamedMetricAlreadyExists as e:
+            abort(400, e)
         set_resp_location_hdr("/metric/" + str(m.id))
         pecan.response.status = 201
         return m
@@ -1046,6 +1052,10 @@ def ResourceUUID(value, creator):
 
 
 def ResourceID(value, creator):
+    """Convert value to a resource ID.
+
+    :return: A tuple (original_resource_id, resource_id)
+    """
     return (six.text_type(value), ResourceUUID(value, creator))
 
 
@@ -1843,15 +1853,8 @@ class CapabilityController(rest.RestController):
     @staticmethod
     @pecan.expose('json')
     def get():
-        aggregation_methods = set(
-            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS)
-        return dict(aggregation_methods=aggregation_methods,
-                    dynamic_aggregation_methods=[
-                        ext.name for ext in extension.ExtensionManager(
-                            # NOTE(sileht): Known as deprecated_aggregates
-                            # but we can't change the namespace
-                            namespace='gnocchi.aggregates')
-                    ])
+        return dict(aggregation_methods=set(
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
 
 class StatusController(rest.RestController):

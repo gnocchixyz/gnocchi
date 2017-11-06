@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The deprecated dynamic aggregation (moving average) has been removed.

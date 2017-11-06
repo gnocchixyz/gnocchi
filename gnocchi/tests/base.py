@@ -301,7 +301,7 @@ class TestCase(BaseTestCase):
         self.index = indexer.get_driver(self.conf)
 
         self.coord = metricd.get_coordinator_and_start(
-            self.conf.storage.coordination_url)
+            self.conf.coordination_url)
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
         # their tables in a single transaction even with the
