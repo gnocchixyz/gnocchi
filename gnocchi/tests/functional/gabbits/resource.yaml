@@ -462,7 +462,7 @@ tests:
     - name: request cpuutil metric from generic
       GET: /v1/resource/generic/85C44741-CC60-4033-804E-2D3098C7D2E9/metric/cpu.util
       response_json_paths:
-          $.archive_policy.name: medium
+          $.archive_policy_name: medium
 
     - name: try post cpuutil metric to generic
       POST: $LAST_URL

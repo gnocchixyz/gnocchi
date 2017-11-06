@@ -420,7 +420,7 @@ class IndexerDriver(object):
         rules = self.list_archive_policy_rules()
         for rule in rules:
             if fnmatch.fnmatch(metric_name or "", rule.metric_pattern):
-                return self.get_archive_policy(rule.archive_policy_name)
+                return self.get_archive_policy(id=rule.archive_policy_id)
         raise NoArchivePolicyRuleMatch(metric_name)
 
     @staticmethod

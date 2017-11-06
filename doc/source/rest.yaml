@@ -63,6 +63,35 @@
       ]
     }
 
+- name: create-archive-policy-to-rename
+  request: |
+    POST /v1/archive_policy HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "very-short",
+      "back_window": 0,
+      "definition": [
+        {
+          "granularity": "0.001s",
+          "timespan": "1 hour"
+        },
+        {
+          "points": 48,
+          "timespan": "1 day"
+        }
+      ]
+    }
+
+- name: rename-archive-policy
+  request: |
+    PATCH /v1/archive_policy/{{ scenarios['create-archive-policy-to-rename']['response'].json['name'] }} HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "not-so-short"
+    }
+
 - name: create-archive-policy-to-delete
   request: |
     POST /v1/archive_policy HTTP/1.1

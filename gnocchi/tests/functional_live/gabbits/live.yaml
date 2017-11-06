@@ -413,7 +413,7 @@ tests:
       GET: $LOCATION
       status: 200
       response_json_paths:
-        $.archive_policy.name: gabbilive
+        $.archive_policy_name: gabbilive
 
     - name: delete the metric
       DELETE: /v1/metric/$RESPONSE['$.id']

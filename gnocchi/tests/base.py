@@ -225,6 +225,7 @@ class TestCase(BaseTestCase):
                     timespan=numpy.timedelta64(1, 'D'),
                 ),
             ],
+            id=uuid.UUID('1350af0d-2bca-4526-8b0f-f71c50cdecd2'),
         ),
         'low': archive_policy.ArchivePolicy(
             "low", 0, [
@@ -238,6 +239,7 @@ class TestCase(BaseTestCase):
                 archive_policy.ArchivePolicyItem(
                     granularity=numpy.timedelta64(1, 'D'), points=30),
             ],
+            id=uuid.UUID('595f9bd1-38f8-4c75-b57b-0899ac6c26ab'),
         ),
         'medium': archive_policy.ArchivePolicy(
             "medium", 0, [
@@ -251,6 +253,7 @@ class TestCase(BaseTestCase):
                 archive_policy.ArchivePolicyItem(
                     granularity=numpy.timedelta64(1, 'D'), points=365),
             ],
+            id=uuid.UUID('686d9406-41ad-435b-8dee-49a97e6721e9'),
         ),
         'high': archive_policy.ArchivePolicy(
             "high", 0, [
@@ -264,6 +267,7 @@ class TestCase(BaseTestCase):
                 archive_policy.ArchivePolicyItem(
                     granularity=numpy.timedelta64(1, 'h'), points=365 * 24),
             ],
+            id=uuid.UUID('fa81a4d2-6503-43fd-8b32-bd0765fbdd22'),
         ),
     }
 

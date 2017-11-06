@@ -564,34 +564,49 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with self.facade.independent_reader() as session:
             return list(session.query(ArchivePolicy).all())
 
-    def get_archive_policy(self, name):
+    def get_archive_policy(self, name=None, id=None):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicy).get(name)
+            if name and not id:
+                return session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == name).first()
+            if id and not name:
+                return session.query(ArchivePolicy).filter(
+                    ArchivePolicy.id == id).first()
+            raise TypeError("get_archive_policy() takes one parameter, "
+                            "either a name or an id")
 
-    def update_archive_policy(self, name, ap_items):
-        with self.facade.independent_writer() as session:
-            ap = session.query(ArchivePolicy).get(name)
-            if not ap:
-                raise indexer.NoSuchArchivePolicy(name)
-            current = sorted(ap.definition,
-                             key=operator.attrgetter('granularity'))
-            new = sorted(ap_items, key=operator.attrgetter('granularity'))
-            if len(current) != len(new):
-                raise indexer.UnsupportedArchivePolicyChange(
-                    name, 'Cannot add or drop granularities')
-            for c, n in zip(current, new):
-                if c.granularity != n.granularity:
+    def update_archive_policy(self, name, ap_items, new_name=None):
+        try:
+            with self.facade.independent_writer() as session:
+                ap = session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == name).first()
+                if not ap:
+                    raise indexer.NoSuchArchivePolicy(name)
+                current = sorted(ap.definition,
+                                 key=operator.attrgetter('granularity'))
+                new = sorted(ap_items, key=operator.attrgetter('granularity'))
+                if len(current) != len(new):
                     raise indexer.UnsupportedArchivePolicyChange(
-                        name, '%s granularity interval was changed'
-                        % utils.timespan_total_seconds(c.granularity))
-            # NOTE(gordc): ORM doesn't update JSON column unless new
-            ap.definition = ap_items
-            return ap
+                        name, 'Cannot add or drop granularities')
+                for c, n in zip(current, new):
+                    if c.granularity != n.granularity:
+                        raise indexer.UnsupportedArchivePolicyChange(
+                            name, '%s granularity interval was changed'
+                            % utils.timespan_total_seconds(c.granularity))
+                # NOTE(gordc): ORM doesn't update JSON column unless new
+                ap.definition = ap_items
+                if new_name:
+                    ap.name = new_name
+        except exception.DBDuplicateEntry:
+            raise indexer.UnsupportedArchivePolicyChange(
+                name,
+                'Archive policy %s already exists.' % new_name)
+        return ap
 
     def delete_archive_policy(self, name):
         constraints = [
-            "fk_metric_ap_name_ap_name",
-            "fk_apr_ap_name_ap_name"]
+            "fk_metric_ap_id_ap_id",
+            "fk_apr_ap_id_ap_id"]
         with self.facade.writer() as session:
             try:
                 if session.query(ArchivePolicy).filter(
@@ -608,6 +623,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             back_window=archive_policy.back_window,
             definition=archive_policy.definition,
             aggregation_methods=list(archive_policy.aggregation_methods),
+            id=archive_policy.id,
         )
         try:
             with self.facade.writer() as session:
@@ -618,14 +634,23 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policy_rules(self):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicyRule).order_by(
+            apr_list = session.query(ArchivePolicyRule).order_by(
                 ArchivePolicyRule.metric_pattern.desc(),
                 ArchivePolicyRule.name.asc()
             ).all()
+            for apr in apr_list:
+                # NOTE(0livd) Force load of archive policy
+                apr.archive_policy
+            return apr_list
 
     def get_archive_policy_rule(self, name):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicyRule).get(name)
+            apr = session.query(ArchivePolicyRule).get(name)
+            if not apr:
+                return None
+            # NOTE(0livd) Force load of archive policy
+            apr.archive_policy
+        return apr
 
     def delete_archive_policy_rule(self, name):
         with self.facade.writer() as session:
@@ -635,14 +660,20 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def create_archive_policy_rule(self, name, metric_pattern,
                                    archive_policy_name):
-        apr = ArchivePolicyRule(
-            name=name,
-            archive_policy_name=archive_policy_name,
-            metric_pattern=metric_pattern
-        )
         try:
             with self.facade.writer() as session:
-                session.add(apr)
+                archive_policy = session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == archive_policy_name).first()
+                if not archive_policy:
+                    raise indexer.NoSuchArchivePolicy(archive_policy_name)
+                apr = ArchivePolicyRule(
+                    name=name,
+                    archive_policy_id=archive_policy.id,
+                    metric_pattern=metric_pattern,
+                    # Note(0livd) Pass archive policy instead of force
+                    # loading it later
+                    archive_policy=archive_policy
+                )
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyRuleAlreadyExists(name)
         return apr
@@ -665,21 +696,25 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @retry_on_deadlock
     def create_metric(self, id, creator, archive_policy_name,
                       name=None, unit=None, resource_id=None):
-        m = Metric(id=id,
-                   creator=creator,
-                   archive_policy_name=archive_policy_name,
-                   name=name,
-                   unit=unit,
-                   resource_id=resource_id)
         try:
             with self.facade.writer() as session:
+                archive_policy = session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == archive_policy_name).first()
+                if not archive_policy:
+                    raise indexer.NoSuchArchivePolicy(archive_policy_name)
+                m = Metric(id=id,
+                           creator=creator,
+                           archive_policy_id=archive_policy.id,
+                           name=name,
+                           unit=unit,
+                           resource_id=resource_id,
+                           # Note(0livd) Pass archive policy instead of
+                           # force loading it later
+                           archive_policy=archive_policy)
                 session.add(m)
         except exception.DBDuplicateEntry:
             raise indexer.NamedMetricAlreadyExists(name)
         except exception.DBReferenceError as e:
-            if (e.constraint ==
-               'fk_metric_ap_name_ap_name'):
-                raise indexer.NoSuchArchivePolicy(archive_policy_name)
             if e.constraint == 'fk_metric_resource_id_resource_id':
                 raise indexer.NoSuchResource(resource_id)
             raise
@@ -709,7 +744,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 else:
                     q = q.filter(Metric.creator == creator)
             for attr in kwargs:
+                if attr == "archive_policy_name":
+                    archive_policy = session.query(ArchivePolicy).filter(
+                        ArchivePolicy.name == kwargs[attr]).first()
+                    q = q.filter(getattr(Metric, "archive_policy_id") ==
+                                 archive_policy.id)
+                    continue
                 q = q.filter(getattr(Metric, attr) == kwargs[attr])
+            q = q.options(sqlalchemy.orm.joinedload('archive_policy'))
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
 
@@ -775,8 +817,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if metrics is not None:
                 self._set_metrics_for_resource(session, r, metrics)
 
-            # NOTE(jd) Force load of metrics :)
-            r.metrics
+            # NOTE(jd) Force load of metrics and their archive policy :)
+            for metric in r.metrics:
+                metric.archive_policy
 
             return r
 
@@ -847,8 +890,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         resource_type, "ended_at", ended_at)
                 raise
 
-            # NOTE(jd) Force load of metrics – do it outside the session!
-            r.metrics
+            # NOTE(jd) Force load of metrics and their archive policy
+            # do it outside the session!
+            for metric in r.metrics:
+                metric.archive_policy
 
             return r
 
@@ -869,9 +914,17 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             else:
                 unit = value.get('unit')
                 ap_name = value['archive_policy_name']
+                archive_policy = session.query(ArchivePolicy).filter(
+                    ArchivePolicy.name == ap_name
+                    ).first()
+                if not archive_policy:
+                    raise indexer.NoSuchArchivePolicy(ap_name)
                 m = Metric(id=uuid.uuid4(),
                            creator=r.creator,
-                           archive_policy_name=ap_name,
+                           archive_policy_id=archive_policy.id,
+                           # Note(0livd) Pass archive policy instead of
+                           # force loading it later
+                           archive_policy=archive_policy,
                            name=name,
                            unit=unit,
                            resource_id=r.id)
@@ -880,11 +933,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session.flush()
                 except exception.DBDuplicateEntry:
                     raise indexer.NamedMetricAlreadyExists(name)
-                except exception.DBReferenceError as e:
-                    if (e.constraint ==
-                       'fk_metric_ap_name_ap_name'):
-                        raise indexer.NoSuchArchivePolicy(ap_name)
-                    raise
 
         session.expire(r, ['metrics'])
 
@@ -941,7 +989,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 resource_cls).filter(
                     resource_cls.id == resource_id)
             if with_metrics:
-                q = q.options(sqlalchemy.orm.joinedload('metrics'))
+                q = q.options(
+                    sqlalchemy.orm.joinedload('metrics').subqueryload(
+                        Metric.archive_policy))
             return q.first()
 
     def _get_history_result_mapper(self, session, resource_type):
@@ -1055,7 +1105,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.InvalidPagination(e)
 
             # Always include metrics
-            q = q.options(sqlalchemy.orm.joinedload("metrics"))
+            q = q.options(
+                sqlalchemy.orm.joinedload("metrics").subqueryload(
+                    Metric.archive_policy))
             all_resources = q.all()
 
             if details:
@@ -1084,7 +1136,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                         q = session.query(target_cls).filter(f)
                         # Always include metrics
-                        q = q.options(sqlalchemy.orm.joinedload('metrics'))
+                        q = q.options(
+                            sqlalchemy.orm.joinedload("metrics").subqueryload(
+                                Metric.archive_policy))
                         try:
                             all_resources.extend(q.all())
                         except sqlalchemy.exc.ProgrammingError as e:

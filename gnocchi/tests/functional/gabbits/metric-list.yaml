@@ -96,7 +96,7 @@ tests:
       response_json_paths:
           $.`len`: 1
           $[0].name: disk.io.rate
-          $[0].archive_policy.name: first_archive
+          $[0].archive_policy_name: first_archive
 
     - name: list metrics by name
       GET: /v1/metric?name=disk.io.rate
@@ -107,15 +107,15 @@ tests:
           $.`len`: 2
           $[0].name: disk.io.rate
           $[1].name: disk.io.rate
-          $[0].archive_policy.name: first_archive
-          $[1].archive_policy.name: first_archive
+          $[0].archive_policy_name: first_archive
+          $[1].archive_policy_name: first_archive
 
     - name: list metrics by unit
       GET: /v1/metric?unit=ns
       response_json_paths:
           $.`len`: 1
           $[0].name: cpu
-          $[0].archive_policy.name: second_archive
+          $[0].archive_policy_name: second_archive
 
     - name: list metrics by archive_policy
       GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc
@@ -127,9 +127,9 @@ tests:
           $[0].name: disk.io.rate
           $[1].name: disk.io.rate
           $[2].name: cpu_util
-          $[0].archive_policy.name: first_archive
-          $[1].archive_policy.name: first_archive
-          $[2].archive_policy.name: first_archive
+          $[0].archive_policy_name: first_archive
+          $[1].archive_policy_name: first_archive
+          $[2].archive_policy_name: first_archive
 
     - name: list metrics by archive_policy with limit and pagination links page 1
       GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc&limit=2
@@ -142,8 +142,8 @@ tests:
           $.`len`: 2
           $[0].name: disk.io.rate
           $[1].name: disk.io.rate
-          $[0].archive_policy.name: first_archive
-          $[1].archive_policy.name: first_archive
+          $[0].archive_policy_name: first_archive
+          $[1].archive_policy_name: first_archive
 
     - name: list metrics by archive_policy with limit and pagination links page 2
       GET: /v1/metric?archive_policy_name=first_archive&limit=2&marker=$RESPONSE['$[1].id']&sort=name:desc
@@ -153,7 +153,7 @@ tests:
       response_json_paths:
           $.`len`: 1
           $[0].name: cpu_util
-          $[0].archive_policy.name: first_archive
+          $[0].archive_policy_name: first_archive
 
     - name: list metrics ensure no Link header
       GET: /v1/metric?archive_policy_name=first_archive&sort=name:desc

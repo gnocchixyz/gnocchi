@@ -138,7 +138,7 @@ tests:
       GET: /v1/metric/$RESPONSE['$.id']
       status: 200
       response_json_paths:
-        $.archive_policy.name: cookies
+        $.archive_policy_name: cookies
 
     - name: push measurements to metric before epoch
       POST: /v1/metric/$RESPONSE['$.id']/measures
@@ -152,7 +152,7 @@ tests:
     - name: list valid metrics
       GET: /v1/metric
       response_json_paths:
-          $[0].archive_policy.name: cookies
+          $[0].archive_policy_name: cookies
 
     - name: push measurements to metric with bad timestamp
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
@@ -344,7 +344,7 @@ tests:
       GET: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy.name: cookies
+          $[0].archive_policy_name: cookies
 
     - name: get measure unknown aggregates
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list for aggregates'].$RESPONSE['$[0].id']&aggregation=last

@@ -71,7 +71,7 @@ tests:
       GET: /v1/metric
       status: 200
       response_json_paths:
-          $[0].archive_policy.name: high
+          $[0].archive_policy_name: high
 
     - name: search with one correct granularity
       POST: /v1/search/metric?metric_id=$HISTORY['get metric id'].$RESPONSE['$[0].id']&granularity=1s
