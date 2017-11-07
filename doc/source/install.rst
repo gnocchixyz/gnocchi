@@ -8,8 +8,8 @@ Installation
 ============
 
 Gnocchi can be installed using `pip`. Depending on the drivers and features you
-want to use (see :doc:`architecture` for which driver to pick), you need to
-specify the extra variants you need. For example::
+want to use (see :doc:`intro` for which driver to pick), you need to specify
+the extra variants you need. For example::
 
   pip install gnocchi[postgresql,ceph,keystone]
 
@@ -18,16 +18,16 @@ storage, and Keystone support for authentication and authorization.
 
 The list of variants available is:
 
-* keystone – provides Keystone authentication support
-* mysql - provides MySQL indexer support
-* postgresql – provides PostgreSQL indexer support
-* swift – provides OpenStack Swift storage support
-* s3 – provides Amazon S3 storage support
-* ceph_recommended_lib – provides Ceph (>=0.80) storage support
-* ceph_alternative_lib – provides Ceph (>=12.2.0) storage support
-* redis – provides Redis storage support
-* doc – documentation building support
-* test – unit and functional tests support
+* `keystone` – provides Keystone authentication support
+* `mysql` - provides MySQL indexer support
+* `postgresql` – provides PostgreSQL indexer support
+* `swift` – provides OpenStack Swift storage support
+* `s3` – provides Amazon S3 storage support
+* `ceph_recommended_lib` – provides Ceph (>= 0.80) storage support
+* `ceph_alternative_lib` – provides Ceph (>= 12.2.0) storage support
+* `redis` – provides Redis storage support
+* `doc` – documentation building support
+* `test` – unit and functional tests support
 
 To install Gnocchi from source, run the standard Python installation
 procedure::
@@ -43,7 +43,7 @@ install extra variants using, for example::
 Ceph requirements
 -----------------
 
-The ceph driver needs to have a Ceph user and a pool already created. They can
+The Ceph driver needs to have a Ceph user and a pool already created. They can
 be created for example with:
 
 ::
@@ -52,13 +52,13 @@ be created for example with:
     ceph auth get-or-create client.gnocchi mon "allow r" osd "allow rwx pool=metrics"
 
 
-Gnocchi leverages some librados features (omap, async, operation context)
-available in python binding only since python-rados >= 12.2.0. To handle this,
-Gnocchi uses 'cradox' python library which has exactly the same API but works
-with Ceph >= 0.80.0.
+Gnocchi leverages some _librados_ features (omap, async, operation context)
+available in the Python binding only since python-rados >= 12.2.0. To handle
+this, Gnocchi uses _cradox_ python library which has exactly the same API but
+works with Ceph >= 0.80.0.
 
-If Ceph and python-rados are >= 12.2.0, cradox python library becomes optional
-but is still recommended.
+If Ceph and python-rados are >= 12.2.0, the cradox Python library becomes
+optional but is still recommended.
 
 
 Configuration
@@ -66,6 +66,14 @@ Configuration
 
 Configuration file
 -------------------
+
+No config file is provided with the source code; it will be created during the
+installation. In the case where no configuration file is installed, one can be
+easily created by running:
+
+::
+
+    gnocchi-config-generator > /path/to/gnocchi.conf
 
 By default, gnocchi looks for its configuration file in the following places,
 in order:
@@ -78,15 +86,6 @@ in order:
 * ``~/gnocchi.conf.d``
 * ``/etc/gnocchi/gnocchi.conf.d``
 * ``/etc/gnocchi.conf.d``
-
-
-No config file is provided with the source code; it will be created during the
-installation. In case where no configuration file was installed, one can be
-easily created by running:
-
-::
-
-    gnocchi-config-generator > /path/to/gnocchi.conf
 
 Configure Gnocchi by editing the appropriate file.
 
@@ -123,13 +122,20 @@ to use the configured storage driver.
 Configuring authentication
 -----------------------------
 
-The API server supports different authentication methods: `basic` (the default)
-which uses the standard HTTP `Authorization` header or `keystone` to use
-`OpenStack Keystone`_. If you successfully installed the `keystone` flavor
-using `pip` (see :ref:`installation`), you can set `api.auth_mode` to
-`keystone` to enable Keystone authentication.
+The API server supports different authentication methods:
 
-.. _`Paste Deployment`: http://pythonpaste.org/deploy/
+* `basic` (the default) which uses the standard HTTP `Authorization` header.
+
+* `keystone` to use `OpenStack Keystone`_. If you successfully installed the
+  `keystone` flavor using `pip` (see :ref:`installation`), you can set
+  `api.auth_mode` to `keystone` to enable Keystone authentication.
+  You also need to configure the `keystone_authtoken` section in `gnocchi.conf`
+  with the proper value so Gnocchi is able to validate tokens.
+
+* `remoteuser` Gnocchi will look at the HTTP server REMOTE_USER environment
+   variable to get the username. Then the permissions model is the same as the
+   `basic` mode.
+
 .. _`OpenStack Keystone`: http://launchpad.net/keystone
 
 Initialization
@@ -141,7 +147,6 @@ and storage:
 ::
 
     gnocchi-upgrade
-
 
 Upgrading
 =========
