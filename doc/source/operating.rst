@@ -2,13 +2,15 @@
 Running Gnocchi
 ===============
 
-To run Gnocchi, simply run the HTTP server and metric daemon:
+Once Gnocchi is properly installed, you need to launch Gnocchi. Simply run the
+HTTP server and metric daemon:
 
 ::
 
     gnocchi-api
     gnocchi-metricd
 
+You can run these services as background daemons.
 
 Running API As A WSGI Application
 =================================
@@ -53,9 +55,9 @@ Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
 How to define archive policies
 ==============================
 
-In Gnocchi, the |archive policies| define how the |metrics| are aggregated and
-how long they are stored. Each |archive policy| definition is expressed as the
-number of points over a |timespan|.
+The |archive policies| define how the |metrics| are aggregated and how long
+they are stored. Each |archive policy| definition is expressed as the number of
+points over a |timespan|.
 
 If your |archive policy| defines a policy of 10 points with a |granularity| of
 1 second, the |time series| archive will keep up to 10 seconds, each
@@ -64,7 +66,8 @@ maximum retain 10 seconds of data (sometimes a bit more) between the more
 recent point and the oldest point. That does not mean it will be 10 consecutive
 seconds: there might be a gap if data is fed irregularly.
 
-There is no expiry of data relative to the current timestamp.
+**There is no expiry of data relative to the current timestamp. Data is only
+expired according to timespan.**
 
 Each |archive policy| also defines which |aggregation methods| will be used.
 The default is set to `default_aggregation_methods` which is by default set to
@@ -93,18 +96,18 @@ consume twice CPU than just one definition (e.g. just 1 second granularity for
 1 day).
 
 Default archive policies
-========================
+------------------------
 
-By default, 3 |archive policies| are created when calling `gnocchi-upgrade`:
-*low*, *medium* and *high*. The name both describes the storage space and CPU
-usage needs.
+By default, 4 |archive policies| are created when calling `gnocchi-upgrade`:
+*bool*, *low*, *medium* and *high*. The name both describes the storage space
+and CPU usage needs.
 
-A fourth |archive policy| named `bool` is also provided by default and is
-designed to store only boolean values (i.e. 0 and 1). It only stores one data
-point for each second (using the `last` |aggregation method|), with a one year
-retention period. The maximum optimistic storage size is estimated based on the
-assumption that no other value than 0 and 1 are sent as |measures|. If other
-values are sent, the maximum pessimistic storage size is taken into account.
+The `bool` |archive policy| is designed to store only boolean values (i.e. 0
+and 1). It only stores one data point for each second (using the `last`
+|aggregation method|), with a one year retention period. The maximum optimistic
+storage size is estimated based on the assumption that no other value than 0
+and 1 are sent as |measures|. If other values are sent, the maximum pessimistic
+storage size is taken into account.
 
 - low
 
