@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import abc
-import operator
 
 import fixtures
 import mock
@@ -70,17 +69,3 @@ class ModelsMigrationsSync(
         for rt in self.index.list_resource_types():
             if rt.state == "active":
                 self.index._RESOURCE_TYPE_MANAGER.get_classes(rt)
-
-    def filter_metadata_diff(self, diff):
-        new_diff = []
-        for item in diff:
-            if item[0] == "add_table":
-                cols = tuple(sorted(map(operator.attrgetter("name"),
-                                        item[1].c)))
-                # NOTES(sileht): prometheus resource type tables
-                if cols in [("id", "instance", "job"),
-                            ("instance", "job", "revision")]:
-                    continue
-
-            new_diff.append(item)
-        return new_diff
