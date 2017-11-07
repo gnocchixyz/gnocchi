@@ -100,23 +100,23 @@ unary_operators = {
 
 
 def handle_unary_operator(nodes, granularity, timestamps, initial_values,
-                          is_aggregated, references):
+                          references):
     op = nodes[0]
     granularity, timestamps, values, is_aggregated = evaluate(
         nodes[1], granularity, timestamps, initial_values,
-        is_aggregated, references)
+        references)
 
     values = unary_operators[op](values)
     return granularity, timestamps, values, is_aggregated
 
 
 def handle_binary_operator(nodes, granularity, timestamps,
-                           initial_values, is_aggregated, references):
+                           initial_values, references):
     op = nodes[0]
     g1, t1, v1, is_a1 = evaluate(nodes[1], granularity, timestamps,
-                                 initial_values, is_aggregated, references)
+                                 initial_values, references)
     g2, t2, v2, is_a2 = evaluate(nodes[2], granularity, timestamps,
-                                 initial_values, is_aggregated, references)
+                                 initial_values, references)
 
     is_aggregated = is_a1 or is_a2
     # We keep the computed timeseries
@@ -141,17 +141,15 @@ def handle_binary_operator(nodes, granularity, timestamps,
     return granularity, timestamps, values, is_aggregated
 
 
-def handle_aggregate(agg, granularity, timestamps, values, is_aggregated,
-                     references):
+def handle_aggregate(agg, granularity, timestamps, values, references):
     values = numpy.array([AGG_MAP[agg](values, axis=1)]).T
     if values.shape[1] != 1:
         raise RuntimeError("Unexpected resulting aggregated array shape: %s" %
                            values)
-    return (granularity, timestamps, values, True)
+    return granularity, timestamps, values
 
 
-def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
-                   references, window):
+def handle_rolling(agg, granularity, timestamps, values, references, window):
     if window > len(values):
         raise exceptions.UnAggregableTimeseries(
             references,
@@ -166,10 +164,10 @@ def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
     strides = values.strides + (values.strides[-1],)
     new_values = AGG_MAP[agg](as_strided(values, shape=shape, strides=strides),
                               axis=-1)
-    return granularity, timestamps, new_values.T, is_aggregated
+    return granularity, timestamps, new_values.T
 
 
-def handle_resample(agg, granularity, timestamps, values, is_aggregated,
+def handle_resample(agg, granularity, timestamps, values,
                     references, sampling):
     # TODO(sileht): make a more optimised version that
     # compute the data across the whole matrix
@@ -183,20 +181,22 @@ def handle_resample(agg, granularity, timestamps, values, is_aggregated,
             new_values = numpy.array([ts["values"]])
         else:
             new_values = numpy.append(new_values, [ts["values"]], axis=0)
-    return sampling, result_timestamps, new_values.T, is_aggregated
+    return sampling, result_timestamps, new_values.T
 
 
 def handle_aggregation_operator(nodes, granularity, timestamps, initial_values,
-                                is_aggregated, references):
+                                references):
     op = aggregation_operators[nodes[0]]
     agg = nodes[1]
     subnodes = nodes[-1]
     args = nodes[2:-1]
     granularity, timestamps, values, is_aggregated = evaluate(
         subnodes, granularity, timestamps, initial_values,
-        is_aggregated, references)
-    return op(agg, granularity, timestamps, values, is_aggregated,
-              references, *args)
+        references)
+    if op == handle_aggregate:
+        is_aggregated = True
+    return (op(agg, granularity, timestamps, values, references, *args)
+            + (is_aggregated,))
 
 
 aggregation_operators = {
@@ -235,29 +235,25 @@ def sanity_check(method):
 
 
 @sanity_check
-def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
+def evaluate(nodes, granularity, timestamps, initial_values,
              references):
     if isinstance(nodes, numbers.Number):
-        return granularity, timestamps, nodes, is_aggregated
+        return granularity, timestamps, nodes, False
     elif nodes[0] in aggregation_operators:
         return handle_aggregation_operator(nodes, granularity, timestamps,
-                                           initial_values, is_aggregated,
-                                           references)
+                                           initial_values, references)
     elif nodes[0] in binary_operators:
         return handle_binary_operator(nodes, granularity, timestamps,
-                                      initial_values, is_aggregated,
-                                      references)
+                                      initial_values, references)
     elif nodes[0] in unary_operators:
         return handle_unary_operator(nodes, granularity, timestamps,
-                                     initial_values, is_aggregated,
-                                     references)
+                                     initial_values, references)
     elif nodes[0] == "metric":
         if isinstance(nodes[1], list):
             predicat = lambda r: r in nodes[1:]
         else:
             predicat = lambda r: r == nodes[1:]
         indexes = [i for i, r in enumerate(references) if predicat(r)]
-        return (granularity, timestamps, initial_values.T[indexes].T,
-                is_aggregated)
+        return (granularity, timestamps, initial_values.T[indexes].T, False)
     else:
         raise RuntimeError("Operation node tree is malformed: %s" % nodes)
