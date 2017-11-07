@@ -33,7 +33,10 @@ from gnocchi import indexer
 from gnocchi import resource_type
 from gnocchi import utils
 
-Base = declarative.declarative_base()
+# NOTE(sileht): We create sqlalchemy.Table dynamicaly for
+# resource_type and the sqla.Metadata() is not thread-safe.
+# To avoid race between thread, we create one metadata per thread.
+Base = declarative.declarative_base(metadata=sqlalchemy.ThreadLocalMetaData())
 
 COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
                       'mysql_engine': "InnoDB"}

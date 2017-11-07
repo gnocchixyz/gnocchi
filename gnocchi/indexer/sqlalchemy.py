@@ -134,12 +134,13 @@ class PerInstanceFacade(object):
             self.trans._factory._writer_engine.dispose()
 
 
-class ResourceClassMapper(object):
+class ResourceClassMapper(threading.local):
     def __init__(self):
+        super(ResourceClassMapper, self).__init__()
         # FIXME(sileht): 3 attributes, perhaps we need a better structure.
-        self._cache = {'generic': {'resource': base.Resource,
-                                   'history': base.ResourceHistory,
-                                   'updated_at': utils.utcnow()}}
+        self.cache = {'generic': {'resource': base.Resource,
+                                  'history': base.ResourceHistory,
+                                  'updated_at': utils.utcnow()}}
 
     @staticmethod
     def _build_class_mappers(resource_type, baseclass=None):
@@ -167,19 +168,19 @@ class ResourceClassMapper(object):
         # sqlalchemy to override its global object with extend_existing=True
         # this is safe because classname and tablename are uuid.
         try:
-            mappers = self._cache[resource_type.tablename]
+            mappers = self.cache[resource_type.tablename]
             # Cache is outdated
             if (resource_type.name != "generic"
                     and resource_type.updated_at > mappers['updated_at']):
                 for table_purpose in ['resource', 'history']:
                     Base.metadata.remove(Base.metadata.tables[
                         mappers[table_purpose].__tablename__])
-                del self._cache[resource_type.tablename]
+                del self.cache[resource_type.tablename]
                 raise KeyError
             return mappers
         except KeyError:
             mapper = self._build_class_mappers(resource_type)
-            self._cache[resource_type.tablename] = mapper
+            self.cache[resource_type.tablename] = mapper
             return mapper
 
     @retry_on_deadlock
@@ -195,9 +196,9 @@ class ResourceClassMapper(object):
         with facade.writer_connection() as connection:
             Base.metadata.create_all(connection, tables=tables)
 
-        # NOTE(sileht): no need to protect the _cache with a lock
+        # NOTE(sileht): no need to protect the cache with a lock
         # get_classes cannot be called in state creating
-        self._cache[resource_type.tablename] = mappers
+        self.cache[resource_type.tablename] = mappers
 
     @retry_on_deadlock
     def unmap_and_delete_tables(self, resource_type, facade):
@@ -206,7 +207,7 @@ class ResourceClassMapper(object):
                                "state deleting")
 
         mappers = self.get_classes(resource_type)
-        del self._cache[resource_type.tablename]
+        del self.cache[resource_type.tablename]
 
         tables = [Base.metadata.tables[mappers['resource'].__tablename__],
                   Base.metadata.tables[mappers['history'].__tablename__]]
