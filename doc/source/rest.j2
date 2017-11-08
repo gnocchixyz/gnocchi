@@ -852,6 +852,17 @@ Operations between metrics can also be done, such as:
 
 {{ scenarios['get-aggregates-between-metrics']['doc'] }}
 
+List the top N resources that consume the most CPU during the last hour
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following is configured so that `stop` - `start` = `granularity` will get
+only one point per instance.
+
+This will give all information needed to order by `cpu.util` timeseries which
+can be filtered down to N results.
+
+
+{{ scenarios['use-case1-top-cpuutil-per-instances']['doc'] }}
 
 Aggregation across metrics (deprecated)
 =======================================
@@ -944,7 +955,6 @@ reporting values such as the number of new |measures| to process for each
 |metric|:
 
 {{ scenarios['get-status']['doc'] }}
-
 
 Timestamp format
 ================
