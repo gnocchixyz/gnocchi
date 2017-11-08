@@ -8,6 +8,10 @@
       "back_window": 0,
       "definition": [
         {
+          "granularity": "1h",
+          "timespan": "7 day"
+        },
+        {
           "granularity": "1s",
           "timespan": "1 hour"
         },
@@ -52,6 +56,10 @@
 
     {
       "definition": [
+        {
+          "granularity": "1h",
+          "timespan": "7 day"
+        },
         {
           "granularity": "1s",
           "timespan": "1 hour"
@@ -825,3 +833,17 @@
 
 - name: get-status
   request: GET /v1/status HTTP/1.1
+
+
+- name: use-case1-top-cpuutil-per-instances
+  request: |
+    POST /v1/aggregates?start=2014-10-06T14:00&stop=2014-10-06T15:00&groupby=original_resource_id&groupby=display_name&granularity=3600.0 HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "resource_type": "instance",
+      "search": "server_group='my_autoscaling_group'",
+      "operations": "(metric cpu.util mean)"
+    }
+
+
