@@ -187,6 +187,13 @@ can be resampled to a new |granularity|.
 
 {{ scenarios['get-measures-resample']['doc'] }}
 
+
+.. note::
+
+   If you plan to execute the query often, it is recommended for performance
+   to leverage an |archive policy| with the needed |granularity| instead of
+   resampling the time series on each query.
+
 .. note::
 
    Depending on the |aggregation method| and frequency of |measures|, resampled
@@ -735,6 +742,13 @@ Resample
                        (mean, median, std, min, max, sum, var, count)
 
    granularity: the granularity (e.g.: 1d, 60s, ...)
+
+.. note::
+
+   If you plan to execute the query often, it is recommended for performance
+   to leverage an |archive policy| with the needed |granularity| instead of
+   resampling the time series on each query.
+
 
 Math operations
 ~~~~~~~~~~~~~~~
