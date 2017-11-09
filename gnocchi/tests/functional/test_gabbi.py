@@ -33,4 +33,5 @@ def load_tests(loader, tests, pattern):
     test_dir = os.path.join(os.path.dirname(__file__), TESTS_DIR)
     return driver.build_tests(test_dir, loader, host=None, prefix=PREFIX,
                               intercept=fixtures.setup_app,
-                              fixture_module=fixtures)
+                              fixture_module=fixtures,
+                              safe_yaml=False)
