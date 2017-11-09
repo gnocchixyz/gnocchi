@@ -1972,12 +1972,13 @@ def get_or_create_resource_and_metrics(
         target.update(resource_attributes)
         enforce("create resource", target)
 
+        kwargs = resource_attributes  # no copy used since not used after
+        kwargs['metrics'] = metrics
+        kwargs['original_resource_id'] = original_resource_id
+
         try:
             return pecan.request.indexer.create_resource(
-                resource_type, rid, creator,
-                original_resource_id=original_resource_id,
-                metrics=metrics,
-                **resource_attributes,
+                resource_type, rid, creator, **kwargs
             ).metrics
         except indexer.ResourceAlreadyExists:
             # NOTE(sileht): ensure the rid is not registered whitin another
@@ -2049,6 +2050,7 @@ class V1Controller(object):
     def __init__(self):
         # FIXME(sileht): split controllers to avoid lazy loading
         from gnocchi.rest.aggregates import api as agg_api
+        from gnocchi.rest import influxdb
 
         self.sub_controllers = {
             "search": SearchController(),
@@ -2062,6 +2064,7 @@ class V1Controller(object):
             "capabilities": CapabilityController(),
             "status": StatusController(),
             "aggregates": agg_api.AggregatesController(),
+            "influxdb": influxdb.InfluxDBController(),
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)

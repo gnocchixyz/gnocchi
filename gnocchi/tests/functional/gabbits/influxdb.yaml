@@ -1,0 +1,111 @@
+# Tests for the InfluxDB compatibility layer
+
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    # User admin
+    authorization: "basic YWRtaW46"
+    content-type: application/json
+
+tests:
+    - name: ping influxdb status with head
+      desc: test HEAD on ping – xfails because Pecan does not honor HEAD correctly yet
+      xfail: true
+      HEAD: /v1/influxdb/ping
+      status: 204
+
+    - name: ping influxdb status with get
+      GET: /v1/influxdb/ping
+      status: 204
+
+    - name: create a database
+      POST: /v1/influxdb/query?q=create+database+influxdbtest
+      status: 204
+
+    - name: check the resource type now exists
+      GET: /v1/resource_type/influxdbtest
+      status: 200
+      response_json_paths:
+        $:
+          name: influxdbtest
+          attributes: {}
+          state: active
+
+    - name: do an unrecognized query
+      POST: /v1/influxdb/query?q=select+metrics+plz
+      request_headers:
+        # This is useful to get the error in JSON format
+        accept: application/json
+      status: 501
+      response_json_paths:
+        $.description.cause: Not implemented error
+        $.description.detail: q
+        $.description.reason: Query not implemented
+
+    - name: create archive policy
+      POST: /v1/archive_policy
+      data:
+          name: low
+          definition:
+              - granularity: 1 hour
+      status: 201
+
+    - name: create archive policy for influxdb
+      POST: /v1/archive_policy_rule
+      data:
+        name: influxdb
+        metric_pattern: "*"
+        archive_policy_name: low
+      status: 201
+
+    - name: write a line
+      POST: /v1/influxdb/write?db=influxdbtest
+      request_headers:
+        content-type: text/plain
+      data:
+        "mymetric,host=foobar,mytag=myvalue field=123 1510581804179554816"
+      status: 204
+
+    - name: check resource created
+      GET: /v1/resource/influxdbtest/foobar
+      status: 200
+      response_json_paths:
+        $.original_resource_id: foobar
+        $.id: b4d568e4-7af1-5aec-ac3f-9c09fa3685a9
+        $.type: influxdbtest
+        $.creator: admin
+
+    - name: check metric created
+      GET: /v1/resource/influxdbtest/foobar/metric/mymetric.field@mytag=myvalue
+
+    - name: check measures processed
+      GET: /v1/resource/influxdbtest/foobar/metric/mymetric.field@mytag=myvalue/measures?refresh=true
+      response_json_paths:
+        $:
+          - ["2017-11-13T14:00:00+00:00", 3600.0, 123.0]
+
+    - name: write lines with different tag resource id
+      POST: /v1/influxdb/write?db=influxdbtest
+      request_headers:
+        content-type: text/plain
+        X-Gnocchi-InfluxDB-Tag-Resource-ID: mytag
+      data:
+        "mymetric,host=foobar,mytag=myvalue field=123 1510581804179554816\ncpu,path=/foobar,mytag=myvalue field=43i 1510581804179554816"
+      status: 204
+
+    - name: check resource created with different resource id
+      GET: /v1/resource/influxdbtest/myvalue
+      status: 200
+      response_json_paths:
+        $.original_resource_id: myvalue
+        $.id: 6b9e2039-98d0-5d8d-9153-2d7491cf13e5
+        $.type: influxdbtest
+        $.creator: admin
+
+    - name: check metric created different tag resource id
+      GET: /v1/resource/influxdbtest/myvalue/metric/mymetric.field@host=foobar
+
+    - name: check metric created different tag resource id and slash replaced
+      GET: /v1/resource/influxdbtest/myvalue/metric/cpu.field@path=_foobar
