@@ -24,9 +24,11 @@ import warnings
 
 import daiquiri
 from gabbi import fixture
+import numpy
 from oslo_config import cfg
 from oslo_middleware import cors
 import sqlalchemy_utils
+import yaml
 
 from gnocchi.cli import metricd
 from gnocchi import incoming
@@ -48,6 +50,17 @@ LOAD_APP_KWARGS = None
 def setup_app():
     global LOAD_APP_KWARGS
     return app.load_app(**LOAD_APP_KWARGS)
+
+
+class AssertNAN(yaml.YAMLObject):
+    def __eq__(self, other):
+        try:
+            return numpy.isnan(other)
+        except TypeError:
+            return False
+
+
+yaml.add_constructor(u'!AssertNAN', lambda loader, node: AssertNAN())
 
 
 class ConfigFixture(fixture.GabbiFixture):
