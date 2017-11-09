@@ -499,7 +499,7 @@ class MetricController(rest.RestController):
             try:
                 pecan.request.storage.refresh_metric(
                     pecan.request.indexer, pecan.request.incoming, self.metric,
-                    pecan.request.conf.api.refresh_timeout)
+                    pecan.request.conf.api.operation_timeout)
             except storage.SackLockTimeoutError as e:
                 abort(503, six.text_type(e))
         try:
@@ -1809,7 +1809,7 @@ class AggregationController(rest.RestController):
                     try:
                         pecan.request.storage.refresh_metric(
                             pecan.request.indexer, pecan.request.incoming, m,
-                            pecan.request.conf.api.refresh_timeout)
+                            pecan.request.conf.api.operation_timeout)
                     except storage.SackLockTimeoutError as e:
                         abort(503, six.text_type(e))
             if number_of_metrics == 1:
