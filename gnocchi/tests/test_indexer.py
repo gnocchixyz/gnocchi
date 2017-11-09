@@ -984,7 +984,10 @@ class TestIndexerDriver(tests_base.TestCase):
         resources = sorted(
             [r.jsonify() for r in resources],
             key=operator.itemgetter("revision_start"))
-        self.assertEqual([r1, r2], resources)
+        expected_resources = sorted(
+            [r1, r2],
+            key=operator.itemgetter("revision_start"))
+        self.assertEqual(expected_resources, resources)
 
     def test_list_resources_started_after_ended_before(self):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
