@@ -1817,7 +1817,7 @@ class AggregationController(rest.RestController):
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,
-                [(m, aggregation) for m in metrics],
+                [processor.MetricReference(m, aggregation) for m in metrics],
                 operations, start, stop,
                 granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:

@@ -136,7 +136,7 @@ tests:
       data:
         operations: "(aggregate mean (resample mean 60 (metric ($HISTORY['get metric list'].$RESPONSE['$[0].id'] mean) ($HISTORY['get metric list'].$RESPONSE['$[1].id'] mean))))"
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
           - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
@@ -242,7 +242,7 @@ tests:
         search: {}
         operations: '(aggregate mean (metric agg_meter mean))'
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 5.0]
@@ -261,7 +261,7 @@ tests:
         search: {}
         operations: '(aggregate mean (resample mean 60 (metric agg_meter mean)))'
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
           - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
@@ -273,7 +273,7 @@ tests:
         search: {}
         operations: '(aggregate mean (resample mean 60 (metric agg_meter mean)))'
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:33:00+00:00', 60.0, 23.1]
           - ['2015-03-06T14:34:00+00:00', 60.0, 7.0]
           - ['2015-03-06T14:35:00+00:00', 60.0, 5.0]
@@ -308,7 +308,7 @@ tests:
           count: 10
           delay: 1
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
@@ -337,7 +337,7 @@ tests:
         search: {}
         operations: '(aggregate mean (metric agg_meter mean))'
       response_json_paths:
-        $.aggregated:
+        $.measures.aggregated:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
