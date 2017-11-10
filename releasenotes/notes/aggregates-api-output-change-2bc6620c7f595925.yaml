@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Aggregates API output introduced in 4.1.0 doesn't allow for easy identification of which timeseries
+    is associated with what metrics/resources that have been queried. This have been fixed, but
+    the new output format is not backwards compatible with the format released in 4.1.0.

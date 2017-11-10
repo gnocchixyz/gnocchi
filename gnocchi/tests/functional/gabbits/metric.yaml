@@ -218,7 +218,7 @@ tests:
       data:
         operations: "(negative (resample mean 60 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
-        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+        $.measures."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']".mean:
           - ["2015-03-06T14:33:00+00:00", 60.0, -43.1]
           - ["2015-03-06T14:34:00+00:00", 60.0, -14.0]
           - ["2015-03-06T14:35:00+00:00", 60.0, -10.0]
@@ -240,7 +240,7 @@ tests:
       data:
         operations: "(absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       response_json_paths:
-        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+        $.measures."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']".mean:
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
           - ["2015-03-06T14:34:15+00:00", 1.0, 16.0]
@@ -255,7 +255,7 @@ tests:
         operations: "(rolling mean 2 (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean))"
       status: 200
       response_json_paths:
-        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+        $.measures."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']".mean:
           - ["2015-03-06T14:34:12+00:00", 1.0, 27.55]
           - ["2015-03-06T14:34:15+00:00", 1.0, 14.0]
           - ["2015-03-06T14:35:12+00:00", 1.0, 12.5]
@@ -268,7 +268,7 @@ tests:
       data:
         operations: "(negative (absolute (metric $HISTORY['list valid metrics'].$RESPONSE['$[0].id'] mean)))"
       response_json_paths:
-        $."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']_mean":
+        $.measures."$HISTORY['list valid metrics'].$RESPONSE['$[0].id']".mean:
           - ["2015-03-06T14:33:57+00:00", 1.0, -43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, -12.0]
           - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
