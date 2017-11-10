@@ -113,6 +113,25 @@ tests:
           value: 45.41
       status: 202
 
+    - name: get metrics
+      POST: /v1/aggregates
+      data:
+        resource_type: generic
+        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        operations: "(metric cpu.util mean)"
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $.what-name-we-choice-for-metric-1_mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 60.251666666666665]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 98.7]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 21.80333333333333]
+        $.what-name-we-choice-for-metric-2_mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 60.251666666666665]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 98.7]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 21.80333333333333]
+
     - name: aggregate metric
       POST: /v1/aggregates
       data:
