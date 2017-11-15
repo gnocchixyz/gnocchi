@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import functools
 import itertools
 import uuid
@@ -25,6 +26,7 @@ from pecan import rest
 import pyparsing
 import six
 from six.moves.urllib import parse as urllib_parse
+import tenacity
 import voluptuous
 import webob.exc
 import werkzeug.http
@@ -38,6 +40,13 @@ from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
+
+try:
+    from gnocchi.rest.prometheus import remote_pb2
+    import snappy
+    PROMETHEUS_SUPPORTED = True
+except ImportError:
+    PROMETHEUS_SUPPORTED = False
 
 
 def arg_to_list(value):
@@ -1890,6 +1899,118 @@ class BatchController(object):
     resources = ResourcesBatchController()
 
 
+class PrometheusWriteController(rest.RestController):
+
+    PROMETHEUS_RESOURCE_TYPE = {
+        "instance": {"type": "string",
+                     "min_length": 1,
+                     "max_length": 512,
+                     "required": True},
+        "job": {"type": "string",
+                "min_length": 1,
+                "max_length": 512,
+                "required": True}
+    }
+
+    # Retry with exponential backoff for up to 1 minute
+    @classmethod
+    @tenacity.retry(
+        wait=tenacity.wait_exponential(multiplier=0.5, max=60),
+        retry=tenacity.retry_if_exception_type(
+            (indexer.NoSuchResource, indexer.ResourceAlreadyExists,
+             indexer.ResourceTypeAlreadyExists,
+             indexer.NamedMetricAlreadyExists)))
+    def get_or_create_resource_and_metrics(cls, creator, rid,
+                                           original_resource_id,
+                                           job, instance, metric_names):
+        try:
+            r = pecan.request.indexer.get_resource('prometheus', rid,
+                                                   with_metrics=True)
+        except indexer.NoSuchResourceType:
+            schema = pecan.request.indexer.get_resource_type_schema()
+            rt = schema.resource_type_from_dict(
+                'prometheus', cls.PROMETHEUS_RESOURCE_TYPE, 'creating')
+            pecan.request.indexer.create_resource_type(rt)
+            raise tenacity.TryAgain
+        except indexer.UnexpectedResourceTypeState as e:
+            # NOTE(sileht): Currently created by another thread
+            if not e.state.endswith("_error"):
+                raise tenacity.TryAgain
+
+        if r:
+            exists_metric_names = [m.name for m in r.metrics]
+            metrics = MetricsSchema(dict(
+                (m, {}) for m in metric_names
+                if m not in exists_metric_names
+            ))
+            if metrics:
+                return pecan.request.indexer.update_resource(
+                    'prometheus', rid,
+                    metrics=metrics,
+                    append_metrics=True,
+                    create_revision=False
+                ).metrics
+            else:
+                return r.metrics
+        else:
+            metrics = MetricsSchema(dict((m, {}) for m in metric_names))
+            try:
+                return pecan.request.indexer.create_resource(
+                    'prometheus', rid, creator,
+                    original_resource_id=original_resource_id,
+                    job=job,
+                    instance=instance,
+                    metrics=metrics
+                ).metrics
+            except indexer.ResourceAlreadyExists:
+                # NOTE(sileht): ensure the rid is not registered within another
+                # resource type.
+                r = pecan.request.indexer.get_resource('generic', rid)
+                if r.type != 'prometheus':
+                    abort(409, six.text_type(e))
+                raise
+
+    @pecan.expose()
+    def post(self):
+        buf = snappy.uncompress(pecan.request.body)
+        f = remote_pb2.WriteRequest()
+        f.ParseFromString(buf)
+        measures_by_rid = collections.defaultdict(dict)
+        for ts in f.timeseries:
+            attrs = dict((l.name, l.value) for l in ts.labels)
+            original_rid = (attrs["job"], attrs["instance"])
+            name = attrs['__name__'].replace('/', '_')
+            if ts.samples:
+                measures_by_rid[original_rid][name] = (
+                    MeasuresListSchema([{'timestamp': s.timestamp_ms / 1000.0,
+                                         'value': s.value}
+                                        for s in ts.samples]))
+
+        creator = pecan.request.auth_helper.get_current_user(pecan.request)
+
+        measures_to_batch = {}
+        for (job, instance), measures in measures_by_rid.items():
+            original_rid = '%s@%s' % (job, instance)
+            rid = ResourceUUID(original_rid, creator=creator)
+            metric_names = list(measures.keys())
+            metrics = self.get_or_create_resource_and_metrics(
+                creator, rid, original_rid, job, instance, metric_names)
+
+            for metric in metrics:
+                enforce("post measures", metric)
+
+            measures_to_batch.update(
+                dict((metric, measures[metric.name]) for metric in
+                     metrics if metric.name in measures))
+
+        pecan.request.incoming.add_measures_batch(measures_to_batch)
+        pecan.response.status = 202
+
+
+class PrometheusController(object):
+    write = PrometheusWriteController()
+
+
 class V1Controller(object):
 
     def __init__(self):
@@ -1911,6 +2032,8 @@ class V1Controller(object):
         }
         for name, ctrl in self.sub_controllers.items():
             setattr(self, name, ctrl)
+        if PROMETHEUS_SUPPORTED:
+            setattr(self, "prometheus", PrometheusController())
 
     @pecan.expose('json')
     def index(self):
