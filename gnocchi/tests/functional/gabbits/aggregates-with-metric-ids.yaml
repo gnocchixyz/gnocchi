@@ -123,12 +123,52 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
           - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
 
-    - name: get aggregates
-      desc: we put metric2 twice to ensure we retrieve it once
+    - name: get measurements from metric3
+      GET: /v1/metric/$HISTORY['create metric3'].$RESPONSE['$.id']/measures?refresh=true
+      response_json_paths:
+        $: []
+
+    - name: get measurements from metric4
+      GET: /v1/metric/$HISTORY['create metric4'].$RESPONSE['$.id']/measures?refresh=true
+      response_json_paths:
+        $:
+          - ["2017-04-06T14:33:00+00:00", 60.0, 20.0]
+          - ["2017-04-06T14:34:00+00:00", 60.0, 10.0]
+          - ["2017-04-06T14:33:57+00:00", 1.0, 20.0]
+          - ["2017-04-06T14:34:12+00:00", 1.0, 10.0]
+
+    - name: get aggregates, no references
       POST: /v1/aggregates
+      data:
+        operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.`len`: 1
+        $.measures."$HISTORY['create metric1'].$RESPONSE['$.id']".mean:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 43.1]
+          - ["2015-03-06T14:34:00+00:00", 60.0, -2.0]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+        $.measures."$HISTORY['create metric2'].$RESPONSE['$.id']".mean:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 2.0]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 4.5]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 2.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 4.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, 5.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 15.0]
+
+    - name: get aggregates with references
+      desc: we put metric2 twice to ensure we retrieve it once
+      POST: /v1/aggregates?details=true
       data:
         operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"],  ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
       response_json_paths:
+        $.`len`: 2
         $.references.`len`: 2
         $.references[0].id: $HISTORY['create metric1'].$RESPONSE['$.id']
         $.references[1].id: $HISTORY['create metric2'].$RESPONSE['$.id']
@@ -156,6 +196,7 @@ tests:
     - name: get aggregates start and stop
       POST: /v1/aggregates
       query_parameters:
+        details: true
         start: "2015-03-06T14:34:00"
         stop: "2015-03-06T14:35:13"
       data:
@@ -180,7 +221,7 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 10.0]
 
     - name: get aggregates granularity
-      POST: /v1/aggregates?granularity=60
+      POST: /v1/aggregates?granularity=60&details=true
       data:
         operations: ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "max"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "min"]]
       response_json_paths:
@@ -199,7 +240,7 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
 
     - name: get aggregates simple with array
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: ["+", ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]], 2.0]
       response_json_paths:
@@ -227,7 +268,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
 
     - name: get aggregates resample
-      POST: /v1/aggregates?granularity=1
+      POST: /v1/aggregates?granularity=1&details=true
       data:
         operations:
           - resample
@@ -250,7 +291,7 @@ tests:
           - ["2015-03-06T14:35:00+00:00", 60.0, 12.5]
 
     - name: get aggregates rolling
-      POST: /v1/aggregates?granularity=1
+      POST: /v1/aggregates?granularity=1&details=true
       data:
         operations:
           - rolling
@@ -276,7 +317,7 @@ tests:
 
 
     - name: get one metric
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)"
       response_json_paths:
@@ -293,7 +334,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
 
     - name: get aggregates one metric
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(aggregate mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       response_json_paths:
@@ -310,7 +351,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
 
     - name: get aggregates math with string
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(+ (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)) 2.0)"
       response_json_paths:
@@ -337,7 +378,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 17.0]
 
     - name: get aggregates substact
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(- (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean) (metric $HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       response_json_paths:
@@ -355,7 +396,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, -4.0]
 
     - name: get aggregates mean aggregate
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       response_json_paths:
@@ -373,7 +414,7 @@ tests:
           - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
 
     - name: get aggregates negative absolute
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(negative (absolute (aggregate mean (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))))"
       response_json_paths:
@@ -404,7 +445,7 @@ tests:
       GET: /v1/metric/$HISTORY['create metric1'].$RESPONSE['$.id']/measures?refresh=true
 
     - name: fill and no granularity
-      POST: /v1/aggregates?fill=123
+      POST: /v1/aggregates?fill=123&details=true
       data:
         operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean))"
       response_json_paths:
@@ -439,7 +480,7 @@ tests:
           - ['2015-03-06T14:38:00+00:00', 1.0, 123.0]
 
     - name: no overlap dropna
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric4'].$RESPONSE['$.id'] mean))"
       response_json_paths:
@@ -466,7 +507,7 @@ tests:
           - ["2017-04-06T14:34:12+00:00", 1.0, 10.0]
 
     - name: no overlap null
-      POST: /v1/aggregates?fill=null
+      POST: /v1/aggregates?fill=null&details=true
       data:
         operations: "(metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric4'].$RESPONSE['$.id'] mean))"
       response_json_paths:
