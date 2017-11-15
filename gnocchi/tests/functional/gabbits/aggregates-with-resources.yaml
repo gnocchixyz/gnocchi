@@ -117,7 +117,7 @@ tests:
       GET: /v1/resource/generic
 
     - name: aggregate metric
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         resource_type: generic
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
@@ -136,7 +136,7 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 21.80333333333333]
 
     - name: batch get
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         resource_type: generic
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
@@ -163,7 +163,7 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
 
     - name: stupid but valid batch get
-      POST: /v1/aggregates
+      POST: /v1/aggregates?details=true
       data:
         resource_type: generic
         search: "id = '4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4'"
@@ -180,7 +180,7 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
 
     - name: aggregate metric with groupby on project_id and user_id with aggregates API
-      POST: /v1/aggregates?groupby=project_id&groupby=user_id
+      POST: /v1/aggregates?groupby=project_id&groupby=user_id&details=true
       data:
         resource_type: generic
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
