@@ -82,6 +82,8 @@ def api():
     workers = utils.get_default_workers()
 
     args = [
+        "--if-not-plugin", "python", "--plugin", "python", "--endif",
+        "--if-not-plugin", "http", "--plugin", "http", "--endif",
         "--http", "%s:%d" % (conf.host or conf.api.host,
                              conf.port or conf.api.port),
         "--master",
