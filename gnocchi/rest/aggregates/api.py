@@ -189,7 +189,9 @@ class AggregatesController(rest.RestController):
 
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
-             needed_overlap=None, fill=None, groupby=None):
+             needed_overlap=None, fill=None, groupby=None, **kwargs):
+        details = api.get_details(kwargs)
+
         if fill is None and needed_overlap is None:
             fill = "dropna"
         start, stop, granularity, needed_overlap, fill = api.validate_qs(
@@ -226,7 +228,7 @@ class AggregatesController(rest.RestController):
             if not groupby:
                 return self._get_measures_by_name(
                     resources, references, body["operations"], start, stop,
-                    granularity, needed_overlap, fill)
+                    granularity, needed_overlap, fill, details=details)
 
             def groupper(r):
                 return tuple((attr, r[attr]) for attr in groupby)
@@ -237,7 +239,7 @@ class AggregatesController(rest.RestController):
                     "group": dict(key),
                     "measures": self._get_measures_by_name(
                         resources, references, body["operations"], start, stop,
-                        granularity, needed_overlap, fill)
+                        granularity, needed_overlap, fill, details=details)
                 })
             return results
 
@@ -268,13 +270,19 @@ class AggregatesController(rest.RestController):
             metrics_by_ids = dict((six.text_type(m.id), m) for m in metrics)
             references = [processor.MetricReference(metrics_by_ids[m], a)
                           for (m, a) in references]
-            return {"references": references,
-                    "measures": get_measures_or_abort(
-                        references, body["operations"],
-                        start, stop, granularity, needed_overlap, fill)}
+
+            response = {
+                "measures": get_measures_or_abort(
+                    references, body["operations"],
+                    start, stop, granularity, needed_overlap, fill)
+            }
+            if details:
+                response["references"] = references
+            return response
 
     def _get_measures_by_name(self, resources, metric_names, operations,
-                              start, stop, granularity, needed_overlap, fill):
+                              start, stop, granularity, needed_overlap, fill,
+                              details):
 
         references = [
             processor.MetricReference(r.get_metric(metric_name), agg, r)
@@ -286,7 +294,11 @@ class AggregatesController(rest.RestController):
             api.abort(400, {"cause": "Metrics not found",
                             "detail": set((m for (m, a) in metric_names))})
 
-        return {"references": references,
-                "measures": get_measures_or_abort(
-                    references, operations, start, stop, granularity,
-                    needed_overlap, fill)}
+        response = {
+            "measures": get_measures_or_abort(
+                references, operations, start, stop, granularity,
+                needed_overlap, fill)
+        }
+        if details:
+            response["references"] = references
+        return response
