@@ -1298,6 +1298,9 @@ ResourceSearchSchemaAttributeValue = voluptuous.Any(
     six.text_type, float, int, bool, None)
 
 
+NotIDKey = voluptuous.All(six.text_type, voluptuous.NotIn(["id"]))
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request)
@@ -1314,20 +1317,21 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": _ResourceUUID,
-                     six.text_type: ResourceSearchSchemaAttributeValue},
+                     NotIDKey: ResourceSearchSchemaAttributeValue},
                 ),
-                voluptuous.Any(
-                    u"in",
-                ): voluptuous.All(
+                u"like": voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {NotIDKey: ResourceSearchSchemaAttributeValue},
+                ),
+                u"in": voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": voluptuous.All(
                         [_ResourceUUID],
                         voluptuous.Length(min=1)),
-                     six.text_type: voluptuous.All(
+                     NotIDKey: voluptuous.All(
                          [ResourceSearchSchemaAttributeValue],
                          voluptuous.Length(min=1))}
                 ),
