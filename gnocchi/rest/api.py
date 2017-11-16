@@ -1612,7 +1612,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         {utils.UUID: MeasuresListSchema}
     )
 
-    @pecan.expose()
+    @pecan.expose("json")
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
         metrics = pecan.request.indexer.list_metrics(

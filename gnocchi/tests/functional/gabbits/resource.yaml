@@ -481,6 +481,8 @@ tests:
           - timestamp: "2015-03-06T14:34:12"
             value: 12
       status: 202
+      response_headers:
+        content-length: 0
 
     - name: request cpuutil measures again
       GET: $LAST_URL
