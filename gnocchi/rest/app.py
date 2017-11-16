@@ -23,6 +23,7 @@ from oslo_policy import policy
 from paste import deploy
 import pecan
 from pecan import jsonify
+from pecan import templating
 from stevedore import driver
 import webob.exc
 
@@ -73,6 +74,17 @@ class NotImplementedMiddleware(object):
             raise webob.exc.HTTPNotImplemented(
                 "Sorry, this Gnocchi server does "
                 "not implement this feature 😞")
+
+
+class JsonRenderer(templating.JsonRenderer):
+    def render(self, template_path, namespace):
+        # NOTE(sileht): Unlike the builtin renderer of pecan
+        # we don't want to return "null" for None. Our API
+        # returns only empty, list or dict.
+        if namespace is None:
+            return ""
+        return super(JsonRenderer, self).render(template_path, namespace)
+
 
 # NOTE(sileht): pastedeploy uses ConfigParser to handle
 # global_conf, since python 3 ConfigParser doesn't
@@ -130,6 +142,7 @@ def _setup_app(root, conf, indexer, storage, incoming,
         root,
         hooks=(GnocchiHook(storage, indexer, incoming, conf),),
         guess_content_type_from_ext=False,
+        custom_renderers={"json": JsonRenderer}
     )
 
     if not_implemented_middleware:
