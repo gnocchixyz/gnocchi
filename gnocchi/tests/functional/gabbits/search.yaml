@@ -40,6 +40,29 @@ tests:
        - "expected a list for dictionary value @ data["
        - "'and']"
 
+    - name: search like id
+      POST: /v1/search/resource/generic
+      data:
+        like:
+          id: fa%
+      status: 400
+      response_strings:
+       - "Invalid input: extra keys not allowed @ data["
+       - "'like']["
+       - "'id']"
+
+    - name: search like list id
+      POST: /v1/search/resource/generic
+      data:
+        like:
+          id:
+            - fa%
+      status: 400
+      response_strings:
+       - "Invalid input: extra keys not allowed @ data["
+       - "'like']["
+       - "'id']"
+
     - name: search invalid ne value
       desc: attribute value for binary operator must not be dict or list
       POST: /v1/search/resource/generic
