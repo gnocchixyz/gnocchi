@@ -72,7 +72,7 @@ def prepare_service(args=None, conf=None,
                          "storage")
 
     log.set_defaults(default_log_levels=log.get_default_log_levels() +
-                     ["passlib.utils.compat=INFO"])
+                     ["passlib.utils.compat=INFO", "swiftclient=WARNING"])
     log.setup(conf, 'gnocchi')
     conf.log_opt_values(LOG, log.DEBUG)
 
