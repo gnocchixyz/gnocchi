@@ -225,7 +225,6 @@ tests:
         $.`len`: 1
 
     - name: get generic history with links page 2
-      xfail: https://bugs.launchpad.net/oslo.db/+bug/1615938
       desc: Ensure we can get the history
       GET: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9/history?limit=1&marker=75c44741-cc60-4033-804e-2d3098c7d2e9@1&sort=revision_end:asc-nullslast
       response_json_paths:

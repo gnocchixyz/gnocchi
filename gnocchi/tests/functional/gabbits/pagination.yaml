@@ -209,7 +209,6 @@ tests:
           $[0].ended_at: null
 
     - name: limit with history and links page 2
-      xfail: https://bugs.launchpad.net/oslo.db/+bug/1615938
       GET: /v1/resource/generic?history=true&limit=1&marker=1e3d5702-2cbf-46e0-ba13-0ddaa3c71150@1&sort=id:asc&sort=ended_at:asc-nullsfirst
       response_headers:
           link: "<$SCHEME://$NETLOC/v1/resource/generic?history=true&limit=1&marker=1e3d5702-2cbf-46e0-ba13-0ddaa3c71150%402&sort=id%3Aasc&sort=ended_at%3Aasc-nullsfirst>; rel=\"next\""
