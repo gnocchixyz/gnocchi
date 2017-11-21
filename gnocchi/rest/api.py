@@ -535,7 +535,7 @@ class MetricsController(rest.RestController):
         # NOTE(sileht): Don't get detail for measure
         details = len(remainder) == 0
         metrics = pecan.request.indexer.list_metrics(
-            id=metric_id, details=details)
+            attribute_filter={"=": {"id": metric_id}}, details=details)
         if not metrics:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
@@ -667,13 +667,17 @@ class MetricsController(rest.RestController):
 
         pagination_opts = get_pagination_options(kwargs,
                                                  METRIC_DEFAULT_PAGINATION)
-        attr_filter = {}
+        attr_filters = []
         if provided_creator is not None:
-            attr_filter['creator'] = provided_creator
-        attr_filter.update(pagination_opts)
-        attr_filter.update(kwargs)
+            attr_filters.append({"=": {"creator": provided_creator}})
+
+        for k, v in six.iteritems(kwargs):
+            attr_filters.append({"=": {k: v}})
+
         try:
-            metrics = pecan.request.indexer.list_metrics(**attr_filter)
+            metrics = pecan.request.indexer.list_metrics(
+                attribute_filter={"and": attr_filters},
+                **pagination_opts)
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
             return metrics
@@ -709,9 +713,12 @@ class NamedMetricController(rest.RestController):
         # NOTE(sileht): We want detail only when we GET /metric/<id>
         # and not for /metric/<id>/measures
         details = pecan.request.method == 'GET' and len(remainder) == 0
-        m = pecan.request.indexer.list_metrics(details=details,
-                                               name=name,
-                                               resource_id=self.resource_id)
+        m = pecan.request.indexer.list_metrics(
+            details=details,
+            attribute_filter={"and": [
+                {"=": {"name": name}},
+                {"=": {"resource_id": self.resource_id}},
+            ]})
         if m:
             return MetricController(m[0]), remainder
 
@@ -755,7 +762,8 @@ class NamedMetricController(rest.RestController):
         if not resource:
             abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
         enforce("get resource", resource)
-        return pecan.request.indexer.list_metrics(resource_id=self.resource_id)
+        return pecan.request.indexer.list_metrics(
+            attribute_filter={"=": {"resource_id": self.resource_id}})
 
 
 class ResourceHistoryController(rest.RestController):
@@ -1519,7 +1527,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                              resource_id)]
             names = body[(original_resource_id, resource_id)].keys()
             metrics = pecan.request.indexer.list_metrics(
-                names=names, resource_id=resource_id)
+                names=names,
+                attribute_filter={"=": {"resource_id": resource_id}},
+            )
 
             known_names = [m.name for m in metrics]
             if strtobool("create_metrics", create_metrics):
@@ -1558,8 +1568,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                     known_metrics.extend(
                         pecan.request.indexer.list_metrics(
                             names=already_exists_names,
-                            resource_id=resource_id)
-                    )
+                            attribute_filter={"=":
+                                              {"resource_id": resource_id}},
+                    ))
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(
