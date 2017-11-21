@@ -375,7 +375,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def list_metrics(ids=None, details=False, status='active',
+    def list_metrics(details=False, status='active',
                      limit=None, marker=None, sorts=None,
                      attribute_filter=None):
         raise exceptions.NotImplementedError

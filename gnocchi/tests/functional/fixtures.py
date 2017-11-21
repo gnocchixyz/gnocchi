@@ -198,7 +198,8 @@ class MetricdThread(threading.Thread):
     def run(self):
         while self.flag:
             metrics = utils.list_all_incoming_metrics(self.incoming)
-            metrics = self.index.list_metrics(ids=metrics)
+            metrics = self.index.list_metrics(
+                attribute_filter={"in": {"id": metrics}})
             for metric in metrics:
                 self.storage.refresh_metric(self.index,
                                             self.incoming,

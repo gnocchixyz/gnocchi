@@ -1468,7 +1468,7 @@ class SearchMetricController(rest.RestController):
         granularity = [utils.to_timespan(g)
                        for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
-            ids=arg_to_list(metric_id))
+            attribute_filter={"in": {"id": arg_to_list(metric_id)}})
 
         for metric in metrics:
             enforce("search metric", metric)
@@ -1613,7 +1613,8 @@ class MetricsMeasuresBatchController(rest.RestController):
     @pecan.expose()
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
-        metrics = pecan.request.indexer.list_metrics(ids=body.keys())
+        metrics = pecan.request.indexer.list_metrics(
+            attribute_filter={"in": {"id": list(body.keys())}})
 
         if len(metrics) != len(body):
             missing_metrics = sorted(set(body) - set(m.id for m in metrics))
@@ -1855,7 +1856,8 @@ class AggregationController(rest.RestController):
 
         metric_ids = [six.text_type(m) for m in metric_ids]
         # Check RBAC policy
-        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
+        metrics = pecan.request.indexer.list_metrics(
+            attribute_filter={"in": {"id": metric_ids}})
         missing_metric_ids = (set(metric_ids)
                               - set(six.text_type(m.id) for m in metrics))
         if missing_metric_ids:
