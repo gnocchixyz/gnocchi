@@ -686,19 +686,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return m
 
     @retry_on_deadlock
-    def list_metrics(self, names=None, ids=None, details=False,
+    def list_metrics(self, ids=None, details=False,
                      status='active', limit=None, marker=None, sorts=None,
                      attribute_filter=None):
         sorts = sorts or []
         if ids is not None and not ids:
             return []
-        if names is not None and not names:
-            return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status)
-            if names is not None:
-                q = q.filter(Metric.name.in_(names))
             if ids is not None:
                 q = q.filter(Metric.id.in_(ids))
             if details:
