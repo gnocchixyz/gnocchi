@@ -688,7 +688,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @retry_on_deadlock
     def list_metrics(self, details=False, status='active',
                      limit=None, marker=None, sorts=None,
-                     policy_filter=None,
+                     policy_filter=None, resource_policy_filter=None,
                      attribute_filter=None):
         sorts = sorts or []
         with self.facade.independent_reader() as session:
@@ -696,7 +696,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Metric.status == status)
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
-            if policy_filter or attribute_filter:
+            if policy_filter or resource_policy_filter or attribute_filter:
                 engine = session.connection()
                 if attribute_filter:
                     # We don't catch the indexer.QueryAttributeError error here
@@ -710,12 +710,30 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if policy_filter:
                     # We don't catch the indexer.QueryAttributeError error here
                     # since we expect any user input on this function. If the
-                    # caller screws it, it's its problem: no need to convert the
-                    # exception to another type.
+                    # caller screws it, it's its problem: no need to convert
+                    # the exception to another type.
                     policy_f = QueryTransformer.build_filter(
                         engine.dialect.name,
                         Metric, policy_filter)
-                    q = q.filter(policy_f)
+                else:
+                    policy_f = None
+                if resource_policy_filter:
+                    q = q.join(Metric.resource)
+                    try:
+                        resource_policy_f = QueryTransformer.build_filter(
+                            engine.dialect.name,
+                            Resource,
+                            resource_policy_filter)
+                    except indexer.QueryAttributeError as e:
+                        # NOTE(jd) The QueryAttributeError does not know about
+                        # resource_type, so convert it
+                        raise indexer.ResourceAttributeError("generic",
+                                                             e.attribute)
+                else:
+                    resource_policy_f = None
+
+                if policy_filter or resource_policy_filter:
+                    q = q.filter(sqlalchemy.or_(policy_f, resource_policy_f))
 
             sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
 
