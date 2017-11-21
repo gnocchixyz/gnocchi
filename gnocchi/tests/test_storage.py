@@ -884,7 +884,7 @@ class TestStorageDriver(tests_base.TestCase):
         ap = archive_policy.ArchivePolicy(name, 0, [(3, 5)])
         self.index.create_archive_policy(ap)
         m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()), name)
-        m = self.index.list_metrics(ids=[m.id])[0]
+        m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
         self.incoming.add_measures(m, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 0), 1),
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 1),
@@ -899,7 +899,7 @@ class TestStorageDriver(tests_base.TestCase):
         # expand to more points
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
-        m = self.index.list_metrics(ids=[m.id])[0]
+        m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
         self.incoming.add_measures(m, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 15), 1),
         ])
@@ -913,7 +913,7 @@ class TestStorageDriver(tests_base.TestCase):
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
-        m = self.index.list_metrics(ids=[m.id])[0]
+        m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),

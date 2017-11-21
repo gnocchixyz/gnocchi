@@ -348,7 +348,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchResource,
                           self.index.delete_resource,
                           r1)
-        metrics = self.index.list_metrics(ids=[e1, e2])
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [e1, e2]}})
         self.assertEqual([], metrics)
 
     def test_delete_resource_non_existent(self):
@@ -1064,8 +1065,9 @@ class TestIndexerDriver(tests_base.TestCase):
         g2 = self.index.create_resource('generic', r2, creator,
                                         user, project, metrics=metrics)
 
-        metrics = self.index.list_metrics(ids=[g1['metrics'][0]['id'],
-                                               g2['metrics'][0]['id']])
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [g1['metrics'][0]['id'],
+                                            g2['metrics'][0]['id']]}})
         self.assertEqual(2, len(metrics))
         for m in metrics:
             self.assertEqual('active', m['status'])
@@ -1080,9 +1082,10 @@ class TestIndexerDriver(tests_base.TestCase):
             attribute_filter={"=": {"user_id": user}})
         self.assertEqual(0, len(resources))
 
-        metrics = self.index.list_metrics(ids=[g1['metrics'][0]['id'],
-                                               g2['metrics'][0]['id']],
-                                          status='delete')
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [g1['metrics'][0]['id'],
+                                            g2['metrics'][0]['id']]}},
+            status='delete')
         self.assertEqual(2, len(metrics))
         for m in metrics:
             self.assertEqual('delete', m['status'])
@@ -1122,7 +1125,8 @@ class TestIndexerDriver(tests_base.TestCase):
             attribute_filter={"=": {"id": e1}}))
 
     def test_get_metric_empty_list_uuids(self):
-        self.assertEqual([], self.index.list_metrics(ids=[]))
+        self.assertEqual([], self.index.list_metrics(
+            attribute_filter={"in": {"id": []}}))
 
     def test_list_metrics(self):
         e1 = uuid.uuid4()

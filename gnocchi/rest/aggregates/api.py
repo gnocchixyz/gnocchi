@@ -252,7 +252,8 @@ class AggregatesController(rest.RestController):
                                 "reason": six.text_type(e),
                                 "detail": references})
 
-            metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
+            metrics = pecan.request.indexer.list_metrics(
+                attribute_filter={"in": {"id": metric_ids}})
             missing_metric_ids = (set(metric_ids)
                                   - set(six.text_type(m.id) for m in metrics))
             if missing_metric_ids:

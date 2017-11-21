@@ -686,17 +686,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return m
 
     @retry_on_deadlock
-    def list_metrics(self, ids=None, details=False,
-                     status='active', limit=None, marker=None, sorts=None,
+    def list_metrics(self, details=False, status='active',
+                     limit=None, marker=None, sorts=None,
                      attribute_filter=None):
         sorts = sorts or []
-        if ids is not None and not ids:
-            return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status)
-            if ids is not None:
-                q = q.filter(Metric.id.in_(ids))
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
             if attribute_filter:
@@ -713,7 +709,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
 
             if marker:
-                metric_marker = self.list_metrics(ids=[marker])
+                metric_marker = self.list_metrics(
+                    attribute_filter={"in": {"id": [marker]}})
                 if metric_marker:
                     metric_marker = metric_marker[0]
                 else:
