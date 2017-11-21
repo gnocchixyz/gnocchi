@@ -1525,11 +1525,12 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for original_resource_id, resource_id in body:
             body_by_rid[resource_id] = body[(original_resource_id,
                                              resource_id)]
-            names = body[(original_resource_id, resource_id)].keys()
+            names = list(body[(original_resource_id, resource_id)].keys())
             metrics = pecan.request.indexer.list_metrics(
-                names=names,
-                attribute_filter={"=": {"resource_id": resource_id}},
-            )
+                attribute_filter={"and": [
+                    {"=": {"resource_id": resource_id}},
+                    {"in": {"name": names}},
+                ]})
 
             known_names = [m.name for m in metrics]
             if strtobool("create_metrics", create_metrics):
@@ -1567,10 +1568,10 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                     known_names.extend(already_exists_names)
                     known_metrics.extend(
                         pecan.request.indexer.list_metrics(
-                            names=already_exists_names,
-                            attribute_filter={"=":
-                                              {"resource_id": resource_id}},
-                    ))
+                            attribute_filter={"and": [
+                                {"=": {"resource_id": resource_id}},
+                                {"in": {"name": already_exists_names}},
+                            ]}))
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(
