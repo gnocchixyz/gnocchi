@@ -278,7 +278,8 @@ class AggregatesController(rest.RestController):
                     start, stop, granularity, needed_overlap, fill)
             }
             if details:
-                response["references"] = references
+                response["references"] = metrics
+
             return response
 
     def _get_measures_by_name(self, resources, metric_names, operations,
@@ -301,5 +302,5 @@ class AggregatesController(rest.RestController):
                 needed_overlap, fill)
         }
         if details:
-            response["references"] = references
+            response["references"] = set((r.resource for r in references))
         return response
