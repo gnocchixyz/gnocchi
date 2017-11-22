@@ -16,14 +16,18 @@ Running API As A WSGI Application
 =================================
 
 To run Gnocchi API, you can use the provided `gnocchi-api`. It wraps around
-`uwsgi` – makes sure that `uwsgi`_ is installed. If one Gnocchi API server is
+`uwsgi` – makes sure that `uWSGI`_ is installed. If one Gnocchi API server is
 not enough, you can spawn any number of new API server to scale Gnocchi out,
 even on different machines.
 
 Since Gnocchi API tier runs using WSGI, it can alternatively be run using
-`Apache httpd`_ and `mod_wsgi`_, or any other HTTP daemon. If you want to
-deploy using `uwsgi`_ yourself, the following uwsgi configuration file can be
-used as a base::
+`Apache httpd`_ and `mod_wsgi`_, or any other HTTP daemon.
+
+uWSGI
+-----
+
+If you want to deploy using `uWSGI`_ yourself, the following uWSGI
+configuration file can be used as a base::
 
   [uwsgi]
   http = localhost:8041
@@ -48,9 +52,28 @@ Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
 
   uwsgi /etc/gnocchi/uwsgi.ini
 
+Apache mod_wsgi
+---------------
+
+If you want to use Apache httpd `mod_wsgi`_, here's an example configuration
+file::
+
+  <VirtualHost *:8041>
+    WSGIDaemonProcess gnocchi user=gnocchi processes=4 threads=32 display-name=%{GROUP}
+    WSGIProcessGroup gnocchi
+    WSGIScriptAlias / /usr/local/bin/gnocchi-api
+    WSGIPassAuthorization On
+    WSGIApplicationGroup %{GLOBAL}
+
+    <Directory />
+        Require all granted
+    </Directory>
+  </VirtualHost>
+
+
 .. _Apache httpd: http://httpd.apache.org/
 .. _mod_wsgi: https://modwsgi.readthedocs.org/
-.. _uwsgi: https://uwsgi-docs.readthedocs.org/
+.. _uWSGI: https://uwsgi-docs.readthedocs.org/
 
 How to define archive policies
 ==============================
