@@ -1924,29 +1924,29 @@ class PrometheusWriteController(rest.RestController):
     }
 
     # Retry with exponential backoff for up to 1 minute
-    @classmethod
+    @staticmethod
     @tenacity.retry(
         wait=tenacity.wait_exponential(multiplier=0.5, max=60),
         retry=tenacity.retry_if_exception_type(
             (indexer.NoSuchResource, indexer.ResourceAlreadyExists,
              indexer.ResourceTypeAlreadyExists,
              indexer.NamedMetricAlreadyExists)))
-    def get_or_create_resource_and_metrics(cls, creator, rid,
-                                           original_resource_id,
-                                           job, instance, metric_names):
+    def get_or_create_resource_and_metrics(
+            creator, rid, original_resource_id, job, instance, metric_names,
+            resource_type, resource_type_attributes):
         try:
-            r = pecan.request.indexer.get_resource('prometheus', rid,
+            r = pecan.request.indexer.get_resource(resource_type, rid,
                                                    with_metrics=True)
         except indexer.NoSuchResourceType:
             enforce("create resource type", {
-                'name': 'prometheus',
+                'name': resource_type,
                 'state': 'creating',
-                'attributes': cls.PROMETHEUS_RESOURCE_TYPE
+                'attributes': resource_type_attributes,
             })
 
             schema = pecan.request.indexer.get_resource_type_schema()
             rt = schema.resource_type_from_dict(
-                'prometheus', cls.PROMETHEUS_RESOURCE_TYPE, 'creating')
+                resource_type, resource_type_attributes, 'creating')
             pecan.request.indexer.create_resource_type(rt)
             raise tenacity.TryAgain
         except indexer.UnexpectedResourceTypeState as e:
@@ -1963,7 +1963,7 @@ class PrometheusWriteController(rest.RestController):
             ))
             if metrics:
                 return pecan.request.indexer.update_resource(
-                    'prometheus', rid,
+                    resource_type, rid,
                     metrics=metrics,
                     append_metrics=True,
                     create_revision=False
@@ -1974,7 +1974,7 @@ class PrometheusWriteController(rest.RestController):
             metrics = MetricsSchema(dict((m, {}) for m in metric_names))
             target = {
                 "id": rid,
-                "resource_type": "prometheus",
+                "resource_type": resource_type,
                 "creator": creator,
                 "original_resource_id": original_resource_id,
                 "job": job,
@@ -1985,7 +1985,7 @@ class PrometheusWriteController(rest.RestController):
 
             try:
                 return pecan.request.indexer.create_resource(
-                    'prometheus', rid, creator,
+                    resource_type, rid, creator,
                     original_resource_id=original_resource_id,
                     job=job,
                     instance=instance,
@@ -1995,7 +1995,7 @@ class PrometheusWriteController(rest.RestController):
                 # NOTE(sileht): ensure the rid is not registered whitin another
                 # resource type.
                 r = pecan.request.indexer.get_resource('generic', rid)
-                if r.type != 'prometheus':
+                if r.type != resource_type:
                     abort(409, six.text_type(e))
                 raise
 
@@ -2023,7 +2023,8 @@ class PrometheusWriteController(rest.RestController):
             rid = ResourceUUID(original_rid, creator=creator)
             metric_names = list(measures.keys())
             metrics = self.get_or_create_resource_and_metrics(
-                creator, rid, original_rid, job, instance, metric_names)
+                creator, rid, original_rid, job, instance, metric_names,
+                "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
 
             for metric in metrics:
                 enforce("post measures", metric)
