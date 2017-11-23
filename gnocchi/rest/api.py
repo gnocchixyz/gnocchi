@@ -1925,7 +1925,8 @@ class BatchController(object):
          indexer.ResourceTypeAlreadyExists,
          indexer.NamedMetricAlreadyExists)))
 def get_or_create_resource_and_metrics(
-        creator, rid, original_resource_id, job, instance, metric_names,
+        creator, rid, original_resource_id, metric_names,
+        resource_attributes,
         resource_type, resource_type_attributes=None):
     try:
         r = pecan.request.indexer.get_resource(resource_type, rid,
@@ -1973,19 +1974,17 @@ def get_or_create_resource_and_metrics(
             "resource_type": resource_type,
             "creator": creator,
             "original_resource_id": original_resource_id,
-            "job": job,
-            "instance": instance,
             "metrics": metrics,
         }
+        target.update(resource_attributes)
         enforce("create resource", target)
 
         try:
             return pecan.request.indexer.create_resource(
                 resource_type, rid, creator,
                 original_resource_id=original_resource_id,
-                job=job,
-                instance=instance,
-                metrics=metrics
+                metrics=metrics,
+                **resource_attributes,
             ).metrics
         except indexer.ResourceAlreadyExists:
             # NOTE(sileht): ensure the rid is not registered whitin another
@@ -2033,7 +2032,8 @@ class PrometheusWriteController(rest.RestController):
             rid = ResourceUUID(original_rid, creator=creator)
             metric_names = list(measures.keys())
             metrics = get_or_create_resource_and_metrics(
-                creator, rid, original_rid, job, instance, metric_names,
+                creator, rid, original_rid, metric_names,
+                dict(job=job, instance=instance),
                 "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
 
             for metric in metrics:
