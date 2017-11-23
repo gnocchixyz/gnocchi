@@ -1910,6 +1910,85 @@ class BatchController(object):
     resources = ResourcesBatchController()
 
 
+# Retry with exponential backoff for up to 1 minute
+@tenacity.retry(
+    wait=tenacity.wait_exponential(multiplier=0.5, max=60),
+    retry=tenacity.retry_if_exception_type(
+        (indexer.NoSuchResource, indexer.ResourceAlreadyExists,
+         indexer.ResourceTypeAlreadyExists,
+         indexer.NamedMetricAlreadyExists)))
+def get_or_create_resource_and_metrics(
+        creator, rid, original_resource_id, job, instance, metric_names,
+        resource_type, resource_type_attributes=None):
+    try:
+        r = pecan.request.indexer.get_resource(resource_type, rid,
+                                               with_metrics=True)
+    except indexer.NoSuchResourceType:
+        if resource_type_attributes:
+            enforce("create resource type", {
+                'name': resource_type,
+                'state': 'creating',
+                'attributes': resource_type_attributes,
+            })
+
+            schema = pecan.request.indexer.get_resource_type_schema()
+            rt = schema.resource_type_from_dict(
+                resource_type, resource_type_attributes, 'creating')
+            pecan.request.indexer.create_resource_type(rt)
+            raise tenacity.TryAgain
+        else:
+            raise
+    except indexer.UnexpectedResourceTypeState as e:
+        # NOTE(sileht): Currently created by another thread
+        if not e.state.endswith("_error"):
+            raise tenacity.TryAgain
+
+    if r:
+        enforce("update resource", r)
+        exists_metric_names = [m.name for m in r.metrics]
+        metrics = MetricsSchema(dict(
+            (m, {}) for m in metric_names
+            if m not in exists_metric_names
+        ))
+        if metrics:
+            return pecan.request.indexer.update_resource(
+                resource_type, rid,
+                metrics=metrics,
+                append_metrics=True,
+                create_revision=False
+            ).metrics
+        else:
+            return r.metrics
+    else:
+        metrics = MetricsSchema(dict((m, {}) for m in metric_names))
+        target = {
+            "id": rid,
+            "resource_type": resource_type,
+            "creator": creator,
+            "original_resource_id": original_resource_id,
+            "job": job,
+            "instance": instance,
+            "metrics": metrics,
+        }
+        enforce("create resource", target)
+
+        try:
+            return pecan.request.indexer.create_resource(
+                resource_type, rid, creator,
+                original_resource_id=original_resource_id,
+                job=job,
+                instance=instance,
+                metrics=metrics
+            ).metrics
+        except indexer.ResourceAlreadyExists:
+            # NOTE(sileht): ensure the rid is not registered whitin another
+            # resource type.
+            r = pecan.request.indexer.get_resource('generic', rid)
+            if r.type != resource_type:
+                abort(409, six.text_type(e))
+            raise
+
+
 class PrometheusWriteController(rest.RestController):
 
     PROMETHEUS_RESOURCE_TYPE = {
@@ -1922,85 +2001,6 @@ class PrometheusWriteController(rest.RestController):
                 "max_length": 512,
                 "required": True}
     }
-
-    # Retry with exponential backoff for up to 1 minute
-    @staticmethod
-    @tenacity.retry(
-        wait=tenacity.wait_exponential(multiplier=0.5, max=60),
-        retry=tenacity.retry_if_exception_type(
-            (indexer.NoSuchResource, indexer.ResourceAlreadyExists,
-             indexer.ResourceTypeAlreadyExists,
-             indexer.NamedMetricAlreadyExists)))
-    def get_or_create_resource_and_metrics(
-            creator, rid, original_resource_id, job, instance, metric_names,
-            resource_type, resource_type_attributes=None):
-        try:
-            r = pecan.request.indexer.get_resource(resource_type, rid,
-                                                   with_metrics=True)
-        except indexer.NoSuchResourceType:
-            if resource_type_attributes:
-                enforce("create resource type", {
-                    'name': resource_type,
-                    'state': 'creating',
-                    'attributes': resource_type_attributes,
-                })
-
-                schema = pecan.request.indexer.get_resource_type_schema()
-                rt = schema.resource_type_from_dict(
-                    resource_type, resource_type_attributes, 'creating')
-                pecan.request.indexer.create_resource_type(rt)
-                raise tenacity.TryAgain
-            else:
-                raise
-        except indexer.UnexpectedResourceTypeState as e:
-            # NOTE(sileht): Currently created by another thread
-            if not e.state.endswith("_error"):
-                raise tenacity.TryAgain
-
-        if r:
-            enforce("update resource", r)
-            exists_metric_names = [m.name for m in r.metrics]
-            metrics = MetricsSchema(dict(
-                (m, {}) for m in metric_names
-                if m not in exists_metric_names
-            ))
-            if metrics:
-                return pecan.request.indexer.update_resource(
-                    resource_type, rid,
-                    metrics=metrics,
-                    append_metrics=True,
-                    create_revision=False
-                ).metrics
-            else:
-                return r.metrics
-        else:
-            metrics = MetricsSchema(dict((m, {}) for m in metric_names))
-            target = {
-                "id": rid,
-                "resource_type": resource_type,
-                "creator": creator,
-                "original_resource_id": original_resource_id,
-                "job": job,
-                "instance": instance,
-                "metrics": metrics,
-            }
-            enforce("create resource", target)
-
-            try:
-                return pecan.request.indexer.create_resource(
-                    resource_type, rid, creator,
-                    original_resource_id=original_resource_id,
-                    job=job,
-                    instance=instance,
-                    metrics=metrics
-                ).metrics
-            except indexer.ResourceAlreadyExists:
-                # NOTE(sileht): ensure the rid is not registered whitin another
-                # resource type.
-                r = pecan.request.indexer.get_resource('generic', rid)
-                if r.type != resource_type:
-                    abort(409, six.text_type(e))
-                raise
 
     @pecan.expose()
     def post(self):
@@ -2025,7 +2025,7 @@ class PrometheusWriteController(rest.RestController):
             original_rid = '%s@%s' % (job, instance)
             rid = ResourceUUID(original_rid, creator=creator)
             metric_names = list(measures.keys())
-            metrics = self.get_or_create_resource_and_metrics(
+            metrics = get_or_create_resource_and_metrics(
                 creator, rid, original_rid, job, instance, metric_names,
                 "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
 
