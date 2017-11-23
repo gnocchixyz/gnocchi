@@ -1933,22 +1933,25 @@ class PrometheusWriteController(rest.RestController):
              indexer.NamedMetricAlreadyExists)))
     def get_or_create_resource_and_metrics(
             creator, rid, original_resource_id, job, instance, metric_names,
-            resource_type, resource_type_attributes):
+            resource_type, resource_type_attributes=None):
         try:
             r = pecan.request.indexer.get_resource(resource_type, rid,
                                                    with_metrics=True)
         except indexer.NoSuchResourceType:
-            enforce("create resource type", {
-                'name': resource_type,
-                'state': 'creating',
-                'attributes': resource_type_attributes,
-            })
+            if resource_type_attributes:
+                enforce("create resource type", {
+                    'name': resource_type,
+                    'state': 'creating',
+                    'attributes': resource_type_attributes,
+                })
 
-            schema = pecan.request.indexer.get_resource_type_schema()
-            rt = schema.resource_type_from_dict(
-                resource_type, resource_type_attributes, 'creating')
-            pecan.request.indexer.create_resource_type(rt)
-            raise tenacity.TryAgain
+                schema = pecan.request.indexer.get_resource_type_schema()
+                rt = schema.resource_type_from_dict(
+                    resource_type, resource_type_attributes, 'creating')
+                pecan.request.indexer.create_resource_type(rt)
+                raise tenacity.TryAgain
+            else:
+                raise
         except indexer.UnexpectedResourceTypeState as e:
             # NOTE(sileht): Currently created by another thread
             if not e.state.endswith("_error"):
