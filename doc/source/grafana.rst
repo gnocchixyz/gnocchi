@@ -31,16 +31,21 @@ steps:
    Grafana::
 
      [cors]
-     allowed_origin = http://example.com/grafana
+     allowed_origin = http://grafana.fqdn
 
 2. Configure the CORS middleware in Keystone to allow request from Grafana too::
 
      [cors]
-     allowed_origin = http://example.com/grafana
+     allowed_origin = http://grafana.fqdn
 
 3. Configure a new datasource in Grafana with the Keystone URL, a user, a
    project and a password. Your browser will query Keystone for a token, and
    then query Gnocchi based on what Grafana needs.
+
+.. note::
+
+    `allowed_origin` format is format: `<protocol>://<host>[:<port>]`. No path,
+    no query string and no trailing `/`.
 
 .. image:: _static/grafana-screenshot.png
   :align: center
