@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Metricd exposes a new option called `greedy` (true by default) that allows
+    to control whether eager processing of new measures is enabled when
+    available.

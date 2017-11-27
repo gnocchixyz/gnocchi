@@ -31,7 +31,7 @@ botocore = s3.botocore
 
 class S3Storage(incoming.IncomingDriver):
 
-    def __init__(self, conf):
+    def __init__(self, conf, greedy=True):
         super(S3Storage, self).__init__(conf)
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)

@@ -172,9 +172,10 @@ class MetricProcessor(MetricProcessBase):
                       'partitioning. Retrying: %s', e)
             raise tenacity.TryAgain(e)
 
-        filler = threading.Thread(target=self._fill_sacks_to_process)
-        filler.daemon = True
-        filler.start()
+        if self.conf.metricd.greedy:
+            filler = threading.Thread(target=self._fill_sacks_to_process)
+            filler.daemon = True
+            filler.start()
 
     @retry_on_exception.wraps
     def _fill_sacks_to_process(self):
