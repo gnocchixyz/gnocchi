@@ -28,7 +28,7 @@ from gnocchi import utils
 
 
 class FileStorage(incoming.IncomingDriver):
-    def __init__(self, conf):
+    def __init__(self, conf, greedy=True):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
