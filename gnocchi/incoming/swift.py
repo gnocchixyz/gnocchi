@@ -27,7 +27,7 @@ swift_utils = swift.swift_utils
 
 
 class SwiftStorage(incoming.IncomingDriver):
-    def __init__(self, conf):
+    def __init__(self, conf, greedy=True):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
 

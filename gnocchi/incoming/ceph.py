@@ -30,7 +30,7 @@ class CephStorage(incoming.IncomingDriver):
 
     Q_LIMIT = 1000
 
-    def __init__(self, conf):
+    def __init__(self, conf, greedy=True):
         super(CephStorage, self).__init__(conf)
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
         # NOTE(sileht): constants can't be class attributes because
