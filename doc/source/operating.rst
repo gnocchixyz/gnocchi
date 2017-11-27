@@ -289,4 +289,52 @@ your file system). The procedure to restore is no more complicated than initial
 deployment: restore your index and storage backups, reinstall Gnocchi if
 necessary, and restart it.
 
+How to clear Gnocchi data
+=========================
+
+If you ever want to start fresh or need to clean Gnocchi data, this can be
+easily done. You need to clean the measures (incoming), aggregates (storage)
+and indexer data storage.
+
+Once that is done, if you want to re-initialize Gnocchi, you need to call
+`gnocchi-upgrade` so it re-initialize the different drivers.
+
+Index storage
+-------------
+
+Both MySQL and PostgreSQL drivers uses a single database. Delete the database.
+If you want to install Gnocchi again, create back that database with the same
+name before calling `gnocchi-upgrade`.
+
+Incoming data
+-------------
+
+Depending on the driver you use, the data are stored in different places:
+
+* **Ceph**: delete the `gnocchi-config` object and the objects whose names
+  start with `incoming` in the Ceph pool. Alternatively you can delete the Ceph
+  pool (and recreate it if needed).
+* **OpenStack Swift**: delete the `gnocchi-config` container and containers
+  whose names start with `incoming` in the Swift account.
+* **Redis**: delete the `gnocchi-config` key and the keys whose names start
+  with `incoming`.
+* **File**: delete `${incoming.file_basepath}/tmp` and the directories whose
+  names start with `${incoming.file_basepath}/incoming`.
+* **Amazon S3**: delete the bucket whose name start with `incoming`.
+
+Storage data
+------------
+
+Depending on the driver you use, the data are stored in different places:
+
+* **Ceph**: delete the objects whose names start with `gnocchi_` in the Ceph
+  pool. Alternatively you can delete the Ceph pool (and recreate it if needed).
+* **OpenStack Swift**: delete the containers whose names start with
+  `$storage.swift_container_prefix` in the Swift account.
+* **Redis**: delete the keys whose names start with `timeseries`.
+* **File**: delete the directories whose names are UUIDs under
+  `$incoming.file_basepath`.
+* **Amazon S3**: delete the bucket whose name start with
+  `$storage.s3_bucket_prefix`.
+
 .. include:: include/term-substitution.rst
