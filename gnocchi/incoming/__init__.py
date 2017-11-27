@@ -54,7 +54,7 @@ class IncomingDriver(object):
         return self._num_sacks
 
     @staticmethod
-    def __init__(conf):
+    def __init__(conf, greedy=True):
         pass
 
     def get_sack_prefix(self, num_sacks=None):
@@ -189,4 +189,4 @@ def get_driver(conf):
     :param conf: incoming configuration only (not global)
     """
     return utils.get_driver_class('gnocchi.incoming', conf.incoming)(
-        conf.incoming)
+        conf.incoming, conf.metricd.greedy)

@@ -204,6 +204,11 @@ In order to process new measures, metricd checks the incoming storage for new
 measures from time to time. The delay between each check is can be configured
 by changing the `[metricd]metric_processing_delay` configuration option.
 
+Some incoming driver (only Redis currently) are able to inform metricd that new
+measures are available for processing. In that case, metricd will not respect
+the `[metricd]metric_processing_delay` parameter and start processing the new
+measures right away. This behaviour can be disabled by turning off the
+`[metricd]greedy` option.
 
 How many metricd workers do I need to run
 -----------------------------------------

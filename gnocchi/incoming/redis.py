@@ -23,9 +23,10 @@ from gnocchi import incoming
 
 class RedisStorage(incoming.IncomingDriver):
 
-    def __init__(self, conf):
+    def __init__(self, conf, greedy=True):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
+        self.greedy = greedy
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)
@@ -55,7 +56,7 @@ class RedisStorage(incoming.IncomingDriver):
             sack_name = self.get_sack_name(self.sack_for_metric(metric.id))
             path = self._build_measure_path_with_sack(metric.id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
-            if sack_name not in notified_sacks:
+            if self.greedy and sack_name not in notified_sacks:
                 # value has no meaning, we just use this for notification
                 pipe.setnx(sack_name, 1)
                 notified_sacks.add(sack_name)
