@@ -85,6 +85,32 @@ class KeystoneAuthHelper(object):
 
             return {"or": policy_filter}
 
+    @staticmethod
+    def get_metric_policy_filter(request, rule):
+        try:
+            # Check if the policy allows the user to list any metric
+            api.enforce(rule, {})
+        except webob.exc.HTTPForbidden:
+            policy_filter = []
+            project_id = request.headers.get("X-Project-Id")
+            try:
+                # Check if the policy allows the user to list metrics linked
+                # to their created_by_project
+                api.enforce(rule, {
+                    "created_by_project_id": project_id,
+                })
+            except webob.exc.HTTPForbidden:
+                pass
+            else:
+                policy_filter.append(
+                    {"like": {"creator": "%:" + project_id}})
+
+            if not policy_filter:
+                # We need to have at least one policy filter in place
+                api.abort(403, "Insufficient privileges")
+
+            return {"or": policy_filter}
+
 
 class BasicAuthHelper(object):
     @staticmethod
@@ -109,6 +135,10 @@ class BasicAuthHelper(object):
     def get_resource_policy_filter(request, rule, resource_type):
         return None
 
+    @staticmethod
+    def get_metric_policy_filter(request, rule):
+        return None
+
 
 class RemoteUserAuthHelper(object):
     @staticmethod
@@ -130,4 +160,8 @@ class RemoteUserAuthHelper(object):
 
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type):
+        return None
+
+    @staticmethod
+    def get_metric_policy_filter(request, rule):
         return None
