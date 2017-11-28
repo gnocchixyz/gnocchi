@@ -445,6 +445,44 @@ class MetricTest(RestTest):
             self.app.get("/v1/metric/%s/measures" % metric['id'],
                          status=403)
 
+    def test_get_measures_with_another_user_allowed(self):
+        rid = str(uuid.uuid4())
+        self.app.post_json("/v1/resource/generic",
+                           params={
+                               "id": rid,
+                               "project_id": TestingApp.PROJECT_ID_2,
+                               "metrics": {
+                                   "disk": {"archive_policy_name": "low"},
+                               }
+                           })
+        measures_url = "/v1/resource/generic/%s/metric/disk/measures" % rid
+        self.app.post_json(measures_url,
+                           params=[{"timestamp": '2013-01-01 23:23:23',
+                                    "value": 1234.2}])
+        with self.app.use_another_user():
+            result = self.app.get(measures_url)
+            self.assertEqual(
+                [['2013-01-01T00:00:00+00:00', 86400.0, 1234.2],
+                 ['2013-01-01T23:00:00+00:00', 3600.0, 1234.2],
+                 ['2013-01-01T23:20:00+00:00', 300.0, 1234.2]],
+                result.json)
+
+    def test_get_measures_with_another_user_disallowed(self):
+        rid = str(uuid.uuid4())
+        self.app.post_json("/v1/resource/generic",
+                           params={
+                               "id": rid,
+                               "metrics": {
+                                   "disk": {"archive_policy_name": "low"},
+                               }
+                           })
+        measures_url = "/v1/resource/generic/%s/metric/disk/measures" % rid
+        self.app.post_json(measures_url,
+                           params=[{"timestamp": '2013-01-01 23:23:23',
+                                    "value": 1234.2}])
+        with self.app.use_another_user():
+            self.app.get(measures_url, status=403)
+
     @mock.patch.object(utils, 'utcnow')
     def test_get_measure_start_relative(self, utcnow):
         """Make sure the timestamps can be relative to now."""
