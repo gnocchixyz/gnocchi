@@ -181,7 +181,7 @@ class MetricReporting(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     name = "processing"
-    GROUP_ID = "gnocchi-processing"
+    GROUP_ID = b"gnocchi-processing"
 
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
@@ -207,7 +207,7 @@ class MetricProcessor(MetricProcessBase):
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
-            LOG.info('Joined coordination group: %s', self.GROUP_ID)
+            LOG.info('Joined coordination group: %s', self.GROUP_ID.decode())
 
             @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
                                 run_immediately=True)
