@@ -13,18 +13,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from oslo_config import cfg
 
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
-
-
-OPTS = [
-    cfg.StrOpt('redis_url',
-               default='redis://localhost:6379/',
-               help='Redis URL'),
-]
 
 
 class RedisStorage(storage.StorageDriver):
