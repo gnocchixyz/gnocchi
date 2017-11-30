@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import
 
+from oslo_config import cfg
 from six.moves.urllib import parse
 
 try:
@@ -43,13 +44,6 @@ CLIENT_ARGS = frozenset([
     'sentinel_fallback',
 ])
 """
-Keys that we allow to proxy from the coordinator configuration into the
-redis client (used to configure the redis client internals so that
-it works as you expect/want it to).
-
-See: http://redis-py.readthedocs.org/en/latest/#redis.Redis
-
-See: https://github.com/andymccurdy/redis-py/blob/2.10.3/redis/client.py
 """
 
 #: Client arguments that are expected/allowed to be lists.
@@ -69,6 +63,47 @@ CLIENT_INT_ARGS = frozenset([
     'socket_keepalive',
     'socket_timeout',
 ])
+
+OPTS = [
+    cfg.StrOpt('redis_url',
+               default='redis://localhost:6379/',
+               help="""Redis URL
+
+  For example::
+
+    redis://[:password]@localhost:6379?db=0
+
+  We proxy some options to the redis client (used to configure the redis client
+  internals so that it works as you expect/want it to):  `%s`
+
+  Further resources/links:
+
+   - http://redis-py.readthedocs.org/en/latest/#redis.Redis
+   - https://github.com/andymccurdy/redis-py/blob/2.10.3/redis/client.py
+
+  To use a `sentinel`_ the connection URI must point to the sentinel server.
+  At connection time the sentinel will be asked for the current IP and port
+  of the master and then connect there. The connection URI for sentinel
+  should be written as follows::
+
+    redis://<sentinel host>:<sentinel port>?sentinel=<master name>
+
+  Additional sentinel hosts are listed with multiple ``sentinel_fallback``
+  parameters as follows::
+
+      redis://<sentinel host>:<sentinel port>?sentinel=<master name>&
+        sentinel_fallback=<other sentinel host>:<sentinel port>&
+        sentinel_fallback=<other sentinel host>:<sentinel port>&
+        sentinel_fallback=<other sentinel host>:<sentinel port>
+
+  Further resources/links:
+
+  - http://redis.io/
+  - http://redis.io/topics/sentinel
+  - http://redis.io/topics/cluster-spec
+
+""" % "`, `".join(CLIENT_ARGS)),
+]
 
 
 def get_client(conf):
