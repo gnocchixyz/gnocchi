@@ -20,11 +20,11 @@ import uuid
 from oslo_config import cfg
 
 import gnocchi.archive_policy
+import gnocchi.common.redis
 import gnocchi.indexer
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
-import gnocchi.storage.redis
 import gnocchi.storage.s3
 import gnocchi.storage.swift
 
@@ -48,7 +48,7 @@ _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
                                      gnocchi.storage.ceph.OPTS,
                                      gnocchi.storage.file.OPTS,
                                      gnocchi.storage.swift.OPTS,
-                                     gnocchi.storage.redis.OPTS,
+                                     gnocchi.common.redis.OPTS,
                                      gnocchi.storage.s3.OPTS))
 
 

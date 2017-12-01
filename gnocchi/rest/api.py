@@ -28,7 +28,6 @@ import six
 from six.moves.urllib import parse as urllib_parse
 import tenacity
 import voluptuous
-import webob.exc
 import werkzeug.http
 
 from gnocchi import archive_policy
@@ -655,15 +654,6 @@ class MetricsController(rest.RestController):
                 + ":"
                 + (provided_project_id or "")
             )
-        try:
-            enforce("list all metric", {})
-        except webob.exc.HTTPForbidden:
-            enforce("list metric", {})
-            creator = pecan.request.auth_helper.get_current_user(
-                pecan.request)
-            if provided_creator and creator != provided_creator:
-                abort(403, "Insufficient privileges to filter by user/project")
-            provided_creator = creator
 
         pagination_opts = get_pagination_options(kwargs,
                                                  METRIC_DEFAULT_PAGINATION)
@@ -673,6 +663,12 @@ class MetricsController(rest.RestController):
 
         for k, v in six.iteritems(kwargs):
             attr_filters.append({"=": {k: v}})
+
+        policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
+            pecan.request, "list metric")
+
+        if policy_filter:
+            attr_filters.append(policy_filter)
 
         try:
             metrics = pecan.request.indexer.list_metrics(
@@ -710,11 +706,8 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        # NOTE(sileht): We want detail only when we GET /metric/<id>
-        # and not for /metric/<id>/measures
-        details = pecan.request.method == 'GET' and len(remainder) == 0
         m = pecan.request.indexer.list_metrics(
-            details=details,
+            details=True,
             attribute_filter={"and": [
                 {"=": {"name": name}},
                 {"=": {"resource_id": self.resource_id}},

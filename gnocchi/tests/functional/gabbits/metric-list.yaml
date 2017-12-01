@@ -89,7 +89,7 @@ tests:
     - name: list metrics
       GET: /v1/metric
       response_json_paths:
-          $.`len`: 2
+          $.`len`: 4
 
     - name: list metrics by id
       GET: /v1/metric?id=$HISTORY['create metric 1'].$RESPONSE['id']
