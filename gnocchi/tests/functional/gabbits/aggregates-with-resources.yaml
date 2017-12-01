@@ -272,3 +272,18 @@ tests:
         $.description.detail.`sorted`:
           - foobar
           - notexists
+
+    - name: invalid groupby attribute
+      POST: /v1/aggregates?groupby=unit
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        resource_type: generic
+        search: "id = '1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4'"
+        operations: "(metric (cpu.util mean) (cpu.util mean))"
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description: "Invalid pagination: `Sort key supplied is invalid: unit'"
