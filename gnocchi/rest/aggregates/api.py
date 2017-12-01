@@ -221,10 +221,13 @@ class AggregatesController(rest.RestController):
 
             groupby = sorted(set(api.arg_to_list(groupby)))
             sorts = groupby if groupby else api.RESOURCE_DEFAULT_PAGINATION
-            resources = pecan.request.indexer.list_resources(
-                body["resource_type"],
-                attribute_filter=attr_filter,
-                sorts=sorts)
+            try:
+                resources = pecan.request.indexer.list_resources(
+                    body["resource_type"],
+                    attribute_filter=attr_filter,
+                    sorts=sorts)
+            except indexer.IndexerException as e:
+                api.abort(400, six.text_type(e))
             if not groupby:
                 return self._get_measures_by_name(
                     resources, references, body["operations"], start, stop,
