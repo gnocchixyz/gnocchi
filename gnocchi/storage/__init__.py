@@ -458,7 +458,8 @@ class StorageDriver(object):
         """
         # process only active metrics. deleted metrics with unprocessed
         # measures will be skipped until cleaned by janitor.
-        metrics = indexer.list_metrics(ids=metrics_to_process)
+        metrics = indexer.list_metrics(
+            attribute_filter={"in": {"id": metrics_to_process}})
         for metric in metrics:
             # NOTE(gordc): must lock at sack level
             try:

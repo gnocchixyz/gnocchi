@@ -16,14 +16,18 @@ Running API As A WSGI Application
 =================================
 
 To run Gnocchi API, you can use the provided `gnocchi-api`. It wraps around
-`uwsgi` – makes sure that `uwsgi`_ is installed. If one Gnocchi API server is
+`uwsgi` – makes sure that `uWSGI`_ is installed. If one Gnocchi API server is
 not enough, you can spawn any number of new API server to scale Gnocchi out,
 even on different machines.
 
 Since Gnocchi API tier runs using WSGI, it can alternatively be run using
-`Apache httpd`_ and `mod_wsgi`_, or any other HTTP daemon. If you want to
-deploy using `uwsgi`_ yourself, the following uwsgi configuration file can be
-used as a base::
+`Apache httpd`_ and `mod_wsgi`_, or any other HTTP daemon.
+
+uWSGI
+-----
+
+If you want to deploy using `uWSGI`_ yourself, the following uWSGI
+configuration file can be used as a base::
 
   [uwsgi]
   http = localhost:8041
@@ -48,9 +52,28 @@ Once written to `/etc/gnocchi/uwsgi.ini`, it can be launched this way::
 
   uwsgi /etc/gnocchi/uwsgi.ini
 
+Apache mod_wsgi
+---------------
+
+If you want to use Apache httpd `mod_wsgi`_, here's an example configuration
+file::
+
+  <VirtualHost *:8041>
+    WSGIDaemonProcess gnocchi user=gnocchi processes=4 threads=32 display-name=%{GROUP}
+    WSGIProcessGroup gnocchi
+    WSGIScriptAlias / /usr/local/bin/gnocchi-api
+    WSGIPassAuthorization On
+    WSGIApplicationGroup %{GLOBAL}
+
+    <Directory />
+        Require all granted
+    </Directory>
+  </VirtualHost>
+
+
 .. _Apache httpd: http://httpd.apache.org/
 .. _mod_wsgi: https://modwsgi.readthedocs.org/
-.. _uwsgi: https://uwsgi-docs.readthedocs.org/
+.. _uWSGI: https://uwsgi-docs.readthedocs.org/
 
 How to define archive policies
 ==============================
@@ -265,5 +288,53 @@ or MySQL) and doing snapshots or copy of your data storage (Ceph, S3, Swift or
 your file system). The procedure to restore is no more complicated than initial
 deployment: restore your index and storage backups, reinstall Gnocchi if
 necessary, and restart it.
+
+How to clear Gnocchi data
+=========================
+
+If you ever want to start fresh or need to clean Gnocchi data, this can be
+easily done. You need to clean the measures (incoming), aggregates (storage)
+and indexer data storage.
+
+Once that is done, if you want to re-initialize Gnocchi, you need to call
+`gnocchi-upgrade` so it re-initialize the different drivers.
+
+Index storage
+-------------
+
+Both MySQL and PostgreSQL drivers uses a single database. Delete the database.
+If you want to install Gnocchi again, create back that database with the same
+name before calling `gnocchi-upgrade`.
+
+Incoming data
+-------------
+
+Depending on the driver you use, the data are stored in different places:
+
+* **Ceph**: delete the `gnocchi-config` object and the objects whose names
+  start with `incoming` in the Ceph pool. Alternatively you can delete the Ceph
+  pool (and recreate it if needed).
+* **OpenStack Swift**: delete the `gnocchi-config` container and containers
+  whose names start with `incoming` in the Swift account.
+* **Redis**: delete the `gnocchi-config` key and the keys whose names start
+  with `incoming`.
+* **File**: delete `${incoming.file_basepath}/tmp` and the directories whose
+  names start with `${incoming.file_basepath}/incoming`.
+* **Amazon S3**: delete the bucket whose name start with `incoming`.
+
+Storage data
+------------
+
+Depending on the driver you use, the data are stored in different places:
+
+* **Ceph**: delete the objects whose names start with `gnocchi_` in the Ceph
+  pool. Alternatively you can delete the Ceph pool (and recreate it if needed).
+* **OpenStack Swift**: delete the containers whose names start with
+  `$storage.swift_container_prefix` in the Swift account.
+* **Redis**: delete the keys whose names start with `timeseries`.
+* **File**: delete the directories whose names are UUIDs under
+  `$incoming.file_basepath`.
+* **Amazon S3**: delete the bucket whose name start with
+  `$storage.s3_bucket_prefix`.
 
 .. include:: include/term-substitution.rst

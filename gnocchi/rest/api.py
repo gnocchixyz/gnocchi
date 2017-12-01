@@ -535,7 +535,7 @@ class MetricsController(rest.RestController):
         # NOTE(sileht): Don't get detail for measure
         details = len(remainder) == 0
         metrics = pecan.request.indexer.list_metrics(
-            id=metric_id, details=details)
+            attribute_filter={"=": {"id": metric_id}}, details=details)
         if not metrics:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
@@ -667,13 +667,17 @@ class MetricsController(rest.RestController):
 
         pagination_opts = get_pagination_options(kwargs,
                                                  METRIC_DEFAULT_PAGINATION)
-        attr_filter = {}
+        attr_filters = []
         if provided_creator is not None:
-            attr_filter['creator'] = provided_creator
-        attr_filter.update(pagination_opts)
-        attr_filter.update(kwargs)
+            attr_filters.append({"=": {"creator": provided_creator}})
+
+        for k, v in six.iteritems(kwargs):
+            attr_filters.append({"=": {k: v}})
+
         try:
-            metrics = pecan.request.indexer.list_metrics(**attr_filter)
+            metrics = pecan.request.indexer.list_metrics(
+                attribute_filter={"and": attr_filters},
+                **pagination_opts)
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
             return metrics
@@ -706,12 +710,12 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        # NOTE(sileht): We want detail only when we GET /metric/<id>
-        # and not for /metric/<id>/measures
-        details = pecan.request.method == 'GET' and len(remainder) == 0
-        m = pecan.request.indexer.list_metrics(details=details,
-                                               name=name,
-                                               resource_id=self.resource_id)
+        m = pecan.request.indexer.list_metrics(
+            details=True,
+            attribute_filter={"and": [
+                {"=": {"name": name}},
+                {"=": {"resource_id": self.resource_id}},
+            ]})
         if m:
             return MetricController(m[0]), remainder
 
@@ -755,7 +759,8 @@ class NamedMetricController(rest.RestController):
         if not resource:
             abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
         enforce("get resource", resource)
-        return pecan.request.indexer.list_metrics(resource_id=self.resource_id)
+        return pecan.request.indexer.list_metrics(
+            attribute_filter={"=": {"resource_id": self.resource_id}})
 
 
 class ResourceHistoryController(rest.RestController):
@@ -1286,6 +1291,9 @@ ResourceSearchSchemaAttributeValue = voluptuous.Any(
     six.text_type, float, int, bool, None)
 
 
+NotIDKey = voluptuous.All(six.text_type, voluptuous.NotIn(["id"]))
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request)
@@ -1302,20 +1310,21 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": _ResourceUUID,
-                     six.text_type: ResourceSearchSchemaAttributeValue},
+                     NotIDKey: ResourceSearchSchemaAttributeValue},
                 ),
-                voluptuous.Any(
-                    u"in",
-                ): voluptuous.All(
+                u"like": voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {NotIDKey: ResourceSearchSchemaAttributeValue},
+                ),
+                u"in": voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": voluptuous.All(
                         [_ResourceUUID],
                         voluptuous.Length(min=1)),
-                     six.text_type: voluptuous.All(
+                     NotIDKey: voluptuous.All(
                          [ResourceSearchSchemaAttributeValue],
                          voluptuous.Length(min=1))}
                 ),
@@ -1456,7 +1465,7 @@ class SearchMetricController(rest.RestController):
         granularity = [utils.to_timespan(g)
                        for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
-            ids=arg_to_list(metric_id))
+            attribute_filter={"in": {"id": arg_to_list(metric_id)}})
 
         for metric in metrics:
             enforce("search metric", metric)
@@ -1513,9 +1522,12 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for original_resource_id, resource_id in body:
             body_by_rid[resource_id] = body[(original_resource_id,
                                              resource_id)]
-            names = body[(original_resource_id, resource_id)].keys()
+            names = list(body[(original_resource_id, resource_id)].keys())
             metrics = pecan.request.indexer.list_metrics(
-                names=names, resource_id=resource_id)
+                attribute_filter={"and": [
+                    {"=": {"resource_id": resource_id}},
+                    {"in": {"name": names}},
+                ]})
 
             known_names = [m.name for m in metrics]
             if strtobool("create_metrics", create_metrics):
@@ -1553,9 +1565,10 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                     known_names.extend(already_exists_names)
                     known_metrics.extend(
                         pecan.request.indexer.list_metrics(
-                            names=already_exists_names,
-                            resource_id=resource_id)
-                    )
+                            attribute_filter={"and": [
+                                {"=": {"resource_id": resource_id}},
+                                {"in": {"name": already_exists_names}},
+                            ]}))
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(
@@ -1597,7 +1610,8 @@ class MetricsMeasuresBatchController(rest.RestController):
     @pecan.expose()
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
-        metrics = pecan.request.indexer.list_metrics(ids=body.keys())
+        metrics = pecan.request.indexer.list_metrics(
+            attribute_filter={"in": {"id": list(body.keys())}})
 
         if len(metrics) != len(body):
             missing_metrics = sorted(set(body) - set(m.id for m in metrics))
@@ -1839,7 +1853,8 @@ class AggregationController(rest.RestController):
 
         metric_ids = [six.text_type(m) for m in metric_ids]
         # Check RBAC policy
-        metrics = pecan.request.indexer.list_metrics(ids=metric_ids)
+        metrics = pecan.request.indexer.list_metrics(
+            attribute_filter={"in": {"id": metric_ids}})
         missing_metric_ids = (set(metric_ids)
                               - set(six.text_type(m.id) for m in metrics))
         if missing_metric_ids:

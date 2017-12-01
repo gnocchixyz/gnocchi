@@ -179,7 +179,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNone(m.name)
         self.assertIsNone(m.unit)
         self.assertIsNone(m.resource_id)
-        m2 = self.index.list_metrics(id=r1)
+        m2 = self.index.list_metrics(attribute_filter={"=": {"id": r1}})
         self.assertEqual([m], m2)
 
     def test_create_named_metric_duplicate(self):
@@ -195,7 +195,7 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertEqual(m.creator, creator)
         self.assertEqual(name, m.name)
         self.assertEqual(r1, m.resource_id)
-        m2 = self.index.list_metrics(id=m1)
+        m2 = self.index.list_metrics(attribute_filter={"=": {"id": m1}})
         self.assertEqual([m], m2)
 
         self.assertRaises(indexer.NamedMetricAlreadyExists,
@@ -322,7 +322,8 @@ class TestIndexerDriver(tests_base.TestCase):
             'generic', r1, creator,
             metrics={"foobar": {"archive_policy_name": "low"}})
         self.assertEqual(1, len(rc.metrics))
-        m = self.index.list_metrics(id=rc.metrics[0].id)
+        m = self.index.list_metrics(
+            attribute_filter={"=": {"id": rc.metrics[0].id}})
         self.assertEqual(m[0], rc.metrics[0])
 
     def test_delete_resource(self):
@@ -347,7 +348,8 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchResource,
                           self.index.delete_resource,
                           r1)
-        metrics = self.index.list_metrics(ids=[e1, e2])
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [e1, e2]}})
         self.assertEqual([], metrics)
 
     def test_delete_resource_non_existent(self):
@@ -1063,8 +1065,9 @@ class TestIndexerDriver(tests_base.TestCase):
         g2 = self.index.create_resource('generic', r2, creator,
                                         user, project, metrics=metrics)
 
-        metrics = self.index.list_metrics(ids=[g1['metrics'][0]['id'],
-                                               g2['metrics'][0]['id']])
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [g1['metrics'][0]['id'],
+                                            g2['metrics'][0]['id']]}})
         self.assertEqual(2, len(metrics))
         for m in metrics:
             self.assertEqual('active', m['status'])
@@ -1079,9 +1082,10 @@ class TestIndexerDriver(tests_base.TestCase):
             attribute_filter={"=": {"user_id": user}})
         self.assertEqual(0, len(resources))
 
-        metrics = self.index.list_metrics(ids=[g1['metrics'][0]['id'],
-                                               g2['metrics'][0]['id']],
-                                          status='delete')
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": [g1['metrics'][0]['id'],
+                                            g2['metrics'][0]['id']]}},
+            status='delete')
         self.assertEqual(2, len(metrics))
         for m in metrics:
             self.assertEqual('delete', m['status'])
@@ -1091,7 +1095,7 @@ class TestIndexerDriver(tests_base.TestCase):
         creator = str(uuid.uuid4())
         self.index.create_metric(e1, creator, archive_policy_name="low")
 
-        metric = self.index.list_metrics(id=e1)
+        metric = self.index.list_metrics(attribute_filter={"=": {"id": e1}})
         self.assertEqual(1, len(metric))
         metric = metric[0]
         self.assertEqual(e1, metric.id)
@@ -1106,7 +1110,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                  creator,
                                  archive_policy_name="low")
 
-        metric = self.index.list_metrics(id=e1)
+        metric = self.index.list_metrics(attribute_filter={"=": {"id": e1}})
         self.assertEqual(1, len(metric))
         metric = metric[0]
         self.assertEqual(e1, metric.id)
@@ -1117,10 +1121,12 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_get_metric_with_bad_uuid(self):
         e1 = uuid.uuid4()
-        self.assertEqual([], self.index.list_metrics(id=e1))
+        self.assertEqual([], self.index.list_metrics(
+            attribute_filter={"=": {"id": e1}}))
 
     def test_get_metric_empty_list_uuids(self):
-        self.assertEqual([], self.index.list_metrics(ids=[]))
+        self.assertEqual([], self.index.list_metrics(
+            attribute_filter={"in": {"id": []}}))
 
     def test_list_metrics(self):
         e1 = uuid.uuid4()

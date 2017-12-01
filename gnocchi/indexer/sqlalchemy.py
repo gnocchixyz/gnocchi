@@ -686,37 +686,31 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return m
 
     @retry_on_deadlock
-    def list_metrics(self, names=None, ids=None, details=False,
-                     status='active', limit=None, marker=None, sorts=None,
-                     creator=None, **kwargs):
+    def list_metrics(self, details=False, status='active',
+                     limit=None, marker=None, sorts=None,
+                     attribute_filter=None):
         sorts = sorts or []
-        if ids is not None and not ids:
-            return []
-        if names is not None and not names:
-            return []
         with self.facade.independent_reader() as session:
             q = session.query(Metric).filter(
                 Metric.status == status)
-            if names is not None:
-                q = q.filter(Metric.name.in_(names))
-            if ids is not None:
-                q = q.filter(Metric.id.in_(ids))
-            if creator is not None:
-                if creator[0] == ":":
-                    q = q.filter(Metric.creator.like("%%%s" % creator))
-                elif creator[-1] == ":":
-                    q = q.filter(Metric.creator.like("%s%%" % creator))
-                else:
-                    q = q.filter(Metric.creator == creator)
-            for attr in kwargs:
-                q = q.filter(getattr(Metric, attr) == kwargs[attr])
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
+            if attribute_filter:
+                engine = session.connection()
+                # We don't catch the indexer.QueryAttributeError error here
+                # since we expect any user input on this function. If the
+                # caller screws it, it's its problem: no need to convert the
+                # exception to another type.
+                f = QueryTransformer.build_filter(
+                    engine.dialect.name,
+                    Metric, attribute_filter)
+                q = q.filter(f)
 
             sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
 
             if marker:
-                metric_marker = self.list_metrics(ids=[marker])
+                metric_marker = self.list_metrics(
+                    attribute_filter={"in": {"id": [marker]}})
                 if metric_marker:
                     metric_marker = metric_marker[0]
                 else:
