@@ -69,6 +69,8 @@ class Resource(object):
         return self.revision_start.replace(microsecond=0,
                                            tzinfo=iso8601.iso8601.UTC)
 
+    __hash__ = object.__hash__
+
 
 class Metric(object):
     def __init__(self, id, archive_policy, creator=None,
