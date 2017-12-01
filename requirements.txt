@@ -10,7 +10,7 @@ oslo.middleware>=3.22.0
 pandas>=0.18.0
 scipy>=0.18.1  # BSD
 pecan>=0.9
-futures
+futures; python_version < '3'
 jsonpatch
 cotyledon>=1.5.0
 six
