@@ -45,12 +45,6 @@ class MetricReference(object):
 
         self.lookup_key = [self.name, self.aggregation]
 
-    def jsonify(self):
-        if self.resource:
-            return self.resource
-        else:
-            return self.metric
-
     def __eq__(self, other):
         return (self.metric == other.metric and
                 self.resource == other.resource and

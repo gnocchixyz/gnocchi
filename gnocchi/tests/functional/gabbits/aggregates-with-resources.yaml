@@ -36,16 +36,18 @@ tests:
     - name: create resource 1
       POST: /v1/resource/generic
       data:
-        id: 4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
+        id: 1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
           cpu.util:
             archive_policy_name: low
+          cpu.idle:
+            archive_policy_name: low
       status: 201
 
     - name: post cpuutil measures 1
-      POST: /v1/resource/generic/4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4/metric/cpu.util/measures
+      POST: /v1/resource/generic/1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4/metric/cpu.util/measures
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 43.1
@@ -56,7 +58,7 @@ tests:
     - name: create resource 2
       POST: /v1/resource/generic
       data:
-        id: 1447CD7E-48A6-4C50-A991-6677CC0D00E6
+        id: 2447CD7E-48A6-4C50-A991-6677CC0D00E6
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
@@ -65,7 +67,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 2
-      POST: /v1/resource/generic/1447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
+      POST: /v1/resource/generic/2447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 23
@@ -96,7 +98,7 @@ tests:
     - name: create resource 4
       POST: /v1/resource/generic
       data:
-        id: b1409ec6-3909-4b37-bbff-f9a5448fe328
+        id: 41409ec6-3909-4b37-bbff-f9a5448fe328
         user_id: 70b5b732-9d81-4dfb-a8a1-a424ef3eae6b
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
@@ -105,7 +107,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 4
-      POST: /v1/resource/generic/b1409ec6-3909-4b37-bbff-f9a5448fe328/metric/cpu.util/measures
+      POST: /v1/resource/generic/41409ec6-3909-4b37-bbff-f9a5448fe328/metric/cpu.util/measures
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 230
@@ -127,15 +129,43 @@ tests:
         delay: 1
       response_json_paths:
         $.references.`len`: 3
-        $.references[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
-        $.references[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
-        $.references[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
         $.measures.aggregated:
           - ['2015-03-06T14:30:00+00:00', 300.0, 60.251666666666665]
           - ['2015-03-06T14:33:57+00:00', 1.0, 98.7]
           - ['2015-03-06T14:34:12+00:00', 1.0, 21.80333333333333]
 
-    - name: batch get
+    - name: batch get list
+      POST: /v1/aggregates?details=true
+      data:
+        resource_type: generic
+        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        operations: "(metric (cpu.util mean) (cpu.idle mean))"
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.idle".mean: []
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[1].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 15.5]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 8.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[2].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 137.70499999999998]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 230.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
+
+    - name: batch get solo
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
@@ -146,9 +176,9 @@ tests:
         delay: 1
       response_json_paths:
         $.references.`len`: 3
-        $.references[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
-        $.references[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
-        $.references[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
         $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
           - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
           - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
@@ -166,14 +196,14 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "id = '4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4'"
+        search: "id = '1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4'"
         operations: "(metric (cpu.util mean) (cpu.util mean))"
       poll:
         count: 10
         delay: 1
       response_json_paths:
         $.references.`len`: 1
-        $.references[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
         $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
           - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
           - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
@@ -188,8 +218,8 @@ tests:
       response_json_paths:
         $.`len`: 2
         $[0].measures.references.`len`: 2
-        $[0].measures.references[0]: $HISTORY['list resources'].$RESPONSE['$[1]']
-        $[0].measures.references[1]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $[0].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $[0].measures.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
         $[0].measures.measures.aggregated:
               - ['2015-03-06T14:30:00+00:00', 300.0, 21.525]
               - ['2015-03-06T14:33:57+00:00', 1.0, 33.05]
@@ -198,7 +228,7 @@ tests:
               user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
               project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         $[1].measures.references.`len`: 1
-        $[1].measures.references[0]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $[1].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[2]']
         $[1].measures.measures.aggregated:
               - ['2015-03-06T14:30:00+00:00', 300.0, 137.70499999999998]
               - ['2015-03-06T14:33:57+00:00', 1.0, 230.0]

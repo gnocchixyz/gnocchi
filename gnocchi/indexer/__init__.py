@@ -69,6 +69,8 @@ class Resource(object):
         return self.revision_start.replace(microsecond=0,
                                            tzinfo=iso8601.iso8601.UTC)
 
+    __hash__ = object.__hash__
+
 
 class Metric(object):
     def __init__(self, id, archive_policy, creator=None,
@@ -114,6 +116,12 @@ class NoSuchResourceType(IndexerException):
         super(NoSuchResourceType, self).__init__(
             "Resource type %s does not exist" % type)
         self.type = type
+
+    def jsonify(self):
+        return {
+            "cause": "Resource type does not exist",
+            "detail": self.type,
+        }
 
 
 class NoSuchMetric(IndexerException):
@@ -223,6 +231,10 @@ class ResourceAlreadyExists(IndexerException):
         super(ResourceAlreadyExists, self).__init__(
             "Resource %s already exists" % resource)
         self.resource = resource
+
+    def jsonify(self):
+        return {"cause": "Resource already exists",
+                "detail": self.resource}
 
 
 class ResourceTypeAlreadyExists(IndexerException):
