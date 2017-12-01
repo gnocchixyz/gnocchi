@@ -25,6 +25,7 @@ Gnocchi's main features are:
 - Nagios/Icinga support
 - Statsd protocol support
 - Collectd plugin support
+- Amqp1d protocol support
 
 Community
 ---------
@@ -46,6 +47,7 @@ Documentation
    client
    rest
    statsd
+   amqp1d
    grafana
    prometheus
    nagios
