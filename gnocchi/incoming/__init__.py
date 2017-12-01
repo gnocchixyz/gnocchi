@@ -118,8 +118,9 @@ class IncomingDriver(object):
     def add_measures_batch(self, metrics_and_measures):
         """Add a batch of measures for some metrics.
 
-        :param metrics_and_measures: A dict where keys
-        are metrics and value are measure.
+        :param metrics_and_measures: A dict where keys are metric objects
+                                     and values are a list of
+                                     :py:class:`gnocchi.incoming.Measure`.
         """
         utils.parallel_map(
             self._store_new_measures,

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Gnocchi now provides a new `/v1/influxdb` endpoint that allows to ingest
+    data from InfluxDB clients. Only write is implemented. This should ease
+    transition of users coming from InfluxDB tools such as Telegraf.
