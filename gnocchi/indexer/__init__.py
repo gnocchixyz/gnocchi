@@ -117,6 +117,12 @@ class NoSuchResourceType(IndexerException):
             "Resource type %s does not exist" % type)
         self.type = type
 
+    def jsonify(self):
+        return {
+            "cause": "Resource type does not exist",
+            "detail": self.type,
+        }
+
 
 class NoSuchMetric(IndexerException):
     """Error raised when a metric does not exist."""
@@ -225,6 +231,10 @@ class ResourceAlreadyExists(IndexerException):
         super(ResourceAlreadyExists, self).__init__(
             "Resource %s already exists" % resource)
         self.resource = resource
+
+    def jsonify(self):
+        return {"cause": "Resource already exists",
+                "detail": self.resource}
 
 
 class ResourceTypeAlreadyExists(IndexerException):

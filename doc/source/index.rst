@@ -25,6 +25,7 @@ Gnocchi's main features are:
 - Nagios/Icinga support
 - Statsd protocol support
 - Collectd plugin support
+- InfluxDB line protocol ingestion support
 
 Community
 ---------
@@ -48,6 +49,7 @@ Documentation
    statsd
    grafana
    prometheus
+   influxdb
    nagios
    collectd
    alternatives
