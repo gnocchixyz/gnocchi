@@ -233,22 +233,13 @@ class InfluxDBController(rest.RestController):
                     resource_name, creator=creator)
                 LOG.debug("Getting metrics from resource `%s'", resource_name)
                 timeout = pecan.request.conf.api.operation_timeout
-                try:
-                    metrics = (
-                        api.get_or_create_resource_and_metrics.retry_with(
-                            stop=tenacity.stop_after_delay(timeout))(
-                                creator, resource_id, resource_name,
-                                metrics_and_measures.keys(),
-                                {}, db)
-                    )
-                except indexer.ResourceAlreadyExists as e:
-                    # If this function raises ResourceAlreadyExists it means
-                    # the resource might already exist as another type, we
-                    # can't continue.
-                    LOG.error("Unable to create resource `%s' for InfluxDB, "
-                              "it might already exists as another "
-                              "resource type than `%s'", resource_name, db)
-                    api.abort(400, e)
+                metrics = (
+                    api.get_or_create_resource_and_metrics.retry_with(
+                        stop=tenacity.stop_after_delay(timeout))(
+                            creator, resource_id, resource_name,
+                            metrics_and_measures.keys(),
+                            {}, db)
+                )
 
                 for metric in metrics:
                     api.enforce("post measures", metric)
