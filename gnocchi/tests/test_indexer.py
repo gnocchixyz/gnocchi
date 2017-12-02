@@ -838,6 +838,14 @@ class TestIndexerDriver(tests_base.TestCase):
             resource_type, attribute_filter={"=": {"flavor_id": 1.0}})
         self.assertEqual(0, len(r))
 
+    def test_list_resource_empty_in(self):
+        self.index.create_resource('generic', str(uuid.uuid4()),
+                                   str(uuid.uuid4()), str(uuid.uuid4()))
+        self.assertEqual(
+            [],
+            self.index.list_resources(
+                attribute_filter={"in": {"id": []}}))
+
     def test_list_resource_weird_date(self):
         self.assertRaises(
             indexer.QueryValueError,
