@@ -666,11 +666,17 @@ class MetricsController(rest.RestController):
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
             pecan.request, "list metric")
+        resource_policy_filter = (
+            pecan.request.auth_helper.get_resource_policy_filter(
+                pecan.request, "list metric", resource_type=None,
+                prefix="resource")
+        )
 
         try:
             metrics = pecan.request.indexer.list_metrics(
                 attribute_filter={"and": attr_filters},
                 policy_filter=policy_filter,
+                resource_policy_filter=resource_policy_filter,
                 **pagination_opts)
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
