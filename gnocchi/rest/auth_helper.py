@@ -41,7 +41,7 @@ class KeystoneAuthHelper(object):
         }
 
     @staticmethod
-    def get_resource_policy_filter(request, rule, resource_type):
+    def get_resource_policy_filter(request, rule, resource_type, prefix=None):
         try:
             # Check if the policy allows the user to list any resource
             api.enforce(rule, {
@@ -50,26 +50,29 @@ class KeystoneAuthHelper(object):
         except webob.exc.HTTPForbidden:
             policy_filter = []
             project_id = request.headers.get("X-Project-Id")
+            target = {}
+            if prefix:
+                resource = target[prefix] = {}
+            else:
+                resource = target
 
+            resource["resource_type"] = resource_type
+            resource["project_id"] = project_id
             try:
                 # Check if the policy allows the user to list resources linked
                 # to their project
-                api.enforce(rule, {
-                    "resource_type": resource_type,
-                    "project_id": project_id,
-                })
+                api.enforce(rule, target)
             except webob.exc.HTTPForbidden:
                 pass
             else:
                 policy_filter.append({"=": {"project_id": project_id}})
 
+            del resource["project_id"]
+            resource["created_by_project_id"] = project_id
             try:
                 # Check if the policy allows the user to list resources linked
                 # to their created_by_project
-                api.enforce(rule, {
-                    "resource_type": resource_type,
-                    "created_by_project_id": project_id,
-                })
+                api.enforce(rule, target)
             except webob.exc.HTTPForbidden:
                 pass
             else:
@@ -132,7 +135,7 @@ class BasicAuthHelper(object):
         }
 
     @staticmethod
-    def get_resource_policy_filter(request, rule, resource_type):
+    def get_resource_policy_filter(request, rule, resource_type, prefix=None):
         return None
 
     @staticmethod
@@ -159,7 +162,7 @@ class RemoteUserAuthHelper(object):
         }
 
     @staticmethod
-    def get_resource_policy_filter(request, rule, resource_type):
+    def get_resource_policy_filter(request, rule, resource_type, prefix=None):
         return None
 
     @staticmethod
