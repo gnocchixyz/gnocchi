@@ -688,6 +688,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     @retry_on_deadlock
     def list_metrics(self, details=False, status='active',
                      limit=None, marker=None, sorts=None,
+                     policy_filter=None,
                      attribute_filter=None):
         sorts = sorts or []
         with self.facade.independent_reader() as session:
@@ -695,16 +696,26 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 Metric.status == status)
             if details:
                 q = q.options(sqlalchemy.orm.joinedload('resource'))
-            if attribute_filter:
+            if policy_filter or attribute_filter:
                 engine = session.connection()
-                # We don't catch the indexer.QueryAttributeError error here
-                # since we expect any user input on this function. If the
-                # caller screws it, it's its problem: no need to convert the
-                # exception to another type.
-                f = QueryTransformer.build_filter(
-                    engine.dialect.name,
-                    Metric, attribute_filter)
-                q = q.filter(f)
+                if attribute_filter:
+                    # We don't catch the indexer.QueryAttributeError error here
+                    # since we expect any user input on this function. If the
+                    # caller screws it, it's its problem: no need to convert
+                    # the exception to another type.
+                    attribute_f = QueryTransformer.build_filter(
+                        engine.dialect.name,
+                        Metric, attribute_filter)
+                    q = q.filter(attribute_f)
+                if policy_filter:
+                    # We don't catch the indexer.QueryAttributeError error here
+                    # since we expect any user input on this function. If the
+                    # caller screws it, it's its problem: no need to convert the
+                    # exception to another type.
+                    policy_f = QueryTransformer.build_filter(
+                        engine.dialect.name,
+                        Metric, policy_filter)
+                    q = q.filter(policy_f)
 
             sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
 
