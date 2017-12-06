@@ -1612,7 +1612,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         {utils.UUID: MeasuresListSchema}
     )
 
-    @pecan.expose()
+    @pecan.expose("json")
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
         metrics = pecan.request.indexer.list_metrics(
@@ -2034,10 +2034,12 @@ class PrometheusWriteController(rest.RestController):
             original_rid = '%s@%s' % (job, instance)
             rid = ResourceUUID(original_rid, creator=creator)
             metric_names = list(measures.keys())
-            metrics = get_or_create_resource_and_metrics(
-                creator, rid, original_rid, metric_names,
-                dict(job=job, instance=instance),
-                "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
+            timeout = pecan.request.conf.api.operation_timeout
+            metrics = get_or_create_resource_and_metrics.retry_with(
+                stop=tenacity.stop_after_delay(timeout))(
+                    creator, rid, original_rid, metric_names,
+                    dict(job=job, instance=instance),
+                    "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
 
             for metric in metrics:
                 enforce("post measures", metric)

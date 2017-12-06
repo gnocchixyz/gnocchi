@@ -41,6 +41,9 @@ def _format_json(txt):
 
 def _extract_body(req_or_resp):
     # TODO(jd) Make this a Sphinx option
+    if not req_or_resp.body:
+        return ""
+
     if req_or_resp.content_type == "application/json":
         body = _format_json(req_or_resp.body)
     else:

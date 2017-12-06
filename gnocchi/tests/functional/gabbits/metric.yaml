@@ -167,6 +167,8 @@ tests:
           - timestamp: 1425652437.0
             value: 43.1
       status: 202
+      response_headers:
+        content-length: 0
 
     - name: push measurements to metric
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures

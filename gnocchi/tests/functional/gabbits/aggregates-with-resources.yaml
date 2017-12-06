@@ -44,6 +44,8 @@ tests:
             archive_policy_name: low
           cpu.idle:
             archive_policy_name: low
+          noway:
+            archive_policy_name: low
       status: 201
 
     - name: post cpuutil measures 1
@@ -183,6 +185,63 @@ tests:
           - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
           - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[1].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 15.5]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 8.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[2].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 137.70499999999998]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 230.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
+
+    - name: batch get wildcard list
+      POST: /v1/aggregates?details=true
+      data:
+        resource_type: generic
+        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        operations: "(metric (cpu.* mean) (*way mean))"
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.idle".mean: []
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."noway".mean: []
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[1].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 15.5]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 23.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 8.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[2].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 137.70499999999998]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 230.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
+
+    - name: batch get wildcard solo
+      POST: /v1/aggregates?details=true
+      data:
+        resource_type: generic
+        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        operations: "(metric cpu.* mean)"
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 27.55]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.idle".mean: []
         $.measures."$HISTORY['list resources'].$RESPONSE['$[1].id']"."cpu.util".mean:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.5]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.0]

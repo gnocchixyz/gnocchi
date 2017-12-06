@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Wildcard can be used instead of metric name in Dynamic aggregates API.
