@@ -1993,12 +1993,12 @@ def get_or_create_resource_and_metrics(
             return pecan.request.indexer.create_resource(
                 resource_type, rid, creator, **kwargs
             ).metrics
-        except indexer.ResourceAlreadyExists:
+        except indexer.ResourceAlreadyExists as e:
             # NOTE(sileht): ensure the rid is not registered whitin another
             # resource type.
             r = pecan.request.indexer.get_resource('generic', rid)
             if r.type != resource_type:
-                abort(409, six.text_type(e))
+                abort(409, e)
             raise
 
 

@@ -109,3 +109,22 @@ tests:
 
     - name: check metric created different tag resource id and slash replaced
       GET: /v1/resource/influxdbtest/myvalue/metric/cpu.field@path=_foobar
+
+    - name: create a generic resource for conflict
+      POST: /v1/resource/generic
+      data:
+        id: conflict
+      status: 201
+
+    - name: write lines with conflicting resource
+      POST: /v1/influxdb/write?db=influxdbtest
+      request_headers:
+        content-type: text/plain
+        accept: application/json
+      data:
+        "mymetric,host=conflict,mytag=myvalue field=123 1510581804179554816"
+      status: 409
+      response_json_paths:
+        $.title: "Conflict"
+        $.description.cause: "Resource already exists"
+        $.description.detail: "da19a545-af76-5081-9a88-f370baab66c6"
