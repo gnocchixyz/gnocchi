@@ -1515,15 +1515,24 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         unknown_metrics = []
         unknown_resources = []
         body_by_rid = {}
+
+        attribute_filter = {"or": []}
+        for original_resource_id, resource_id in body:
+            names = list(body[(original_resource_id, resource_id)].keys())
+            attribute_filter["or"].append({"and": [
+                {"=": {"resource_id": resource_id}},
+                {"in": {"name": names}}]})
+
+        all_metrics = collections.defaultdict(list)
+        for metric in pecan.request.indexer.list_metrics(
+                attribute_filter=attribute_filter):
+            all_metrics[metric.resource_id].append(metric)
+
         for original_resource_id, resource_id in body:
             body_by_rid[resource_id] = body[(original_resource_id,
                                              resource_id)]
             names = list(body[(original_resource_id, resource_id)].keys())
-            metrics = pecan.request.indexer.list_metrics(
-                attribute_filter={"and": [
-                    {"=": {"resource_id": resource_id}},
-                    {"in": {"name": names}},
-                ]})
+            metrics = all_metrics[resource_id]
 
             known_names = [m.name for m in metrics]
             if strtobool("create_metrics", create_metrics):
@@ -1603,7 +1612,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         {utils.UUID: MeasuresListSchema}
     )
 
-    @pecan.expose()
+    @pecan.expose("json")
     def post(self):
         body = deserialize_and_validate(self.MeasuresBatchSchema)
         metrics = pecan.request.indexer.list_metrics(
@@ -2025,10 +2034,12 @@ class PrometheusWriteController(rest.RestController):
             original_rid = '%s@%s' % (job, instance)
             rid = ResourceUUID(original_rid, creator=creator)
             metric_names = list(measures.keys())
-            metrics = get_or_create_resource_and_metrics(
-                creator, rid, original_rid, metric_names,
-                dict(job=job, instance=instance),
-                "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
+            timeout = pecan.request.conf.api.operation_timeout
+            metrics = get_or_create_resource_and_metrics.retry_with(
+                stop=tenacity.stop_after_delay(timeout))(
+                    creator, rid, original_rid, metric_names,
+                    dict(job=job, instance=instance),
+                    "prometheus", self.PROMETHEUS_RESOURCE_TYPE)
 
             for metric in metrics:
                 enforce("post measures", metric)

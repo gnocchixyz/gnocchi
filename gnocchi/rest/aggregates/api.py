@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import fnmatch
 import itertools
 
 import pecan
@@ -221,10 +222,13 @@ class AggregatesController(rest.RestController):
 
             groupby = sorted(set(api.arg_to_list(groupby)))
             sorts = groupby if groupby else api.RESOURCE_DEFAULT_PAGINATION
-            resources = pecan.request.indexer.list_resources(
-                body["resource_type"],
-                attribute_filter=attr_filter,
-                sorts=sorts)
+            try:
+                resources = pecan.request.indexer.list_resources(
+                    body["resource_type"],
+                    attribute_filter=attr_filter,
+                    sorts=sorts)
+            except indexer.IndexerException as e:
+                api.abort(400, six.text_type(e))
             if not groupby:
                 return self._get_measures_by_name(
                     resources, references, body["operations"], start, stop,
@@ -278,22 +282,25 @@ class AggregatesController(rest.RestController):
                     start, stop, granularity, needed_overlap, fill)
             }
             if details:
-                response["references"] = references
+                response["references"] = metrics
+
             return response
 
-    def _get_measures_by_name(self, resources, metric_names, operations,
+    def _get_measures_by_name(self, resources, metric_wildcards, operations,
                               start, stop, granularity, needed_overlap, fill,
                               details):
 
-        references = [
-            processor.MetricReference(r.get_metric(metric_name), agg, r)
-            for (metric_name, agg) in metric_names
-            for r in resources if r.get_metric(metric_name) is not None
-        ]
+        references = []
+        for r in resources:
+            references.extend([
+                processor.MetricReference(m, agg, r, wildcard)
+                for wildcard, agg in metric_wildcards
+                for m in r.metrics if fnmatch.fnmatch(m.name, wildcard)
+            ])
 
         if not references:
             api.abort(400, {"cause": "Metrics not found",
-                            "detail": set((m for (m, a) in metric_names))})
+                            "detail": set((m for (m, a) in metric_wildcards))})
 
         response = {
             "measures": get_measures_or_abort(
@@ -301,5 +308,5 @@ class AggregatesController(rest.RestController):
                 needed_overlap, fill)
         }
         if details:
-            response["references"] = references
+            response["references"] = set((r.resource for r in references))
         return response
