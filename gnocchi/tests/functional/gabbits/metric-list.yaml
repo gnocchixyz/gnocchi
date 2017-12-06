@@ -137,7 +137,7 @@ tests:
         # User admin
         authorization: "basic YWRtaW46"
       response_headers:
-          Link: "<$SCHEME://$NETLOC/v1/metric?archive_policy_name=first_archive&limit=2&marker=$RESPONSE['$[1].id']&sort=name%3Adesc>; rel=\"next\""
+          Link: "<$SCHEME://$NETLOC/v1/metric?archive_policy_name=first_archive&limit=2&marker=$RESPONSE['$[1].id']&sort=name%3Adesc>; rel=next"
       response_json_paths:
           $.`len`: 2
           $[0].name: disk.io.rate

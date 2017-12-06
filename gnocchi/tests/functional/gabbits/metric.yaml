@@ -84,12 +84,14 @@ tests:
 
     - name: create metric with invalid name
       POST: /v1/metric
+      request_headers:
+        accept: application/json
       data:
           name: "disk/io/rate"
           unit: "B/s"
       status: 400
-      response_strings:
-        - "'/' is not supported in metric name"
+      response_json_paths:
+        $.description: '''/'' is not supported in metric name'
 
     - name: create metric with name and over length unit
       POST: /v1/metric

@@ -119,7 +119,7 @@ class BasicAuthHelper(object):
     @staticmethod
     def get_current_user(request):
         auth = werkzeug.http.parse_authorization_header(
-            request.headers.get("Authorization"))
+            request.headers.get("AUTHORIZATION"))
         if auth is None:
             api.abort(401)
         return auth.username
