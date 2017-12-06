@@ -301,7 +301,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         cfg = config.Config(
             "%s/alembic/alembic.ini" % os.path.dirname(__file__))
         cfg.set_main_option('sqlalchemy.url',
-                            self.conf.database.connection)
+                            self.conf.database.connection.replace('%', '%%'))
         return cfg
 
     def get_engine(self):
