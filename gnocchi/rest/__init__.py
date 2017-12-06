@@ -430,6 +430,14 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
+        if granularity is not None:
+            try:
+                granularity = Timespan(granularity)
+            except ValueError:
+                abort(400, {"cause": "Attribute value error",
+                            "detail": "granularity",
+                            "reason": "Invalid granularity"})
+
         if resample:
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
@@ -454,8 +462,7 @@ class MetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
-                    Timespan(granularity) if granularity is not None else None,
-                    resample)
+                    granularity, resample)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
