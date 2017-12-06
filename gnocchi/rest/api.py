@@ -666,13 +666,17 @@ class MetricsController(rest.RestController):
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
             pecan.request, "list metric")
-
-        if policy_filter:
-            attr_filters.append(policy_filter)
+        resource_policy_filter = (
+            pecan.request.auth_helper.get_resource_policy_filter(
+                pecan.request, "list metric", resource_type=None,
+                prefix="resource")
+        )
 
         try:
             metrics = pecan.request.indexer.list_metrics(
                 attribute_filter={"and": attr_filters},
+                policy_filter=policy_filter,
+                resource_policy_filter=resource_policy_filter,
                 **pagination_opts)
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
@@ -1989,12 +1993,12 @@ def get_or_create_resource_and_metrics(
             return pecan.request.indexer.create_resource(
                 resource_type, rid, creator, **kwargs
             ).metrics
-        except indexer.ResourceAlreadyExists:
+        except indexer.ResourceAlreadyExists as e:
             # NOTE(sileht): ensure the rid is not registered whitin another
             # resource type.
             r = pecan.request.indexer.get_resource('generic', rid)
             if r.type != resource_type:
-                abort(409, six.text_type(e))
+                abort(409, e)
             raise
 
 

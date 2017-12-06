@@ -325,6 +325,22 @@ class MetricTest(RestTest):
             metric_list = self.app.get("/v1/metric")
             self.assertNotIn(metric_id, [m["id"] for m in metric_list.json])
 
+    def test_list_metric_with_another_user_allowed(self):
+        rid = str(uuid.uuid4())
+        r = self.app.post_json("/v1/resource/generic",
+                               params={
+                                   "id": rid,
+                                   "project_id": TestingApp.PROJECT_ID_2,
+                                   "metrics": {
+                                       "disk": {"archive_policy_name": "low"},
+                                   }
+                               })
+        metric_id = r.json['metrics']['disk']
+
+        with self.app.use_another_user():
+            metric_list = self.app.get("/v1/metric")
+            self.assertIn(metric_id, [m["id"] for m in metric_list.json])
+
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",
                                     params={"archive_policy_name": "medium"},

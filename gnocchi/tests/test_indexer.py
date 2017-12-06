@@ -863,6 +863,14 @@ class TestIndexerDriver(tests_base.TestCase):
             resource_type, attribute_filter={"=": {"flavor_id": 1.0}})
         self.assertEqual(0, len(r))
 
+    def test_list_resource_empty_in(self):
+        self.index.create_resource('generic', str(uuid.uuid4()),
+                                   str(uuid.uuid4()), str(uuid.uuid4()))
+        self.assertEqual(
+            [],
+            self.index.list_resources(
+                attribute_filter={"in": {"id": []}}))
+
     def test_list_resource_weird_date(self):
         self.assertRaises(
             indexer.QueryValueError,
@@ -1142,6 +1150,23 @@ class TestIndexerDriver(tests_base.TestCase):
             self.assertLess(id_list.index(e1), id_list.index(e2))
         else:
             self.assertLess(id_list.index(e2), id_list.index(e1))
+
+    def test_list_metrics_resource_filter(self):
+        r1 = uuid.uuid4()
+        creator = str(uuid.uuid4())
+        m1 = uuid.uuid4()
+        m2 = uuid.uuid4()
+        project_id = str(uuid.uuid4())
+        self.index.create_resource("generic", r1, creator,
+                                   project_id=project_id)
+        self.index.create_metric(m1, creator, archive_policy_name="low",
+                                 resource_id=r1)
+        self.index.create_metric(m2, creator, archive_policy_name="low")
+        metrics = self.index.list_metrics(
+            resource_policy_filter={"=": {"project_id": project_id}})
+        id_list = [m.id for m in metrics]
+        self.assertIn(m1, id_list)
+        self.assertNotIn(m2, id_list)
 
     def test_list_metrics_delete_status(self):
         e1 = uuid.uuid4()
