@@ -6,7 +6,6 @@ defaults:
     content-type: application/json
     # User foobar
     authorization: "basic Zm9vYmFyOg=="
-    content-type: application/json
 
 tests:
     - name: wrong metric
@@ -195,6 +194,16 @@ tests:
         $:
           - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+
+    - name: get measurements from metric invalid granularity
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?granularity=foobar
+      request_headers:
+        accept: application/json
+      status: 400
+      response_json_paths:
+        $.description.cause: Attribute value error
+        $.description.reason: Invalid granularity
+        $.description.detail: granularity
 
     - name: push measurements to metric again
       POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
