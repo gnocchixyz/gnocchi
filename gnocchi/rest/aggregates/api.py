@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import fnmatch
 import itertools
 
 import pecan
@@ -285,19 +286,21 @@ class AggregatesController(rest.RestController):
 
             return response
 
-    def _get_measures_by_name(self, resources, metric_names, operations,
+    def _get_measures_by_name(self, resources, metric_wildcards, operations,
                               start, stop, granularity, needed_overlap, fill,
                               details):
 
-        references = [
-            processor.MetricReference(r.get_metric(metric_name), agg, r)
-            for (metric_name, agg) in metric_names
-            for r in resources if r.get_metric(metric_name) is not None
-        ]
+        references = []
+        for r in resources:
+            references.extend([
+                processor.MetricReference(m, agg, r, wildcard)
+                for wildcard, agg in metric_wildcards
+                for m in r.metrics if fnmatch.fnmatch(m.name, wildcard)
+            ])
 
         if not references:
             api.abort(400, {"cause": "Metrics not found",
-                            "detail": set((m for (m, a) in metric_names))})
+                            "detail": set((m for (m, a) in metric_wildcards))})
 
         response = {
             "measures": get_measures_or_abort(

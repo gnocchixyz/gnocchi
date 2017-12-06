@@ -32,7 +32,7 @@ LOG = daiquiri.getLogger(__name__)
 
 
 class MetricReference(object):
-    def __init__(self, metric, aggregation, resource=None):
+    def __init__(self, metric, aggregation, resource=None, wildcard=None):
         self.metric = metric
         self.aggregation = aggregation
         self.resource = resource
@@ -43,7 +43,7 @@ class MetricReference(object):
         else:
             self.name = self.metric.name
 
-        self.lookup_key = [self.name, self.aggregation]
+        self.lookup_key = [wildcard or self.name, self.aggregation]
 
     def __eq__(self, other):
         return (self.metric == other.metric and
