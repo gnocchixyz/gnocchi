@@ -468,8 +468,7 @@ class MetricController(rest.RestController):
         self.enforce_metric("get measures")
         if (aggregation not in
            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
-            msg = '''Invalid aggregation value %(agg)s, must be one of %(std)s
-                     or %(custom)s'''
+            msg = "Invalid aggregation value %(agg)s, must be one of %(std)s"
             abort(400, msg % dict(
                 agg=aggregation,
                 std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))

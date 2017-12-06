@@ -6,7 +6,6 @@ defaults:
     content-type: application/json
     # User foobar
     authorization: "basic Zm9vYmFyOg=="
-    content-type: application/json
 
 tests:
     - name: wrong metric
@@ -176,6 +175,12 @@ tests:
           - timestamp: "2015-03-06T14:34:12"
             value: 12
       status: 202
+
+    - name: get measurements invalid agg method
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?aggregation=wtf
+      status: 400
+      response_strings:
+        - Invalid aggregation value
 
     - name: get measurements by start
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34
