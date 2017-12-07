@@ -95,14 +95,18 @@ tests:
 
     - name: create metric with name and over length unit
       POST: /v1/metric
+      request_headers:
+        accept: application/json
       data:
           name: "disk.io.rate"
           unit: "over_length_unit_over_length_unit"
       status: 400
-      response_strings:
-          # split to not match the u' in py2
-          - "Invalid input: length of value must be at most 31 for dictionary value @ data["
-          - "'unit']"
+      response_json_paths:
+        $.description:
+          - cause: Attribute value error
+            detail: unit
+            reason:
+              - Longer than maximum length 31.
 
     - name: create metric with name no rule
       POST: /v1/metric

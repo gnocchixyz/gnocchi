@@ -13,11 +13,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import functools
 import uuid
 
 import falcon
 from falcon import status_codes
+import marshmallow
+import numpy
 from oslo_policy import policy
 import six
 from six.moves.urllib import parse as urllib_parse
@@ -52,21 +53,6 @@ def enforce(policy_enforcer, auth_info, rule, target):
 
     if not policy_enforcer.enforce(rule, target, auth_info):
         abort(403)
-
-
-def validate(schema, data, required=True):
-    try:
-        return voluptuous.Schema(schema, required=required)(data)
-    except voluptuous.Error as e:
-        abort(400, "Invalid input: %s" % e)
-
-
-def deserialize_and_validate(req, schema, required=True,
-                             expected_content_types=("application/json",)):
-    return validate(
-        schema,
-        deserialize(req, expected_content_types=expected_content_types),
-        required)
 
 
 def deserialize(req, expected_content_types=("application/json",)):
@@ -140,6 +126,66 @@ def set_resp_link_hdr(req, resp, marker, *args):
     ), "next")
 
 
+class ResourceIDField(marshmallow.fields.Field):
+    def _deserialize(self, value, attr, data):
+        return (six.text_type(value),
+                utils.ResourceUUID(value, self.context['creator']))
+
+
+class TimespanField(marshmallow.fields.Field):
+    def _deserialize(self, value, attr, data):
+        return utils.to_timespan(value)
+
+    def _serialize(self, value, attr, data):
+        # FIXME(jd) provide that in gnocchi.utils
+        if value is not None:
+            return value / numpy.timedelta64(1, 's')
+
+
+class ArchivePolicyDefinitionSchema(marshmallow.Schema):
+    granularity = TimespanField()
+    timespan = TimespanField()
+    points = marshmallow.fields.Integer(
+        validate=marshmallow.validate.Range(min=1))
+
+
+class ArchivePolicySchema(marshmallow.Schema):
+    name = marshmallow.fields.String(required=True)
+    back_window = marshmallow.fields.Integer(
+        validate=marshmallow.validate.Range(min=0),
+        missing=0)
+    aggregation_methods = marshmallow.fields.List(
+        marshmallow.fields.String(
+            validate=marshmallow.validate.OneOf(
+                archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
+            )))
+    definition = marshmallow.fields.Nested(
+        ArchivePolicyDefinitionSchema, many=True)
+
+
+class MetricSchema(marshmallow.Schema):
+    id = marshmallow.fields.UUID(dump_only=True)
+    creator = marshmallow.fields.String(dump_only=True)
+    archive_policy_name = marshmallow.fields.String()
+    archive_policy = marshmallow.fields.Nested(
+        ArchivePolicySchema(), dump_only=True)
+    resource_id = ResourceIDField()
+    name = marshmallow.fields.String()
+    unit = marshmallow.fields.String(
+        validate=marshmallow.validate.Length(max=31))
+
+
+MetricSchemaI = MetricSchema()
+
+
+def dump_with_schema(data, schema, many=False):
+    marshal = schema.dump(data, many=many)
+    if marshal.errors:
+        raise RuntimeError(
+            "Error while serializing data with schema %r" % schema)
+    return json.dumps(marshal.data)
+
+
 class MetricsResource(object):
 
     MetricListSchema = voluptuous.Schema({
@@ -206,20 +252,22 @@ class MetricsResource(object):
             set_resp_link_hdr(req, resp,
                               str(metrics[-1].id), req.params, pagination_opts)
 
-        resp.body = json.dumps(metrics)
+        resp.body = dump_with_schema(metrics, MetricSchemaI, many=True)
 
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
     # smarter version of a voluptuous schema, no?
     def MetricSchema(self, definition, auth_info, creator):
         # First basic validation
-        schema = voluptuous.Schema({
-            "archive_policy_name": six.text_type,
-            "resource_id": functools.partial(api.ResourceID, creator=creator),
-            "name": six.text_type,
-            voluptuous.Optional("unit"):
-            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
-        })
-        definition = schema(definition)
+        unmarshal = MetricSchema(context={"creator": creator}).load(definition)
+        if unmarshal.errors:
+            abort(400,
+                  [{"cause": "Attribute value error",
+                    "detail": field_name,
+                    "reason": reasons}
+                   for field_name, reasons
+                   in six.iteritems(unmarshal.errors)])
+
+        definition = unmarshal.data
         archive_policy_name = definition.get('archive_policy_name')
 
         name = definition.get('name')
@@ -266,10 +314,11 @@ class MetricsResource(object):
     def on_post(self, req, resp):
         creator = self.auth_helper.get_current_user(req)
         auth_info = self.auth_helper.get_auth_info(req)
-        body = deserialize_and_validate(
-            req, functools.partial(self.MetricSchema,
-                                   auth_info=auth_info,
-                                   creator=creator))
+
+        body = self.MetricSchema(
+            deserialize(req),
+            auth_info=auth_info,
+            creator=creator)
 
         resource_id = body.get('resource_id')
         if resource_id is not None:
@@ -289,7 +338,9 @@ class MetricsResource(object):
             abort(400, e)
         set_resp_location_hdr(req, resp, "/" + str(m.id))
         resp.status = 201
-        resp.body = json.dumps(m)
+        # FIXME(jd) Need to call jsonify because of archive_policy not loaded
+        # here.
+        resp.body = dump_with_schema(m.jsonify(), MetricSchemaI)
 
 
 class MetricResourceBase(object):
@@ -314,7 +365,7 @@ class MetricResourceBase(object):
 class MetricResource(MetricResourceBase):
     def on_get(self, req, resp, metric_id):
         metric = self._get_metric("get metric", metric_id, req)
-        resp.body = json.dumps(metric)
+        resp.body = dump_with_schema(metric, MetricSchemaI)
 
     def on_delete(self, req, resp, metric_id):
         metric = self._get_metric("get metric", metric_id, req)
