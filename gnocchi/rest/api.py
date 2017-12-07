@@ -1539,7 +1539,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
                         except indexer.NamedMetricAlreadyExists as e:
-                            already_exists_names.append(e.metric)
+                            already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
                             unknown_resources.append({
                                 'resource_id': six.text_type(resource_id),
