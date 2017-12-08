@@ -227,4 +227,32 @@ def setup(app):
         template = jinja2.Template(f.read())
     with open("doc/source/rest.rst", "w") as f:
         f.write(template.render(scenarios=scenarios))
+
+    # Generate API spec
+    from apispec.core import Path
+    from apispec.lazy_dict import LazyDict
+    from collections import OrderedDict
+
+    from gnocchi.rest import metric
+
+    def represent_dict(dumper, instance):
+        return dumper.represent_mapping('tag:yaml.org,2002:map',
+                                        instance.items())
+
+    if six.PY2:
+        def unicode_representer(dumper, uni):
+            return yaml.ScalarNode(tag=u'tag:yaml.org,2002:str', value=uni)
+
+        yaml.add_representer(unicode, unicode_representer)
+
+    # TODO(jd) Move that into a non-system wide hack in apispec itself
+    # https://github.com/marshmallow-code/apispec/issues/161
+    yaml.add_representer(OrderedDict, represent_dict)
+    yaml.add_representer(LazyDict, represent_dict)
+    yaml.add_representer(Path, represent_dict)
+    yaml.add_representer(Path, represent_dict)
+
+    with open("doc/source/openapi.yml", "w") as f:
+        f.write(yaml.dump(metric.spec.to_dict()))
+
     _RUN = True

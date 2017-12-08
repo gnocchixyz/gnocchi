@@ -13,8 +13,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import itertools
 import uuid
 
+import apispec
+from apispec.ext.marshmallow import swagger
 import falcon
 from falcon import status_codes
 import marshmallow
@@ -126,12 +129,14 @@ def set_resp_link_hdr(req, resp, marker, *args):
     ), "next")
 
 
+@swagger.map_to_swagger_type(marshmallow.fields.String)
 class ResourceIDField(marshmallow.fields.Field):
     def _deserialize(self, value, attr, data):
         return (six.text_type(value),
                 utils.ResourceUUID(value, self.context['creator']))
 
 
+@swagger.map_to_swagger_type(marshmallow.fields.String)
 class TimespanField(marshmallow.fields.Field):
     def _deserialize(self, value, attr, data):
         return utils.to_timespan(value)
@@ -206,6 +211,19 @@ class MetricsResource(object):
         self.max_limit = max_limit
 
     def on_get(self, req, resp):
+        """List metrics.
+
+        List all the available metrics.
+        ---
+        responses:
+          200:
+            description: List of metrics
+            schema:
+              type: array
+              items: MetricSchema
+          400:
+            description: Error
+        """
         filtering = self.MetricListSchema(req.params)
 
         # Compat with old user/project API
@@ -312,6 +330,17 @@ class MetricsResource(object):
         return definition
 
     def on_post(self, req, resp):
+        """Create a new metric.
+
+        Create a new metrics and returns it.
+        ---
+        responses:
+          201:
+            description: Metric created
+            schema: MetricSchema
+          400:
+            description: Error
+        """
         creator = self.auth_helper.get_current_user(req)
         auth_info = self.auth_helper.get_auth_info(req)
 
@@ -364,10 +393,27 @@ class MetricResourceBase(object):
 
 class MetricResource(MetricResourceBase):
     def on_get(self, req, resp, metric_id):
+        """Retrieve a metric.
+
+        Retrieve all available information about a metric.
+        ---
+        responses:
+          200:
+            description: Metric
+            schema: MetricSchema
+        """
         metric = self._get_metric("get metric", metric_id, req)
         resp.body = dump_with_schema(metric, MetricSchemaI)
 
     def on_delete(self, req, resp, metric_id):
+        """Delete a metric.
+
+        Delete a metric. Its associated resource is not modified.
+        ---
+        responses:
+          204:
+            description: Nothing
+        """
         metric = self._get_metric("get metric", metric_id, req)
         try:
             self.indexer.delete_metric(metric.id)
@@ -475,3 +521,38 @@ def make_app(conf, indexer, storage, incoming,
                                    auth_helper, indexer, storage, incoming,
                                    conf.api.operation_timeout))
     return app
+
+
+def falcon_path_helper(spec, path, resource, **kwargs):
+    operations = {}
+    for method in ("get", "post", "delete"):
+        m = getattr(resource, "on_" + method, None)
+        if m is not None:
+            yml = apispec.utils.load_yaml_from_docstring(m.__doc__)
+            if yml is not None:
+                docstring = m.__doc__.split("\n")
+                summary = docstring.pop(0)
+                description = " ".join(
+                    (line.strip() for line in
+                     itertools.takewhile(
+                         lambda s: not s.strip().startswith("---"),
+                         docstring)
+                     if line))
+                operations[method] = yml
+                operations[method]['description'] = description
+                operations[method]['summary'] = summary
+    return apispec.Path(path=path.path, operations=operations)
+
+
+spec = apispec.APISpec(
+    title='Gnocchi',
+    version='1',
+    plugins=[
+        'apispec.ext.marshmallow',
+    ],
+)
+spec.register_path_helper(falcon_path_helper)
+spec.definition('Metric', schema=MetricSchema)
+spec.add_path(path="/", resource=MetricsResource)
+spec.add_path(path='/{metric_id}', resource=MetricResource)
+spec.add_path(path='/{metric_id}/measures', resource=MeasuresResource)

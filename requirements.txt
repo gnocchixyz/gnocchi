@@ -28,3 +28,4 @@ tooz>=1.38
 cachetools
 falcon
 marshmallow
+apispec
