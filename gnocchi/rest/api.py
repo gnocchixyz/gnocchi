@@ -713,10 +713,7 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        # NOTE(sileht): We want detail only when we GET /metric/<id>
-        # and not for /metric/<id>/measures
-        details = pecan.request.method == 'GET' and len(remainder) == 0
-        m = pecan.request.indexer.list_metrics(details=details,
+        m = pecan.request.indexer.list_metrics(details=True,
                                                name=name,
                                                resource_id=self.resource_id)
         if m:
@@ -1542,7 +1539,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
                         except indexer.NamedMetricAlreadyExists as e:
-                            already_exists_names.append(e.metric)
+                            already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
                             unknown_resources.append({
                                 'resource_id': six.text_type(resource_id),
@@ -1817,7 +1814,7 @@ class AggregationController(rest.RestController):
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,
-                [(m, aggregation) for m in metrics],
+                [processor.MetricReference(m, aggregation) for m in metrics],
                 operations, start, stop,
                 granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:
