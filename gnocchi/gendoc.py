@@ -41,13 +41,13 @@ def _format_json(txt):
 
 def _extract_body(req_or_resp):
     # TODO(jd) Make this a Sphinx option
-    if not req_or_resp.body:
+    if not req_or_resp.text:
         return ""
 
-    if req_or_resp.content_type == "application/json":
-        body = _format_json(req_or_resp.body)
+    if req_or_resp.content_type.startswith("application/json"):
+        body = _format_json(req_or_resp.text)
     else:
-        body = req_or_resp.body
+        body = req_or_resp.text
     return "\n      ".join(body.split("\n"))
 
 
@@ -200,8 +200,7 @@ def setup(app):
         for entry in scenarios:
             template = jinja2.Template(entry['request'])
             fake_file = six.moves.cStringIO()
-            fake_file.write(template.render(
-                scenarios=scenarios).encode('utf-8'))
+            fake_file.write(template.render(scenarios=scenarios))
             fake_file.seek(0)
             request = webapp.RequestClass.from_file(fake_file)
 
@@ -225,7 +224,7 @@ def setup(app):
         test.tearDown()
         test.tearDownClass()
     with open("doc/source/rest.j2", "r") as f:
-        template = jinja2.Template(f.read().decode('utf-8'))
+        template = jinja2.Template(f.read())
     with open("doc/source/rest.rst", "w") as f:
-        f.write(template.render(scenarios=scenarios).encode('utf-8'))
+        f.write(template.render(scenarios=scenarios))
     _RUN = True
