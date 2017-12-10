@@ -127,6 +127,9 @@ tests:
               bool:
                   type: bool
                   required: false
+              datetime:
+                  type: datetime
+                  required: false
       status: 201
       response_json_paths:
           $.name: my_custom_resource
@@ -163,7 +166,9 @@ tests:
               bool:
                   type: bool
                   required: false
-
+              datetime:
+                  type: datetime
+                  required: false
       response_headers:
           location: $SCHEME://$NETLOC/v1/resource_type/my_custom_resource
 
@@ -214,6 +219,9 @@ tests:
               bool:
                   type: bool
                   required: false
+              datetime:
+                  type: datetime
+                  required: false
 
 # Some bad case case on the type
 
@@ -259,11 +267,13 @@ tests:
           foobar: what
           uuid: e495ebad-be64-46c0-81d6-b079beb48df9
           int: 1
+          datetime: "2017-05-02T11:11:11Z"
       status: 201
       response_json_paths:
           $.id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $.name: bar
           $.foobar: what
+          $.datetime: "2017-05-02T11:11:11+00:00"
 
     - name: patch custom resource
       PATCH: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -307,6 +317,7 @@ tests:
           $[0].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $[0].name: bar
           $[0].foobar: what
+          $[0].datetime: "2017-05-02T11:11:11+00:00"
           $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $[1].name: foo
           $[1].foobar: what
@@ -368,6 +379,13 @@ tests:
             required: True
             options:
               fill: "00000000-0000-0000-0000-000000000000"
+        - op: add
+          path: /attributes/newdatetime
+          value:
+            type: datetime
+            required: True
+            options:
+              fill: "2017-10-10T10:10:10Z"
         - op: remove
           path: /attributes/foobar
       status: 200
@@ -400,6 +418,9 @@ tests:
               bool:
                   type: bool
                   required: false
+              datetime:
+                  type: datetime
+                  required: False
               newstuff:
                   type: string
                   required: False
@@ -425,6 +446,9 @@ tests:
                   max: 255
               newuuid:
                   type: uuid
+                  required: True
+              newdatetime:
+                  type: datetime
                   required: True
 
     - name: post a new resource attribute with missing fill
@@ -494,6 +518,9 @@ tests:
               bool:
                   type: bool
                   required: false
+              datetime:
+                  type: datetime
+                  required: False
               newstuff:
                   type: string
                   required: False
@@ -520,6 +547,9 @@ tests:
               newuuid:
                   type: uuid
                   required: True
+              newdatetime:
+                  type: datetime
+                  required: True
 
     - name: control new attributes of existing resource
       GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747
@@ -533,6 +563,8 @@ tests:
           $.newint: 15
           $.newstring: foobar
           $.newuuid: "00000000-0000-0000-0000-000000000000"
+          $.newdatetime: "2017-10-10T10:10:10+00:00"
+
 
     - name: control new attributes of existing resource history
       GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
@@ -546,6 +578,7 @@ tests:
           $[0].newint: 15
           $[0].newstring: foobar
           $[0].newuuid: "00000000-0000-0000-0000-000000000000"
+          $[0].newdatetime: "2017-10-10T10:10:10+00:00"
           $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $[1].name: foo
           $[1].newstuff: null
@@ -554,6 +587,7 @@ tests:
           $[1].newint: 15
           $[1].newstring: foobar
           $[1].newuuid: "00000000-0000-0000-0000-000000000000"
+          $[1].newdatetime: "2017-10-10T10:10:10+00:00"
 
 # Invalid patch
 
@@ -603,6 +637,9 @@ tests:
               bool:
                   type: bool
                   required: false
+              datetime:
+                  type: datetime
+                  required: False
               newstuff:
                   type: string
                   required: False
@@ -628,6 +665,9 @@ tests:
                   max: 255
               newuuid:
                   type: uuid
+                  required: True
+              newdatetime:
+                  type: datetime
                   required: True
 
     - name: delete/add the same resource attribute

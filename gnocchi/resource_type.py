@@ -172,6 +172,17 @@ class UUIDSchema(CommonAttributeSchema):
             raise voluptuous.Invalid(e)
 
 
+class DatetimeSchema(CommonAttributeSchema):
+    typename = "datetime"
+
+    @staticmethod
+    def schema_ext(value):
+        try:
+            return utils.to_datetime(value)
+        except ValueError as e:
+            raise voluptuous.Invalid(e)
+
+
 class NumberSchema(CommonAttributeSchema):
     typename = "number"
 
