@@ -24,7 +24,7 @@ Create Date: 2016-08-31 14:05:34.316496
 from alembic import op
 import sqlalchemy as sa
 
-from gnocchi.indexer import sqlalchemy_base
+from gnocchi.indexer import sqlalchemy_types
 from gnocchi import utils
 
 # revision identifiers, used by Alembic.
@@ -36,7 +36,7 @@ depends_on = None
 
 resource_type = sa.sql.table(
     'resource_type',
-    sa.sql.column('updated_at', sqlalchemy_base.PreciseTimestamp()))
+    sa.sql.column('updated_at', sqlalchemy_types.PreciseTimestamp()))
 
 state_enum = sa.Enum("active", "creating",
                      "creation_error", "deleting",
@@ -80,10 +80,10 @@ def upgrade():
                     server_default="creating")
     op.add_column("resource_type",
                   sa.Column("updated_at",
-                            sqlalchemy_base.PreciseTimestamp(),
+                            sqlalchemy_types.PreciseTimestamp(),
                             nullable=True))
 
     op.execute(resource_type.update().values({'updated_at': utils.utcnow()}))
     op.alter_column("resource_type", "updated_at",
-                    type_=sqlalchemy_base.PreciseTimestamp(),
+                    type_=sqlalchemy_types.PreciseTimestamp(),
                     nullable=False)
