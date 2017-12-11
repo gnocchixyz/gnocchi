@@ -155,3 +155,15 @@ def app_factory(global_config, **local_conf):
     global APPCONFIGS
     appconfig = APPCONFIGS.get(global_config.get('configkey'))
     return _setup_app(root=local_conf.get('root'), **appconfig)
+
+
+def app_falcon_factory(global_config, **local_conf):
+    global APPCONFIGS
+    appconfig = APPCONFIGS.get(global_config.get('configkey'))
+
+    parts = local_conf.get('root').split('.')
+    name = '.'.join(parts[:-1])
+    fromlist = parts[-1:]
+
+    module = __import__(name, fromlist=fromlist)
+    return getattr(module, parts[-1])(**appconfig)

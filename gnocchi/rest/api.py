@@ -527,22 +527,6 @@ class MetricController(rest.RestController):
 
 
 class MetricsController(rest.RestController):
-
-    @pecan.expose()
-    def _lookup(self, id, *remainder):
-        try:
-            metric_id = uuid.UUID(id)
-        except ValueError:
-            abort(404, six.text_type(indexer.NoSuchMetric(id)))
-
-        # NOTE(sileht): Don't get detail for measure
-        details = len(remainder) == 0
-        metrics = pecan.request.indexer.list_metrics(
-            attribute_filter={"=": {"id": metric_id}}, details=details)
-        if not metrics:
-            abort(404, six.text_type(indexer.NoSuchMetric(id)))
-        return MetricController(metrics[0]), remainder
-
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
     # smarter version of a voluptuous schema, no?
     @staticmethod
@@ -601,89 +585,6 @@ class MetricsController(rest.RestController):
         })
 
         return definition
-
-    @pecan.expose('json')
-    def post(self):
-        creator = pecan.request.auth_helper.get_current_user(
-            pecan.request)
-        body = deserialize_and_validate(self.MetricSchema)
-
-        resource_id = body.get('resource_id')
-        if resource_id is not None:
-            resource_id = resource_id[1]
-
-        try:
-            m = pecan.request.indexer.create_metric(
-                uuid.uuid4(),
-                creator,
-                resource_id=resource_id,
-                name=body.get('name'),
-                unit=body.get('unit'),
-                archive_policy_name=body['archive_policy_name'])
-        except indexer.NoSuchArchivePolicy as e:
-            abort(400, six.text_type(e))
-        except indexer.NamedMetricAlreadyExists as e:
-            abort(400, e)
-        set_resp_location_hdr("/metric/" + str(m.id))
-        pecan.response.status = 201
-        return m
-
-    MetricListSchema = voluptuous.Schema({
-        "user_id": six.text_type,
-        "project_id": six.text_type,
-        "creator": six.text_type,
-        "name": six.text_type,
-        "id": six.text_type,
-        "unit": six.text_type,
-        "archive_policy_name": six.text_type,
-        "status": voluptuous.Any("active", "delete"),
-    }, extra=voluptuous.REMOVE_EXTRA)
-
-    @classmethod
-    @pecan.expose('json')
-    def get_all(cls, **kwargs):
-        filtering = cls.MetricListSchema(kwargs)
-
-        # Compat with old user/project API
-        provided_user_id = filtering.pop('user_id', None)
-        provided_project_id = filtering.pop('project_id', None)
-        if provided_user_id is None and provided_project_id is None:
-            provided_creator = filtering.pop('creator', None)
-        else:
-            provided_creator = (
-                (provided_user_id or "")
-                + ":"
-                + (provided_project_id or "")
-            )
-
-        pagination_opts = get_pagination_options(kwargs,
-                                                 METRIC_DEFAULT_PAGINATION)
-        attr_filters = []
-        if provided_creator is not None:
-            attr_filters.append({"=": {"creator": provided_creator}})
-
-        for k, v in six.iteritems(filtering):
-            attr_filters.append({"=": {k: v}})
-
-        policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
-            pecan.request, "list metric")
-        resource_policy_filter = (
-            pecan.request.auth_helper.get_resource_policy_filter(
-                pecan.request, "list metric", resource_type=None,
-                prefix="resource")
-        )
-
-        try:
-            metrics = pecan.request.indexer.list_metrics(
-                attribute_filter={"and": attr_filters},
-                policy_filter=policy_filter,
-                resource_policy_filter=resource_policy_filter,
-                **pagination_opts)
-            if metrics and len(metrics) >= pagination_opts['limit']:
-                set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
-            return metrics
-        except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
 
 
 _MetricsSchema = voluptuous.Schema({

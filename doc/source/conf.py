@@ -29,8 +29,17 @@ import subprocess
 extensions = [
     'gnocchi.gendoc',
     'sphinxcontrib.httpdomain',
+    'sphinxcontrib.redoc',
     'sphinx.ext.autodoc',
     'reno.sphinxext',
+]
+
+redoc = [
+    {
+        'name': 'Gnocchi API',
+        'page': 'openapi',
+        'spec': 'openapi.yml',
+    },
 ]
 
 # Add any paths that contain templates here, relative to this directory.

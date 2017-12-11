@@ -12,3 +12,4 @@ cover
 .coverage
 dist
 upgrade/
+doc/source/openapi.yml
