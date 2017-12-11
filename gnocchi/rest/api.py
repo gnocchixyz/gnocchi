@@ -233,13 +233,6 @@ def get_pagination_options(params, default):
     return opts
 
 
-def ValidAggMethod(value):
-    value = six.text_type(value)
-    if value in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES:
-        return value
-    raise ValueError("Invalid aggregation method")
-
-
 class ArchivePolicyController(rest.RestController):
     def __init__(self, archive_policy):
         self.archive_policy = archive_policy
@@ -302,16 +295,19 @@ class ArchivePoliciesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
+        enforce("create archive policy", {})
         # NOTE(jd): Initialize this one at run-time because we rely on conf
         conf = pecan.request.conf
-        enforce("create archive policy", {})
+        valid_agg_methods = (
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
+        )
         ArchivePolicySchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("back_window", default=0): PositiveOrNullInt,
             voluptuous.Required(
                 "aggregation_methods",
                 default=set(conf.archive_policy.default_aggregation_methods)):
-            [ValidAggMethod],
+            voluptuous.All(list(valid_agg_methods), voluptuous.Coerce(set)),
             voluptuous.Required("definition"):
             voluptuous.All([{
                 "granularity": Timespan,
