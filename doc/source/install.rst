@@ -125,7 +125,9 @@ Configuring authentication
 
 The API server supports different authentication methods:
 
-* `basic` (the default) which uses the standard HTTP `Authorization` header.
+* `basic` (the default) which uses the standard HTTP `Authorization` header. By
+  default, only the user `admin` has some special permissions (e.g. create
+  archive policies). The password of the authentication is not used.
 
 * `keystone` to use `OpenStack Keystone`_. If you successfully installed the
   `keystone` flavor using `pip` (see :ref:`installation`), you can set
@@ -133,9 +135,9 @@ The API server supports different authentication methods:
   You also need to configure the `keystone_authtoken` section in `gnocchi.conf`
   with the proper value so Gnocchi is able to validate tokens.
 
-* `remoteuser` Gnocchi will look at the HTTP server REMOTE_USER environment
-   variable to get the username. Then the permissions model is the same as the
-   `basic` mode.
+* `remoteuser` where Gnocchi will look at the HTTP server `REMOTE_USER`
+  environment variable to get the username. Then the permissions model is the
+  same as the `basic` mode.
 
 .. _`OpenStack Keystone`: http://launchpad.net/keystone
 
