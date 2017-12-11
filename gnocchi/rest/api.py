@@ -687,7 +687,7 @@ class MetricsController(rest.RestController):
             if metrics and len(metrics) >= pagination_opts['limit']:
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
             return metrics
-        except indexer.IndexerException as e:
+        except indexer.InvalidPagination as e:
             abort(400, six.text_type(e))
 
 
