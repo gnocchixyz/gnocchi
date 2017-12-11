@@ -185,7 +185,7 @@ def get_header_option(name, params):
     type, options = werkzeug.http.parse_options_header(
         pecan.request.headers.get('Accept'))
     return strtobool('Accept header' if name in options else name,
-                     options.get(name, params.pop(name, 'false')))
+                     options.get(name, params.get(name, 'false')))
 
 
 def get_history(params):
@@ -211,23 +211,26 @@ METRIC_DEFAULT_PAGINATION = ['id:asc']
 
 
 def get_pagination_options(params, default):
-    max_limit = pecan.request.conf.api.max_limit
-    limit = params.pop('limit', max_limit)
-    marker = params.pop('marker', None)
-    sorts = params.pop('sort', default)
-    if not isinstance(sorts, list):
-        sorts = [sorts]
-
     try:
-        limit = PositiveNotNullInt(limit)
-    except ValueError:
-        abort(400, "Invalid 'limit' value: %s" % params.get('limit'))
-
-    limit = min(limit, max_limit)
-
-    return {'limit': limit,
-            'marker': marker,
-            'sorts': sorts}
+        opts = voluptuous.Schema({
+            voluptuous.Required(
+                "limit", default=pecan.request.conf.api.max_limit):
+            voluptuous.All(voluptuous.Coerce(int),
+                           voluptuous.Range(min=1),
+                           voluptuous.Clamp(
+                               min=1, max=pecan.request.conf.api.max_limit)),
+            "marker": six.text_type,
+            voluptuous.Required("sort", default=default):
+            voluptuous.All(
+                voluptuous.Coerce(arg_to_list),
+                [six.text_type]),
+        }, extra=voluptuous.REMOVE_EXTRA)(params)
+    except voluptuous.Invalid as e:
+        abort(400, {"cause": "Argument value error",
+                    "reason": str(e)})
+    opts['sorts'] = opts['sort']
+    del opts['sort']
+    return opts
 
 
 def ValidAggMethod(value):
@@ -667,7 +670,9 @@ class MetricsController(rest.RestController):
             attr_filters.append({"=": {"creator": provided_creator}})
 
         for k, v in six.iteritems(kwargs):
-            attr_filters.append({"=": {k: v}})
+            # Ignore pagination option
+            if k not in ('limit', 'marker', 'sort'):
+                attr_filters.append({"=": {k: v}})
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
             pecan.request, "list metric")
@@ -775,7 +780,6 @@ class ResourceHistoryController(rest.RestController):
 
     @pecan.expose('json')
     def get(self, **kwargs):
-        initial_kwargs = kwargs.copy()
         details = get_details(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
@@ -797,7 +801,7 @@ class ResourceHistoryController(rest.RestController):
             )
             if resources and len(resources) >= pagination_opts['limit']:
                 marker = "%s@%s" % (resources[-1].id, resources[-1].revision)
-                set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
+                set_resp_link_hdr(marker, kwargs, pagination_opts)
             return resources
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
@@ -1124,7 +1128,6 @@ class ResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
-        initial_kwargs = kwargs.copy()
         details = get_details(kwargs)
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
@@ -1148,7 +1151,7 @@ class ResourcesController(rest.RestController):
                                         resources[-1].revision)
                 else:
                     marker = str(resources[-1].id)
-                set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
+                set_resp_link_hdr(marker, kwargs, pagination_opts)
             return resources
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
@@ -1350,7 +1353,6 @@ class SearchResourceTypeController(rest.RestController):
         self._resource_type = resource_type
 
     def _search(self, **kwargs):
-        initial_kwargs = kwargs.copy()
         if pecan.request.body:
             attr_filter = deserialize_and_validate(ResourceSearchSchema)
         elif kwargs.get("filter"):
@@ -1386,7 +1388,7 @@ class SearchResourceTypeController(rest.RestController):
                                     resources[-1].revision)
             else:
                 marker = str(resources[-1].id)
-            set_resp_link_hdr(marker, initial_kwargs, pagination_opts)
+            set_resp_link_hdr(marker, kwargs, pagination_opts)
         return resources
 
     @pecan.expose('json')
