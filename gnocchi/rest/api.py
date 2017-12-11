@@ -233,13 +233,6 @@ def get_pagination_options(params, default):
     return opts
 
 
-def ValidAggMethod(value):
-    value = six.text_type(value)
-    if value in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES:
-        return value
-    raise ValueError("Invalid aggregation method")
-
-
 class ArchivePolicyController(rest.RestController):
     def __init__(self, archive_policy):
         self.archive_policy = archive_policy
@@ -302,16 +295,19 @@ class ArchivePoliciesController(rest.RestController):
 
     @pecan.expose('json')
     def post(self):
+        enforce("create archive policy", {})
         # NOTE(jd): Initialize this one at run-time because we rely on conf
         conf = pecan.request.conf
-        enforce("create archive policy", {})
+        valid_agg_methods = (
+            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
+        )
         ArchivePolicySchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("back_window", default=0): PositiveOrNullInt,
             voluptuous.Required(
                 "aggregation_methods",
                 default=set(conf.archive_policy.default_aggregation_methods)):
-            [ValidAggMethod],
+            voluptuous.All(list(valid_agg_methods), voluptuous.Coerce(set)),
             voluptuous.Required("definition"):
             voluptuous.All([{
                 "granularity": Timespan,
@@ -636,26 +632,23 @@ class MetricsController(rest.RestController):
         "user_id": six.text_type,
         "project_id": six.text_type,
         "creator": six.text_type,
-        "limit": six.text_type,
         "name": six.text_type,
         "id": six.text_type,
         "unit": six.text_type,
         "archive_policy_name": six.text_type,
         "status": voluptuous.Any("active", "delete"),
-        "sort": voluptuous.Any([six.text_type], six.text_type),
-        "marker": six.text_type,
-    })
+    }, extra=voluptuous.REMOVE_EXTRA)
 
     @classmethod
     @pecan.expose('json')
     def get_all(cls, **kwargs):
-        kwargs = cls.MetricListSchema(kwargs)
+        filtering = cls.MetricListSchema(kwargs)
 
         # Compat with old user/project API
-        provided_user_id = kwargs.pop('user_id', None)
-        provided_project_id = kwargs.pop('project_id', None)
+        provided_user_id = filtering.pop('user_id', None)
+        provided_project_id = filtering.pop('project_id', None)
         if provided_user_id is None and provided_project_id is None:
-            provided_creator = kwargs.pop('creator', None)
+            provided_creator = filtering.pop('creator', None)
         else:
             provided_creator = (
                 (provided_user_id or "")
@@ -669,10 +662,8 @@ class MetricsController(rest.RestController):
         if provided_creator is not None:
             attr_filters.append({"=": {"creator": provided_creator}})
 
-        for k, v in six.iteritems(kwargs):
-            # Ignore pagination option
-            if k not in ('limit', 'marker', 'sort'):
-                attr_filters.append({"=": {k: v}})
+        for k, v in six.iteritems(filtering):
+            attr_filters.append({"=": {k: v}})
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
             pecan.request, "list metric")
