@@ -485,6 +485,20 @@ tests:
                 timespan: "1 shenanigan"
       status: 400
 
+    - name: policy invalid aggregation method
+      POST: /v1/archive_policy
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+      data:
+          name: invalid-agg-method
+          aggregation_methods:
+            - wtf
+          definition:
+              - granularity: 1 second
+                timespan: 1 hour
+      status: 400
+
     - name: create policy when granularity is larger than timespan
       POST: /v1/archive_policy
       request_headers:
