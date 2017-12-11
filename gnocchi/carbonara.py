@@ -97,10 +97,9 @@ def combine_timeseries(ts1, ts2):
     :param ts: The timeseries to combine.
     :return: A new timeseries.
     """
-    _, index = numpy.unique(
-        numpy.append(ts1['timestamps'], ts2['timestamps']),
-        return_index=True)
-    return numpy.append(ts1, ts2)[index]
+    ts = numpy.append(ts1, ts2)
+    _, index = numpy.unique(ts['timestamps'], return_index=True)
+    return ts[index]
 
 
 class GroupedTimeSeries(object):
