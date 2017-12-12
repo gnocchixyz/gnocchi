@@ -424,6 +424,7 @@ class CarbonaraBasedStorage(storage.StorageDriver):
             LOG.info("Migrated metric %s to new format", metric)
 
     def upgrade(self, index):
+        super(CarbonaraBasedStorage, self).upgrade(index)
         marker = None
         while True:
             metrics = [(metric,) for metric in

@@ -30,6 +30,9 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
         self.measure_path = os.path.join(self.basepath, 'measure')
+
+    def upgrade(self, indexer):
+        super(FileStorage, self).upgrade(indexer)
         utils.ensure_paths([self.basepath_tmp, self.measure_path])
 
     def _build_measure_path(self, metric_id, random_id=None):

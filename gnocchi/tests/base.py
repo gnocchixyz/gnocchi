@@ -299,12 +299,8 @@ class TestCase(base.BaseTestCase):
                                "storage")
 
         self.storage = storage.get_driver(self.conf)
-        # NOTE(jd) Do not upgrade the storage. We don't really need the storage
-        # upgrade for now, and the code that upgrade from pre-1.3
-        # (TimeSerieArchive) uses a lot of parallel lock, which makes tooz
-        # explodes because MySQL does not support that many connections in real
-        # life.
-        # self.storage.upgrade(self.index)
+        if self.conf.storage.driver in ("file", "swift", "s3"):
+            self.storage.upgrade(self.index)
 
     def tearDown(self):
         self.index.disconnect()
