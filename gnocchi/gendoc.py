@@ -103,7 +103,6 @@ class ScenarioList(list):
 
 multiversion_hack = """
 import shutil
-import subprocess
 import sys
 import os
 
@@ -175,14 +174,14 @@ def setup(app):
     # file of old version of the module.
     # It also drop the database before each run.
     if sys.argv[0].endswith("sphinx-versioning"):
-        subprocess.call(["dropdb", os.environ['PGDATABASE']])
-        subprocess.call(["createdb", os.environ['PGDATABASE']])
+        subprocess.check_call(["dropdb", os.environ['PGDATABASE']])
+        subprocess.check_call(["createdb", os.environ['PGDATABASE']])
         from sphinxcontrib.versioning import sphinx_
         version = sphinx_.EventHandlers.CURRENT_VERSION
         with tempfile.NamedTemporaryFile() as f:
             f.write(multiversion_hack % app.confdir)
             f.flush()
-            subprocess.call(['python', f.name, version])
+            subprocess.check_call(['python', f.name, version])
         _RUN = True
         return
 
