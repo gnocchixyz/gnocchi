@@ -418,7 +418,7 @@ class ArchivePolicyRuleController(rest.RestController):
 
 def MeasuresListSchema(measures):
     try:
-        times = utils.to_timestamps((m['timestamp'] for m in measures))
+        times = utils.to_timestamps([m['timestamp'] for m in measures])
     except TypeError:
         abort(400, "Invalid format for measures")
     except ValueError as e:
@@ -429,8 +429,7 @@ def MeasuresListSchema(measures):
     except Exception:
         abort(400, "Invalid input for a value")
 
-    return (incoming.Measure(t, v) for t, v in six.moves.zip(
-        times.tolist(), values))
+    return (incoming.Measure(t, v) for t, v in six.moves.zip(times, values))
 
 
 class MetricController(rest.RestController):
