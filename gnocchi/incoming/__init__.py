@@ -107,13 +107,13 @@ class IncomingDriver(object):
         return numpy.array(list(measures),
                            dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
-    def add_measures(self, metric, measures):
+    def add_measures(self, metric_id, measures):
         """Add a measure to a metric.
 
-        :param metric: The metric measured.
+        :param metric_id: The metric measured.
         :param measures: The actual measures.
         """
-        self.add_measures_batch({metric: measures})
+        self.add_measures_batch({metric_id: measures})
 
     def add_measures_batch(self, metrics_and_measures):
         """Add a batch of measures for some metrics.
@@ -124,12 +124,12 @@ class IncomingDriver(object):
         """
         utils.parallel_map(
             self._store_new_measures,
-            ((metric, self._encode_measures(measures))
-             for metric, measures
+            ((metric_id, self._encode_measures(measures))
+             for metric_id, measures
              in six.iteritems(metrics_and_measures)))
 
     @staticmethod
-    def _store_new_measures(metric, data):
+    def _store_new_measures(metric_id, data):
         raise exceptions.NotImplementedError
 
     def measures_report(self, details=True):
@@ -155,15 +155,15 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def delete_unprocessed_measures_for_metric_id(metric_id):
+    def delete_unprocessed_measures_for_metric(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def process_measure_for_metric(metric):
+    def process_measure_for_metric(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def has_unprocessed(metric):
+    def has_unprocessed(metric_id):
         raise exceptions.NotImplementedError
 
     def sack_for_metric(self, metric_id):

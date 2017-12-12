@@ -66,12 +66,12 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIsInstance(driver, storage.StorageDriver)
 
     def test_corrupted_data(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
 
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 13, 0, 1), 1),
         ])
 
@@ -90,7 +90,7 @@ class TestStorageDriver(tests_base.TestCase):
                        numpy.timedelta64(5, 'm'), 1), m)
 
     def test_aborted_initial_processing(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 5),
         ])
         with mock.patch.object(self.storage, '_store_unaggregated_timeserie',
@@ -115,7 +115,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_list_metric_with_measures_to_process(self):
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.assertEqual(set(), metrics)
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
@@ -125,7 +125,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(set([]), metrics)
 
     def test_delete_nonempty_metric(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
@@ -137,7 +137,7 @@ class TestStorageDriver(tests_base.TestCase):
                           self.metric)
 
     def test_delete_nonempty_metric_unprocessed(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.index.delete_metric(self.metric.id)
@@ -149,7 +149,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertNotIn(str(self.metric.id), details)
 
     def test_delete_expunge_metric(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
@@ -176,10 +176,10 @@ class TestStorageDriver(tests_base.TestCase):
     def test_measures_reporting(self):
         m2, __ = self._create_metric('medium')
         for i in six.moves.range(60):
-            self.incoming.add_measures(self.metric, [
+            self.incoming.add_measures(self.metric.id, [
                 incoming.Measure(datetime64(2014, 1, 1, 12, 0, i), 69),
             ])
-            self.incoming.add_measures(m2, [
+            self.incoming.add_measures(m2.id, [
                 incoming.Measure(datetime64(2014, 1, 1, 12, 0, i), 69),
             ])
         report = self.incoming.measures_report(True)
@@ -195,7 +195,7 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
-        self.incoming.add_measures(m, [
+        self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
         self.trigger_processing([str(m.id)])
@@ -208,11 +208,11 @@ class TestStorageDriver(tests_base.TestCase):
         measures = [
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
-        self.incoming.add_measures(m, measures)
+        self.incoming.add_measures(m.id, measures)
         self.trigger_processing([str(m.id)])
 
         # add measure to end, in same aggregate time as last point.
-        self.incoming.add_measures(m, [
+        self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 6, 1, 58, 1), 100)])
 
         with mock.patch.object(self.storage, '_store_metric_measures') as c:
@@ -233,13 +233,12 @@ class TestStorageDriver(tests_base.TestCase):
         measures = [
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
-        self.incoming.add_measures(m, measures)
+        self.incoming.add_measures(m.id, measures)
         self.trigger_processing([str(m.id)])
 
         # add measure to end, in same aggregate time as last point.
         new_point = datetime64(2014, 1, 6, 1, 58, 1)
-        self.incoming.add_measures(
-            m, [incoming.Measure(new_point, 100)])
+        self.incoming.add_measures(m.id, [incoming.Measure(new_point, 100)])
 
         with mock.patch.object(self.incoming, 'add_measures') as c:
             self.trigger_processing([str(m.id)])
@@ -249,7 +248,7 @@ class TestStorageDriver(tests_base.TestCase):
                     new_point, args[1].granularity * 10e8))
 
     def test_delete_old_measures(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -266,7 +265,7 @@ class TestStorageDriver(tests_base.TestCase):
         ], self.storage.get_measures(self.metric))
 
         # One year later…
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2015, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
@@ -305,7 +304,7 @@ class TestStorageDriver(tests_base.TestCase):
                                  apname)
 
         # First store some points scattered across different splits
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2016, 1, 2, 13, 7, 31), 42),
             incoming.Measure(datetime64(2016, 1, 4, 14, 9, 31), 4),
@@ -360,7 +359,7 @@ class TestStorageDriver(tests_base.TestCase):
         # split (keep in mind the back window size in one hour here). We move
         # the BoundTimeSerie processing timeserie far away from its current
         # range.
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 16, 18, 45), 45),
             incoming.Measure(datetime64(2016, 1, 10, 17, 12, 45), 46),
         ])
@@ -426,7 +425,7 @@ class TestStorageDriver(tests_base.TestCase):
                                  apname)
 
         # First store some points scattered across different splits
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2016, 1, 2, 13, 7, 31), 42),
             incoming.Measure(datetime64(2016, 1, 4, 14, 9, 31), 4),
@@ -484,7 +483,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         # Here we test a special case where the oldest_mutable_timestamp will
         # be 2016-01-10TOO:OO:OO = 1452384000.0, our new split key.
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 0, 12), 45),
         ])
         self.trigger_processing()
@@ -547,7 +546,7 @@ class TestStorageDriver(tests_base.TestCase):
                                  apname)
 
         # First store some points scattered across different splits
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2016, 1, 2, 13, 7, 31), 42),
             incoming.Measure(datetime64(2016, 1, 4, 14, 9, 31), 4),
@@ -615,7 +614,7 @@ class TestStorageDriver(tests_base.TestCase):
         # split (keep in mind the back window size in one hour here). We move
         # the BoundTimeSerie processing timeserie far away from its current
         # range.
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 16, 18, 45), 45),
             incoming.Measure(datetime64(2016, 1, 10, 17, 12, 45), 46),
         ])
@@ -632,7 +631,7 @@ class TestStorageDriver(tests_base.TestCase):
                                  apname)
 
         # First store some points scattered across different splits
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2016, 1, 2, 13, 7, 31), 42),
             incoming.Measure(datetime64(2016, 1, 4, 14, 9, 31), 4),
@@ -695,14 +694,14 @@ class TestStorageDriver(tests_base.TestCase):
         # split (keep in mind the back window size in one hour here). We move
         # the BoundTimeSerie processing timeserie far away from its current
         # range.
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 16, 18, 45), 45),
             incoming.Measure(datetime64(2016, 1, 10, 17, 12, 45), 46),
         ])
         self.trigger_processing()
 
     def test_updated_measures(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
         ])
@@ -715,7 +714,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
         ], self.storage.get_measures(self.metric))
 
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
@@ -746,7 +745,7 @@ class TestStorageDriver(tests_base.TestCase):
         ], self.storage.get_measures(self.metric, aggregation='min'))
 
     def test_add_and_get_measures(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -828,7 +827,7 @@ class TestStorageDriver(tests_base.TestCase):
                           granularity=numpy.timedelta64(42, 's'))
 
     def test_get_measure_unknown_aggregation(self):
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -840,7 +839,7 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_search_value(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1,), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 5, 31), 8),
@@ -848,7 +847,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 42),
         ])
 
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 2),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
@@ -885,7 +884,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.create_archive_policy(ap)
         m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()), name)
         m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
-        self.incoming.add_measures(m, [
+        self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 0), 1),
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 1),
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 10), 1),
@@ -900,7 +899,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
         m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
-        self.incoming.add_measures(m, [
+        self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 15), 1),
         ])
         self.trigger_processing([str(m.id)])
