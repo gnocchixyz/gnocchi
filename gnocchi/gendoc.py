@@ -44,10 +44,12 @@ def _extract_body(req_or_resp):
     if not req_or_resp.text:
         return ""
 
-    if req_or_resp.content_type.startswith("application/json"):
-        body = _format_json(req_or_resp.text)
+    if six.PY2:
+        body = req_or_resp.body
     else:
         body = req_or_resp.text
+    if req_or_resp.content_type.startswith("application/json"):
+        body = _format_json(body)
     return "\n      ".join(body.split("\n"))
 
 
@@ -200,7 +202,10 @@ def setup(app):
         for entry in scenarios:
             template = jinja2.Template(entry['request'])
             fake_file = six.moves.cStringIO()
-            fake_file.write(template.render(scenarios=scenarios))
+            content = template.render(scenarios=scenarios)
+            if six.PY2:
+                content = content.encode('utf-8')
+            fake_file.write(content)
             fake_file.seek(0)
             request = webapp.RequestClass.from_file(fake_file)
 
@@ -224,7 +229,13 @@ def setup(app):
         test.tearDown()
         test.tearDownClass()
     with open("doc/source/rest.j2", "r") as f:
-        template = jinja2.Template(f.read())
+        content = f.read()
+        if six.PY2:
+            content = content.decode("utf-8")
+        template = jinja2.Template(content)
     with open("doc/source/rest.rst", "w") as f:
-        f.write(template.render(scenarios=scenarios))
+        content = template.render(scenarios=scenarios)
+        if six.PY2:
+            content = content.encode("utf-8")
+        f.write(content)
     _RUN = True
