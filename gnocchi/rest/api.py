@@ -188,12 +188,30 @@ def get_header_option(name, params):
                      options.get(name, params.get(name, 'false')))
 
 
+def get_header_option_array(name, params):
+    type, options = werkzeug.http.parse_options_header(
+        pecan.request.headers.get('Accept'))
+    header_option = options.get(name, None)
+    post_option = params.get(name, None)
+
+    if post_option:
+        return arg_to_list(post_option)
+    elif header_option:
+        return header_option.split('+')
+    else:
+        return None
+
+
 def get_history(params):
     return get_header_option('history', params)
 
 
 def get_details(params):
     return get_header_option('details', params)
+
+
+def get_json_attrs(params):
+    return get_header_option_array('attrs', params)
 
 
 def strtobool(varname, v):
@@ -1130,6 +1148,7 @@ class ResourcesController(rest.RestController):
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
+        json_attrs = get_json_attrs(kwargs)
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
             pecan.request, "list resource", self._resource_type)
 
@@ -1150,7 +1169,7 @@ class ResourcesController(rest.RestController):
                 else:
                     marker = str(resources[-1].id)
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
-            return resources
+            return [r.jsonify(json_attrs) for r in resources]
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
 
@@ -1391,8 +1410,9 @@ class SearchResourceTypeController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, **kwargs):
+        json_attrs = get_json_attrs(kwargs)
         try:
-            return self._search(**kwargs)
+            return [r.jsonify(json_attrs) for r in self._search(**kwargs)]
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
 

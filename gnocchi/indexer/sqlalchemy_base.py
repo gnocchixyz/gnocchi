@@ -198,7 +198,7 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
 
 
 class ResourceJsonifier(indexer.Resource):
-    def jsonify(self):
+    def jsonify(self, attrs=None):
         d = dict(self)
         del d['revision']
         if 'metrics' not in sqlalchemy.inspect(self).unloaded:
@@ -212,7 +212,10 @@ class ResourceJsonifier(indexer.Resource):
                 self.creator.partition(":")
             )
 
-        return d
+        if attrs:
+            return {key: val for key, val in d.items() if key in attrs}
+        else:
+            return d
 
 
 class ResourceMixin(ResourceJsonifier):
