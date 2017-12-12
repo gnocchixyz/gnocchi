@@ -39,6 +39,8 @@ class FileStorage(storage.StorageDriver):
         super(FileStorage, self).__init__(conf, coord)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
+
+    def upgrade(self):
         utils.ensure_paths([self.basepath_tmp])
 
     def __str__(self):
