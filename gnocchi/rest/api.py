@@ -2021,8 +2021,9 @@ class PrometheusWriteController(rest.RestController):
         measures_by_rid = collections.defaultdict(dict)
         for ts in f.timeseries:
             attrs = dict((l.name, l.value) for l in ts.labels)
-            original_rid = (attrs["job"], attrs["instance"])
-            name = attrs['__name__'].replace('/', '_')
+            original_rid = (attrs.get("job", "none"),
+                            attrs.get("instance", "none"))
+            name = attrs['__name__']
             if ts.samples:
                 measures_by_rid[original_rid][name] = (
                     MeasuresListSchema([{'timestamp': s.timestamp_ms / 1000.0,
