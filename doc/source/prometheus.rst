@@ -25,9 +25,5 @@ based on each `job` and `instance` pair. This resource is created with the
 The metrics sent by Prometheus with this pair are attached to that resource and
 filled with the provided measures.
 
-.. note::
-
-    `/` is forbidden in Gnocchi metric name, they are replaced by `_`
-
 .. _`Prometheus`: https://prometheus.io/
 .. _`Remote Write Adapter`: https://prometheus.io/docs/operating/configuration/#<remote_write>
