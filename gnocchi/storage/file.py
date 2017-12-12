@@ -40,7 +40,10 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         super(FileStorage, self).__init__(conf, incoming, coord)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
+
+    def upgrade(self, num_sacks):
         utils.ensure_paths([self.basepath_tmp])
+        super(FileStorage, self).upgrade(num_sacks)
 
     def _atomic_file_store(self, dest, data):
         tmpfile = tempfile.NamedTemporaryFile(

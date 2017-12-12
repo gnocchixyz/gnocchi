@@ -33,8 +33,8 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
 
     def upgrade(self, num_sacks):
-        super(FileStorage, self).upgrade(num_sacks)
         utils.ensure_paths([self.basepath_tmp])
+        super(FileStorage, self).upgrade(num_sacks)
 
     def get_storage_sacks(self):
         try:
