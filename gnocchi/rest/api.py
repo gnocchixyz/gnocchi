@@ -513,7 +513,6 @@ class MetricController(rest.RestController):
                 self.metric, start, stop, aggregation,
                 granularity, resample)
         except (storage.MetricDoesNotExist,
-                storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
 
@@ -1497,8 +1496,8 @@ class SearchMetricController(rest.RestController):
             }
         except storage.InvalidQuery as e:
             abort(400, six.text_type(e))
-        except storage.GranularityDoesNotExist as e:
-            abort(400, six.text_type(e))
+        except storage.AggregationDoesNotExist as e:
+            abort(400, e)
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
@@ -1837,7 +1836,6 @@ class AggregationController(rest.RestController):
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except (storage.MetricDoesNotExist,
-                storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
 

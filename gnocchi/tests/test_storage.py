@@ -822,7 +822,7 @@ class TestStorageDriver(tests_base.TestCase):
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2),
             granularity=numpy.timedelta64(5, 'm')))
 
-        self.assertRaises(storage.GranularityDoesNotExist,
+        self.assertRaises(storage.AggregationDoesNotExist,
                           self.storage.get_measures,
                           self.metric,
                           granularity=numpy.timedelta64(42, 's'))

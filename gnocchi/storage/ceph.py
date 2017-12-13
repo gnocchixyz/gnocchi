@@ -144,7 +144,8 @@ class CephStorage(storage.StorageDriver):
         except rados.ObjectNotFound:
             if self._object_exists(
                     self._build_unaggregated_timeserie_path(metric, 3)):
-                raise storage.AggregationDoesNotExist(metric, aggregation)
+                raise storage.AggregationDoesNotExist(
+                    metric, aggregation, key.sampling)
             else:
                 raise storage.MetricDoesNotExist(metric)
 

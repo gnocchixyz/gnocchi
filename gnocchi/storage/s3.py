@@ -173,7 +173,8 @@ class S3Storage(storage.StorageDriver):
                     if e.response['Error'].get('Code') == 'NoSuchKey':
                         raise storage.MetricDoesNotExist(metric)
                     raise
-                raise storage.AggregationDoesNotExist(metric, aggregation)
+                raise storage.AggregationDoesNotExist(
+                    metric, aggregation, key.sampling)
             raise
         return response['Body'].read()
 
