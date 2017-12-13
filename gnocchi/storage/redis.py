@@ -99,5 +99,6 @@ class RedisStorage(storage.StorageDriver):
         if data is None:
             if not self._client.exists(redis_key):
                 raise storage.MetricDoesNotExist(metric)
-            raise storage.AggregationDoesNotExist(metric, aggregation)
+            raise storage.AggregationDoesNotExist(
+                metric, aggregation, key.sampling)
         return data
