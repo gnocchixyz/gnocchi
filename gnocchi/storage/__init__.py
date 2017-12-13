@@ -241,18 +241,14 @@ class StorageDriver(object):
         else:
             raise GranularityDoesNotExist(metric, granularity)
 
-        all_keys = None
         try:
             all_keys = self._list_split_keys_for_metric(
                 metric, aggregation, granularity)
         except MetricDoesNotExist:
-            for d in metric.archive_policy.definition:
-                if d.granularity == granularity:
-                    return carbonara.AggregatedTimeSerie(
-                        sampling=granularity,
-                        aggregation_method=aggregation,
-                        max_size=d.points)
-            raise GranularityDoesNotExist(metric, granularity)
+            return carbonara.AggregatedTimeSerie(
+                sampling=granularity,
+                aggregation_method=aggregation,
+                max_size=points)
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
