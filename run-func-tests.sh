@@ -19,6 +19,21 @@ PYTHON_VERSION_MAJOR=$(python -c 'import sys; print(sys.version_info.major)')
 
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
+
+# TEST(sileht):
+GNOCCHI_TEST_STORAGE_DRIVERS=swift
+echo "################ FIND ME #################"
+set +e
+ip a s
+ip -6 a s
+cat /etc/hosts
+host localhost
+getent ahostsv4 localhost
+getent ahostsv6 localhost
+netstat -laptuen
+pifpaf run memcached -- bash -c 'exec 3<>/dev/tcp/127.0.0.1/$PIFPAF_MEMCACHED_PORT ; echo -e "stats\nquit\n" 1>&3 ; echo "$(cat <&3)"'
+set -e
+
 for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
     if [ "$storage" == "swift" ] && [ "$PYTHON_VERSION_MAJOR" == "3" ]; then
         echo "WARNING: swift does not support python 3 skipping"
@@ -49,7 +64,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                 ;;
 
             swift|redis)
-                eval $(pifpaf -e STORAGE run $storage)
+                eval $(pifpaf --debug -e STORAGE run $storage)
                 ;;
             *)
                 echo "Unsupported storage backend by functional tests: $storage"
