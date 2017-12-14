@@ -14,7 +14,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import collections
 import functools
 import itertools
 import operator
@@ -568,53 +567,15 @@ class StorageDriver(object):
 
         self._store_unaggregated_timeserie(metric, ts.serialize())
 
-    def _find_measure(self, metric, aggregation, granularity, predicate,
-                      from_timestamp, to_timestamp):
+    def find_measure(self, metric, predicate, granularity, aggregation="mean",
+                     from_timestamp=None, to_timestamp=None):
         timeserie = self._get_measures_timeserie(
             metric, aggregation, granularity,
             from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
-        return {metric:
-                [(timestamp, g, value)
-                 for timestamp, g, value in values
-                 if predicate(value)]}
-
-    def search_value(self, metrics, query, from_timestamp=None,
-                     to_timestamp=None, aggregation='mean',
-                     granularity=None):
-        """Search for an aggregated value that realizes a predicate.
-
-        :param metrics: The list of metrics to look into.
-        :param query: The query being sent.
-        :param from_timestamp: The timestamp to get the measure from.
-        :param to_timestamp: The timestamp to get the measure to.
-        :param aggregation: The type of aggregation to retrieve.
-        :param granularity: The granularity to retrieve.
-        """
-
-        granularity = granularity or []
-        predicate = MeasureQuery(query)
-
-        results = utils.parallel_map(
-            self._find_measure,
-            [(metric, aggregation,
-              gran, predicate,
-              from_timestamp, to_timestamp)
-             for metric in metrics
-             for gran in granularity or
-             (defin.granularity
-              for defin in metric.archive_policy.definition)])
-        result = collections.defaultdict(list)
-        for r in results:
-            for metric, metric_result in six.iteritems(r):
-                result[metric].extend(metric_result)
-
-        # Sort the result
-        for metric, r in six.iteritems(result):
-            # Sort by timestamp asc, granularity desc
-            r.sort(key=lambda t: (t[0], - t[1]))
-
-        return result
+        return [(timestamp, g, value)
+                for timestamp, g, value in values
+                if predicate(value)]
 
 
 class MeasureQuery(object):
