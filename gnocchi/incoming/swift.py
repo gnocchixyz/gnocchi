@@ -50,11 +50,11 @@ class SwiftStorage(incoming.IncomingDriver):
         for i in six.moves.xrange(num_sacks):
             self.swift.delete_container(prefix % i)
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
-            self.get_sack_name(self.sack_for_metric(metric.id)),
-            six.text_type(metric.id) + "/" + six.text_type(uuid.uuid4()) + now,
+            self.get_sack_name(self.sack_for_metric(metric_id)),
+            six.text_type(metric_id) + "/" + six.text_type(uuid.uuid4()) + now,
             data)
 
     def _build_report(self, details):
@@ -81,26 +81,26 @@ class SwiftStorage(incoming.IncomingDriver):
             self.get_sack_name(sack), delimiter='/', full_listing=True)
         return set(f['subdir'][:-1] for f in files if 'subdir' in f)
 
-    def _list_measure_files_for_metric_id(self, sack, metric_id):
+    def _list_measure_files_for_metric(self, sack, metric_id):
         headers, files = self.swift.get_container(
             self.get_sack_name(sack), path=six.text_type(metric_id),
             full_listing=True)
         return files
 
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
-        files = self._list_measure_files_for_metric_id(sack, metric_id)
+        files = self._list_measure_files_for_metric(sack, metric_id)
         swift.bulk_delete(self.swift, self.get_sack_name(sack), files)
 
-    def has_unprocessed(self, metric):
-        sack = self.sack_for_metric(metric.id)
-        return bool(self._list_measure_files_for_metric_id(sack, metric.id))
+    def has_unprocessed(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
+        return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        sack = self.sack_for_metric(metric.id)
+    def process_measure_for_metric(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
         sack_name = self.get_sack_name(sack)
-        files = self._list_measure_files_for_metric_id(sack, metric.id)
+        files = self._list_measure_files_for_metric(sack, metric_id)
 
         yield self._array_concatenate([
             self._unserialize_measures(

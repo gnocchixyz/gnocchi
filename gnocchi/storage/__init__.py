@@ -403,7 +403,7 @@ class StorageDriver(object):
         #              is going to process it anymore.
         lock.release()
         self._delete_metric(metric)
-        incoming.delete_unprocessed_measures_for_metric_id(metric.id)
+        incoming.delete_unprocessed_measures_for_metric(metric.id)
         LOG.debug("Deleted metric %s", metric)
 
     @staticmethod
@@ -464,7 +464,7 @@ class StorageDriver(object):
             # NOTE(gordc): must lock at sack level
             try:
                 LOG.debug("Processing measures for %s", metric)
-                with incoming.process_measure_for_metric(metric) \
+                with incoming.process_measure_for_metric(metric.id) \
                         as measures:
                     self._compute_and_store_timeseries(metric, measures)
                 LOG.debug("Measures for metric %s processed", metric)

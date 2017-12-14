@@ -39,6 +39,8 @@ class FileStorage(storage.StorageDriver):
         super(FileStorage, self).__init__(conf, coord)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
+
+    def upgrade(self):
         utils.ensure_paths([self.basepath_tmp])
 
     def __str__(self):
@@ -89,9 +91,9 @@ class FileStorage(storage.StorageDriver):
                     raise
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self._atomic_file_store(
-            self._build_unaggregated_timeserie_path(metric, version),
-            data)
+        dest = self._build_unaggregated_timeserie_path(metric, version)
+        with open(dest, "wb") as f:
+            f.write(data)
 
     def _get_unaggregated_timeserie(self, metric, version=3):
         path = self._build_unaggregated_timeserie_path(metric, version)
