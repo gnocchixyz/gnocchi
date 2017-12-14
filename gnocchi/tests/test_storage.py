@@ -833,9 +833,8 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.assertRaises(storage.AggregationDoesNotExist,
-                          self.storage.get_measures,
-                          self.metric, aggregation='last')
+        self.assertEqual(
+            [], self.storage.get_measures(self.metric, aggregation='last'))
 
     def test_search_value(self):
         metric2, __ = self._create_metric()

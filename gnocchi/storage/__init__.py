@@ -199,11 +199,6 @@ class StorageDriver(object):
         :param granularity: The granularity to retrieve.
         :param resample: The granularity to resample to.
         """
-        if aggregation not in metric.archive_policy.aggregation_methods:
-            if granularity is None:
-                granularity = metric.archive_policy.definition[0].granularity
-            raise AggregationDoesNotExist(metric, aggregation, granularity)
-
         if granularity is None:
             agg_timeseries = utils.parallel_map(
                 self._get_measures_timeserie,
