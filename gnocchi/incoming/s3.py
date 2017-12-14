@@ -76,12 +76,12 @@ class S3Storage(incoming.IncomingDriver):
         # need to create bucket first to store storage settings object
         super(S3Storage, self).upgrade(num_sacks)
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.s3.put_object(
             Bucket=self._bucket_name_measures,
-            Key=(self.get_sack_name(self.sack_for_metric(metric.id))
-                 + six.text_type(metric.id) + "/"
+            Key=(self.get_sack_name(self.sack_for_metric(metric_id))
+                 + six.text_type(metric_id) + "/"
                  + six.text_type(uuid.uuid4()) + now),
             Body=data)
 
@@ -127,7 +127,7 @@ class S3Storage(incoming.IncomingDriver):
                 metrics.add(p['Prefix'].split('/', 2)[1])
         return metrics
 
-    def _list_measure_files_for_metric_id(self, sack, metric_id):
+    def _list_measure_files_for_metric(self, sack, metric_id):
         files = set()
         response = {}
         while response.get('IsTruncated', True):
@@ -148,19 +148,19 @@ class S3Storage(incoming.IncomingDriver):
 
         return files
 
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
-        files = self._list_measure_files_for_metric_id(sack, metric_id)
+        files = self._list_measure_files_for_metric(sack, metric_id)
         s3.bulk_delete(self.s3, self._bucket_name_measures, files)
 
-    def has_unprocessed(self, metric):
-        sack = self.sack_for_metric(metric.id)
-        return bool(self._list_measure_files_for_metric_id(sack, metric.id))
+    def has_unprocessed(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
+        return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        sack = self.sack_for_metric(metric.id)
-        files = self._list_measure_files_for_metric_id(sack, metric.id)
+    def process_measure_for_metric(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
+        files = self._list_measure_files_for_metric(sack, metric_id)
 
         measures = self._make_measures_array()
         for f in files:

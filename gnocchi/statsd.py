@@ -113,7 +113,7 @@ class Stats(object):
                         name=metric_name,
                         resource_id=self.conf.statsd.resource_id)
                     self.metrics[metric_name] = metric
-                self.incoming.add_measures(metric, (measure,))
+                self.incoming.add_measures(metric.id, (measure,))
             except Exception as e:
                 LOG.error("Unable to add measure %s: %s",
                           metric_name, e)

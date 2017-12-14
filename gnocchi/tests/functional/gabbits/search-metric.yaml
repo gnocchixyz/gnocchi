@@ -90,16 +90,25 @@ tests:
       data:
           "=": 12
       status: 400
-      response_strings:
-          - Granularity '300.0' for metric $HISTORY['get metric id'].$RESPONSE['$[0].id'] does not exist
+      request_headers:
+          accept: application/json
+      response_json_paths:
+          $.description.cause: Aggregation does not exist
+          $.description.detail.granularity: 300
+          $.description.detail.aggregation_method: mean
+
 
     - name: search with incorrect granularity
       POST: /v1/search/metric?metric_id=$HISTORY['get metric id'].$RESPONSE['$[0].id']&granularity=300
       data:
           "=": 12
       status: 400
-      response_strings:
-          - Granularity '300.0' for metric $HISTORY['get metric id'].$RESPONSE['$[0].id'] does not exist
+      request_headers:
+          accept: application/json
+      response_json_paths:
+          $.description.cause: Aggregation does not exist
+          $.description.detail.granularity: 300
+          $.description.detail.aggregation_method: mean
 
     - name: search measure with wrong start
       POST: /v1/search/metric?metric_id=$HISTORY['get metric id'].$RESPONSE['$[0].id']&start=foobar

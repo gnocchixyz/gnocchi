@@ -456,7 +456,7 @@ class MetricController(rest.RestController):
             abort(400, "Invalid input for measures")
         if params:
             pecan.request.incoming.add_measures(
-                self.metric, MeasuresListSchema(params))
+                self.metric.id, MeasuresListSchema(params))
         pecan.response.status = 202
 
     @pecan.expose('json')
@@ -500,7 +500,7 @@ class MetricController(rest.RestController):
                 abort(400, six.text_type(e))
 
         if (strtobool("refresh", refresh) and
-                pecan.request.incoming.has_unprocessed(self.metric)):
+                pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
                 pecan.request.storage.refresh_metric(
                     pecan.request.indexer, pecan.request.incoming, self.metric,
@@ -512,7 +512,6 @@ class MetricController(rest.RestController):
                 self.metric, start, stop, aggregation,
                 granularity, resample)
         except (storage.MetricDoesNotExist,
-                storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
 
@@ -1496,8 +1495,8 @@ class SearchMetricController(rest.RestController):
             }
         except storage.InvalidQuery as e:
             abort(400, six.text_type(e))
-        except storage.GranularityDoesNotExist as e:
-            abort(400, six.text_type(e))
+        except storage.AggregationDoesNotExist as e:
+            abort(400, e)
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
@@ -1595,7 +1594,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             enforce("post measures", metric)
 
         pecan.request.incoming.add_measures_batch(
-            dict((metric,
+            dict((metric.id,
                  body_by_rid[metric.resource_id][metric.name])
                  for metric in known_metrics))
 
@@ -1628,7 +1627,7 @@ class MetricsMeasuresBatchController(rest.RestController):
             enforce("post measures", metric)
 
         pecan.request.incoming.add_measures_batch(
-            dict((metric, body[metric.id]) for metric in
+            dict((metric.id, body[metric.id]) for metric in
                  metrics))
 
         pecan.response.status = 202
@@ -1814,7 +1813,7 @@ class AggregationController(rest.RestController):
             if strtobool("refresh", refresh):
                 metrics_to_update = [
                     m for m in metrics
-                    if pecan.request.incoming.has_unprocessed(m)]
+                    if pecan.request.incoming.has_unprocessed(m.id)]
                 for m in metrics_to_update:
                     try:
                         pecan.request.storage.refresh_metric(
@@ -1836,7 +1835,6 @@ class AggregationController(rest.RestController):
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except (storage.MetricDoesNotExist,
-                storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
 
@@ -2047,7 +2045,7 @@ class PrometheusWriteController(rest.RestController):
                 enforce("post measures", metric)
 
             measures_to_batch.update(
-                dict((metric, measures[metric.name]) for metric in
+                dict((metric.id, measures[metric.name]) for metric in
                      metrics if metric.name in measures))
 
         pecan.request.incoming.add_measures_batch(measures_to_batch)

@@ -59,23 +59,25 @@ class MetricDoesNotExist(StorageError):
 class AggregationDoesNotExist(StorageError):
     """Error raised when the aggregation method doesn't exists for a metric."""
 
-    def __init__(self, metric, method):
+    def __init__(self, metric, method, granularity):
         self.metric = metric
         self.method = method
-        super(AggregationDoesNotExist, self).__init__(
-            "Aggregation method '%s' for metric %s does not exist" %
-            (method, metric))
-
-
-class GranularityDoesNotExist(StorageError):
-    """Error raised when the granularity doesn't exist for a metric."""
-
-    def __init__(self, metric, granularity):
-        self.metric = metric
         self.granularity = granularity
-        super(GranularityDoesNotExist, self).__init__(
-            "Granularity '%s' for metric %s does not exist" %
-            (utils.timespan_total_seconds(granularity), metric))
+        super(AggregationDoesNotExist, self).__init__(
+            "Aggregation method '%s' at granularity '%s' "
+            "for metric %s does not exist" %
+            (method, utils.timespan_total_seconds(granularity), metric))
+
+    def jsonify(self):
+        return {
+            "cause": "Aggregation does not exist",
+            "detail": {
+                # FIXME(jd) Pecan does not use our JSON renderer for errors
+                # So we need to convert this
+                "granularity": utils.timespan_total_seconds(self.granularity),
+                "aggregation_method": self.method,
+            },
+        }
 
 
 class MetricAlreadyExists(StorageError):
@@ -198,7 +200,9 @@ class StorageDriver(object):
         :param resample: The granularity to resample to.
         """
         if aggregation not in metric.archive_policy.aggregation_methods:
-            raise AggregationDoesNotExist(metric, aggregation)
+            if granularity is None:
+                granularity = metric.archive_policy.definition[0].granularity
+            raise AggregationDoesNotExist(metric, aggregation, granularity)
 
         if granularity is None:
             agg_timeseries = utils.parallel_map(
@@ -239,20 +243,16 @@ class StorageDriver(object):
                 points = d.points
                 break
         else:
-            raise GranularityDoesNotExist(metric, granularity)
+            raise AggregationDoesNotExist(metric, aggregation, granularity)
 
-        all_keys = None
         try:
             all_keys = self._list_split_keys_for_metric(
                 metric, aggregation, granularity)
         except MetricDoesNotExist:
-            for d in metric.archive_policy.definition:
-                if d.granularity == granularity:
-                    return carbonara.AggregatedTimeSerie(
-                        sampling=granularity,
-                        aggregation_method=aggregation,
-                        max_size=d.points)
-            raise GranularityDoesNotExist(metric, granularity)
+            return carbonara.AggregatedTimeSerie(
+                sampling=granularity,
+                aggregation_method=aggregation,
+                max_size=points)
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
@@ -403,7 +403,7 @@ class StorageDriver(object):
         #              is going to process it anymore.
         lock.release()
         self._delete_metric(metric)
-        incoming.delete_unprocessed_measures_for_metric_id(metric.id)
+        incoming.delete_unprocessed_measures_for_metric(metric.id)
         LOG.debug("Deleted metric %s", metric)
 
     @staticmethod
@@ -464,7 +464,7 @@ class StorageDriver(object):
             # NOTE(gordc): must lock at sack level
             try:
                 LOG.debug("Processing measures for %s", metric)
-                with incoming.process_measure_for_metric(metric) \
+                with incoming.process_measure_for_metric(metric.id) \
                         as measures:
                     self._compute_and_store_timeseries(metric, measures)
                 LOG.debug("Measures for metric %s processed", metric)

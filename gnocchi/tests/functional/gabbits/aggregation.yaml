@@ -176,7 +176,7 @@ tests:
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&granularity=42
       status: 404
       response_strings:
-        - Granularity '42.0' for metric
+        - Aggregation method 'mean' at granularity '42.0' for metric
 
 # Aggregation by resource and metric_name
 
