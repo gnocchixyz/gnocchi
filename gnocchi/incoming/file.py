@@ -73,13 +73,13 @@ class FileStorage(incoming.IncomingDriver):
             return os.path.join(path, random_id)
         return path
 
-    def _store_new_measures(self, metric, data):
+    def _store_new_measures(self, metric_id, data):
         tmpfile = tempfile.NamedTemporaryFile(
             prefix='gnocchi', dir=self.basepath_tmp,
             delete=False)
         tmpfile.write(data)
         tmpfile.close()
-        path = self._build_measure_path(metric.id, True)
+        path = self._build_measure_path(metric_id, True)
         while True:
             try:
                 os.rename(tmpfile.name, path)
@@ -88,7 +88,7 @@ class FileStorage(incoming.IncomingDriver):
                 if e.errno != errno.ENOENT:
                     raise
                 try:
-                    os.mkdir(self._build_measure_path(metric.id))
+                    os.mkdir(self._build_measure_path(metric_id))
                 except OSError as e:
                     # NOTE(jd) It's possible that another process created the
                     # path just before us! In this case, good for us, let's do
@@ -101,14 +101,12 @@ class FileStorage(incoming.IncomingDriver):
         if details:
             def build_metric_report(metric, sack):
                 report_vars['metric_details'][metric] = len(
-                    self._list_measures_container_for_metric_id_str(sack,
-                                                                    metric))
+                    self._list_measures_container_for_metric_str(sack, metric))
         else:
             def build_metric_report(metric, sack):
                 report_vars['metrics'] += 1
                 report_vars['measures'] += len(
-                    self._list_measures_container_for_metric_id_str(sack,
-                                                                    metric))
+                    self._list_measures_container_for_metric_str(sack, metric))
 
         for i in six.moves.range(self.NUM_SACKS):
             for metric in self.list_metric_with_measures_to_process(i):
@@ -122,10 +120,10 @@ class FileStorage(incoming.IncomingDriver):
     def list_metric_with_measures_to_process(self, sack):
         return set(self._list_target(self._sack_path(sack)))
 
-    def _list_measures_container_for_metric_id_str(self, sack, metric_id):
+    def _list_measures_container_for_metric_str(self, sack, metric_id):
         return self._list_target(self._measure_path(sack, metric_id))
 
-    def _list_measures_container_for_metric_id(self, metric_id):
+    def _list_measures_container_for_metric(self, metric_id):
         return self._list_target(self._build_measure_path(metric_id))
 
     @staticmethod
@@ -138,7 +136,7 @@ class FileStorage(incoming.IncomingDriver):
                 return []
             raise
 
-    def _delete_measures_files_for_metric_id(self, metric_id, files):
+    def _delete_measures_files_for_metric(self, metric_id, files):
         for f in files:
             try:
                 os.unlink(self._build_measure_path(metric_id, f))
@@ -157,23 +155,23 @@ class FileStorage(incoming.IncomingDriver):
             if e.errno not in (errno.ENOENT, errno.ENOTEMPTY, errno.EEXIST):
                 raise
 
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
-        files = self._list_measures_container_for_metric_id(metric_id)
-        self._delete_measures_files_for_metric_id(metric_id, files)
+    def delete_unprocessed_measures_for_metric(self, metric_id):
+        files = self._list_measures_container_for_metric(metric_id)
+        self._delete_measures_files_for_metric(metric_id, files)
 
-    def has_unprocessed(self, metric):
-        return os.path.isdir(self._build_measure_path(metric.id))
+    def has_unprocessed(self, metric_id):
+        return os.path.isdir(self._build_measure_path(metric_id))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        files = self._list_measures_container_for_metric_id(metric.id)
+    def process_measure_for_metric(self, metric_id):
+        files = self._list_measures_container_for_metric(metric_id)
         measures = self._make_measures_array()
         for f in files:
-            abspath = self._build_measure_path(metric.id, f)
+            abspath = self._build_measure_path(metric_id, f)
             with open(abspath, "rb") as e:
                 measures = numpy.append(
                     measures, self._unserialize_measures(f, e.read()))
 
         yield measures
 
-        self._delete_measures_files_for_metric_id(metric.id, files)
+        self._delete_measures_files_for_metric(metric_id, files)

@@ -52,9 +52,9 @@ class RedisStorage(incoming.IncomingDriver):
     def add_measures_batch(self, metrics_and_measures):
         notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
-        for metric, measures in six.iteritems(metrics_and_measures):
-            sack_name = self.get_sack_name(self.sack_for_metric(metric.id))
-            path = self._build_measure_path_with_sack(metric.id, sack_name)
+        for metric_id, measures in six.iteritems(metrics_and_measures):
+            sack_name = self.get_sack_name(self.sack_for_metric(metric_id))
+            path = self._build_measure_path_with_sack(metric_id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
             if self.greedy and sack_name not in notified_sacks:
                 # value has no meaning, we just use this for notification
@@ -97,21 +97,21 @@ class RedisStorage(incoming.IncomingDriver):
         keys = self._client.scan_iter(match=match, count=1000)
         return set([k.split(redis.SEP)[1].decode("utf8") for k in keys])
 
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
 
-    def has_unprocessed(self, metric):
-        return bool(self._client.exists(self._build_measure_path(metric.id)))
+    def has_unprocessed(self, metric_id):
+        return bool(self._client.exists(self._build_measure_path(metric_id)))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        key = self._build_measure_path(metric.id)
+    def process_measure_for_metric(self, metric_id):
+        key = self._build_measure_path(metric_id)
         item_len = self._client.llen(key)
         # lrange is inclusive on both ends, decrease to grab exactly n items
         item_len = item_len - 1 if item_len else item_len
 
         yield self._array_concatenate([
-            self._unserialize_measures('%s-%s' % (metric.id, i), data)
+            self._unserialize_measures('%s-%s' % (metric_id, i), data)
             for i, data in enumerate(self._client.lrange(key, 0, item_len))
         ])
 

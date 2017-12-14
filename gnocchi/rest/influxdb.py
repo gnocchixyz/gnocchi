@@ -245,7 +245,7 @@ class InfluxDBController(rest.RestController):
                     api.enforce("post measures", metric)
 
                 measures_to_batch.update(
-                    dict((metric, metrics_and_measures[metric.name])
+                    dict((metric.id, metrics_and_measures[metric.name])
                          for metric in metrics
                          if metric.name in metrics_and_measures))
 
