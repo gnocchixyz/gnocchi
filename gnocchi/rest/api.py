@@ -499,6 +499,15 @@ class MetricController(rest.RestController):
             except ValueError as e:
                 abort(400, six.text_type(e))
 
+        if aggregation not in self.metric.archive_policy.aggregation_methods:
+            abort(404, {
+                "cause": "Aggregation method does not exist for this metric",
+                "detail": {
+                    "metric": self.metric.id,
+                    "aggregation_method": aggregation,
+                },
+            })
+
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
@@ -1824,8 +1833,19 @@ class AggregationController(rest.RestController):
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
+                metric = metrics[0]
+                if (aggregation
+                   not in metric.archive_policy.aggregation_methods):
+                    abort(404, {
+                        "cause":
+                        "Aggregation method does not exist for this metric",
+                        "detail": {
+                            "metric": str(metric.id),
+                            "aggregation_method": aggregation,
+                        },
+                    })
                 return pecan.request.storage.get_measures(
-                    metrics[0], start, stop, aggregation,
+                    metric, start, stop, aggregation,
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,

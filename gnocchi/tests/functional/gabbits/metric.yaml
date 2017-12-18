@@ -366,8 +366,12 @@ tests:
     - name: get measure unknown aggregates
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list for aggregates'].$RESPONSE['$[0].id']&aggregation=last
       status: 404
-      response_strings:
-        - Aggregation method 'last' at granularity '1.0' for metric
+      request_headers:
+        accept: application/json
+      response_json_paths:
+        $.description.cause: Aggregation method does not exist for this metric
+        $.description.detail.metric: $HISTORY['get metric list for aggregates'].$RESPONSE['$[0].id']
+        $.description.detail.aggregation_method: last
 
     - name: aggregate measure unknown metric
       GET: /v1/aggregation/metric?metric=cee6ef1f-52cc-4a16-bbb5-648aedfd1c37
