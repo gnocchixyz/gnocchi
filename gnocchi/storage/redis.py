@@ -14,6 +14,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import six
+
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
@@ -90,13 +92,17 @@ class RedisStorage(storage.StorageDriver):
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_measures(self, metric, keys, aggregation, version=3):
         redis_key = self._metric_key(metric)
-        field = self._aggregated_field_for_split(aggregation, key, version)
-        data = self._client.hget(redis_key, field)
-        if data is None:
-            if not self._client.exists(redis_key):
-                raise storage.MetricDoesNotExist(metric)
-            raise storage.AggregationDoesNotExist(
-                metric, aggregation, key.sampling)
-        return data
+        fields = [
+            self._aggregated_field_for_split(aggregation, key, version)
+            for key in keys
+        ]
+        results = self._client.hmget(redis_key, fields)
+        for key, data in six.moves.zip(keys, results):
+            if data is None:
+                if not self._client.exists(redis_key):
+                    raise storage.MetricDoesNotExist(metric)
+                raise storage.AggregationDoesNotExist(
+                    metric, aggregation, key.sampling)
+        return results
