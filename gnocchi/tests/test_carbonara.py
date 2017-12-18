@@ -173,12 +173,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                           ts.group_serie, 60)
 
     @staticmethod
-    def _resample(ts, sampling, agg, max_size=None, derived=False):
+    def _resample(ts, sampling, agg, derived=False):
         grouped = ts.group_serie(sampling)
         if derived:
             grouped = grouped.derived()
         return carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, sampling, agg, max_size=max_size, truncate=True)
+            grouped, sampling, agg)
 
     def test_derived_mean(self):
         ts = carbonara.TimeSerie.from_tuples(
@@ -343,13 +343,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            datetime64(2014, 1, 1, 12, 0, 9)],
                           [3, 5])
 
-    def test_max_size(self):
+    def test_truncate(self):
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
              datetime64(2014, 1, 1, 12, 0, 4),
              datetime64(2014, 1, 1, 12, 0, 9)],
             [3, 5, 6])
-        ts = self._resample(ts, numpy.timedelta64(1, 's'), 'mean', max_size=2)
+        ts = self._resample(ts, numpy.timedelta64(1, 's'), 'mean')
+
+        ts.truncate(datetime64(2014, 1, 1, 12, 0, 0))
 
         self.assertEqual(2, len(ts))
         self.assertEqual(5, ts[0][1])
@@ -366,27 +368,31 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(1, len(ts))
         self.assertEqual(5, ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
-    def test_down_sampling_with_max_size(self):
+    def test_down_sampling_and_truncate(self):
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
              datetime64(2014, 1, 1, 12, 1, 4),
              datetime64(2014, 1, 1, 12, 1, 9),
              datetime64(2014, 1, 1, 12, 2, 12)],
             [3, 5, 7, 1])
-        ts = self._resample(ts, numpy.timedelta64(60, 's'), 'mean', max_size=2)
+        ts = self._resample(ts, numpy.timedelta64(60, 's'), 'mean')
+
+        ts.truncate(datetime64(2014, 1, 1, 12, 0, 59))
 
         self.assertEqual(2, len(ts))
         self.assertEqual(6, ts[datetime64(2014, 1, 1, 12, 1, 0)][1])
         self.assertEqual(1, ts[datetime64(2014, 1, 1, 12, 2, 0)][1])
 
-    def test_down_sampling_with_max_size_and_method_max(self):
+    def test_down_sampling_and_truncate_and_method_max(self):
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
              datetime64(2014, 1, 1, 12, 1, 4),
              datetime64(2014, 1, 1, 12, 1, 9),
              datetime64(2014, 1, 1, 12, 2, 12)],
             [3, 5, 70, 1])
-        ts = self._resample(ts, numpy.timedelta64(60, 's'), 'max', max_size=2)
+        ts = self._resample(ts, numpy.timedelta64(60, 's'), 'max')
+
+        ts.truncate(datetime64(2014, 1, 1, 12, 0, 59))
 
         self.assertEqual(2, len(ts))
         self.assertEqual(70, ts[datetime64(2014, 1, 1, 12, 1, 0)][1])
@@ -398,8 +404,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, agg_dict['sampling'], agg_dict['agg'],
-            max_size=agg_dict.get('size'), truncate=True)
+            grouped, agg_dict['sampling'], agg_dict['agg'])
         if existing:
             existing.merge(agg_dict['return'])
             agg_dict['return'] = existing
@@ -436,6 +441,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
+            (numpy.datetime64('2014-01-01T11:46:00.000000000'),
+             numpy.timedelta64(60, 's'), 4.0),
+            (numpy.datetime64('2014-01-01T11:47:00.000000000'),
+             numpy.timedelta64(60, 's'), 8.0),
+            (numpy.datetime64('2014-01-01T11:50:00.000000000'),
+             numpy.timedelta64(60, 's'), 50.0),
             (datetime64(2014, 1, 1, 11, 54),
              numpy.timedelta64(60000000000, 'ns'), 4.0),
             (datetime64(2014, 1, 1, 11, 56),
@@ -836,7 +847,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                          carbonara.AggregatedTimeSerie.from_timeseries(
                              split,
                              sampling=agg.sampling,
-                             max_size=agg.max_size,
                              aggregation_method=agg.aggregation_method))
 
     def test_resample(self):

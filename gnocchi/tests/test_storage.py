@@ -271,7 +271,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
         self.assertEqual([
-            (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(1, 'h'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),

@@ -542,8 +542,7 @@ class AggregatedTimeSerie(TimeSerie):
     COMPRESSED_SERIAL_LEN = struct.calcsize("<Hd")
     COMPRESSED_TIMESPAMP_LEN = struct.calcsize("<H")
 
-    def __init__(self, sampling, aggregation_method, ts=None, max_size=None,
-                 truncate=True):
+    def __init__(self, sampling, aggregation_method, ts=None):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -552,10 +551,7 @@ class AggregatedTimeSerie(TimeSerie):
         """
         super(AggregatedTimeSerie, self).__init__(ts)
         self.sampling = sampling
-        self.max_size = max_size
         self.aggregation_method = aggregation_method
-        if truncate:
-            self._truncate()
 
     def resample(self, sampling):
         return AggregatedTimeSerie.from_grouped_serie(
@@ -563,15 +559,10 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
     def from_data(cls, sampling, aggregation_method, timestamps,
-                  values, max_size=None):
-        # TODO(gordc): we don't truncate here but we might want to.
-        # specifically, when we store_timeserie_split, we merge with existing
-        # serie but we don't truncate so we might merge stuff that is beyond
-        # policy (not visible because we follow policy and truncate on GET)
+                  values):
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
-                   ts=make_timeseries(timestamps, values),
-                   max_size=max_size, truncate=False)
+                   ts=make_timeseries(timestamps, values))
 
     @staticmethod
     def _get_agg_method(aggregation_method):
@@ -585,6 +576,22 @@ class AggregatedTimeSerie(TimeSerie):
                 raise UnknownAggregationMethod(aggregation_method)
             aggregation_method_func_name = aggregation_method
         return aggregation_method_func_name, q
+
+    def truncate(self, oldest_point):
+        """Truncate the time series up to oldest_point excluded.
+
+        :param oldest_point: Oldest point to keep from, this excluded.
+        :type oldest_point: numpy.datetime64 or numpy.timedelta64
+        """
+        last = self.last
+        if last is None:
+            # There's nothing to truncate
+            return
+        if isinstance(oldest_point, numpy.timedelta64):
+            oldest_point = last - oldest_point
+        index = numpy.searchsorted(self.ts['timestamps'], oldest_point,
+                                   side='right')
+        self.ts = self.ts[index:]
 
     def split(self):
         # NOTE(sileht): We previously use groupby with
@@ -605,38 +612,33 @@ class AggregatedTimeSerie(TimeSerie):
             start = end
 
     @classmethod
-    def from_timeseries(cls, timeseries, sampling, aggregation_method,
-                        max_size=None):
+    def from_timeseries(cls, timeseries, sampling, aggregation_method):
         # NOTE(gordc): Indices must be unique across all timeseries. Also,
         # timeseries should be a list that is ordered within list and series.
         if not timeseries:
             timeseries = [make_timeseries([], [])]
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
-                   ts=numpy.concatenate(timeseries), max_size=max_size)
+                   ts=numpy.concatenate(timeseries))
 
     @classmethod
-    def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method,
-                           max_size=None, truncate=False):
+    def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method):
         agg_name, q = cls._get_agg_method(aggregation_method)
         return cls(sampling, aggregation_method,
                    ts=cls._resample_grouped(grouped_serie, agg_name,
-                                            q),
-                   max_size=max_size, truncate=truncate)
+                                            q))
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
                 and super(AggregatedTimeSerie, self).__eq__(other)
-                and self.max_size == other.max_size
                 and self.sampling == other.sampling
                 and self.aggregation_method == other.aggregation_method)
 
     def __repr__(self):
-        return "<%s 0x%x sampling=%s max_size=%s agg_method=%s>" % (
+        return "<%s 0x%x sampling=%s agg_method=%s>" % (
             self.__class__.__name__,
             id(self),
             self.sampling,
-            self.max_size,
             self.aggregation_method,
         )
 
@@ -752,12 +754,6 @@ class AggregatedTimeSerie(TimeSerie):
         payload = serial.tobytes()
         offset = int((first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
         return offset, payload
-
-    def _truncate(self):
-        """Truncate the timeserie."""
-        if self.max_size is not None:
-            # Remove empty points if any that could be added by aggregation
-            self.ts = self.ts[-self.max_size:]
 
     @staticmethod
     def _resample_grouped(grouped_serie, agg_name, q=None):

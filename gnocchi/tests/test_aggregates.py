@@ -53,8 +53,7 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         agg_dict['return'] = (
             processor.MetricReference(metric, "mean", resource),
             carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, agg_dict['sampling'], agg_dict['agg'],
-                max_size=agg_dict.get('size'), truncate=True))
+                grouped, agg_dict['sampling'], agg_dict['agg']))
         if existing:
             existing[2].merge(agg_dict['return'][2])
             agg_dict['return'] = existing
@@ -90,7 +89,6 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
         tsc2 = carbonara.AggregatedTimeSerie(
             sampling=numpy.timedelta64(60, 's'),
-            max_size=50,
             aggregation_method='mean')
 
         tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
@@ -721,6 +719,15 @@ class TestAggregatedTimeseries(base.BaseTestCase):
              numpy.timedelta64(300, 's'), 6.0),
             (datetime64(2014, 1, 1, 12, 5),
              numpy.timedelta64(300, 's'), 5.1666666666666661),
+            (numpy.datetime64('2014-01-01T11:46:00.000000000'),
+             numpy.timedelta64(60, 's'),
+             5.0),
+            (numpy.datetime64('2014-01-01T11:47:00.000000000'),
+             numpy.timedelta64(60, 's'),
+             6.5),
+            (numpy.datetime64('2014-01-01T11:50:00.000000000'),
+             numpy.timedelta64(60, 's'),
+             50.5),
             (datetime64(2014, 1, 1, 11, 54),
              numpy.timedelta64(60, 's'), 4.5),
             (datetime64(2014, 1, 1, 11, 56),
