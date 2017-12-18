@@ -123,8 +123,14 @@ class StorageDriver(object):
     def upgrade():
         pass
 
+    def _get_measures(self, metric, keys, aggregation, version=3):
+        return utils.parallel_map(
+            self._get_measures_unbatched,
+            ((metric, key, aggregation, version)
+             for key in keys))
+
     @staticmethod
-    def _get_measures(metric, timestamp_key, aggregation, version=3):
+    def _get_measures_unbatched(metric, timestamp_key, aggregation, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -217,16 +223,19 @@ class StorageDriver(object):
         return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
                                       for ts in agg_timeseries]))
 
-    def _get_measures_and_unserialize(self, metric, key, aggregation):
-        data = self._get_measures(metric, key, aggregation)
-        try:
-            return carbonara.AggregatedTimeSerie.unserialize(
-                data, key, aggregation)
-        except carbonara.InvalidData:
-            LOG.error("Data corruption detected for %s "
-                      "aggregated `%s' timeserie, granularity `%s' "
-                      "around time `%s', ignoring.",
-                      metric.id, aggregation, key.sampling, key)
+    def _get_measures_and_unserialize(self, metric, keys, aggregation):
+        raw_measures = self._get_measures(metric, keys, aggregation)
+        results = []
+        for key, raw in six.moves.zip(keys, raw_measures):
+            try:
+                results.append(carbonara.AggregatedTimeSerie.unserialize(
+                    raw, key, aggregation))
+            except carbonara.InvalidData:
+                LOG.error("Data corruption detected for %s "
+                          "aggregated `%s' timeserie, granularity `%s' "
+                          "around time `%s', ignoring.",
+                          metric.id, aggregation, key.sampling, key)
+        return results
 
     def _get_measures_timeserie(self, metric,
                                 aggregation, granularity,
@@ -257,15 +266,12 @@ class StorageDriver(object):
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
                 to_timestamp, granularity)
 
-        timeseries = list(filter(
-            lambda x: x is not None,
-            utils.parallel_map(
-                self._get_measures_and_unserialize,
-                ((metric, key, aggregation)
-                 for key in sorted(all_keys)
-                 if ((not from_timestamp or key >= from_timestamp)
-                     and (not to_timestamp or key <= to_timestamp))))
-        ))
+        keys = [key for key in sorted(all_keys)
+                if ((not from_timestamp or key >= from_timestamp)
+                    and (not to_timestamp or key <= to_timestamp))]
+
+        timeseries = self._get_measures_and_unserialize(
+            metric, keys, aggregation)
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
             sampling=granularity,
@@ -281,11 +287,12 @@ class StorageDriver(object):
         if write_full:
             try:
                 existing = self._get_measures_and_unserialize(
-                    metric, key, aggregation)
+                    metric, [key], aggregation)
             except AggregationDoesNotExist:
                 pass
             else:
-                if existing is not None:
+                if existing:
+                    existing = existing[0]
                     if split is not None:
                         existing.merge(split)
                     split = existing

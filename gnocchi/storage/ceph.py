@@ -137,7 +137,7 @@ class CephStorage(storage.StorageDriver):
             # It's possible that the object does not exists
             pass
 
-    def _get_measures(self, metric, key, aggregation, version=3):
+    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         try:
             name = self._get_object_name(metric, key, aggregation, version)
             return self._get_object_content(name)
