@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Gnocchi now strictly respects the archive policy configured timespan when
+    storing aggregates. Before, it could keep up to the number of points
+    defined in the archive policy, keeping more than the configured timespan.
+    The timespan duration is now strictly respected. Gnocchi only keeps the
+    points between the last aggregated timestamp and the last aggregated
+    timestamp minus the duration of the archive policy timespan.

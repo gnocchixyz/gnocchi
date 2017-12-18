@@ -19,7 +19,7 @@ dump_data(){
     gnocchi resource list -c id -c type -c project_id -c user_id -c original_resource_id -c started_at -c ended_at -c revision_start -c revision_end | tee $dir/resources.list
     for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
         for agg in min max mean sum ; do
-            gnocchi measures show --aggregation $agg --resource-id $resource_id metric > $dir/${agg}.txt
+            gnocchi measures show --aggregation $agg --resource-id $resource_id metric -f json > $dir/${agg}.json
         done
     done
 }
@@ -90,4 +90,10 @@ gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 dump_data $GNOCCHI_DATA/new
 
 echo "* Checking output difference between Gnocchi $old_version and $new_version"
-diff -uNr $GNOCCHI_DATA/old $GNOCCHI_DATA/new
+# This asserts we find the new measures in the old ones. Gnocchi > 4.1 will
+# store less points because it uses the timespan and not the points of the
+# archive policy
+for old in $GNOCCHI_DATA/old/*.json; do
+    new=$GNOCCHI_DATA/new/$(basename $old)
+    python -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
+done
