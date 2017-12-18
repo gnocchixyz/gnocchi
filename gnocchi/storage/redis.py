@@ -90,9 +90,7 @@ class RedisStorage(storage.StorageDriver):
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    # Carbonara API
-
-    def _get_measures(self, metric, key, aggregation, version=3):
+    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         redis_key = self._metric_key(metric)
         field = self._aggregated_field_for_split(aggregation, key, version)
         data = self._client.hget(redis_key, field)
