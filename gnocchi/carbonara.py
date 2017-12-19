@@ -134,10 +134,18 @@ class GroupedTimeSeries(object):
             weights=self._ts['values']))
 
     def min(self):
-        return self._scipy_aggregate(ndimage.minimum)
+        ordered = self._ts['values'].argsort()
+        uniq_inv = numpy.repeat(numpy.arange(self.counts.size), self.counts)
+        values = numpy.zeros(self.tstamps.size)
+        values[uniq_inv[ordered][::-1]] = self._ts['values'][ordered][::-1]
+        return make_timeseries(self.tstamps, values)
 
     def max(self):
-        return self._scipy_aggregate(ndimage.maximum)
+        ordered = self._ts['values'].argsort()
+        uniq_inv = numpy.repeat(numpy.arange(self.counts.size), self.counts)
+        values = numpy.zeros(self.tstamps.size)
+        values[uniq_inv[ordered]] = self._ts['values'][ordered]
+        return make_timeseries(self.tstamps, values)
 
     def median(self):
         return self._scipy_aggregate(ndimage.median)
