@@ -80,13 +80,13 @@ class CephStorage(incoming.IncomingDriver):
 
     def add_measures_batch(self, metrics_and_measures):
         data_by_sack = defaultdict(lambda: defaultdict(list))
-        for metric, measures in six.iteritems(metrics_and_measures):
+        for metric_id, measures in six.iteritems(metrics_and_measures):
             name = "_".join((
                 self.MEASURE_PREFIX,
-                str(metric.id),
+                str(metric_id),
                 str(uuid.uuid4()),
                 datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-            sack = self.get_sack_name(self.sack_for_metric(metric.id))
+            sack = self.get_sack_name(self.sack_for_metric(metric_id))
             data_by_sack[sack]['names'].append(name)
             data_by_sack[sack]['measures'].append(
                 self._encode_measures(measures))
@@ -168,7 +168,7 @@ class CephStorage(incoming.IncomingDriver):
                 marker = obj_names[-1]
         return names
 
-    def delete_unprocessed_measures_for_metric_id(self, metric_id):
+    def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         keys = tuple(self._list_keys_to_process(sack, key_prefix))
@@ -184,15 +184,15 @@ class CephStorage(incoming.IncomingDriver):
             self.ioctx.operate_write_op(op, self.get_sack_name(sack),
                                         flags=self.OMAP_WRITE_FLAGS)
 
-    def has_unprocessed(self, metric):
-        sack = self.sack_for_metric(metric.id)
-        object_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
+    def has_unprocessed(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
+        object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         return bool(self._list_keys_to_process(sack, object_prefix))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric):
-        sack = self.sack_for_metric(metric.id)
-        key_prefix = self.MEASURE_PREFIX + "_" + str(metric.id)
+    def process_measure_for_metric(self, metric_id):
+        sack = self.sack_for_metric(metric_id)
+        key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
 
         processed_keys = []
         with rados.ReadOpCtx() as op:

@@ -124,10 +124,14 @@ class GroupedTimeSeries(object):
                                                  return_counts=True)
 
     def mean(self):
-        return self._scipy_aggregate(ndimage.mean)
+        series = self.sum()
+        series['values'] /= self.counts
+        return series
 
     def sum(self):
-        return self._scipy_aggregate(ndimage.sum)
+        return make_timeseries(self.tstamps, numpy.bincount(
+            numpy.repeat(numpy.arange(self.counts.size), self.counts),
+            weights=self._ts['values']))
 
     def min(self):
         return self._scipy_aggregate(ndimage.minimum)
@@ -139,14 +143,15 @@ class GroupedTimeSeries(object):
         return self._scipy_aggregate(ndimage.median)
 
     def std(self):
-        # NOTE(sileht): ndimage.standard_deviation is really more performant
-        # but it use ddof=0, to get the same result as pandas we have to use
-        # ddof=1. If one day scipy allow to pass ddof, this should be changed.
-        return self._scipy_aggregate(ndimage.labeled_comprehension,
-                                     remove_unique=True,
-                                     func=functools.partial(numpy.std, ddof=1),
-                                     out_dtype='float64',
-                                     default=None)
+        mean_ts = self.mean()
+        diff_sq = numpy.square(self._ts['values'] -
+                               numpy.repeat(mean_ts['values'], self.counts))
+        bin_sum = numpy.bincount(
+            numpy.repeat(numpy.arange(self.counts.size), self.counts),
+            weights=diff_sq)
+        return make_timeseries(self.tstamps[self.counts > 1],
+                               numpy.sqrt(bin_sum[self.counts > 1] /
+                                          (self.counts[self.counts > 1] - 1)))
 
     def count(self):
         return make_timeseries(self.tstamps, self.counts)
@@ -154,14 +159,12 @@ class GroupedTimeSeries(object):
     def last(self):
         cumcounts = numpy.cumsum(self.counts) - 1
         values = self._ts['values'][cumcounts]
-
         return make_timeseries(self.tstamps, values)
 
     def first(self):
-        counts = numpy.insert(self.counts[:-1], 0, 0)
-        cumcounts = numpy.cumsum(counts)
-        values = self._ts['values'][cumcounts]
-        return make_timeseries(self.tstamps, values)
+        cumcounts = numpy.cumsum(self.counts[::-1]) - 1
+        values = self._ts['values'][::-1][cumcounts]
+        return make_timeseries(self.tstamps, values[::-1])
 
     def quantile(self, q):
         return self._scipy_aggregate(ndimage.labeled_comprehension,
@@ -172,18 +175,13 @@ class GroupedTimeSeries(object):
                                      out_dtype='float64',
                                      default=None)
 
-    def _scipy_aggregate(self, method, remove_unique=False, *args, **kwargs):
-        if remove_unique:
-            tstamps = self.tstamps[self.counts > 1]
-        else:
-            tstamps = self.tstamps
-
-        if len(tstamps) == 0:
+    def _scipy_aggregate(self, method, *args, **kwargs):
+        if len(self.tstamps) == 0:
             return make_timeseries([], [])
 
-        values = method(self._ts['values'], self.indexes, tstamps,
+        values = method(self._ts['values'], self.indexes, self.tstamps,
                         *args, **kwargs)
-        return make_timeseries(tstamps, values)
+        return make_timeseries(self.tstamps, values)
 
     def derived(self):
         timestamps = self._ts_for_derive['timestamps'][1:]

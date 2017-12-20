@@ -931,13 +931,13 @@ class CrossMetricAggregated(base.TestCase):
     def test_get_measures_unknown_aggregation(self):
         metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -957,13 +957,13 @@ class CrossMetricAggregated(base.TestCase):
     def test_get_measures_unknown_granularity(self):
         metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['low'])
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -984,13 +984,13 @@ class CrossMetricAggregated(base.TestCase):
     def test_add_and_get_measures_different_archives(self):
         metric2 = indexer.Metric(uuid.uuid4(),
                                  self.archive_policies['no_granularity_match'])
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -1010,13 +1010,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_add_and_get_measures(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
@@ -1168,14 +1168,14 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_add_and_get_measures_with_holes(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 5, 31), 8),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 42),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 2),
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
@@ -1207,13 +1207,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_resample(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1244,13 +1244,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_resample_minus_2_on_right(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1281,13 +1281,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_resample_minus_2_on_left(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1320,13 +1320,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_rolling(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 5, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 15, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 12, 5, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
@@ -1364,13 +1364,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_binary_operator_with_two_references(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1399,7 +1399,7 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_binary_operator_ts_on_left(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1426,7 +1426,7 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_binary_operator_ts_on_right(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1452,13 +1452,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_mix(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1490,13 +1490,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_bool(self):
         metric2, __ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), 2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
@@ -1536,13 +1536,13 @@ class CrossMetricAggregated(base.TestCase):
 
     def test_unary_operator(self):
         metric2, _ = self._create_metric()
-        self.incoming.add_measures(self.metric, [
+        self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), -69),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), -4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.incoming.add_measures(metric2, [
+        self.incoming.add_measures(metric2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), -9),
             incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), -2),
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),

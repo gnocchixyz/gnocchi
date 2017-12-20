@@ -75,8 +75,12 @@ def get_measures(storage, references, operations,
     for ref in references:
         if (ref.aggregation not in
                 ref.metric.archive_policy.aggregation_methods):
-            raise gnocchi_storage.AggregationDoesNotExist(ref.metric,
-                                                          ref.aggregation)
+            raise gnocchi_storage.AggregationDoesNotExist(
+                ref.metric, ref.aggregation,
+                # Use the first granularity, that should be good enough since
+                # they are all missing anyway
+                ref.metric.archive_policy.definition[0].granularity)
+
         if granularity is not None:
             for d in ref.metric.archive_policy.definition:
                 if d.granularity == granularity:
