@@ -1467,8 +1467,6 @@ class SearchMetricController(rest.RestController):
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
              granularity=None):
-        granularity = [utils.to_timespan(g)
-                       for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": arg_to_list(metric_id)}})
 
@@ -1493,19 +1491,35 @@ class SearchMetricController(rest.RestController):
                 abort(400, "Invalid value for stop")
 
         try:
-            return {
-                str(metric.id): values
-                for metric, values in six.iteritems(
-                    pecan.request.storage.search_value(
-                        metrics, query, start, stop, aggregation,
-                        granularity
-                    )
-                )
-            }
+            predicate = storage.MeasureQuery(query)
         except storage.InvalidQuery as e:
             abort(400, six.text_type(e))
+
+        if granularity is not None:
+            granularity = sorted(
+                map(utils.to_timespan, arg_to_list(granularity)),
+                reverse=True)
+
+        results = {}
+
+        try:
+            for metric in metrics:
+                if granularity is None:
+                    granularity = sorted((
+                        d.granularity
+                        for d in metric.archive_policy.definition),
+                        reverse=True)
+                results[str(metric.id)] = []
+                for r in utils.parallel_map(
+                        pecan.request.storage.find_measure,
+                        ((metric, predicate, g, aggregation,
+                          start, stop)
+                         for g in granularity)):
+                    results[str(metric.id)].extend(r)
         except storage.AggregationDoesNotExist as e:
             abort(400, e)
+
+        return results
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
