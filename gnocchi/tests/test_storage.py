@@ -129,7 +129,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
         self.trigger_processing()
-        self.storage.delete_metric(self.incoming, self.metric, sync=True)
+        self.storage._delete_metric(self.metric)
         self.trigger_processing()
         self.assertEqual([], self.storage.get_measures(self.metric))
         self.assertRaises(storage.MetricDoesNotExist,

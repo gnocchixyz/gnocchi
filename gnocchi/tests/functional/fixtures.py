@@ -14,6 +14,8 @@
 # under the License.
 """Fixtures for use with gabbi tests."""
 
+from __future__ import absolute_import
+
 import os
 import shutil
 import tempfile
@@ -23,6 +25,7 @@ from unittest import case
 import warnings
 
 import daiquiri
+import fixtures
 from gabbi import fixture
 import numpy
 from oslo_config import cfg
@@ -146,11 +149,21 @@ class ConfigFixture(fixture.GabbiFixture):
         i = incoming.get_driver(conf)
         i.upgrade(128)
 
+        self.fixtures = [
+            fixtures.MockPatch("gnocchi.storage.get_driver",
+                               return_value=s),
+            fixtures.MockPatch("gnocchi.incoming.get_driver",
+                               return_value=i),
+            fixtures.MockPatch("gnocchi.indexer.get_driver",
+                               return_value=self.index),
+            fixtures.MockPatch(
+                "gnocchi.cli.metricd.get_coordinator_and_start",
+                return_value=self.coord),
+        ]
+        for f in self.fixtures:
+            f.setUp()
+
         LOAD_APP_KWARGS = {
-            'coord': self.coord,
-            'storage': s,
-            'indexer': index,
-            'incoming': i,
             'conf': conf,
         }
 
@@ -160,9 +173,14 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
+
         if hasattr(self, 'metricd_thread'):
             self.metricd_thread.stop()
             self.metricd_thread.join()
+
+        if hasattr(self, 'fixtures'):
+            for f in reversed(self.fixtures):
+                f.cleanUp()
 
         if hasattr(self, 'index'):
             self.index.disconnect()

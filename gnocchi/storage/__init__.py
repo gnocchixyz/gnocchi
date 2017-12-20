@@ -39,6 +39,9 @@ OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
+ITEMGETTER_1 = operator.itemgetter(1)
+
+
 class StorageError(Exception):
     pass
 
@@ -394,20 +397,6 @@ class StorageDriver(object):
     def _delete_metric(metric):
         raise NotImplementedError
 
-    def delete_metric(self, incoming, metric, sync=False):
-        LOG.debug("Deleting metric %s", metric)
-        lock = incoming.get_sack_lock(
-            self.coord, incoming.sack_for_metric(metric.id))
-        if not lock.acquire(blocking=sync):
-            raise LockedMetric(metric)
-        # NOTE(gordc): no need to hold lock because the metric has been already
-        #              marked as "deleted" in the indexer so no measure worker
-        #              is going to process it anymore.
-        lock.release()
-        self._delete_metric(metric)
-        incoming.delete_unprocessed_measures_for_metric(metric.id)
-        LOG.debug("Deleted metric %s", metric)
-
     @staticmethod
     def _delete_metric_measures(metric, timestamp_key,
                                 aggregation, granularity, version=3):
@@ -435,21 +424,47 @@ class StorageDriver(object):
                      on error
         :type sync: bool
         """
-
-        metrics_to_expunge = index.list_metrics(status='delete')
-        for m in metrics_to_expunge:
+        # FIXME(jd) The indexer could return them sorted/grouped by directly
+        metrics_to_expunge = sorted(
+            ((m, incoming.sack_for_metric(m.id))
+             for m in index.list_metrics(status='delete')),
+            key=ITEMGETTER_1)
+        for sack, metrics in itertools.groupby(
+                metrics_to_expunge, key=ITEMGETTER_1):
             try:
-                self.delete_metric(incoming, m, sync)
-                index.expunge_metric(m.id)
-            except (indexer.NoSuchMetric, LockedMetric):
-                # It's possible another process deleted or is deleting the
-                # metric, not a big deal
-                pass
+                lock = incoming.get_sack_lock(self.coord, sack)
+                if not lock.acquire(blocking=sync):
+                    # Retry later
+                    LOG.debug(
+                        "Sack %s is locked, cannot expunge metrics", sack)
+                    continue
+                # NOTE(gordc): no need to hold lock because the metric has been
+                # already marked as "deleted" in the indexer so no measure
+                # worker is going to process it anymore.
+                lock.release()
             except Exception:
                 if sync:
                     raise
-                LOG.error("Unable to expunge metric %s from storage", m,
-                          exc_info=True)
+                LOG.error("Unable to lock sack %s for expunging metrics",
+                          sack, exc_info=True)
+            else:
+                for metric, sack in metrics:
+                    LOG.debug("Deleting metric %s", metric)
+                    try:
+                        incoming.delete_unprocessed_measures_for_metric(
+                            metric.id)
+                        self._delete_metric(metric)
+                        try:
+                            index.expunge_metric(metric.id)
+                        except indexer.NoSuchMetric:
+                            # It's possible another process deleted or is
+                            # deleting the metric, not a big deal
+                            pass
+                    except Exception:
+                        if sync:
+                            raise
+                        LOG.error("Unable to expunge metric %s from storage",
+                                  metric, exc_info=True)
 
     def process_new_measures(self, indexer, incoming, metrics_to_process,
                              sync=False):
