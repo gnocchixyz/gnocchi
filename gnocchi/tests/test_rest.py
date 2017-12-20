@@ -23,6 +23,7 @@ import hashlib
 import json
 import uuid
 
+import fixtures
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
@@ -172,15 +173,25 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
         self.conf.set_override("auth_mode", self.auth_mode, group="api")
 
+        self.useFixture(fixtures.MockPatchObject(
+            app.GnocchiHook, "_lazy_load", self._fake_lazy_load))
+
         self.app = TestingApp(app.load_app(conf=self.conf,
-                                           indexer=self.index,
-                                           storage=self.storage,
-                                           incoming=self.incoming,
                                            not_implemented_middleware=False),
                               storage=self.storage,
                               indexer=self.index,
                               incoming=self.incoming,
                               auth_mode=self.auth_mode)
+
+    def _fake_lazy_load(self, name):
+        if name == "storage":
+            return self.storage
+        elif name == "indexer":
+            return self.index
+        elif name == "incoming":
+            return self.incoming
+        else:
+            raise RuntimeError("Invalid driver type: %s" % name)
 
     # NOTE(jd) Used at least by docs
     @staticmethod
