@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    A new date type is available for resource type attribute: datetime.

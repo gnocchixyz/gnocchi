@@ -334,7 +334,8 @@
             "flavor_id": {"type": "string", "required": true},
             "image_ref": {"type": "string", "required": true},
             "host": {"type": "string", "required": true},
-            "server_group": {"type": "string", "required": false}
+            "server_group": {"type": "string", "required": false},
+            "launched_at": {"type": "datetime", "required": false}
         }
     }
 
@@ -350,6 +351,7 @@
       "started_at": "2014-01-02 23:23:34",
       "ended_at": "2014-01-04 10:00:12",
       "flavor_id": "2",
+      "launched_at": "2017-12-10T08:10:42Z",
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm",
@@ -454,7 +456,8 @@
             "display_name": {"type": "string", "required": true},
             "prefix": {"type": "string", "required": false, "max_length": 8, "min_length": 3},
             "size": {"type": "number", "min": 5, "max": 32.8},
-            "enabled": {"type": "bool", "required": false}
+            "enabled": {"type": "bool", "required": false},
+            "launched_at": {"type": "datetime", "required": false}
         }
     }
 
@@ -486,6 +489,11 @@
             "op": "add",
             "path": "/attributes/required-stuff",
             "value": {"type": "bool", "required": true, "options": {"fill": true}}
+         },
+         {
+            "op": "add",
+            "path": "/attributes/required-datetime",
+            "value": {"type": "datetime", "required": true, "options": {"fill": "2017-12-11T08:12:42Z"}}
          },
          {
             "op": "remove",

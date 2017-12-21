@@ -17,6 +17,7 @@ from __future__ import absolute_import
 import sqlalchemy
 import sqlalchemy_utils
 
+from gnocchi.indexer import sqlalchemy_types
 from gnocchi import resource_type
 
 
@@ -54,3 +55,12 @@ class NumberSchema(resource_type.NumberSchema, SchemaMixin):
 
 class BoolSchema(resource_type.BoolSchema, SchemaMixin):
     satype = sqlalchemy.Boolean
+
+
+class DatetimeSchema(resource_type.DatetimeSchema, SchemaMixin):
+    satype = sqlalchemy_types.TimestampUTC()
+
+    def for_filling(self, dialect):
+        if self.fill is None:
+            return None
+        return self.satype.process_bind_param(self.fill, dialect).isoformat()

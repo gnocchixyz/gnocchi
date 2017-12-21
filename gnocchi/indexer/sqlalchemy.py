@@ -41,12 +41,13 @@ import six
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
-from sqlalchemy import types
+from sqlalchemy import types as sa_types
 import sqlalchemy_utils
 
 from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy_base as base
+from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
 
@@ -1210,10 +1211,10 @@ class QueryTransformer(object):
     }
 
     converters = (
-        (base.TimestampUTC, utils.to_datetime),
-        (types.String, six.text_type),
-        (types.Integer, int),
-        (types.Numeric, float),
+        (types.TimestampUTC, utils.to_datetime),
+        (sa_types.String, six.text_type),
+        (sa_types.Integer, int),
+        (sa_types.Numeric, float),
     )
 
     @classmethod
