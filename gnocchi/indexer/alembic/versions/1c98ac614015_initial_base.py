@@ -32,6 +32,7 @@ import sqlalchemy as sa
 import sqlalchemy_utils
 
 import gnocchi.indexer.sqlalchemy_base
+import gnocchi.indexer.sqlalchemy_types
 
 
 def upgrade():
@@ -39,9 +40,9 @@ def upgrade():
     sa.Column('type', sa.Enum('generic', 'instance', 'swift_account', 'volume', 'ceph_account', 'network', 'identity', 'ipmi', 'stack', 'image', name='resource_type_enum'), nullable=False),
     sa.Column('created_by_user_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('created_by_project_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
-    sa.Column('started_at', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=False),
-    sa.Column('revision_start', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=False),
-    sa.Column('ended_at', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=True),
+    sa.Column('started_at', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=False),
+    sa.Column('revision_start', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=False),
+    sa.Column('ended_at', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=True),
     sa.Column('user_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('project_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=False),
@@ -139,14 +140,14 @@ def upgrade():
     sa.Column('type', sa.Enum('generic', 'instance', 'swift_account', 'volume', 'ceph_account', 'network', 'identity', 'ipmi', 'stack', 'image', name='resource_type_enum'), nullable=False),
     sa.Column('created_by_user_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('created_by_project_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
-    sa.Column('started_at', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=False),
-    sa.Column('revision_start', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=False),
-    sa.Column('ended_at', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=True),
+    sa.Column('started_at', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=False),
+    sa.Column('revision_start', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=False),
+    sa.Column('ended_at', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=True),
     sa.Column('user_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('project_id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=True),
     sa.Column('revision', sa.Integer(), nullable=False),
     sa.Column('id', sqlalchemy_utils.types.uuid.UUIDType(binary=False), nullable=False),
-    sa.Column('revision_end', gnocchi.indexer.sqlalchemy_base.PreciseTimestamp(), nullable=False),
+    sa.Column('revision_end', gnocchi.indexer.sqlalchemy_types.PreciseTimestamp(), nullable=False),
     sa.ForeignKeyConstraint(['id'], ['resource.id'], name="fk_resource_history_id_resource_id", ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('revision'),
     mysql_charset='utf8',

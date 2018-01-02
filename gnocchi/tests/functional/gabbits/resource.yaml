@@ -361,6 +361,56 @@ tests:
           $[0].user_id: 0fbb231484614b1a80131fc22f6afc9c
           $[-1].user_id: foobar
 
+    - name: list generic resources with attrs param
+      GET: /v1/resource/generic?attrs=id&attrs=started_at&attrs=user_id
+      response_json_paths:
+          $[0].`len`: 3
+          $[0].id: $RESPONSE['$[0].id']
+          $[0].started_at: $RESPONSE['$[0].started_at']
+          $[0].user_id: $RESPONSE['$[0].user_id']
+          $[1].`len`: 3
+
+    - name: list generic resources with invalid attrs param
+      GET: /v1/resource/generic?attrs=id&attrs=foo&attrs=bar
+      response_json_paths:
+          $[0].`len`: 1
+          $[0].id: $RESPONSE['$[0].id']
+          $[1].`len`: 1
+
+    - name: list generic resources without attrs param
+      GET: /v1/resource/generic
+      response_json_paths:
+          $[0].`len`: 13
+          $[1].`len`: 13
+
+    - name: list generic resources with attrs header
+      GET: /v1/resource/generic
+      request_headers:
+          Accept: "application/json; attrs=id+started_at+user_id"
+      response_json_paths:
+          $[0].`len`: 3
+          $[0].id: $RESPONSE['$[0].id']
+          $[0].started_at: $RESPONSE['$[0].started_at']
+          $[0].user_id: $RESPONSE['$[0].user_id']
+          $[1].`len`: 3
+
+    - name: list generic resources with invalid attrs header
+      GET: /v1/resource/generic
+      request_headers:
+          Accept: "application/json; attrs=id+foo+bar"
+      response_json_paths:
+          $[0].`len`: 1
+          $[0].id: $RESPONSE['$[0].id']
+          $[1].`len`: 1
+
+    - name: list generic resources without attrs header
+      GET: /v1/resource/generic
+      request_headers:
+          Accept: "application/json"
+      response_json_paths:
+          $[0].`len`: 13
+          $[1].`len`: 13
+
     - name: list all resources
       GET: /v1/resource/generic
       response_strings:
@@ -500,7 +550,6 @@ tests:
       data:
           electron.spin:
               archive_policy_name: medium
-      response_headers:
       response_json_paths:
           $[/name][1].name: electron.spin
           $[/name][1].resource_id: 85c44741-cc60-4033-804e-2d3098c7d2e9

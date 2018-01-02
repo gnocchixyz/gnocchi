@@ -15,6 +15,7 @@
 # under the License.
 import os
 import pkg_resources
+import threading
 import uuid
 
 import daiquiri
@@ -42,12 +43,18 @@ LOG = daiquiri.getLogger(__name__)
 jsonify.jsonify.register(object)(json.to_primitive)
 
 
+def get_storage_driver(conf):
+    # NOTE(jd) This coordinator is never stop. I don't think it's a
+    # real problem since the Web app can never really be stopped
+    # anyway, except by quitting it entirely.
+    coord = metricd.get_coordinator_and_start(conf.coordination_url)
+    return gnocchi_storage.get_driver(conf, coord)
+
+
 class GnocchiHook(pecan.hooks.PecanHook):
 
-    def __init__(self, storage, indexer, incoming, conf):
-        self.storage = storage
-        self.indexer = indexer
-        self.incoming = incoming
+    def __init__(self, conf):
+        self.backends = {}
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
@@ -55,12 +62,29 @@ class GnocchiHook(pecan.hooks.PecanHook):
                                                 invoke_on_load=True).driver
 
     def on_route(self, state):
-        state.request.storage = self.storage
-        state.request.indexer = self.indexer
-        state.request.incoming = self.incoming
+        state.request.storage = self._lazy_load('storage')
+        state.request.indexer = self._lazy_load('indexer')
+        state.request.incoming = self._lazy_load('incoming')
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
+
+    BACKEND_LOADERS = {
+        'storage': (threading.Lock(), get_storage_driver),
+        'incoming': (threading.Lock(), gnocchi_incoming.get_driver),
+        'indexer': (threading.Lock(), gnocchi_indexer.get_driver),
+    }
+
+    def _lazy_load(self, name):
+        # NOTE(sileht): We don't care about raise error here, if something
+        # fail, this will just raise a 500, until the backend is ready.
+        if name not in self.backends:
+            lock, loader = self.BACKEND_LOADERS[name]
+            with lock:
+                # Recheck, maybe it have been created in the meantime.
+                if name not in self.backends:
+                    self.backends[name] = loader(self.conf)
+        return self.backends[name]
 
 
 class NotImplementedMiddleware(object):
@@ -96,21 +120,8 @@ global APPCONFIGS
 APPCONFIGS = {}
 
 
-def load_app(conf, indexer=None, storage=None, incoming=None, coord=None,
-             not_implemented_middleware=True):
+def load_app(conf, not_implemented_middleware=True):
     global APPCONFIGS
-
-    if not storage:
-        if not coord:
-            # NOTE(jd) This coordinator is never stop. I don't think it's a
-            # real problem since the Web app can never really be stopped
-            # anyway, except by quitting it entirely.
-            coord = metricd.get_coordinator_and_start(conf.coordination_url)
-        storage = gnocchi_storage.get_driver(conf, coord)
-    if not incoming:
-        incoming = gnocchi_incoming.get_driver(conf)
-    if not indexer:
-        indexer = gnocchi_indexer.get_driver(conf)
 
     # Build the WSGI app
     cfg_path = conf.api.paste_config
@@ -122,8 +133,7 @@ def load_app(conf, indexer=None, storage=None, incoming=None, coord=None,
         cfg_path = os.path.abspath(pkg_resources.resource_filename(
             __name__, "api-paste.ini"))
 
-    config = dict(conf=conf, indexer=indexer, storage=storage,
-                  incoming=incoming,
+    config = dict(conf=conf,
                   not_implemented_middleware=not_implemented_middleware)
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
@@ -136,11 +146,10 @@ def load_app(conf, indexer=None, storage=None, incoming=None, coord=None,
     return cors.CORS(app, conf=conf)
 
 
-def _setup_app(root, conf, indexer, storage, incoming,
-               not_implemented_middleware):
+def _setup_app(root, conf, not_implemented_middleware):
     app = pecan.make_app(
         root,
-        hooks=(GnocchiHook(storage, indexer, incoming, conf),),
+        hooks=(GnocchiHook(conf),),
         guess_content_type_from_ext=False,
         custom_renderers={"json": JsonRenderer}
     )

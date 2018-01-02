@@ -116,7 +116,14 @@ function _gnocchi_install_redis {
     else
         # This will fail (correctly) where a redis package is unavailable
         install_package redis
-        restart_service redis
+        if is_suse; then
+            # opensuse intsall multi-instance version of redis
+            # and admin is expected to install the required conf
+            cp /etc/redis/default.conf.example /etc/redis/default.conf
+            restart_service redis@default
+        else
+            restart_service redis
+        fi
     fi
 
     pip_install_gr redis
@@ -215,7 +222,7 @@ function configure_gnocchi {
     fi
 
     if [ -n "$GNOCCHI_COORDINATOR_URL" ]; then
-        iniset $GNOCCHI_CONF coordination_url "$GNOCCHI_COORDINATOR_URL"
+        iniset $GNOCCHI_CONF DEFAULT coordination_url "$GNOCCHI_COORDINATOR_URL"
     fi
 
     if is_service_enabled gnocchi-statsd ; then

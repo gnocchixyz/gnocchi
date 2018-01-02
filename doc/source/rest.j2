@@ -201,7 +201,7 @@ can be resampled to a new |granularity|.
 
 .. note::
 
-   Gnocchi has an :ref:;`aggregates <aggregates>` endpoint which provides
+   Gnocchi has an :ref:`aggregates <aggregates>` endpoint which provides
    resampling as well as additional capabilities.
 
 
@@ -452,6 +452,14 @@ query parameter:
 
 {{ scenarios['list-resource-generic-details']['doc'] }}
 
+Limit attributes
+~~~~~~~~~~~~~~~~
+
+To limit response attributes, use `attrs=id&attrs=started_at&attrs=user_id` in the query
+parameter:
+
+{{ scenarios['list-resource-generic-limit-attrs']['doc'] }}
+
 Pagination
 ~~~~~~~~~~
 
@@ -633,6 +641,14 @@ With details
 Details about the |resource| can also be retrieved at the same time:
 
 {{ scenarios['search-resource-for-user-details']['doc'] }}
+
+Limit attributes
+~~~~~~~~~~~~~~~~
+
+To limit response attributes, use `attrs=id&attrs=started_at&attrs=user_id` in the query
+parameter:
+
+{{ scenarios['search-resource-for-user-limit-attrs']['doc'] }}
 
 History
 ~~~~~~~

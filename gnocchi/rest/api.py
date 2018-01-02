@@ -188,12 +188,30 @@ def get_header_option(name, params):
                      options.get(name, params.get(name, 'false')))
 
 
+def get_header_option_array(name, params):
+    type, options = werkzeug.http.parse_options_header(
+        pecan.request.headers.get('Accept'))
+    header_option = options.get(name, None)
+    post_option = params.get(name, None)
+
+    if post_option:
+        return arg_to_list(post_option)
+    elif header_option:
+        return header_option.split('+')
+    else:
+        return None
+
+
 def get_history(params):
     return get_header_option('history', params)
 
 
 def get_details(params):
     return get_header_option('details', params)
+
+
+def get_json_attrs(params):
+    return get_header_option_array('attrs', params)
 
 
 def strtobool(varname, v):
@@ -498,6 +516,15 @@ class MetricController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
+
+        if aggregation not in self.metric.archive_policy.aggregation_methods:
+            abort(404, {
+                "cause": "Aggregation method does not exist for this metric",
+                "detail": {
+                    "metric": self.metric.id,
+                    "aggregation_method": aggregation,
+                },
+            })
 
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
@@ -1121,6 +1148,7 @@ class ResourcesController(rest.RestController):
         history = get_history(kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
+        json_attrs = get_json_attrs(kwargs)
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
             pecan.request, "list resource", self._resource_type)
 
@@ -1141,7 +1169,7 @@ class ResourcesController(rest.RestController):
                 else:
                     marker = str(resources[-1].id)
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
-            return resources
+            return [r.jsonify(json_attrs) for r in resources]
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
 
@@ -1382,8 +1410,9 @@ class SearchResourceTypeController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, **kwargs):
+        json_attrs = get_json_attrs(kwargs)
         try:
-            return self._search(**kwargs)
+            return [r.jsonify(json_attrs) for r in self._search(**kwargs)]
         except indexer.IndexerException as e:
             abort(400, six.text_type(e))
 
@@ -1458,8 +1487,6 @@ class SearchMetricController(rest.RestController):
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
              granularity=None):
-        granularity = [utils.to_timespan(g)
-                       for g in arg_to_list(granularity or [])]
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": arg_to_list(metric_id)}})
 
@@ -1484,19 +1511,35 @@ class SearchMetricController(rest.RestController):
                 abort(400, "Invalid value for stop")
 
         try:
-            return {
-                str(metric.id): values
-                for metric, values in six.iteritems(
-                    pecan.request.storage.search_value(
-                        metrics, query, start, stop, aggregation,
-                        granularity
-                    )
-                )
-            }
+            predicate = storage.MeasureQuery(query)
         except storage.InvalidQuery as e:
             abort(400, six.text_type(e))
+
+        if granularity is not None:
+            granularity = sorted(
+                map(utils.to_timespan, arg_to_list(granularity)),
+                reverse=True)
+
+        results = {}
+
+        try:
+            for metric in metrics:
+                if granularity is None:
+                    granularity = sorted((
+                        d.granularity
+                        for d in metric.archive_policy.definition),
+                        reverse=True)
+                results[str(metric.id)] = []
+                for r in utils.parallel_map(
+                        pecan.request.storage.find_measure,
+                        ((metric, predicate, g, aggregation,
+                          start, stop)
+                         for g in granularity)):
+                    results[str(metric.id)].extend(r)
         except storage.AggregationDoesNotExist as e:
             abort(400, e)
+
+        return results
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
@@ -1824,8 +1867,19 @@ class AggregationController(rest.RestController):
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
+                metric = metrics[0]
+                if (aggregation
+                   not in metric.archive_policy.aggregation_methods):
+                    abort(404, {
+                        "cause":
+                        "Aggregation method does not exist for this metric",
+                        "detail": {
+                            "metric": str(metric.id),
+                            "aggregation_method": aggregation,
+                        },
+                    })
                 return pecan.request.storage.get_measures(
-                    metrics[0], start, stop, aggregation,
+                    metric, start, stop, aggregation,
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,

@@ -14,7 +14,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import collections
 import functools
 import itertools
 import operator
@@ -37,6 +36,9 @@ OPTS = [
 
 
 LOG = daiquiri.getLogger(__name__)
+
+
+ITEMGETTER_1 = operator.itemgetter(1)
 
 
 class StorageError(Exception):
@@ -124,8 +126,14 @@ class StorageDriver(object):
     def upgrade():
         pass
 
+    def _get_measures(self, metric, keys, aggregation, version=3):
+        return utils.parallel_map(
+            self._get_measures_unbatched,
+            ((metric, key, aggregation, version)
+             for key in keys))
+
     @staticmethod
-    def _get_measures(metric, timestamp_key, aggregation, version=3):
+    def _get_measures_unbatched(metric, timestamp_key, aggregation, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -200,11 +208,6 @@ class StorageDriver(object):
         :param granularity: The granularity to retrieve.
         :param resample: The granularity to resample to.
         """
-        if aggregation not in metric.archive_policy.aggregation_methods:
-            if granularity is None:
-                granularity = metric.archive_policy.definition[0].granularity
-            raise AggregationDoesNotExist(metric, aggregation, granularity)
-
         if granularity is None:
             agg_timeseries = utils.parallel_map(
                 self._get_measures_timeserie,
@@ -223,16 +226,19 @@ class StorageDriver(object):
         return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
                                       for ts in agg_timeseries]))
 
-    def _get_measures_and_unserialize(self, metric, key, aggregation):
-        data = self._get_measures(metric, key, aggregation)
-        try:
-            return carbonara.AggregatedTimeSerie.unserialize(
-                data, key, aggregation)
-        except carbonara.InvalidData:
-            LOG.error("Data corruption detected for %s "
-                      "aggregated `%s' timeserie, granularity `%s' "
-                      "around time `%s', ignoring.",
-                      metric.id, aggregation, key.sampling, key)
+    def _get_measures_and_unserialize(self, metric, keys, aggregation):
+        raw_measures = self._get_measures(metric, keys, aggregation)
+        results = []
+        for key, raw in six.moves.zip(keys, raw_measures):
+            try:
+                results.append(carbonara.AggregatedTimeSerie.unserialize(
+                    raw, key, aggregation))
+            except carbonara.InvalidData:
+                LOG.error("Data corruption detected for %s "
+                          "aggregated `%s' timeserie, granularity `%s' "
+                          "around time `%s', ignoring.",
+                          metric.id, aggregation, key.sampling, key)
+        return results
 
     def _get_measures_timeserie(self, metric,
                                 aggregation, granularity,
@@ -263,15 +269,12 @@ class StorageDriver(object):
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
                 to_timestamp, granularity)
 
-        timeseries = list(filter(
-            lambda x: x is not None,
-            utils.parallel_map(
-                self._get_measures_and_unserialize,
-                ((metric, key, aggregation)
-                 for key in sorted(all_keys)
-                 if ((not from_timestamp or key >= from_timestamp)
-                     and (not to_timestamp or key <= to_timestamp))))
-        ))
+        keys = [key for key in sorted(all_keys)
+                if ((not from_timestamp or key >= from_timestamp)
+                    and (not to_timestamp or key <= to_timestamp))]
+
+        timeseries = self._get_measures_and_unserialize(
+            metric, keys, aggregation)
 
         return carbonara.AggregatedTimeSerie.from_timeseries(
             sampling=granularity,
@@ -287,11 +290,12 @@ class StorageDriver(object):
         if write_full:
             try:
                 existing = self._get_measures_and_unserialize(
-                    metric, key, aggregation)
+                    metric, [key], aggregation)
             except AggregationDoesNotExist:
                 pass
             else:
-                if existing is not None:
+                if existing:
+                    existing = existing[0]
                     if split is not None:
                         existing.merge(split)
                     split = existing
@@ -393,20 +397,6 @@ class StorageDriver(object):
     def _delete_metric(metric):
         raise NotImplementedError
 
-    def delete_metric(self, incoming, metric, sync=False):
-        LOG.debug("Deleting metric %s", metric)
-        lock = incoming.get_sack_lock(
-            self.coord, incoming.sack_for_metric(metric.id))
-        if not lock.acquire(blocking=sync):
-            raise LockedMetric(metric)
-        # NOTE(gordc): no need to hold lock because the metric has been already
-        #              marked as "deleted" in the indexer so no measure worker
-        #              is going to process it anymore.
-        lock.release()
-        self._delete_metric(metric)
-        incoming.delete_unprocessed_measures_for_metric(metric.id)
-        LOG.debug("Deleted metric %s", metric)
-
     @staticmethod
     def _delete_metric_measures(metric, timestamp_key,
                                 aggregation, granularity, version=3):
@@ -434,21 +424,47 @@ class StorageDriver(object):
                      on error
         :type sync: bool
         """
-
-        metrics_to_expunge = index.list_metrics(status='delete')
-        for m in metrics_to_expunge:
+        # FIXME(jd) The indexer could return them sorted/grouped by directly
+        metrics_to_expunge = sorted(
+            ((m, incoming.sack_for_metric(m.id))
+             for m in index.list_metrics(status='delete')),
+            key=ITEMGETTER_1)
+        for sack, metrics in itertools.groupby(
+                metrics_to_expunge, key=ITEMGETTER_1):
             try:
-                self.delete_metric(incoming, m, sync)
-                index.expunge_metric(m.id)
-            except (indexer.NoSuchMetric, LockedMetric):
-                # It's possible another process deleted or is deleting the
-                # metric, not a big deal
-                pass
+                lock = incoming.get_sack_lock(self.coord, sack)
+                if not lock.acquire(blocking=sync):
+                    # Retry later
+                    LOG.debug(
+                        "Sack %s is locked, cannot expunge metrics", sack)
+                    continue
+                # NOTE(gordc): no need to hold lock because the metric has been
+                # already marked as "deleted" in the indexer so no measure
+                # worker is going to process it anymore.
+                lock.release()
             except Exception:
                 if sync:
                     raise
-                LOG.error("Unable to expunge metric %s from storage", m,
-                          exc_info=True)
+                LOG.error("Unable to lock sack %s for expunging metrics",
+                          sack, exc_info=True)
+            else:
+                for metric, sack in metrics:
+                    LOG.debug("Deleting metric %s", metric)
+                    try:
+                        incoming.delete_unprocessed_measures_for_metric(
+                            metric.id)
+                        self._delete_metric(metric)
+                        try:
+                            index.expunge_metric(metric.id)
+                        except indexer.NoSuchMetric:
+                            # It's possible another process deleted or is
+                            # deleting the metric, not a big deal
+                            pass
+                    except Exception:
+                        if sync:
+                            raise
+                        LOG.error("Unable to expunge metric %s from storage",
+                                  metric, exc_info=True)
 
     def process_new_measures(self, indexer, incoming, metrics_to_process,
                              sync=False):
@@ -559,53 +575,15 @@ class StorageDriver(object):
 
         self._store_unaggregated_timeserie(metric, ts.serialize())
 
-    def _find_measure(self, metric, aggregation, granularity, predicate,
-                      from_timestamp, to_timestamp):
+    def find_measure(self, metric, predicate, granularity, aggregation="mean",
+                     from_timestamp=None, to_timestamp=None):
         timeserie = self._get_measures_timeserie(
             metric, aggregation, granularity,
             from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
-        return {metric:
-                [(timestamp, g, value)
-                 for timestamp, g, value in values
-                 if predicate(value)]}
-
-    def search_value(self, metrics, query, from_timestamp=None,
-                     to_timestamp=None, aggregation='mean',
-                     granularity=None):
-        """Search for an aggregated value that realizes a predicate.
-
-        :param metrics: The list of metrics to look into.
-        :param query: The query being sent.
-        :param from_timestamp: The timestamp to get the measure from.
-        :param to_timestamp: The timestamp to get the measure to.
-        :param aggregation: The type of aggregation to retrieve.
-        :param granularity: The granularity to retrieve.
-        """
-
-        granularity = granularity or []
-        predicate = MeasureQuery(query)
-
-        results = utils.parallel_map(
-            self._find_measure,
-            [(metric, aggregation,
-              gran, predicate,
-              from_timestamp, to_timestamp)
-             for metric in metrics
-             for gran in granularity or
-             (defin.granularity
-              for defin in metric.archive_policy.definition)])
-        result = collections.defaultdict(list)
-        for r in results:
-            for metric, metric_result in six.iteritems(r):
-                result[metric].extend(metric_result)
-
-        # Sort the result
-        for metric, r in six.iteritems(result):
-            # Sort by timestamp asc, granularity desc
-            r.sort(key=lambda t: (t[0], - t[1]))
-
-        return result
+        return [(timestamp, g, value)
+                for timestamp, g, value in values
+                if predicate(value)]
 
 
 class MeasureQuery(object):
