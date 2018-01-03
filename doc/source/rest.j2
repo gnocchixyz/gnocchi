@@ -707,6 +707,61 @@ to apply to the |metrics|.
    `operations` can also be passed as a string, for example:
    `"operations": "(aggregate mean (metric (metric-id aggregation) (metric-id aggregation))"`
 
+Cross-metric Usage
+------------------
+
+Aggregation across multiple |metrics| have different behavior depending
+on whether boundary values are set (`start` and `stop`) and if `needed_overlap`
+is set.
+
+Overlap percentage
+~~~~~~~~~~~~~~~~~~
+
+Gnocchi expects that time series have a certain percentage of timestamps in
+common. This percent is controlled by the `needed_overlap` needed_overlap,
+which by default expects 100% overlap. If this percentage is not reached, an
+error is returned.
+
+.. note::
+
+   If `start` or `stop` boundary is not set, Gnocchi will set the missing
+   boundary to the first or last timestamp common across all series.
+
+Backfill
+~~~~~~~~
+
+The ability to fill in missing points from a subset of time series is supported
+by specifying a `fill` value. Valid fill values include any float, `dropna` or
+`null`. In the case of `null`, Gnocchi will compute the aggregation using only
+the existing points. `dropna` is like `null` but remove NaN from the result.
+The `fill` parameter will not backfill timestamps which contain no points in
+any of the time series. Only timestamps which have datapoints in at least one
+of the time series is returned.
+
+{{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
+
+
+Search and aggregate
+--------------------
+
+It's also possible to do that aggregation on |metrics| linked to |resources|.
+In order to select these |resources|, the following endpoint accepts a query
+such as the one described in the :ref:`resource search API <search-resource>`.
+
+{{ scenarios['get-aggregates-by-attributes-lookup']['doc'] }}
+
+And metric name can be `wildcard` too.
+
+{{ scenarios['get-aggregates-by-attributes-lookup-wildcard']['doc'] }}
+
+Groupby
+~~~~~~~
+
+It is possible to group the |resource| search results by any attribute of the
+requested |resource| type, and then compute the aggregation:
+
+{{ scenarios['get-aggregates-by-attributes-lookup-groupby']['doc'] }}
+
 List of supported <operations>
 ------------------------------
 
@@ -799,60 +854,7 @@ Function operations
    (floor (<operations>))
    (ceil (<operations>))
 
-Cross-metric Usage
-------------------
 
-Aggregation across multiple |metrics| have different behavior depending
-on whether boundary values are set (`start` and `stop`) and if `needed_overlap`
-is set.
-
-Overlap percentage
-~~~~~~~~~~~~~~~~~~
-
-Gnocchi expects that time series have a certain percentage of timestamps in
-common. This percent is controlled by the `needed_overlap` needed_overlap,
-which by default expects 100% overlap. If this percentage is not reached, an
-error is returned.
-
-.. note::
-
-   If `start` or `stop` boundary is not set, Gnocchi will set the missing
-   boundary to the first or last timestamp common across all series.
-
-Backfill
-~~~~~~~~
-
-The ability to fill in missing points from a subset of time series is supported
-by specifying a `fill` value. Valid fill values include any float, `dropna` or
-`null`. In the case of `null`, Gnocchi will compute the aggregation using only
-the existing points. `dropna` is like `null` but remove NaN from the result.
-The `fill` parameter will not backfill timestamps which contain no points in
-any of the time series. Only timestamps which have datapoints in at least one
-of the time series is returned.
-
-{{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
-
-
-Search and aggregate
---------------------
-
-It's also possible to do that aggregation on |metrics| linked to |resources|.
-In order to select these |resources|, the following endpoint accepts a query
-such as the one described in the :ref:`resource search API <search-resource>`.
-
-{{ scenarios['get-aggregates-by-attributes-lookup']['doc'] }}
-
-And metric name can be `wildcard` too.
-
-{{ scenarios['get-aggregates-by-attributes-lookup-wildcard']['doc'] }}
-
-Groupby
-~~~~~~~
-
-It is possible to group the |resource| search results by any attribute of the
-requested |resource| type, and then compute the aggregation:
-
-{{ scenarios['get-aggregates-by-attributes-lookup-groupby']['doc'] }}
 
 Examples
 --------
