@@ -30,6 +30,7 @@ import numpy
 import pytimeparse
 import six
 from stevedore import driver
+import tenacity
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -312,3 +313,24 @@ def parallel_map(fn, list_of_args):
 
 
 parallel_map.MAX_WORKERS = get_default_workers()
+
+# Retry with exponential backoff for up to 1 minute
+wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
+
+retry_on_exception = tenacity.Retrying(wait=wait_exponential)
+
+
+class _retry_on_exception_and_log(tenacity.retry_if_exception_type):
+    def __init__(self, msg):
+        super(_retry_on_exception_and_log, self).__init__()
+        self.msg = msg
+
+    def __call__(self, attempt):
+        if attempt.failed:
+            LOG.error(self.msg, exc_info=attempt.exception())
+        return super(_retry_on_exception_and_log, self).__call__(attempt)
+
+
+def retry_on_exception_and_log(msg):
+    return tenacity.Retrying(
+        wait=wait_exponential, retry=_retry_on_exception_and_log(msg)).wraps

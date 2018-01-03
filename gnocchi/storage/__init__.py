@@ -110,6 +110,7 @@ class SackLockTimeoutError(StorageError):
         pass
 
 
+@utils.retry_on_exception_and_log("Unable to initialize storage driver")
 def get_driver(conf, coord):
     """Return the configured driver."""
     return utils.get_driver_class('gnocchi.storage', conf.storage)(

@@ -38,13 +38,7 @@ from gnocchi import utils
 LOG = daiquiri.getLogger(__name__)
 
 
-# Retry with exponential backoff for up to 1 minute
-_wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
-
-
-retry_on_exception = tenacity.Retrying(wait=_wait_exponential)
-
-
+@utils.retry_on_exception_and_log("Unable to initialize coordination driver")
 def get_coordinator_and_start(url):
     coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
     coord.start(start_heart=True)
@@ -65,12 +59,10 @@ class MetricProcessBase(cotyledon.Service):
         self._wake_up.set()
 
     def _configure(self):
-        self.coord = retry_on_exception(get_coordinator_and_start,
-                                        self.conf.coordination_url)
-        self.store = retry_on_exception(
-            storage.get_driver, self.conf, self.coord)
-        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
-        self.index = retry_on_exception(indexer.get_driver, self.conf)
+        self.coord = get_coordinator_and_start(self.conf.coordination_url)
+        self.store = storage.get_driver(self.conf, self.coord)
+        self.incoming = incoming.get_driver(self.conf)
+        self.index = indexer.get_driver(self.conf)
 
     def run(self):
         self._configure()
@@ -112,7 +104,7 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = retry_on_exception(incoming.get_driver, self.conf)
+        self.incoming = incoming.get_driver(self.conf)
 
     @staticmethod
     def close_services():
@@ -150,7 +142,7 @@ class MetricProcessor(MetricProcessBase):
         )(self._get_sacks_to_process)
 
     @tenacity.retry(
-        wait=_wait_exponential,
+        wait=utils.wait_exponential,
         # Never retry except when explicitly asked by raising TryAgain
         retry=tenacity.retry_never)
     def _configure(self):
@@ -177,7 +169,7 @@ class MetricProcessor(MetricProcessBase):
             filler.daemon = True
             filler.start()
 
-    @retry_on_exception.wraps
+    @utils.retry_on_exception.wraps
     def _fill_sacks_to_process(self):
         try:
             for sack in self.incoming.iter_on_sacks_to_process():

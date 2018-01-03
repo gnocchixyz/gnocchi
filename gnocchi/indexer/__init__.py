@@ -24,6 +24,7 @@ from six.moves.urllib import parse
 from stevedore import driver
 
 from gnocchi import exceptions
+from gnocchi import utils
 
 OPTS = [
     cfg.StrOpt('url',
@@ -98,6 +99,7 @@ class Metric(object):
     __hash__ = object.__hash__
 
 
+@utils.retry_on_exception_and_log("Unable to initialize indexer driver")
 def get_driver(conf):
     """Return the configured driver."""
     split = parse.urlsplit(conf.indexer.url)

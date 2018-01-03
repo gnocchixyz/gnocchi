@@ -183,6 +183,7 @@ class IncomingDriver(object):
         pass
 
 
+@utils.retry_on_exception_and_log("Unable to initialize incoming driver")
 def get_driver(conf):
     """Return configured incoming driver only
 
