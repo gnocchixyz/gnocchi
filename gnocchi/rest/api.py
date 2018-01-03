@@ -160,20 +160,6 @@ def deserialize_and_validate(schema, required=True,
                     required)
 
 
-def PositiveOrNullInt(value):
-    value = int(value)
-    if value < 0:
-        raise ValueError("Value must be positive")
-    return value
-
-
-def PositiveNotNullInt(value):
-    value = int(value)
-    if value <= 0:
-        raise ValueError("Value must be positive and not null")
-    return value
-
-
 def Timespan(value):
     try:
         return utils.to_timespan(value)
@@ -251,6 +237,18 @@ def get_pagination_options(params, default):
     return opts
 
 
+ArchivePolicyDefinitionSchema = voluptuous.Schema(
+    voluptuous.All([{
+        "granularity": Timespan,
+        "points": voluptuous.All(
+            voluptuous.Coerce(int),
+            voluptuous.Range(min=1),
+        ),
+        "timespan": Timespan,
+    }], voluptuous.Length(min=1)),
+)
+
+
 class ArchivePolicyController(rest.RestController):
     def __init__(self, archive_policy):
         self.archive_policy = archive_policy
@@ -273,12 +271,8 @@ class ArchivePolicyController(rest.RestController):
         enforce("update archive policy", ap)
 
         body = deserialize_and_validate(voluptuous.Schema({
-            voluptuous.Required("definition"):
-                voluptuous.All([{
-                    "granularity": Timespan,
-                    "points": PositiveNotNullInt,
-                    "timespan": Timespan}], voluptuous.Length(min=1)),
-            }))
+            voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
+        }))
         # Validate the data
         try:
             ap_items = [archive_policy.ArchivePolicyItem(**item) for item in
@@ -321,18 +315,16 @@ class ArchivePoliciesController(rest.RestController):
         )
         ArchivePolicySchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
-            voluptuous.Required("back_window", default=0): PositiveOrNullInt,
+            voluptuous.Required("back_window", default=0): voluptuous.All(
+                voluptuous.Coerce(int),
+                voluptuous.Range(min=0),
+            ),
             voluptuous.Required(
                 "aggregation_methods",
                 default=set(conf.archive_policy.default_aggregation_methods)):
             voluptuous.All(list(valid_agg_methods), voluptuous.Coerce(set)),
-            voluptuous.Required("definition"):
-            voluptuous.All([{
-                "granularity": Timespan,
-                "points": PositiveNotNullInt,
-                "timespan": Timespan,
-                }], voluptuous.Length(min=1)),
-            })
+            voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
+        })
 
         body = deserialize_and_validate(ArchivePolicySchema)
         # Validate the data

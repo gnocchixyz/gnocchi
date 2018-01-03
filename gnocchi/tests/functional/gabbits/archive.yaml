@@ -455,7 +455,7 @@ tests:
                 points: 0
       status: 400
       response_strings:
-          - "Invalid input: not a valid value for dictionary value"
+          - "Invalid input: value must be at least 1 for dictionary value "
 
     - name: create identical granularities policy
       POST: /v1/archive_policy
