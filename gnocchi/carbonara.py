@@ -227,10 +227,6 @@ class TimeSerie(object):
     def from_data(cls, timestamps=None, values=None):
         return cls(make_timeseries(timestamps, values))
 
-    @classmethod
-    def from_tuples(cls, timestamps_values):
-        return cls.from_data(*zip(*timestamps_values))
-
     def __eq__(self, other):
         return (isinstance(other, TimeSerie) and
                 numpy.all(self.ts == other.ts))
