@@ -380,8 +380,9 @@ class BoundTimeSerie(TimeSerie):
 
     def serialize(self):
         # NOTE(jd) Use a double delta encoding for timestamps
-        timestamps = numpy.insert(numpy.diff(self.timestamps), 0, self.first)
-        timestamps = timestamps.astype(dtype='<Q', copy=False)
+        timestamps = numpy.empty(self.timestamps.size, dtype='<Q')
+        timestamps[0] = self.first
+        timestamps[1:] = numpy.diff(self.timestamps)
         return self._compress(timestamps.tobytes() + self.values.tobytes())
 
     @classmethod
@@ -714,10 +715,9 @@ class AggregatedTimeSerie(TimeSerie):
         # initialize list to store alternating delimiter, float entries
         if compressed:
             # NOTE(jd) Use a double delta encoding for timestamps
-            timestamps = numpy.insert(
-                numpy.diff(self.timestamps) / offset_div,
-                0, (self.first - start.key) / offset_div)
-            timestamps = timestamps.astype('<H', copy=False)
+            timestamps = numpy.empty(self.timestamps.size, dtype='<H')
+            timestamps[0] = (self.first - start.key) / offset_div
+            timestamps[1:] = numpy.diff(self.timestamps) / offset_div
             payload = (timestamps.tobytes() + self.values.tobytes())
             return None, b"c" + self._compress(payload)
         # NOTE(gordc): this binary serializes series based on the split
@@ -732,9 +732,8 @@ class AggregatedTimeSerie(TimeSerie):
         first = self.first  # NOTE(jd) needed because faster
         e_offset = int((self.last - first) / offset_div) + 1
 
-        locs = numpy.cumsum(numpy.diff(self.timestamps)) / offset_div
-        locs = numpy.insert(locs, 0, 0)
-        locs = locs.astype(numpy.int, copy=False)
+        locs = numpy.zeros(self.timestamps.size, dtype=numpy.int)
+        locs[1:] = numpy.cumsum(numpy.diff(self.timestamps)) / offset_div
 
         # Fill everything with zero
         serial_dtype = [('b', '<?'), ('v', '<d')]
