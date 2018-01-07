@@ -5,7 +5,6 @@ oslo.config>=3.22.0
 oslo.policy>=0.3.0
 oslo.middleware>=3.22.0
 pytimeparse
-scipy>=0.18.1  # BSD
 pecan>=0.9
 futures; python_version < '3'
 jsonpatch

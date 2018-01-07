@@ -26,8 +26,6 @@ import time
 
 import lz4.block
 import numpy
-import numpy.lib.recfunctions
-from scipy import ndimage
 import six
 
 
@@ -183,20 +181,18 @@ class GroupedTimeSeries(object):
         return make_timeseries(self.tstamps, values[::-1])
 
     def quantile(self, q):
-        return self._scipy_aggregate(ndimage.labeled_comprehension,
-                                     func=functools.partial(
-                                         numpy.percentile,
-                                         q=q,
-                                     ),
-                                     out_dtype='float64',
-                                     default=None)
-
-    def _scipy_aggregate(self, method, *args, **kwargs):
-        if len(self.tstamps) == 0:
-            return make_timeseries([], [])
-
-        values = method(self._ts['values'], self.indexes, self.tstamps,
-                        *args, **kwargs)
+        ordered = numpy.lexsort((self._ts['values'], self.indexes))
+        min_pos = (numpy.cumsum(self.counts) - 1) - (self.counts - 1)
+        real_pos = min_pos + (self.counts - 1) * (q / 100)
+        floor_pos = numpy.floor(real_pos).astype(numpy.int, copy=False)
+        ceil_pos = numpy.ceil(real_pos).astype(numpy.int, copy=False)
+        values = (
+            self._ts['values'][ordered][floor_pos] * (ceil_pos - real_pos) +
+            self._ts['values'][ordered][ceil_pos] * (real_pos - floor_pos))
+        # NOTE(gordc): above code doesn't compute proper value if pct lands on
+        # exact index, it sets it to 0. we need to set it properly here
+        exact_pos = numpy.equal(floor_pos, ceil_pos)
+        values[exact_pos] = self._ts['values'][ordered][floor_pos][exact_pos]
         return make_timeseries(self.tstamps, values)
 
     def derived(self):

@@ -283,6 +283,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                          ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
     def _do_test_aggregation(self, name, v1, v2, v3):
+        # NOTE(gordc): test data must have a group of odd count to properly
+        # test 50pct test case.
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
              datetime64(2014, 1, 1, 12, 0, 10),
@@ -322,6 +324,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     def test_aggregation_median(self):
         self._do_test_aggregation('median', 3.0, 10.5, 3)
+
+    def test_aggregation_50pct(self):
+        self._do_test_aggregation('50pct', 3.0, 10.5, 3)
+
+    def test_aggregation_56pct(self):
+        self._do_test_aggregation('56pct', 3.4800000000000004,
+                                  10.8, 3.120000000000001)
 
     def test_aggregation_min(self):
         self._do_test_aggregation('min', 2, 8, 2)
