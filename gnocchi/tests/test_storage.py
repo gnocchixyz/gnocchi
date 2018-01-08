@@ -81,7 +81,13 @@ class TestStorageDriver(tests_base.TestCase):
                             side_effect=carbonara.InvalidData()):
                 self.trigger_processing()
 
-        m = self.storage.get_measures(self.metric)
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
+
+        m = self.storage.get_measures(self.metric, granularities)
         self.assertIn((datetime64(2014, 1, 1),
                        numpy.timedelta64(1, 'D'), 1), m)
         self.assertIn((datetime64(2014, 1, 1, 13),
@@ -104,7 +110,13 @@ class TestStorageDriver(tests_base.TestCase):
             self.trigger_processing()
             self.assertFalse(LOG.error.called)
 
-        m = self.storage.get_measures(self.metric)
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
+
+        m = self.storage.get_measures(self.metric, granularities)
         self.assertIn((datetime64(2014, 1, 1),
                        numpy.timedelta64(1, 'D'), 5.0), m)
         self.assertIn((datetime64(2014, 1, 1, 12),
@@ -131,7 +143,11 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
         self.storage._delete_metric(self.metric)
         self.trigger_processing()
-        self.assertEqual([], self.storage.get_measures(self.metric))
+        self.assertEqual([], self.storage.get_measures(self.metric, [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]))
         self.assertRaises(storage.MetricDoesNotExist,
                           self.storage._get_unaggregated_timeserie,
                           self.metric)
@@ -200,7 +216,11 @@ class TestStorageDriver(tests_base.TestCase):
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
         self.trigger_processing([str(m.id)])
 
-        self.assertEqual(3661, len(self.storage.get_measures(m)))
+        self.assertEqual(3661, len(self.storage.get_measures(m, [
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(1, 'm'),
+            numpy.timedelta64(1, 's'),
+        ])))
 
     @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
@@ -256,13 +276,19 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
+
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ], self.storage.get_measures(self.metric))
+        ], self.storage.get_measures(self.metric, granularities))
 
         # One year later…
         self.incoming.add_measures(self.metric.id, [
@@ -274,7 +300,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(1, 'h'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
-        ], self.storage.get_measures(self.metric))
+        ], self.storage.get_measures(self.metric, granularities))
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1244160000, 's'),
@@ -351,8 +377,9 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(1, 'm')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(1, 'm')]))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -409,8 +436,9 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 16, 18), numpy.timedelta64(1, 'm'), 45),
             (datetime64(2016, 1, 10, 17, 12), numpy.timedelta64(1, 'm'), 46),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(1, 'm')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(1, 'm')]))
 
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
         """See LP#1655422"""
@@ -472,8 +500,9 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(60, 's')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(60, 's')]))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -531,8 +560,9 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 0, 12), numpy.timedelta64(1, 'm'), 45),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(60, 's')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(60, 's')]))
 
     def test_rewrite_measures_corruption_missing_file(self):
         # Create an archive policy that spans on several splits. Each split
@@ -598,8 +628,9 @@ class TestStorageDriver(tests_base.TestCase):
              numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12),
              numpy.timedelta64(1, 'm'), 44),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(60, 's')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(60, 's')]))
 
         # Test what happens if we delete the latest split and then need to
         # compress it!
@@ -678,8 +709,9 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ], self.storage.get_measures(self.metric,
-                                     granularity=numpy.timedelta64(1, 'm')))
+        ], self.storage.get_measures(
+            self.metric,
+            granularities=[numpy.timedelta64(1, 'm')]))
 
         # Test what happens if we write garbage
         self.storage._store_metric_measures(
@@ -706,12 +738,18 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
+
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 55.5),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 55.5),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
-        ], self.storage.get_measures(self.metric))
+        ], self.storage.get_measures(self.metric, granularities))
 
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -725,7 +763,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ], self.storage.get_measures(self.metric))
+        ], self.storage.get_measures(self.metric, granularities))
 
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 69),
@@ -733,7 +771,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ], self.storage.get_measures(self.metric, aggregation='max'))
+        ], self.storage.get_measures(self.metric,
+                                     granularities, aggregation='max'))
 
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 4),
@@ -741,7 +780,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 4.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ], self.storage.get_measures(self.metric, aggregation='min'))
+        ], self.storage.get_measures(self.metric,
+                                     granularities, aggregation='min'))
 
     def test_add_and_get_measures(self):
         self.incoming.add_measures(self.metric.id, [
@@ -752,13 +792,19 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
+
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ], self.storage.get_measures(self.metric))
+        ], self.storage.get_measures(self.metric, granularities))
 
         self.assertEqual([
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
@@ -766,6 +812,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(
             self.metric,
+            granularities,
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 0)))
 
         self.assertEqual([
@@ -775,6 +822,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
         ], self.storage.get_measures(
             self.metric,
+            granularities,
             to_timestamp=datetime64(2014, 1, 1, 12, 6, 0)))
 
         self.assertEqual([
@@ -783,6 +831,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
         ], self.storage.get_measures(
             self.metric,
+            granularities,
             to_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 10)))
 
@@ -792,6 +841,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
         ], self.storage.get_measures(
             self.metric,
+            granularities,
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
@@ -801,6 +851,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
         ], self.storage.get_measures(
             self.metric,
+            granularities,
             from_timestamp=datetime64(2014, 1, 1, 12),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
@@ -810,7 +861,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric,
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2),
-            granularity=numpy.timedelta64(1, 'h')))
+            granularities=[numpy.timedelta64(1, 'h')]))
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
@@ -818,12 +869,12 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric,
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2),
-            granularity=numpy.timedelta64(5, 'm')))
+            granularities=[numpy.timedelta64(5, 'm')]))
 
         self.assertRaises(storage.AggregationDoesNotExist,
                           self.storage.get_measures,
                           self.metric,
-                          granularity=numpy.timedelta64(42, 's'))
+                          granularities=[numpy.timedelta64(42, 's')])
 
     def test_get_measure_unknown_aggregation(self):
         self.incoming.add_measures(self.metric.id, [
@@ -832,8 +883,14 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
+        granularities = [
+            numpy.timedelta64(1, 'D'),
+            numpy.timedelta64(1, 'h'),
+            numpy.timedelta64(5, 'm'),
+        ]
         self.assertEqual(
-            [], self.storage.get_measures(self.metric, aggregation='last'))
+            [], self.storage.get_measures(
+                self.metric, granularities, aggregation='last'))
 
     def test_find_measures(self):
         metric2, __ = self._create_metric()
@@ -911,7 +968,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 0), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
-        ], self.storage.get_measures(m))
+        ], self.storage.get_measures(m, [numpy.timedelta64(5, 's')]))
         # expand to more points
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
@@ -925,7 +982,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
-        ], self.storage.get_measures(m))
+        ], self.storage.get_measures(m, [numpy.timedelta64(5, 's')]))
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
@@ -933,16 +990,16 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
-        ], self.storage.get_measures(m))
+        ], self.storage.get_measures(m, [numpy.timedelta64(5, 's')]))
 
     def test_resample_no_metric(self):
         """https://github.com/gnocchixyz/gnocchi/issues/69"""
         self.assertEqual([],
                          self.storage.get_measures(
                              self.metric,
+                             [numpy.timedelta64(300, 's')],
                              datetime64(2014, 1, 1),
                              datetime64(2015, 1, 1),
-                             granularity=numpy.timedelta64(300, 's'),
                              resample=numpy.timedelta64(1, 'h')))
 
 

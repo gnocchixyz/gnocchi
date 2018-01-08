@@ -58,7 +58,7 @@ def _get_measures_timeserie(storage, ref, *args, **kwargs):
 
 def get_measures(storage, references, operations,
                  from_timestamp=None, to_timestamp=None,
-                 granularity=None, needed_overlap=100.0,
+                 granularities=None, needed_overlap=100.0,
                  fill=None):
     """Get aggregated measures of multiple entities.
 
@@ -67,9 +67,29 @@ def get_measures(storage, references, operations,
                                      measured to aggregate.
     :param from timestamp: The timestamp to get the measure from.
     :param to timestamp: The timestamp to get the measure to.
-    :param granularity: The granularity to retrieve.
+    :param granularities: The granularities to retrieve.
     :param fill: The value to use to fill in missing data in series.
     """
+
+    if granularities is None:
+        all_granularities = (
+            definition.granularity
+            for ref in references
+            for definition in ref.metric.archive_policy.definition
+        )
+        # granularities_in_common
+        granularities = [
+            g
+            for g, occurrence in six.iteritems(
+                collections.Counter(all_granularities))
+            if occurrence == len(references)
+        ]
+
+        if not granularities:
+            raise exceptions.UnAggregableTimeseries(
+                list((ref.name, ref.aggregation)
+                     for ref in references),
+                'No granularity match')
 
     references_with_missing_granularity = []
     for ref in references:
@@ -81,45 +101,25 @@ def get_measures(storage, references, operations,
                 # they are all missing anyway
                 ref.metric.archive_policy.definition[0].granularity)
 
-        if granularity is not None:
-            for d in ref.metric.archive_policy.definition:
-                if d.granularity == granularity:
-                    break
-            else:
+        available_granularities = [
+            d.granularity
+            for d in ref.metric.archive_policy.definition
+        ]
+        for g in granularities:
+            if g not in available_granularities:
                 references_with_missing_granularity.append(
-                    (ref.name, ref.aggregation))
+                    (ref.name, ref.aggregation, g))
+                break
 
     if references_with_missing_granularity:
         raise exceptions.UnAggregableTimeseries(
             references_with_missing_granularity,
-            "granularity '%d' is missing" %
-            utils.timespan_total_seconds(granularity))
-
-    if granularity is None:
-        granularities = (
-            definition.granularity
-            for ref in references
-            for definition in ref.metric.archive_policy.definition
-        )
-        granularities_in_common = [
-            g
-            for g, occurrence in six.iteritems(
-                collections.Counter(granularities))
-            if occurrence == len(references)
-        ]
-
-        if not granularities_in_common:
-            raise exceptions.UnAggregableTimeseries(
-                list((ref.name, ref.aggregation)
-                     for ref in references),
-                'No granularity match')
-    else:
-        granularities_in_common = [granularity]
+            "Granularities are missing")
 
     tss = utils.parallel_map(_get_measures_timeserie,
                              [(storage, ref, g, from_timestamp, to_timestamp)
                               for ref in references
-                              for g in granularities_in_common])
+                              for g in granularities])
 
     return aggregated(tss, operations, from_timestamp, to_timestamp,
                       needed_overlap, fill)

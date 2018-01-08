@@ -493,14 +493,6 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
-        if granularity is not None:
-            try:
-                granularity = utils.to_timespan(granularity)
-            except ValueError:
-                abort(400, {"cause": "Attribute value error",
-                            "detail": "granularity",
-                            "reason": "Invalid granularity"})
-
         if resample:
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
@@ -508,6 +500,17 @@ class MetricController(rest.RestController):
                 resample = utils.to_timespan(resample)
             except ValueError as e:
                 abort(400, six.text_type(e))
+
+        if granularity is None:
+            granularity = [d.granularity
+                           for d in self.metric.archive_policy.definition]
+        else:
+            try:
+                granularity = [utils.to_timespan(granularity)]
+            except ValueError:
+                abort(400, {"cause": "Attribute value error",
+                            "detail": "granularity",
+                            "reason": "Invalid granularity"})
 
         if aggregation not in self.metric.archive_policy.aggregation_methods:
             abort(404, {
@@ -528,8 +531,8 @@ class MetricController(rest.RestController):
                 abort(503, six.text_type(e))
         try:
             return pecan.request.storage.get_measures(
-                self.metric, start, stop, aggregation,
-                granularity, resample)
+                self.metric, granularity, start, stop, aggregation,
+                resample)
         except (storage.MetricDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
@@ -1759,7 +1762,7 @@ def validate_qs(start, stop, granularity, needed_overlap, fill):
 
     if granularity is not None:
         try:
-            granularity = utils.to_timespan(granularity)
+            granularity = [utils.to_timespan(granularity)]
         except ValueError as e:
             abort(400, {"cause": "Argument value error",
                         "detail": "granularity",
@@ -1831,6 +1834,26 @@ class AggregationController(rest.RestController):
             except ValueError as e:
                 abort(400, six.text_type(e))
 
+        if granularity is None:
+            granularities = (
+                definition.granularity
+                for m in metrics
+                for definition in m.archive_policy.definition
+            )
+            # granularities_in_common
+            granularity = [
+                g
+                for g, occurrence in six.iteritems(
+                    collections.Counter(granularities))
+                if occurrence == len(metrics)
+            ]
+
+            if not granularity:
+                abort(400, exceptions.UnAggregableTimeseries(
+                    list((metric.id, aggregation)
+                         for metric in metrics),
+                    'No granularity match'))
+
         operations = ["aggregate", reaggregation, []]
         if resample:
             operations[2].extend(
@@ -1871,8 +1894,8 @@ class AggregationController(rest.RestController):
                         },
                     })
                 return pecan.request.storage.get_measures(
-                    metric, start, stop, aggregation,
-                    granularity, resample)
+                    metric, granularity, start, stop, aggregation,
+                    resample)
             return processor.get_measures(
                 pecan.request.storage,
                 [processor.MetricReference(m, aggregation) for m in metrics],
