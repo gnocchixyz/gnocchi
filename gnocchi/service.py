@@ -52,7 +52,7 @@ def prepare_service(args=None, conf=None,
          default_config_files=default_config_files,
          version=pbr.version.VersionInfo('gnocchi').version_string())
 
-    utils.parallel_map.NUM_WORKERS = conf.parallel_operations
+    utils.parallel_map.MAX_WORKERS = conf.parallel_operations
 
     if not log_to_std and (conf.log_dir or conf.log_file):
         outputs = [daiquiri.output.File(filename=conf.log_file,
