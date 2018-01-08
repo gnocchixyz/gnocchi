@@ -45,6 +45,8 @@ class TestStatsd(tests_base.TestCase):
                                self.STATSD_USER_ID, "statsd")
         self.conf.set_override("archive_policy_name",
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
+        ap = self.ARCHIVE_POLICIES["medium"]
+        self.granularities = [d.granularity for d in ap.definition]
 
         self.stats = statsd.Stats(self.conf)
         # Replace storage/indexer with correct ones that have been upgraded
@@ -75,7 +77,7 @@ class TestStatsd(tests_base.TestCase):
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
-        measures = self.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
@@ -96,7 +98,7 @@ class TestStatsd(tests_base.TestCase):
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
-        measures = self.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.5),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.5),
@@ -130,7 +132,7 @@ class TestStatsd(tests_base.TestCase):
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
-        measures = self.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
@@ -150,7 +152,7 @@ class TestStatsd(tests_base.TestCase):
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
-        measures = self.storage.get_measures(metric)
+        measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 28),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 28),

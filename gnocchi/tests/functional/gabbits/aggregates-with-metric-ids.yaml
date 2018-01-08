@@ -663,9 +663,9 @@ tests:
       response_json_paths:
         $.code: 400
         $.description.cause: "Metrics can't being aggregated"
-        $.description.reason: "granularity '123' is missing"
+        $.description.reason: "Granularities are missing"
         $.description.detail:
-        - ["$HISTORY['create metric1'].$RESPONSE['$.id']", mean]
+        - ["$HISTORY['create metric1'].$RESPONSE['$.id']", mean, 123]
 
     - name: get unknown aggregation
       POST: /v1/aggregates

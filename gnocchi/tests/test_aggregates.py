@@ -986,7 +986,7 @@ class CrossMetricAggregated(base.TestCase):
                               [str(self.metric.id), "mean"],
                               [str(metric2.id), "mean"],
                           ]],
-                          granularity=numpy.timedelta64(12345456, 'ms'))
+                          granularities=[numpy.timedelta64(12345456, 'ms')])
 
     def test_add_and_get_measures_different_archives(self):
         metric2 = indexer.Metric(uuid.uuid4(),
@@ -1166,7 +1166,7 @@ class CrossMetricAggregated(base.TestCase):
             ]],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 1),
-            granularity=numpy.timedelta64(5, 'm'))["aggregated"]
+            granularities=[numpy.timedelta64(5, 'm')])["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -1236,7 +1236,7 @@ class CrossMetricAggregated(base.TestCase):
              ["metric",
               [str(self.metric.id), "mean"],
               [str(metric2.id), "mean"]]],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({
             str(self.metric.id): {
@@ -1273,7 +1273,7 @@ class CrossMetricAggregated(base.TestCase):
                    ["metric",
                     [str(self.metric.id), "mean"],
                     [str(metric2.id), "mean"]]], 2],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({
             str(self.metric.id): {
@@ -1312,7 +1312,7 @@ class CrossMetricAggregated(base.TestCase):
               ["metric",
                [str(self.metric.id), "mean"],
                [str(metric2.id), "mean"]]]],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({
             str(self.metric.id): {
@@ -1348,7 +1348,7 @@ class CrossMetricAggregated(base.TestCase):
             ["/", ["rolling", "sum", 2,
                    ["metric", [str(self.metric.id), "mean"],
                     [str(metric2.id), "mean"]]], 2],
-            granularity=numpy.timedelta64(5, 'm'))
+            granularities=[numpy.timedelta64(5, 'm')])
 
         self.assertEqual({
             str(self.metric.id): {
@@ -1391,7 +1391,7 @@ class CrossMetricAggregated(base.TestCase):
              processor.MetricReference(metric2, "mean")],
             ["*", ["metric", str(self.metric.id), "mean"],
                   ["metric", str(metric2.id), "mean"]],
-            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+            granularities=[numpy.timedelta64(1, 'h')])["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
@@ -1417,7 +1417,7 @@ class CrossMetricAggregated(base.TestCase):
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
             ["*", ["metric", str(self.metric.id), "mean"], 2],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({str(self.metric.id): {
             "mean": [
@@ -1444,7 +1444,7 @@ class CrossMetricAggregated(base.TestCase):
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
             ["*", 2, ["metric", str(self.metric.id), "mean"]],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({str(self.metric.id): {
             "mean": [(datetime64(2014, 1, 1, 12, 0, 0),
@@ -1484,7 +1484,7 @@ class CrossMetricAggregated(base.TestCase):
                 ["*", ["metric", str(self.metric.id), "mean"],
                       ["metric", str(metric2.id), "mean"]],
             ],
-            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+            granularities=[numpy.timedelta64(1, 'h')])["aggregated"]
 
         self.assertEqual([
             (datetime64(2014, 1, 1, 13, 0, 0),
@@ -1529,7 +1529,7 @@ class CrossMetricAggregated(base.TestCase):
                 ],
                 10
             ],
-            granularity=numpy.timedelta64(1, 'h'))["aggregated"]
+            granularities=[numpy.timedelta64(1, 'h')])["aggregated"]
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(1, 'h'), 1),
@@ -1563,7 +1563,7 @@ class CrossMetricAggregated(base.TestCase):
              processor.MetricReference(metric2, "mean")],
             ["abs", ["metric", [str(self.metric.id), "mean"],
                      [str(metric2.id), "mean"]]],
-            granularity=numpy.timedelta64(1, 'h'))
+            granularities=[numpy.timedelta64(1, 'h')])
 
         self.assertEqual({
             str(self.metric.id): {

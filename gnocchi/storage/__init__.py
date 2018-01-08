@@ -197,29 +197,25 @@ class StorageDriver(object):
         """
         return name.split("_")[-1] == 'v%s' % v
 
-    def get_measures(self, metric, from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', granularity=None, resample=None):
+    def get_measures(self, metric, granularities,
+                     from_timestamp=None, to_timestamp=None,
+                     aggregation='mean', resample=None):
         """Get a measure to a metric.
 
         :param metric: The metric measured.
+        :param granularities: The granularities to retrieve.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         :param aggregation: The type of aggregation to retrieve.
-        :param granularity: The granularity to retrieve.
         :param resample: The granularity to resample to.
         """
-        if granularity is None:
-            agg_timeseries = utils.parallel_map(
-                self._get_measures_timeserie,
-                ((metric, aggregation, ap.granularity,
-                  from_timestamp, to_timestamp)
-                 for ap in reversed(metric.archive_policy.definition)))
-        else:
-            agg_timeseries = [self._get_measures_timeserie(
-                metric, aggregation, granularity,
-                from_timestamp, to_timestamp)]
+        agg_timeseries = utils.parallel_map(
+            self._get_measures_timeserie,
+            ((metric, aggregation, granularity,
+              from_timestamp, to_timestamp)
+             for granularity in sorted(granularities, reverse=True)))
 
-        if resample and granularity:
+        if resample:
             agg_timeseries = list(map(lambda agg: agg.resample(resample),
                                       agg_timeseries))
 
