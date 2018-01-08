@@ -148,14 +148,11 @@ class GroupedTimeSeries(object):
         return make_timeseries(self.tstamps, values)
 
     def median(self):
-        ordered = self._ts['values'].argsort()
-        uniq_inv = numpy.repeat(numpy.arange(self.counts.size), self.counts)
-        max_pos = numpy.zeros(self.tstamps.size, dtype=numpy.int)
-        max_pos[uniq_inv[ordered]] = numpy.arange(self._ts.size)
+        ordered = numpy.lexsort((self._ts['values'], self.indexes))
         # TODO(gordc): can use np.divmod when centos supports numpy 1.13
         mid_diff = numpy.floor_divide(self.counts, 2)
         odd = numpy.mod(self.counts, 2)
-        mid_floor = max_pos - mid_diff
+        mid_floor = (numpy.cumsum(self.counts) - 1) - mid_diff
         mid_ceil = mid_floor + (odd + 1) % 2
         return make_timeseries(
             self.tstamps, (self._ts['values'][ordered][mid_floor] +
