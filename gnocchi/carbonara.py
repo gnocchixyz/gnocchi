@@ -732,20 +732,13 @@ class AggregatedTimeSerie(TimeSerie):
         locs = numpy.zeros(self.timestamps.size, dtype=numpy.int)
         locs[1:] = numpy.cumsum(numpy.diff(self.timestamps)) / offset_div
 
-        # Fill everything with zero
-        serial_dtype = [('b', '<?'), ('v', '<d')]
-        serial = numpy.zeros((e_offset,), dtype=serial_dtype)
+        # Fill everything with zero and set
+        serial = numpy.zeros((e_offset,), dtype=[('b', '<?'), ('v', '<d')])
+        serial['b'][locs] = numpy.ones_like(self.values, dtype='<?')
+        serial['v'][locs] = self.values
 
-        # Create a structured array with two dimensions
-        ones = numpy.ones_like(self.values, dtype='<?')
-        values = numpy.core.records.fromarrays((ones, self.values),
-                                               dtype=serial_dtype)
-
-        serial[locs] = values
-
-        payload = serial.tobytes()
         offset = int((first - start.key) / offset_div) * self.PADDED_SERIAL_LEN
-        return offset, payload
+        return offset, serial.tobytes()
 
     @staticmethod
     def _resample_grouped(grouped_serie, agg_name, q=None):
