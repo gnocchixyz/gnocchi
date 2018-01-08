@@ -1637,9 +1637,15 @@ class ResourceTest(RestTest):
             "/v1/aggregation/resource/"
             + self.resource_type + "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
-            status=400)
-        self.assertIn(b"Metrics can't being aggregated",
-                      result.body)
+            status=400,
+            headers={"Accept": "application/json"})
+        self.assertEqual("Metrics can't being aggregated",
+                         result.json['description']['cause'])
+        self.assertEqual("No granularity match",
+                         result.json['description']['reason'])
+        self.assertEqual(
+            sorted([[metric1['id'], 'max'], [metric2['id'], 'max']]),
+            sorted(result.json['description']['detail']))
 
     def test_get_res_named_metric_measure_aggregation_nooverlap(self):
         result = self.app.post_json("/v1/metric",
