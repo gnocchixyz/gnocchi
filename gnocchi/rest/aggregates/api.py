@@ -286,7 +286,8 @@ class AggregatesController(rest.RestController):
 
             return response
 
-    def _get_measures_by_name(self, resources, metric_wildcards, operations,
+    @staticmethod
+    def _get_measures_by_name(resources, metric_wildcards, operations,
                               start, stop, granularity, needed_overlap, fill,
                               details):
 
