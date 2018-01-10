@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import itertools
 import os
 import uuid
 
@@ -119,13 +120,21 @@ class StopWatchTest(tests_base.TestCase):
 
 class ParallelMap(tests_base.TestCase):
     def test_parallel_map_one(self):
-        utils.parallel_map.NUM_WORKERS = 1
-        self.assertEqual([1, 2, 3],
-                         utils.parallel_map(lambda x: x,
-                                            [[1], [2], [3]]))
+        utils.parallel_map.MAX_WORKERS = 1
+        starmap = itertools.starmap
+        with mock.patch("itertools.starmap") as sm:
+            sm.side_effect = starmap
+            self.assertEqual([1, 2, 3],
+                             utils.parallel_map(lambda x: x,
+                                                [[1], [2], [3]]))
+            sm.assert_called()
 
     def test_parallel_map_four(self):
-        utils.parallel_map.NUM_WORKERS = 4
-        self.assertEqual([1, 2, 3],
-                         utils.parallel_map(lambda x: x,
-                                            [[1], [2], [3]]))
+        utils.parallel_map.MAX_WORKERS = 4
+        starmap = itertools.starmap
+        with mock.patch("itertools.starmap") as sm:
+            sm.side_effect = starmap
+            self.assertEqual([1, 2, 3],
+                             utils.parallel_map(lambda x: x,
+                                                [[1], [2], [3]]))
+            sm.assert_not_called()

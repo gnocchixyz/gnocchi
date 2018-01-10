@@ -282,47 +282,65 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5.9000000000000004,
                          ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
-    def _do_test_aggregation(self, name, v1, v2):
+    def _do_test_aggregation(self, name, v1, v2, v3):
+        # NOTE(gordc): test data must have a group of odd count to properly
+        # test 50pct test case.
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
-             datetime64(2014, 1, 1, 12, 0, 4),
-             datetime64(2014, 1, 1, 12, 0, 9),
-             datetime64(2014, 1, 1, 12, 1, 4),
-             datetime64(2014, 1, 1, 12, 1, 6)],
-            [3, 6, 5, 8, 9])
+             datetime64(2014, 1, 1, 12, 0, 10),
+             datetime64(2014, 1, 1, 12, 0, 20),
+             datetime64(2014, 1, 1, 12, 0, 30),
+             datetime64(2014, 1, 1, 12, 0, 40),
+             datetime64(2014, 1, 1, 12, 1, 0),
+             datetime64(2014, 1, 1, 12, 1, 10),
+             datetime64(2014, 1, 1, 12, 1, 20),
+             datetime64(2014, 1, 1, 12, 1, 30),
+             datetime64(2014, 1, 1, 12, 1, 40),
+             datetime64(2014, 1, 1, 12, 1, 50),
+             datetime64(2014, 1, 1, 12, 2, 0),
+             datetime64(2014, 1, 1, 12, 2, 10)],
+            [3, 5, 2, 3, 5, 8, 11, 22, 10, 42, 9, 4, 2])
         ts = self._resample(ts, numpy.timedelta64(60, 's'), name)
 
-        self.assertEqual(2, len(ts))
+        self.assertEqual(3, len(ts))
         self.assertEqual(v1, ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
         self.assertEqual(v2, ts[datetime64(2014, 1, 1, 12, 1, 0)][1])
+        self.assertEqual(v3, ts[datetime64(2014, 1, 1, 12, 2, 0)][1])
 
     def test_aggregation_first(self):
-        self._do_test_aggregation('first', 3, 8)
+        self._do_test_aggregation('first', 3, 8, 4)
 
     def test_aggregation_last(self):
-        self._do_test_aggregation('last', 5, 9)
+        self._do_test_aggregation('last', 5, 9, 2)
 
     def test_aggregation_count(self):
-        self._do_test_aggregation('count', 3, 2)
+        self._do_test_aggregation('count', 5, 6, 2)
 
     def test_aggregation_sum(self):
-        self._do_test_aggregation('sum', 14, 17)
+        self._do_test_aggregation('sum', 18, 102, 6)
 
     def test_aggregation_mean(self):
-        self._do_test_aggregation('mean', 4.666666666666667, 8.5)
+        self._do_test_aggregation('mean', 3.6, 17, 3)
 
     def test_aggregation_median(self):
-        self._do_test_aggregation('median', 5.0, 8.5)
+        self._do_test_aggregation('median', 3.0, 10.5, 3)
+
+    def test_aggregation_50pct(self):
+        self._do_test_aggregation('50pct', 3.0, 10.5, 3)
+
+    def test_aggregation_56pct(self):
+        self._do_test_aggregation('56pct', 3.4800000000000004,
+                                  10.8, 3.120000000000001)
 
     def test_aggregation_min(self):
-        self._do_test_aggregation('min', 3, 8)
+        self._do_test_aggregation('min', 2, 8, 2)
 
     def test_aggregation_max(self):
-        self._do_test_aggregation('max', 6, 9)
+        self._do_test_aggregation('max', 5, 42, 4)
 
     def test_aggregation_std(self):
-        self._do_test_aggregation('std', 1.5275252316519465,
-                                  0.70710678118654757)
+        self._do_test_aggregation('std', 1.3416407864998738,
+                                  13.266499161421599, 1.4142135623730951)
 
     def test_aggregation_std_with_unique(self):
         ts = carbonara.TimeSerie.from_data(
