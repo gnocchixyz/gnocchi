@@ -176,13 +176,13 @@ class GroupedTimeSeries(object):
         return make_timeseries(self.tstamps, values)
 
     def first(self):
-        cumcounts = numpy.cumsum(self.counts[::-1]) - 1
-        values = self._ts['values'][::-1][cumcounts]
-        return make_timeseries(self.tstamps, values[::-1])
+        cumcounts = numpy.cumsum(self.counts) - self.counts
+        values = self._ts['values'][cumcounts]
+        return make_timeseries(self.tstamps, values)
 
     def quantile(self, q):
         ordered = numpy.lexsort((self._ts['values'], self.indexes))
-        min_pos = (numpy.cumsum(self.counts) - 1) - (self.counts - 1)
+        min_pos = numpy.cumsum(self.counts) - self.counts
         real_pos = min_pos + (self.counts - 1) * (q / 100)
         floor_pos = numpy.floor(real_pos).astype(numpy.int, copy=False)
         ceil_pos = numpy.ceil(real_pos).astype(numpy.int, copy=False)
@@ -362,11 +362,8 @@ class BoundTimeSerie(TimeSerie):
         except ValueError:
             raise InvalidData
 
-        timestamps = numpy.cumsum(timestamps)
-        timestamps = timestamps.astype(dtype='datetime64[ns]', copy=False)
-
         return cls.from_data(
-            timestamps,
+            numpy.cumsum(timestamps),
             values,
             block_size=block_size,
             back_window=back_window)
