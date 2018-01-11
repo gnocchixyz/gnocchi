@@ -301,6 +301,7 @@ class TestCase(BaseTestCase):
         self.index = indexer.get_driver(self.conf)
 
         self.coord = metricd.get_coordinator_and_start(
+            str(uuid.uuid4()),
             self.conf.coordination_url)
 
         # NOTE(jd) So, some driver, at least SQLAlchemy, can't create all
