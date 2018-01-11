@@ -139,6 +139,12 @@ class NoSuchArchivePolicy(IndexerException):
             "Archive policy %s does not exist" % archive_policy)
         self.archive_policy = archive_policy
 
+    def jsonify(self):
+        return {
+            "cause": "Archive policy does not exist",
+            "detail": self.archive_policy,
+        }
+
 
 class UnsupportedArchivePolicyChange(IndexerException):
     """Error raised when modifying archive policy if not supported."""
