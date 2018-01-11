@@ -326,6 +326,8 @@ class ArchivePolicyRulesController(rest.RestController):
             )
         except indexer.ArchivePolicyRuleAlreadyExists as e:
             abort(409, e)
+        except indexer.NoSuchArchivePolicy as e:
+            abort(400, e)
 
         location = "/archive_policy_rule/" + ap.name
         set_resp_location_hdr(location)
