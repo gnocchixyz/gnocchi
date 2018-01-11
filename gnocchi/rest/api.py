@@ -27,10 +27,12 @@ import pyparsing
 import six
 from six.moves.urllib import parse as urllib_parse
 import tenacity
+import tooz
 import voluptuous
 import werkzeug.http
 
 from gnocchi import archive_policy
+from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
@@ -1962,6 +1964,11 @@ class StatusController(rest.RestController):
     def get(details=True):
         enforce("get status", {})
         try:
+            members_req = pecan.request.coordinator.get_members(
+                metricd.MetricProcessor.GROUP_ID)
+        except tooz.NotImplemented:
+            members_req = None
+        try:
             report = pecan.request.incoming.measures_report(
                 strtobool("details", details))
         except incoming.ReportGenerationError:
@@ -1969,6 +1976,11 @@ class StatusController(rest.RestController):
         report_dict = {"storage": {"summary": report['summary']}}
         if 'details' in report:
             report_dict["storage"]["measures_to_process"] = report['details']
+        report_dict['metricd'] = {}
+        if members_req:
+            report_dict['metricd']['processors'] = members_req.get()
+        else:
+            report_dict['metricd']['processors'] = None
         return report_dict
 
 
