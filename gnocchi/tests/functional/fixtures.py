@@ -22,6 +22,7 @@ import tempfile
 import threading
 import time
 from unittest import case
+import uuid
 import warnings
 
 import daiquiri
@@ -143,7 +144,8 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.index = index
 
-        self.coord = metricd.get_coordinator_and_start(conf.coordination_url)
+        self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
+                                                       conf.coordination_url)
         s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)

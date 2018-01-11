@@ -83,6 +83,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
                         # entirely.
                         self.backends[name] = (
                             metricd.get_coordinator_and_start(
+                                str(uuid.uuid4()),
                                 self.conf.coordination_url)
                         )
                     elif name == "storage":

@@ -13,6 +13,7 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import socket
 import threading
 import time
 import uuid
@@ -39,8 +40,8 @@ LOG = daiquiri.getLogger(__name__)
 
 
 @utils.retry_on_exception_and_log("Unable to initialize coordination driver")
-def get_coordinator_and_start(url):
-    coord = coordination.get_coordinator(url, str(uuid.uuid4()).encode())
+def get_coordinator_and_start(member_id, url):
+    coord = coordination.get_coordinator(url, member_id)
     coord.start(start_heart=True)
     return coord
 
@@ -49,7 +50,7 @@ class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
         self.conf = conf
-        self.startup_delay = worker_id
+        self.startup_delay = self.worker_id = worker_id
         self.interval_delay = interval_delay
         self._wake_up = threading.Event()
         self._shutdown = threading.Event()
@@ -59,7 +60,14 @@ class MetricProcessBase(cotyledon.Service):
         self._wake_up.set()
 
     def _configure(self):
-        self.coord = get_coordinator_and_start(self.conf.coordination_url)
+        member_id = "%s.%s.%s" % (socket.gethostname(),
+                                  self.worker_id,
+                                  # NOTE(jd) Still use a uuid here so we're
+                                  # sure there's no conflict in case of
+                                  # crash/restart
+                                  str(uuid.uuid4()))
+        self.coord = get_coordinator_and_start(member_id,
+                                               self.conf.coordination_url)
         self.store = storage.get_driver(self.conf, self.coord)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
