@@ -99,6 +99,11 @@ unary_operators = {
 }
 
 
+unary_operators_with_timestamps = {
+    u"rateofchange": lambda t, v: (t[1:], numpy.diff(v.T).T)
+}
+
+
 def handle_unary_operator(nodes, granularity, timestamps, initial_values,
                           is_aggregated, references):
     op = nodes[0]
@@ -106,7 +111,11 @@ def handle_unary_operator(nodes, granularity, timestamps, initial_values,
         nodes[1], granularity, timestamps, initial_values,
         is_aggregated, references)
 
-    values = unary_operators[op](values)
+    if op in unary_operators:
+        values = unary_operators[op](values)
+    else:
+        timestamps, values = unary_operators_with_timestamps[op](
+            timestamps, values)
     return granularity, timestamps, values, is_aggregated
 
 
@@ -247,7 +256,8 @@ def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
         return handle_binary_operator(nodes, granularity, timestamps,
                                       initial_values, is_aggregated,
                                       references)
-    elif nodes[0] in unary_operators:
+    elif (nodes[0] in unary_operators or
+          nodes[0] in unary_operators_with_timestamps):
         return handle_unary_operator(nodes, granularity, timestamps,
                                      initial_values, is_aggregated,
                                      references)

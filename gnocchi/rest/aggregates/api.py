@@ -81,6 +81,11 @@ OperationsSchemaBase = [
          _OperationsSubNodeSchema]
     ),
     voluptuous.ExactSequence(
+        [voluptuous.Any(*list(
+            agg_operations.unary_operators_with_timestamps.keys())),
+         _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
         [u"aggregate",
          voluptuous.Any(*list(agg_operations.AGG_MAP.keys())),
          _OperationsSubNodeSchema]
