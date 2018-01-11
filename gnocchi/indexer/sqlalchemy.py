@@ -643,6 +643,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         try:
             with self.facade.writer() as session:
                 session.add(apr)
+        except exception.DBReferenceError as e:
+            if e.constraint == 'fk_apr_ap_name_ap_name':
+                raise indexer.NoSuchArchivePolicy(archive_policy_name)
+            raise
         except exception.DBDuplicateEntry:
             raise indexer.ArchivePolicyRuleAlreadyExists(name)
         return apr
