@@ -209,11 +209,18 @@ class StorageDriver(object):
         :param aggregation: The type of aggregation to retrieve.
         :param resample: The granularity to resample to.
         """
+
+        aggregations = []
+        for g in sorted(granularities, reverse=True):
+            agg = metric.archive_policy.get_aggregation(aggregation, g)
+            if agg is None:
+                raise AggregationDoesNotExist(metric, aggregation, g)
+            aggregations.append(agg)
+
         agg_timeseries = utils.parallel_map(
             self._get_measures_timeserie,
-            ((metric, aggregation, granularity,
-              from_timestamp, to_timestamp)
-             for granularity in sorted(granularities, reverse=True)))
+            ((metric, ag, from_timestamp, to_timestamp)
+             for ag in aggregations))
 
         if resample:
             agg_timeseries = list(map(lambda agg: agg.resample(resample),
@@ -236,44 +243,34 @@ class StorageDriver(object):
                           metric.id, aggregation, key.sampling, key)
         return results
 
-    def _get_measures_timeserie(self, metric,
-                                aggregation, granularity,
+    def _get_measures_timeserie(self, metric, aggregation,
                                 from_timestamp=None, to_timestamp=None):
-
-        # Find the timespan
-        for d in metric.archive_policy.definition:
-            if d.granularity == granularity:
-                timespan = d.timespan
-                break
-        else:
-            raise AggregationDoesNotExist(metric, aggregation, granularity)
-
         try:
             all_keys = self._list_split_keys_for_metric(
-                metric, aggregation, granularity)
+                metric, aggregation.method, aggregation.granularity)
         except MetricDoesNotExist:
             return carbonara.AggregatedTimeSerie(
-                sampling=granularity,
-                aggregation_method=aggregation)
+                sampling=aggregation.granularity,
+                aggregation_method=aggregation.method)
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                from_timestamp, granularity)
+                from_timestamp, aggregation.granularity)
 
         if to_timestamp:
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                to_timestamp, granularity)
+                to_timestamp, aggregation.granularity)
 
         keys = [key for key in sorted(all_keys)
                 if ((not from_timestamp or key >= from_timestamp)
                     and (not to_timestamp or key <= to_timestamp))]
 
         timeseries = self._get_measures_and_unserialize(
-            metric, keys, aggregation)
+            metric, keys, aggregation.method)
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            sampling=granularity,
-            aggregation_method=aggregation,
+            sampling=aggregation.granularity,
+            aggregation_method=aggregation.method,
             timeseries=timeseries)
         # We need to truncate because:
         # - If the driver is not in WRITE_FULL mode, then it might read too
@@ -283,8 +280,8 @@ class StorageDriver(object):
         # resized, we might still have too much points stored, which will be
         # deleted at a later point when new points will be procecessed.
         # Truncate to be sure we don't return them.
-        if timespan is not None:
-            ts.truncate(timespan)
+        if aggregation.timespan is not None:
+            ts.truncate(aggregation.timespan)
         return ts
 
     def _store_timeserie_split(self, metric, key, split,
@@ -589,9 +586,12 @@ class StorageDriver(object):
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):
+        agg = metric.archive_policy.get_aggregation(aggregation, granularity)
+        if agg is None:
+            raise AggregationDoesNotExist(metric, aggregation, granularity)
+
         timeserie = self._get_measures_timeserie(
-            metric, aggregation, granularity,
-            from_timestamp, to_timestamp)
+            metric, agg, from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return [(timestamp, g, value)
                 for timestamp, g, value in values
