@@ -43,14 +43,6 @@ LOG = daiquiri.getLogger(__name__)
 jsonify.jsonify.register(object)(json.to_primitive)
 
 
-def get_storage_driver(conf):
-    # NOTE(jd) This coordinator is never stop. I don't think it's a
-    # real problem since the Web app can never really be stopped
-    # anyway, except by quitting it entirely.
-    coord = metricd.get_coordinator_and_start(conf.coordination_url)
-    return gnocchi_storage.get_driver(conf, coord)
-
-
 class GnocchiHook(pecan.hooks.PecanHook):
 
     def __init__(self, conf):
@@ -62,6 +54,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
                                                 invoke_on_load=True).driver
 
     def on_route(self, state):
+        state.request.coordinator = self._lazy_load('coordinator')
         state.request.storage = self._lazy_load('storage')
         state.request.indexer = self._lazy_load('indexer')
         state.request.incoming = self._lazy_load('incoming')
@@ -69,21 +62,45 @@ class GnocchiHook(pecan.hooks.PecanHook):
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
 
-    BACKEND_LOADERS = {
-        'storage': (threading.Lock(), get_storage_driver),
-        'incoming': (threading.Lock(), gnocchi_incoming.get_driver),
-        'indexer': (threading.Lock(), gnocchi_indexer.get_driver),
+    BACKEND_LOCKS = {
+        'coordinator': threading.Lock(),
+        'storage': threading.Lock(),
+        'incoming': threading.Lock(),
+        'indexer': threading.Lock(),
     }
 
     def _lazy_load(self, name):
         # NOTE(sileht): We don't care about raise error here, if something
         # fail, this will just raise a 500, until the backend is ready.
         if name not in self.backends:
-            lock, loader = self.BACKEND_LOADERS[name]
-            with lock:
+            with self.BACKEND_LOCKS[name]:
                 # Recheck, maybe it have been created in the meantime.
                 if name not in self.backends:
-                    self.backends[name] = loader(self.conf)
+                    if name == "coordinator":
+                        # NOTE(jd) This coordinator is never stop. I don't
+                        # think it's a real problem since the Web app can never
+                        # really be stopped anyway, except by quitting it
+                        # entirely.
+                        self.backends[name] = (
+                            metricd.get_coordinator_and_start(
+                                self.conf.coordination_url)
+                        )
+                    elif name == "storage":
+                        coord = self._lazy_load("coordinator")
+                        self.backends[name] = (
+                            gnocchi_storage.get_driver(self.conf, coord)
+                        )
+                    elif name == "incoming":
+                        self.backends[name] = (
+                            gnocchi_incoming.get_driver(self.conf)
+                        )
+                    elif name == "indexer":
+                        self.backends[name] = (
+                            gnocchi_indexer.get_driver(self.conf)
+                        )
+                    else:
+                        raise RuntimeError("Unknown driver %s" % name)
+
         return self.backends[name]
 
 
