@@ -354,6 +354,21 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
 
+    - name: get aggregates one metric rateofchange
+      POST: /v1/aggregates?details=true
+      data:
+        operations: "(rateofchange (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
+      response_json_paths:
+        $.references.`len`: 1
+        $.references[/name][0].id: $HISTORY['create metric1'].$RESPONSE['$.id']
+        $.measures."$HISTORY['create metric1'].$RESPONSE['$.id']".mean:
+          - ["2015-03-06T14:34:00+00:00", 60.0, -45.1]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 12.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -31.1]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -28.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 25.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 2.0]
+
     - name: get aggregates math with string
       POST: /v1/aggregates?details=true
       data:
