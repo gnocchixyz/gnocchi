@@ -190,6 +190,8 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
             return self.index
         elif name == "incoming":
             return self.incoming
+        elif name == "coordinator":
+            return self.coord
         else:
             raise RuntimeError("Invalid driver type: %s" % name)
 
