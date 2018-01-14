@@ -1088,6 +1088,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return sort_keys, sort_dirs
 
 
+def _operator_in(field_name, value):
+    # Do not generate empty IN comparison
+    # https://github.com/gnocchixyz/gnocchi/issues/530
+    if len(value):
+        return field_name.in_(value)
+
+
 class QueryTransformer(object):
     unary_operators = {
         u"not": sqlalchemy.not_,
@@ -1116,7 +1123,7 @@ class QueryTransformer(object):
         u"≠": operator.ne,
         u"ne": operator.ne,
 
-        u"in": lambda field_name, values: field_name.in_(values),
+        u"in": _operator_in,
 
         u"like": lambda field, value: field.like(value),
     }
