@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Dynamic Aggregate API have a new method called 'rateofchange'.
