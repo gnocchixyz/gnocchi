@@ -301,7 +301,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         cfg = config.Config(
             "%s/alembic/alembic.ini" % os.path.dirname(__file__))
         cfg.set_main_option('sqlalchemy.url',
-                            self.conf.database.connection)
+                            self.conf.database.connection.replace('%', '%%'))
         return cfg
 
     def get_engine(self):
@@ -1141,6 +1141,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return sort_keys, sort_dirs
 
 
+def _operator_in(field_name, value):
+    # Do not generate empty IN comparison
+    # https://github.com/gnocchixyz/gnocchi/issues/530
+    if len(value):
+        return field_name.in_(value)
+
+
 class QueryTransformer(object):
 
     unary_operators = {
@@ -1170,7 +1177,7 @@ class QueryTransformer(object):
         u"≠": operator.ne,
         u"ne": operator.ne,
 
-        u"in": lambda field_name, values: field_name.in_(values),
+        u"in": _operator_in,
 
         u"like": lambda field, value: field.like(value),
     }
