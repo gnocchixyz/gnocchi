@@ -275,4 +275,4 @@ tests:
             - [ "2015-03-06T14:34:12", 12]
       status: 400
       response_strings:
-        - "Invalid format for measures"
+        - "unexpected measures format"
