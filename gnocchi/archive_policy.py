@@ -27,6 +27,9 @@ from gnocchi import aggregation
 from gnocchi import utils
 
 
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+
+
 class ArchivePolicy(object):
 
     DEFAULT_AGGREGATION_METHODS = ()
@@ -93,6 +96,17 @@ class ArchivePolicy(object):
             if d.granularity == granularity:
                 return aggregation.Aggregation(
                     method, d.granularity, d.timespan)
+
+    def get_aggregations_for_method(self, method):
+        """Return a list of aggregation for a method.
+
+        List is sorted by granularity, desc.
+
+        :param method: Aggregation method.
+        """
+        return [aggregation.Aggregation(method, d.granularity, d.timespan)
+                for d in sorted(self.definition,
+                                key=ATTRGETTER_GRANULARITY, reverse=True)]
 
     @property
     def aggregations(self):
