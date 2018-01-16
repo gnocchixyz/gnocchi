@@ -148,18 +148,24 @@ def deserialize(expected_content_types=None):
     return params
 
 
-def validate(schema, data, required=True):
+def validate(schema, data, required=True, detailed_exc=False):
     try:
         return voluptuous.Schema(schema, required=required)(data)
     except voluptuous.Error as e:
-        abort(400, "Invalid input: %s" % e)
+        if detailed_exc:
+            abort(400, {"cause": "Invalid input",
+                        "detail": str(e)})
+        else:
+            abort(400, "Invalid input: %s" % e)
 
 
 def deserialize_and_validate(schema, required=True,
-                             expected_content_types=None):
+                             expected_content_types=None,
+                             detailed_exc=False):
     return validate(schema,
                     deserialize(expected_content_types=expected_content_types),
-                    required)
+                    required,
+                    detailed_exc)
 
 
 def Timespan(value):
@@ -434,14 +440,14 @@ def MeasuresListSchema(measures):
     try:
         times = utils.to_timestamps([m['timestamp'] for m in measures])
     except TypeError:
-        abort(400, "Invalid format for measures")
+        raise voluptuous.Invalid("unexpected measures format")
     except ValueError as e:
-        abort(400, "Invalid input for timestamp: %s" % e)
+        raise voluptuous.Invalid("unexpected timestamp '%s'" % e)
 
     try:
         values = [float(i['value']) for i in measures]
     except Exception:
-        abort(400, "Invalid input for a value")
+        raise voluptuous.Invalid("unexpected measures value")
 
     return (incoming.Measure(t, v) for t, v in six.moves.zip(times, values))
 
@@ -462,15 +468,13 @@ class MetricController(rest.RestController):
         self.enforce_metric("get metric")
         return self.metric
 
-    @pecan.expose()
+    @pecan.expose('json')
     def post_measures(self):
         self.enforce_metric("post measures")
-        params = deserialize()
-        if not isinstance(params, list):
-            abort(400, "Invalid input for measures")
-        if params:
-            pecan.request.incoming.add_measures(
-                self.metric.id, MeasuresListSchema(params))
+        measures = deserialize_and_validate(MeasuresListSchema,
+                                            detailed_exc=True)
+        if measures:
+            pecan.request.incoming.add_measures(self.metric.id, measures)
         pecan.response.status = 202
 
     @pecan.expose('json')
@@ -2105,10 +2109,10 @@ class PrometheusWriteController(rest.RestController):
                             attrs.get("instance", "none"))
             name = attrs['__name__']
             if ts.samples:
-                measures_by_rid[original_rid][name] = (
-                    MeasuresListSchema([{'timestamp': s.timestamp_ms / 1000.0,
-                                         'value': s.value}
-                                        for s in ts.samples]))
+                data = [{'timestamp': s.timestamp_ms / 1000.0,
+                         'value': s.value} for s in ts.samples]
+                measures_by_rid[original_rid][name] = validate(
+                    MeasuresListSchema, data, detailed_exc=True)
 
         creator = pecan.request.auth_helper.get_current_user(pecan.request)
 
