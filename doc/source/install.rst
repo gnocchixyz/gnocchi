@@ -226,4 +226,11 @@ Then, you can start devstack:
 
 .. _devstack: http://devstack.org
 
+
+Gnocchi Configuration sample
+============================
+
+.. literalinclude:: gnocchi.conf.sample
+
+
 .. include:: include/term-substitution.rst
