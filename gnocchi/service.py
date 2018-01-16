@@ -50,9 +50,10 @@ def prepare_service(args=None, conf=None,
 
     conf.set_default("workers", utils.get_default_workers(), group="metricd")
 
+    version = pbr.version.VersionInfo('gnocchi').version_string()
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
-         version=pbr.version.VersionInfo('gnocchi').version_string())
+         version=version)
 
     # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
     archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
@@ -74,6 +75,7 @@ def prepare_service(args=None, conf=None,
     log.set_defaults(default_log_levels=log.get_default_log_levels() +
                      ["passlib.utils.compat=INFO", "swiftclient=WARNING"])
     log.setup(conf, 'gnocchi')
+    LOG.info("Gnocchi version %s", version)
     conf.log_opt_values(LOG, log.DEBUG)
 
     return conf
