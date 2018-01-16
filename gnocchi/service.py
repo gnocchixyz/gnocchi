@@ -48,9 +48,10 @@ def prepare_service(args=None, conf=None,
     conf.set_default("workers", workers, group="metricd")
     conf.set_default("parallel_operations", workers)
 
+    version = pbr.version.VersionInfo('gnocchi').version_string()
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
-         version=pbr.version.VersionInfo('gnocchi').version_string())
+         version=version)
 
     utils.parallel_map.MAX_WORKERS = conf.parallel_operations
 
@@ -100,6 +101,7 @@ def prepare_service(args=None, conf=None,
             conf.set_default("coordination_url",
                              urlparse.urlunparse(parsed))
 
+    LOG.info("Gnocchi version %s", version)
     conf.log_opt_values(LOG, logging.DEBUG)
 
     return conf
