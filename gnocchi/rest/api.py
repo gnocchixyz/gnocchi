@@ -17,6 +17,7 @@
 import collections
 import functools
 import itertools
+import operator
 import uuid
 
 import jsonpatch
@@ -48,6 +49,9 @@ try:
     PROMETHEUS_SUPPORTED = True
 except ImportError:
     PROMETHEUS_SUPPORTED = False
+
+
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
 def arg_to_list(value):
@@ -530,6 +534,17 @@ class MetricController(rest.RestController):
                 },
             })
 
+        aggregations = []
+        for g in sorted(granularity, reverse=True):
+            agg = self.metric.archive_policy.get_aggregation(
+                aggregation, g)
+            if agg is None:
+                abort(404, six.text_type(
+                    storage.AggregationDoesNotExist(
+                        self.metric, aggregation, g)
+                ))
+            aggregations.append(agg)
+
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
@@ -540,8 +555,7 @@ class MetricController(rest.RestController):
                 abort(503, six.text_type(e))
         try:
             return pecan.request.storage.get_measures(
-                self.metric, granularity, start, stop, aggregation,
-                resample)
+                self.metric, aggregations, start, stop, resample)[aggregation]
         except (storage.MetricDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
@@ -1880,6 +1894,19 @@ class AggregationController(rest.RestController):
                          for metric in metrics),
                     'No granularity match'))
 
+        aggregations = set()
+        for metric in metrics:
+            for g in granularity:
+                agg = metric.archive_policy.get_aggregation(
+                    aggregation, g)
+                if agg is None:
+                    abort(404, six.text_type(
+                        storage.AggregationDoesNotExist(metric, aggregation, g)
+                    ))
+                aggregations.add(agg)
+        aggregations = sorted(aggregations, key=ATTRGETTER_GRANULARITY,
+                              reverse=True)
+
         operations = ["aggregate", reaggregation, []]
         if resample:
             operations[2].extend(
@@ -1920,8 +1947,7 @@ class AggregationController(rest.RestController):
                         },
                     })
                 return pecan.request.storage.get_measures(
-                    metric, granularity, start, stop, aggregation,
-                    resample)
+                    metric, aggregations, start, stop, resample)[aggregation]
             return processor.get_measures(
                 pecan.request.storage,
                 [processor.MetricReference(m, aggregation) for m in metrics],

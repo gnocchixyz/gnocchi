@@ -39,6 +39,7 @@ LOG = daiquiri.getLogger(__name__)
 
 
 ITEMGETTER_1 = operator.itemgetter(1)
+ATTRGETTER_AGG_METHOD = operator.attrgetter("aggregation_method")
 
 
 class StorageError(Exception):
@@ -197,26 +198,17 @@ class StorageDriver(object):
         """
         return name.split("_")[-1] == 'v%s' % v
 
-    def get_measures(self, metric, granularities,
+    def get_measures(self, metric, aggregations,
                      from_timestamp=None, to_timestamp=None,
-                     aggregation='mean', resample=None):
+                     resample=None):
         """Get a measure to a metric.
 
         :param metric: The metric measured.
-        :param granularities: The granularities to retrieve.
+        :param aggregations: The aggregations to retrieve.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
-        :param aggregation: The type of aggregation to retrieve.
         :param resample: The granularity to resample to.
         """
-
-        aggregations = []
-        for g in sorted(granularities, reverse=True):
-            agg = metric.archive_policy.get_aggregation(aggregation, g)
-            if agg is None:
-                raise AggregationDoesNotExist(metric, aggregation, g)
-            aggregations.append(agg)
-
         agg_timeseries = utils.parallel_map(
             self._get_measures_timeserie,
             ((metric, ag, from_timestamp, to_timestamp)
@@ -226,8 +218,13 @@ class StorageDriver(object):
             agg_timeseries = list(map(lambda agg: agg.resample(resample),
                                       agg_timeseries))
 
-        return list(itertools.chain(*[ts.fetch(from_timestamp, to_timestamp)
-                                      for ts in agg_timeseries]))
+        return {
+            aggmethod: list(itertools.chain(
+                *[ts.fetch(from_timestamp, to_timestamp)
+                  for ts in aggts]))
+            for aggmethod, aggts in itertools.groupby(agg_timeseries,
+                                                      ATTRGETTER_AGG_METHOD)
+        }
 
     def _get_measures_and_unserialize(self, metric, keys, aggregation):
         if not keys:
