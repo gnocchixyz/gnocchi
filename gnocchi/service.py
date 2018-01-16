@@ -50,9 +50,10 @@ def prepare_service(args=None, conf=None,
 
     conf.set_default("workers", utils.get_default_workers(), group="metricd")
 
+    version = pbr.version.VersionInfo('gnocchi').version_string()
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
-         version=pbr.version.VersionInfo('gnocchi').version_string())
+         version=version)
 
     if not log_to_std and (conf.log_dir or conf.log_file):
         outputs = [daiquiri.output.File(filename=conf.log_file,
@@ -110,6 +111,7 @@ def prepare_service(args=None, conf=None,
                                                 'rest', 'policy.json'))
     conf.set_default('policy_file', cfg_path, group='oslo_policy')
 
+    LOG.info("Gnocchi version %s", version)
     conf.log_opt_values(LOG, logging.DEBUG)
 
     return conf
