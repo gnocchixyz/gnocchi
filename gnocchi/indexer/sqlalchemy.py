@@ -1314,6 +1314,6 @@ class QueryTransformer(object):
                     op = cls.unary_operators[operator]
                 except KeyError:
                     raise indexer.QueryInvalidOperator(operator)
-                return cls._handle_unary_op(engine, op, nodes)
+                return cls._handle_unary_op(engine, table, op, nodes)
             return cls._handle_binary_op(engine, table, op, nodes)
         return cls._handle_multiple_op(engine, table, op, nodes)
