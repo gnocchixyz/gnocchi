@@ -7,6 +7,7 @@ ChangeLog
 etc/gnocchi/gnocchi.conf
 doc/build
 doc/source/rest.rst
+doc/source/gnocchi.conf.sample
 releasenotes/build
 cover
 .coverage
