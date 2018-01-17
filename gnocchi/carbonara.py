@@ -19,6 +19,7 @@
 import functools
 import itertools
 import math
+import operator
 import random
 import re
 import struct
@@ -487,27 +488,26 @@ class SplitKey(object):
         return hash(str(self.key.astype('datetime64[ns]')) +
                     str(self.sampling.astype('timedelta64[ns]')))
 
-    def __lt__(self, other):
+    def _compare(self, op, other):
         if isinstance(other, SplitKey):
             if self.sampling != other.sampling:
                 raise TypeError(
                     "Cannot compare %s with different sampling" %
                     self.__class__.__name__)
-            return self.key < other.key
+            return op(self.key, other.key)
         if isinstance(other, numpy.datetime64):
-            return self.key < other
+            return op(self.key, other)
         raise TypeError("Cannot compare %r with %r" % (self, other))
 
+    def __lt__(self, other):
+        return self._compare(operator.lt, other)
+
     def __eq__(self, other):
-        if isinstance(other, SplitKey):
-            if self.sampling != other.sampling:
-                raise TypeError(
-                    "Cannot compare %s with different sampling" %
-                    self.__class__.__name__)
-            return self.key == other.key
-        if isinstance(other, numpy.datetime64):
-            return self.key == other
-        raise TypeError("Cannot compare %r with %r" % (self, other))
+        return self._compare(operator.eq, other)
+
+    def __ne__(self, other):
+        # neither total_ordering nor py2 sets ne as the opposite of eq
+        return self._compare(operator.ne, other)
 
     def __str__(self):
         return str(float(self))
