@@ -786,6 +786,66 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertGreaterEqual(key, numpy.datetime64("1970"))
 
+    def test_split_key_cmp(self):
+        dt1 = numpy.datetime64("2015-01-01T15:03")
+        dt1_1 = numpy.datetime64("2015-01-01T15:03")
+        dt2 = numpy.datetime64("2015-01-05T15:03")
+        td = numpy.timedelta64(60, 's')
+
+        self.assertEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+        self.assertEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td))
+        self.assertNotEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+
+        self.assertLess(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+        self.assertLessEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+
+        self.assertGreater(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+        self.assertGreaterEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+
+    def test_split_key_cmp_negative(self):
+        dt1 = numpy.datetime64("2015-01-01T15:03")
+        dt1_1 = numpy.datetime64("2015-01-01T15:03")
+        dt2 = numpy.datetime64("2015-01-05T15:03")
+        td = numpy.timedelta64(60, 's')
+
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td))
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td) <=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td) <
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+
     def test_split_key_next(self):
         self.assertEqual(
             numpy.datetime64("2015-03-06"),
