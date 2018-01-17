@@ -21,6 +21,7 @@ import functools
 import logging
 import math
 import numbers
+import operator
 import random
 import re
 import struct
@@ -459,19 +460,22 @@ class SplitKey(object):
     def __hash__(self):
         return hash(self.key)
 
-    def __lt__(self, other):
+    def _compare(self, op, other):
         if isinstance(other, SplitKey):
-            return self.key < other.key
+            return op(self.key, other.key)
         if isinstance(other, pandas.Timestamp):
-            return self.key * 10e8 < other.value
-        return self.key < other
+            return op(self.key * 10e8, other.value)
+        return op(self.key, other)
+
+    def __lt__(self, other):
+        return self._compare(operator.lt, other)
 
     def __eq__(self, other):
-        if isinstance(other, SplitKey):
-            return self.key == other.key
-        if isinstance(other, pandas.Timestamp):
-            return self.key * 10e8 == other.value
-        return self.key == other
+        return self._compare(operator.eq, other)
+
+    def __ne__(self, other):
+        # neither total_ordering nor py2 sets ne as the opposite of eq
+        return self._compare(operator.ne, other)
 
     def __str__(self):
         return str(float(self))
