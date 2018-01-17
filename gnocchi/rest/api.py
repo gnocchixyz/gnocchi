@@ -151,10 +151,11 @@ def deserialize(expected_content_types=None):
 def validate(schema, data, required=True, detailed_exc=False):
     try:
         return voluptuous.Schema(schema, required=required)(data)
-    except voluptuous.Error as e:
+    except voluptuous.Invalid as e:
         if detailed_exc:
-            abort(400, {"cause": "Invalid input",
-                        "detail": str(e)})
+            abort(400, {"cause": "Attribute value error",
+                        "reason": str(e),
+                        "detail": e.path})
         else:
             abort(400, "Invalid input: %s" % e)
 
@@ -1546,16 +1547,32 @@ class SearchMetricController(rest.RestController):
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
+
+    @staticmethod
+    def BackwardCompatibleMeasuresList(v):
+        v = voluptuous.Schema(
+            voluptuous.Any(MeasuresListSchema,
+                           {voluptuous.Optional("archive_policy_name"):
+                            six.text_type,
+                            voluptuous.Optional("unit"):
+                            six.text_type,
+                            "measures": MeasuresListSchema}),
+            required=True)(v)
+        if isinstance(v, dict):
+            return v
+        else:
+            # Old format
+            return {"measures": v}
+
     @pecan.expose('json')
     def post(self, create_metrics=False):
         creator = pecan.request.auth_helper.get_current_user(
             pecan.request)
         MeasuresBatchSchema = voluptuous.Schema(
             {functools.partial(ResourceID, creator=creator):
-             {six.text_type: MeasuresListSchema}}
-        )
-
-        body = deserialize_and_validate(MeasuresBatchSchema)
+             {six.text_type: self.BackwardCompatibleMeasuresList}})
+        body = deserialize_and_validate(MeasuresBatchSchema,
+                                        detailed_exc=True)
 
         known_metrics = []
         unknown_metrics = []
@@ -1575,9 +1592,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             all_metrics[metric.resource_id].append(metric)
 
         for original_resource_id, resource_id in body:
-            body_by_rid[resource_id] = body[(original_resource_id,
-                                             resource_id)]
-            names = list(body[(original_resource_id, resource_id)].keys())
+            r = body[(original_resource_id, resource_id)]
+            body_by_rid[resource_id] = r
+            names = list(r.keys())
             metrics = all_metrics[resource_id]
 
             known_names = [m.name for m in metrics]
@@ -1585,9 +1602,11 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                 already_exists_names = []
                 for name in names:
                     if name not in known_names:
-                        metric = MetricsController.MetricSchema({
-                            "name": name
-                        })
+                        metric_data = {"name": name}
+                        for attr in ["archive_policy_name", "unit"]:
+                            if attr in r[name]:
+                                metric_data[attr] = r[name][attr]
+                        metric = MetricsController.MetricSchema(metric_data)
                         try:
                             m = pecan.request.indexer.create_metric(
                                 uuid.uuid4(),
@@ -1641,7 +1660,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
         pecan.request.incoming.add_measures_batch(
             dict((metric.id,
-                 body_by_rid[metric.resource_id][metric.name])
+                 body_by_rid[metric.resource_id][metric.name]["measures"])
                  for metric in known_metrics))
 
         pecan.response.status = 202
