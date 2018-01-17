@@ -584,16 +584,22 @@
 
     {
       "{{ scenarios['create-resource-instance-with-dynamic-metrics']['response'].json['id'] }}": {
-        "cpu.util": [
-            { "timestamp": "2014-10-06T14:34:12", "value": 12 },
-            { "timestamp": "2014-10-06T14:34:20", "value": 2 }
-        ]
+        "cpu.util": {
+            "archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}",
+            "measures": [
+                { "timestamp": "2014-10-06T14:34:12", "value": 12 },
+                { "timestamp": "2014-10-06T14:34:20", "value": 2 }
+            ]
+        }
       },
       "{{ scenarios['create-resource-instance-with-metrics']['response'].json['id'] }}": {
-        "cpu.util": [
-            { "timestamp": "2014-10-06T14:34:12", "value": 6 },
-            { "timestamp": "2014-10-06T14:34:20", "value": 25 }
-        ]
+        "cpu.util": {
+            "archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}",
+            "measures": [
+                { "timestamp": "2014-10-06T14:34:12", "value": 6 },
+                { "timestamp": "2014-10-06T14:34:20", "value": 25 }
+            ]
+        }
       }
     }
 
