@@ -21,6 +21,7 @@ import sys
 import tempfile
 
 import jinja2
+from oslo_config import generator
 import six
 import six.moves
 import webob.request
@@ -237,4 +238,13 @@ def setup(app):
         if six.PY2:
             content = content.encode("utf-8")
         f.write(content)
+
+    config_output_file = 'doc/source/gnocchi.conf.sample'
+    app.info("Generating %s" % config_output_file)
+    generator.main([
+        '--config-file',
+        '%s/gnocchi-config-generator.conf' % os.path.dirname(__file__),
+        '--output-file', config_output_file,
+    ])
+
     _RUN = True
