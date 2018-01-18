@@ -338,11 +338,6 @@ tests:
             type: uuid
             required: False
         - op: add
-          path: /attributes/new-optional-datetime
-          value:
-            type: datetime
-            required: False
-        - op: add
           path: /attributes/newstuff
           value:
             type: string
