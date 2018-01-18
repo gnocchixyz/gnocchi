@@ -136,6 +136,11 @@ def list_opts():
                        deprecated_group='storage',
                        help="How many seconds to wait between "
                        "scheduling new metrics to process"),
+            cfg.BoolOpt(
+                'greedy', default=True,
+                help="Allow to bypass `metric_processing_delay` if metricd "
+                "is notified that measures are ready to be processed."
+            ),
             cfg.IntOpt('metric_reporting_delay',
                        deprecated_group='storage',
                        default=120,

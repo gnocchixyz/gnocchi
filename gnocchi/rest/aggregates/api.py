@@ -119,32 +119,42 @@ def OperationsSchema(v):
                              required=True)(v)
 
 
+class ReferencesList(list):
+    "A very simplified OrderedSet with list interface"
+
+    def append(self, ref):
+        if ref not in self:
+            super(ReferencesList, self).append(ref)
+
+    def extend(self, refs):
+        for ref in refs:
+            self.append(ref)
+
+
 def extract_references(nodes):
-    references = set()
+    references = ReferencesList()
     if nodes[0] == "metric":
         if isinstance(nodes[1], list):
             for subnodes in nodes[1:]:
-                references.add(tuple(subnodes))
+                references.append(tuple(subnodes))
         else:
-            references.add(tuple(nodes[1:]))
+            references.append(tuple(nodes[1:]))
     else:
         for subnodes in nodes[1:]:
             if isinstance(subnodes, list):
-                references |= extract_references(subnodes)
+                references.extend(extract_references(subnodes))
     return references
 
 
-def get_measures_or_abort(metrics_and_aggregations, operations, start,
-                          stop, granularity, needed_overlap, fill,
-                          ref_identifier):
+def get_measures_or_abort(references, operations, start,
+                          stop, granularity, needed_overlap, fill):
     try:
         return processor.get_measures(
             pecan.request.storage,
-            metrics_and_aggregations,
+            references,
             operations,
             start, stop,
-            granularity, needed_overlap, fill,
-            ref_identifier=ref_identifier)
+            granularity, needed_overlap, fill)
     except exceptions.UnAggregableTimeseries as e:
         api.abort(400, e)
     # TODO(sileht): We currently got only one metric for these exceptions but
@@ -179,7 +189,9 @@ class AggregatesController(rest.RestController):
 
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
-             needed_overlap=None, fill=None, groupby=None):
+             needed_overlap=None, fill=None, groupby=None, **kwargs):
+        details = api.get_details(kwargs)
+
         if fill is None and needed_overlap is None:
             fill = "dropna"
         start, stop, granularity, needed_overlap, fill = api.validate_qs(
@@ -187,7 +199,7 @@ class AggregatesController(rest.RestController):
 
         body = api.deserialize_and_validate(self.FetchSchema)
 
-        references = list(extract_references(body["operations"]))
+        references = extract_references(body["operations"])
         if not references:
             api.abort(400, {"cause": "Operations is invalid",
                             "reason": "At least one 'metric' is required",
@@ -208,14 +220,18 @@ class AggregatesController(rest.RestController):
                     attr_filter = policy_filter
 
             groupby = sorted(set(api.arg_to_list(groupby)))
-            resources = pecan.request.indexer.list_resources(
-                body["resource_type"],
-                attribute_filter=attr_filter,
-                sorts=groupby)
+            sorts = groupby if groupby else api.RESOURCE_DEFAULT_PAGINATION
+            try:
+                resources = pecan.request.indexer.list_resources(
+                    body["resource_type"],
+                    attribute_filter=attr_filter,
+                    sorts=sorts)
+            except indexer.IndexerException as e:
+                api.abort(400, six.text_type(e))
             if not groupby:
                 return self._get_measures_by_name(
                     resources, references, body["operations"], start, stop,
-                    granularity, needed_overlap, fill)
+                    granularity, needed_overlap, fill, details=details)
 
             def groupper(r):
                 return tuple((attr, r[attr]) for attr in groupby)
@@ -226,14 +242,14 @@ class AggregatesController(rest.RestController):
                     "group": dict(key),
                     "measures": self._get_measures_by_name(
                         resources, references, body["operations"], start, stop,
-                        granularity, needed_overlap, fill)
+                        granularity, needed_overlap, fill, details=details)
                 })
             return results
 
         else:
             try:
-                metric_ids = [six.text_type(utils.UUID(m))
-                              for (m, a) in references]
+                metric_ids = set(six.text_type(utils.UUID(m))
+                                 for (m, a) in references)
             except ValueError as e:
                 api.abort(400, {"cause": "Invalid metric references",
                                 "reason": six.text_type(e),
@@ -255,24 +271,37 @@ class AggregatesController(rest.RestController):
                 api.enforce("get metric", metric)
 
             metrics_by_ids = dict((six.text_type(m.id), m) for m in metrics)
-            metrics_and_aggregations = [(metrics_by_ids[m], a)
-                                        for (m, a) in references]
-            return get_measures_or_abort(
-                metrics_and_aggregations, body["operations"],
-                start, stop, granularity, needed_overlap, fill,
-                ref_identifier="id")
+            references = [processor.MetricReference(metrics_by_ids[m], a)
+                          for (m, a) in references]
+
+            response = {
+                "measures": get_measures_or_abort(
+                    references, body["operations"],
+                    start, stop, granularity, needed_overlap, fill)
+            }
+            if details:
+                response["references"] = references
+            return response
 
     def _get_measures_by_name(self, resources, metric_names, operations,
-                              start, stop, granularity, needed_overlap, fill):
+                              start, stop, granularity, needed_overlap, fill,
+                              details):
 
-        metrics_and_aggregations = list(filter(
-            lambda x: x[0] is not None, ([r.get_metric(metric_name), agg]
-                                         for (metric_name, agg) in metric_names
-                                         for r in resources)))
-        if not metrics_and_aggregations:
+        references = [
+            processor.MetricReference(r.get_metric(metric_name), agg, r)
+            for (metric_name, agg) in metric_names
+            for r in resources if r.get_metric(metric_name) is not None
+        ]
+
+        if not references:
             api.abort(400, {"cause": "Metrics not found",
                             "detail": set((m for (m, a) in metric_names))})
 
-        return get_measures_or_abort(metrics_and_aggregations, operations,
-                                     start, stop, granularity, needed_overlap,
-                                     fill, ref_identifier="name")
+        response = {
+            "measures": get_measures_or_abort(
+                references, operations, start, stop, granularity,
+                needed_overlap, fill)
+        }
+        if details:
+            response["references"] = references
+        return response

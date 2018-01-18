@@ -364,6 +364,8 @@ class ArchivePolicyRulesController(rest.RestController):
             )
         except indexer.ArchivePolicyRuleAlreadyExists as e:
             abort(409, six.text_type(e))
+        except indexer.NoSuchArchivePolicy as e:
+            abort(400, e)
 
         location = "/archive_policy_rule/" + ap.name
         set_resp_location_hdr(location)
@@ -486,6 +488,14 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
+        if granularity is not None:
+            try:
+                granularity = utils.to_timespan(granularity)
+            except ValueError:
+                abort(400, {"cause": "Attribute value error",
+                            "detail": "granularity",
+                            "reason": "Invalid granularity"})
+
         if resample:
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
@@ -511,9 +521,7 @@ class MetricController(rest.RestController):
                     start, stop, **param)
             return pecan.request.storage.get_measures(
                 self.metric, start, stop, aggregation,
-                utils.to_timespan(granularity)
-                if granularity is not None else None,
-                resample)
+                granularity, resample)
         except (storage.MetricDoesNotExist,
                 storage.GranularityDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
@@ -713,10 +721,7 @@ class NamedMetricController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, name, *remainder):
-        # NOTE(sileht): We want detail only when we GET /metric/<id>
-        # and not for /metric/<id>/measures
-        details = pecan.request.method == 'GET' and len(remainder) == 0
-        m = pecan.request.indexer.list_metrics(details=details,
+        m = pecan.request.indexer.list_metrics(details=True,
                                                name=name,
                                                resource_id=self.resource_id)
         if m:
@@ -1293,6 +1298,9 @@ ResourceSearchSchemaAttributeValue = voluptuous.Any(
     six.text_type, float, int, bool, None)
 
 
+NotIDKey = voluptuous.All(six.text_type, voluptuous.NotIn(["id"]))
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request)
@@ -1309,20 +1317,21 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": _ResourceUUID,
-                     six.text_type: ResourceSearchSchemaAttributeValue},
+                     NotIDKey: ResourceSearchSchemaAttributeValue},
                 ),
-                voluptuous.Any(
-                    u"in",
-                ): voluptuous.All(
+                u"like": voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {NotIDKey: ResourceSearchSchemaAttributeValue},
+                ),
+                u"in": voluptuous.All(
                     voluptuous.Length(min=1, max=1),
                     {"id": voluptuous.All(
                         [_ResourceUUID],
                         voluptuous.Length(min=1)),
-                     six.text_type: voluptuous.All(
+                     NotIDKey: voluptuous.All(
                          [ResourceSearchSchemaAttributeValue],
                          voluptuous.Length(min=1))}
                 ),
@@ -1542,7 +1551,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                                 archive_policy_name=metric[
                                     'archive_policy_name'])
                         except indexer.NamedMetricAlreadyExists as e:
-                            already_exists_names.append(e.metric)
+                            already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
                             unknown_resources.append({
                                 'resource_id': six.text_type(resource_id),
@@ -1817,7 +1826,7 @@ class AggregationController(rest.RestController):
                     granularity, resample)
             return processor.get_measures(
                 pecan.request.storage,
-                [(m, aggregation) for m in metrics],
+                [processor.MetricReference(m, aggregation) for m in metrics],
                 operations, start, stop,
                 granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:

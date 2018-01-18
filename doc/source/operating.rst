@@ -164,8 +164,28 @@ uses the 6 default |aggregation methods| (mean, min, max, sum, std, count) with
 the same "one year, one minute aggregations" resolution, the space used will go
 up to a maximum of 6 × 4.1 MiB = 24.6 MiB.
 
-How many metricd workers do we need to run
-==========================================
+Metricd
+=======
+
+Metricd is the daemon responsible for processing measures, computing their
+aggregates and storing them into the aggregate storage. It also handles a few
+other cleanup tasks, such as deleting metrics marked for deletion.
+
+Metricd therefore is responsible for most of the CPU usage and I/O job in
+Gnocchi. The archive policy of each metric will influence how fast it performs.
+
+In order to process new measures, metricd checks the incoming storage for new
+measures from time to time. The delay between each check is can be configured
+by changing the `[metricd]metric_processing_delay` configuration option.
+
+Some incoming driver (only Redis currently) are able to inform metricd that new
+measures are available for processing. In that case, metricd will not respect
+the `[metricd]metric_processing_delay` parameter and start processing the new
+measures right away. This behaviour can be disabled by turning off the
+`[metricd]greedy` option.
+
+How many metricd workers do I need to run
+-----------------------------------------
 
 By default, `gnocchi-metricd` daemon spans all your CPU power in order to
 maximize CPU utilisation when computing |metric| aggregation. You can use the
@@ -179,7 +199,7 @@ increase the number of `gnocchi-metricd` daemons. You can run any number of
 metricd daemon on any number of servers.
 
 How to scale measure processing
-===============================
+-------------------------------
 
 Measurement data pushed to Gnocchi is divided into sacks for better
 distribution. The number of partitions is controlled by the `sacks` option
@@ -243,7 +263,7 @@ How to monitor Gnocchi
 
 The `/v1/status` endpoint of the HTTP API returns various information, such as
 the number of |measures| to process (|measures| backlog), which you can easily
-monitor (see `How many metricd workers do we need to run`_). The Gnocchi client
+monitor (see `How many metricd workers do I need to run`_). The Gnocchi client
 can show this output by running `gnocchi status`.
 
 Making sure that the HTTP server and `gnocchi-metricd` daemon are running and

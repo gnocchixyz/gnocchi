@@ -73,7 +73,7 @@ CLIENT_INT_ARGS = frozenset([
 
 def get_client(conf):
     if redis is None:
-        raise RuntimeError("python-redis unavailable")
+        raise RuntimeError("Redis Python module is unavailable")
     parsed_url = parse.urlparse(conf.redis_url)
     options = parse.parse_qs(parsed_url.query)
 

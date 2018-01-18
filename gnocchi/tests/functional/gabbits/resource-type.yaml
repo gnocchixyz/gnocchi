@@ -321,6 +321,23 @@ tests:
           content-type: application/json-patch+json
       data:
         - op: add
+          path: /attributes/new-optional-bool
+          value:
+            type: bool
+            required: False
+        - op: add
+          path: /attributes/new-optional-int
+          value:
+            type: number
+            required: False
+            min: 0
+            max: 255
+        - op: add
+          path: /attributes/new-optional-uuid
+          value:
+            type: uuid
+            required: False
+        - op: add
           path: /attributes/newstuff
           value:
             type: string
@@ -400,6 +417,17 @@ tests:
               bool:
                   type: bool
                   required: false
+              new-optional-bool:
+                  type: bool
+                  required: False
+              new-optional-int:
+                  type: number
+                  required: False
+                  min: 0
+                  max: 255
+              new-optional-uuid:
+                  type: uuid
+                  required: False
               newstuff:
                   type: string
                   required: False
@@ -494,6 +522,17 @@ tests:
               bool:
                   type: bool
                   required: false
+              new-optional-bool:
+                  type: bool
+                  required: False
+              new-optional-int:
+                  type: number
+                  required: False
+                  min: 0
+                  max: 255
+              new-optional-uuid:
+                  type: uuid
+                  required: False
               newstuff:
                   type: string
                   required: False
@@ -533,6 +572,9 @@ tests:
           $.newint: 15
           $.newstring: foobar
           $.newuuid: "00000000-0000-0000-0000-000000000000"
+          $.new-optional-bool: null
+          $.new-optional-int: null
+          $.new-optional-uuid: null
 
     - name: control new attributes of existing resource history
       GET: /v1/resource/my_custom_resource/d11edfca-4393-4fda-b94d-b05a3a1b3747/history?sort=revision_end:asc-nullslast
@@ -546,6 +588,9 @@ tests:
           $[0].newint: 15
           $[0].newstring: foobar
           $[0].newuuid: "00000000-0000-0000-0000-000000000000"
+          $[0].new-optional-bool: null
+          $[0].new-optional-int: null
+          $[0].new-optional-uuid: null
           $[1].id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           $[1].name: foo
           $[1].newstuff: null
@@ -554,6 +599,9 @@ tests:
           $[1].newint: 15
           $[1].newstring: foobar
           $[1].newuuid: "00000000-0000-0000-0000-000000000000"
+          $[1].new-optional-bool: null
+          $[1].new-optional-int: null
+          $[1].new-optional-uuid: null
 
 # Invalid patch
 
@@ -629,6 +677,17 @@ tests:
               newuuid:
                   type: uuid
                   required: True
+              new-optional-bool:
+                  type: bool
+                  required: False
+              new-optional-int:
+                  type: number
+                  required: False
+                  min: 0
+                  max: 255
+              new-optional-uuid:
+                  type: uuid
+                  required: False
 
     - name: delete/add the same resource attribute
       PATCH: /v1/resource_type/my_custom_resource

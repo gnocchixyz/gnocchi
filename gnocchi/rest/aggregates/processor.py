@@ -31,18 +31,41 @@ from gnocchi import utils
 LOG = daiquiri.getLogger(__name__)
 
 
-def _get_measures_timeserie(storage, metric, aggregation, ref_identifier,
-                            *args, **kwargs):
-    return ([str(getattr(metric, ref_identifier)), aggregation],
-            storage._get_measures_timeserie(metric, aggregation, *args,
-                                            **kwargs))
+class MetricReference(object):
+    def __init__(self, metric, aggregation, resource=None):
+        self.metric = metric
+        self.aggregation = aggregation
+        self.resource = resource
+        self.timeseries = {}
+
+        if self.resource is None:
+            self.name = str(self.metric.id)
+        else:
+            self.name = self.metric.name
+
+        self.lookup_key = [self.name, self.aggregation]
+
+    def jsonify(self):
+        if self.resource:
+            return self.resource
+        else:
+            return self.metric
+
+    def __eq__(self, other):
+        return (self.metric == other.metric and
+                self.resource == other.resource and
+                self.aggregation == other.aggregation)
 
 
-def get_measures(storage, metrics_and_aggregations,
-                 operations,
+def _get_measures_timeserie(storage, ref, *args, **kwargs):
+    return (ref, storage._get_measures_timeserie(
+        ref.metric, ref.aggregation, *args, **kwargs))
+
+
+def get_measures(storage, references, operations,
                  from_timestamp=None, to_timestamp=None,
                  granularity=None, needed_overlap=100.0,
-                 fill=None, ref_identifier="id"):
+                 fill=None):
     """Get aggregated measures of multiple entities.
 
     :param storage: The storage driver.
@@ -55,16 +78,18 @@ def get_measures(storage, metrics_and_aggregations,
     """
 
     references_with_missing_granularity = []
-    for (metric, aggregation) in metrics_and_aggregations:
-        if aggregation not in metric.archive_policy.aggregation_methods:
-            raise gnocchi_storage.AggregationDoesNotExist(metric, aggregation)
+    for ref in references:
+        if (ref.aggregation not in
+                ref.metric.archive_policy.aggregation_methods):
+            raise gnocchi_storage.AggregationDoesNotExist(ref.metric,
+                                                          ref.aggregation)
         if granularity is not None:
-            for d in metric.archive_policy.definition:
+            for d in ref.metric.archive_policy.definition:
                 if d.granularity == granularity:
                     break
             else:
                 references_with_missing_granularity.append(
-                    (getattr(metric, ref_identifier), aggregation))
+                    (ref.name, ref.aggregation))
 
     if references_with_missing_granularity:
         raise exceptions.UnAggregableTimeseries(
@@ -75,30 +100,27 @@ def get_measures(storage, metrics_and_aggregations,
     if granularity is None:
         granularities = (
             definition.granularity
-            for (metric, aggregation) in metrics_and_aggregations
-            for definition in metric.archive_policy.definition
+            for ref in references
+            for definition in ref.metric.archive_policy.definition
         )
         granularities_in_common = [
             g
             for g, occurrence in six.iteritems(
                 collections.Counter(granularities))
-            if occurrence == len(metrics_and_aggregations)
+            if occurrence == len(references)
         ]
 
         if not granularities_in_common:
             raise exceptions.UnAggregableTimeseries(
-                list((str(getattr(m, ref_identifier)), a)
-                     for (m, a) in metrics_and_aggregations),
+                list((ref.name, ref.aggregation)
+                     for ref in references),
                 'No granularity match')
     else:
         granularities_in_common = [granularity]
 
     tss = utils.parallel_map(_get_measures_timeserie,
-                             [(storage, metric, aggregation,
-                               ref_identifier,
-                               g, from_timestamp, to_timestamp)
-                              for (metric, aggregation)
-                              in metrics_and_aggregations
+                             [(storage, ref, g, from_timestamp, to_timestamp)
+                              for ref in references
                               for g in granularities_in_common])
 
     return aggregated(tss, operations, from_timestamp, to_timestamp,
@@ -110,17 +132,19 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
 
     series = collections.defaultdict(list)
     references = collections.defaultdict(list)
-    for (reference, timeserie) in refs_and_timeseries:
+    lookup_keys = collections.defaultdict(list)
+    for (ref, timeserie) in refs_and_timeseries:
         from_ = (None if from_timestamp is None else
                  carbonara.round_timestamp(from_timestamp, timeserie.sampling))
-        references[timeserie.sampling].append(reference)
+        references[timeserie.sampling].append(ref)
+        lookup_keys[timeserie.sampling].append(ref.lookup_key)
         series[timeserie.sampling].append(timeserie[from_:to_timestamp])
 
-    result = collections.defaultdict(lambda: {'timestamps': [],
-                                              'granularity': [],
-                                              'values': []})
-    for key in sorted(series, reverse=True):
-        combine = numpy.concatenate(series[key])
+    result = []
+    is_aggregated = False
+    result = {}
+    for sampling in sorted(series, reverse=True):
+        combine = numpy.concatenate(series[sampling])
         # np.unique sorts results for us
         times, indices = numpy.unique(combine['timestamps'],
                                       return_inverse=True)
@@ -128,9 +152,9 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
         # create nd-array (unique series x unique times) and fill
         filler = (numpy.NaN if fill in [None, 'null', 'dropna']
                   else fill)
-        val_grid = numpy.full((len(series[key]), len(times)), filler)
+        val_grid = numpy.full((len(series[sampling]), len(times)), filler)
         start = 0
-        for i, split in enumerate(series[key]):
+        for i, split in enumerate(series[sampling]):
             size = len(split)
             val_grid[i][indices[start:start + size]] = split['values']
             start += size
@@ -140,7 +164,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             overlap = numpy.flatnonzero(~numpy.any(numpy.isnan(values),
                                                    axis=1))
             if overlap.size == 0 and needed_percent_of_overlap > 0:
-                raise exceptions.UnAggregableTimeseries(references[key],
+                raise exceptions.UnAggregableTimeseries(lookup_keys[sampling],
                                                         'No overlap')
             if times.size:
                 # if no boundary set, use first/last timestamp which overlap
@@ -153,33 +177,53 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                 percent_of_overlap = overlap.size * 100.0 / times.size
                 if percent_of_overlap < needed_percent_of_overlap:
                     raise exceptions.UnAggregableTimeseries(
-                        references[key],
+                        lookup_keys[sampling],
                         'Less than %f%% of datapoints overlap in this '
                         'timespan (%.2f%%)' % (needed_percent_of_overlap,
                                                percent_of_overlap))
 
         granularity, times, values, is_aggregated = (
-            agg_operations.evaluate(operations, key, times, values,
-                                    False, references[key]))
+            agg_operations.evaluate(operations, sampling, times, values,
+                                    False, lookup_keys[sampling]))
 
         values = values.T
-        if is_aggregated:
-            idents = ["aggregated"]
-        else:
-            idents = ["%s_%s" % tuple(ref) for ref in references[key]]
-        for i, ident in enumerate(idents):
+        result[sampling] = (granularity, times, values, references[sampling])
+
+    if is_aggregated:
+        output = {"aggregated": []}
+        for sampling in sorted(result, reverse=True):
+            granularity, times, values, references = result[sampling]
             if fill == "dropna":
-                pos = ~numpy.isnan(values[i])
-                v = values[i][pos]
+                pos = ~numpy.isnan(values[0])
+                v = values[0][pos]
                 t = times[pos]
             else:
-                v = values[i]
+                v = values[0]
                 t = times
-            result[ident]["timestamps"].extend(t)
-            result[ident]['granularity'].extend([granularity] * len(t))
-            result[ident]['values'].extend(v)
-
-    return dict(((ident, list(six.moves.zip(result[ident]['timestamps'],
-                                            result[ident]['granularity'],
-                                            result[ident]['values'])))
-                 for ident in result))
+            g = [granularity] * len(t)
+            output["aggregated"].extend(six.moves.zip(t, g, v))
+        return output
+    else:
+        r_output = collections.defaultdict(
+            lambda: collections.defaultdict(
+                lambda: collections.defaultdict(list)))
+        m_output = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+        for sampling in sorted(result, reverse=True):
+            granularity, times, values, references = result[sampling]
+            for i, ref in enumerate(references):
+                if fill == "dropna":
+                    pos = ~numpy.isnan(values[i])
+                    v = values[i][pos]
+                    t = times[pos]
+                else:
+                    v = values[i]
+                    t = times
+                g = [granularity] * len(t)
+                measures = six.moves.zip(t, g, v)
+                if ref.resource is None:
+                    m_output[ref.name][ref.aggregation].extend(measures)
+                else:
+                    r_output[str(ref.resource.id)][
+                        ref.metric.name][ref.aggregation].extend(measures)
+        return r_output if r_output else m_output

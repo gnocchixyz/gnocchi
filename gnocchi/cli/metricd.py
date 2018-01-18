@@ -132,7 +132,7 @@ class MetricReporting(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     name = "processing"
-    GROUP_ID = "gnocchi-processing"
+    GROUP_ID = b"gnocchi-processing"
 
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
@@ -162,7 +162,8 @@ class MetricProcessor(MetricProcessBase):
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
-            LOG.info('Joined coordination group: %s', self.GROUP_ID)
+            LOG.info('Joined coordination group: %s',
+                     self.GROUP_ID.decode())
         except tooz.NotImplemented:
             LOG.warning('Coordinator does not support partitioning. Worker '
                         'will battle against other workers for jobs.')
@@ -171,9 +172,10 @@ class MetricProcessor(MetricProcessBase):
                       'partitioning. Retrying: %s', e)
             raise tenacity.TryAgain(e)
 
-        filler = threading.Thread(target=self._fill_sacks_to_process)
-        filler.daemon = True
-        filler.start()
+        if self.conf.metricd.greedy:
+            filler = threading.Thread(target=self._fill_sacks_to_process)
+            filler.daemon = True
+            filler.start()
 
     @retry_on_exception.wraps
     def _fill_sacks_to_process(self):

@@ -88,6 +88,23 @@ tests:
         metric_pattern: "disk.foo.*"
       status: 400
 
+    - name: create archive policy rule with invalid archive policy
+      POST: /v1/archive_policy_rule
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+        accept: application/json
+        content-type: application/json
+      data:
+        name: test_rule
+        archive_policy_name: not-exists
+        metric_pattern: "disk.foo.*"
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Archive policy does not exist"
+        $.description.detail: not-exists
+
     - name: missing auth archive policy rule
       POST: /v1/archive_policy_rule
       request_headers:
