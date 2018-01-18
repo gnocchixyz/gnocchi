@@ -29,7 +29,6 @@ import monotonic
 import numpy
 import pandas as pd
 import six
-import tenacity
 from tooz import coordination
 
 
@@ -71,28 +70,10 @@ def UUID(value):
         raise ValueError(e)
 
 
-# Retry with exponential backoff for up to 1 minute
-retry = tenacity.retry(
-    wait=tenacity.wait_exponential(multiplier=0.5, max=60),
-    # Never retry except when explicitly asked by raising TryAgain
-    retry=tenacity.retry_never,
-    reraise=True)
-
-
-# TODO(jd) Move this to tooz?
-@retry
-def _enable_coordination(coord):
-    try:
-        coord.start(start_heart=True)
-    except Exception as e:
-        LOG.error("Unable to start coordinator: %s", e)
-        raise tenacity.TryAgain(e)
-
-
 def get_coordinator_and_start(url):
-    my_id = uuid.uuid4().bytes
+    my_id = str(uuid.uuid4()).encode()
     coord = coordination.get_coordinator(url, my_id)
-    _enable_coordination(coord)
+    coord.start(start_heart=True)
     return coord, my_id
 
 

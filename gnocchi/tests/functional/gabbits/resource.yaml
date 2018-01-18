@@ -483,7 +483,6 @@ tests:
       data:
           electron.spin:
               archive_policy_name: medium
-      response_headers:
       response_json_paths:
           $[/name][1].name: electron.spin
           $[/name][1].resource_id: 85c44741-cc60-4033-804e-2d3098c7d2e9

@@ -326,6 +326,8 @@ class ArchivePolicyRulesController(rest.RestController):
             )
         except indexer.ArchivePolicyRuleAlreadyExists as e:
             abort(409, e)
+        except indexer.NoSuchArchivePolicy as e:
+            abort(400, e)
 
         location = "/archive_policy_rule/" + ap.name
         set_resp_location_hdr(location)
@@ -430,6 +432,14 @@ class MetricController(rest.RestController):
             except Exception:
                 abort(400, "Invalid value for stop")
 
+        if granularity is not None:
+            try:
+                granularity = Timespan(granularity)
+            except ValueError:
+                abort(400, {"cause": "Attribute value error",
+                            "detail": "granularity",
+                            "reason": "Invalid granularity"})
+
         if resample:
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
@@ -454,8 +464,7 @@ class MetricController(rest.RestController):
             else:
                 measures = pecan.request.storage.get_measures(
                     self.metric, start, stop, aggregation,
-                    Timespan(granularity) if granularity is not None else None,
-                    resample)
+                    granularity, resample)
             # Replace timestamp keys by their string versions
             return [(timestamp.isoformat(), offset, v)
                     for timestamp, offset, v in measures]
@@ -590,6 +599,7 @@ class MetricsController(rest.RestController):
                 pecan.request)
             if provided_creator and creator != provided_creator:
                 abort(403, "Insufficient privileges to filter by user/project")
+            provided_creator = creator
         attr_filter = {}
         if provided_creator is not None:
             attr_filter['creator'] = provided_creator
@@ -1179,6 +1189,12 @@ def ResourceSearchSchema(v):
     return _ResourceSearchSchema()(v)
 
 
+# NOTE(sileht): indexer will cast this type to the real attribute
+# type, here we just want to be sure this is not a dict or a list
+ResourceSearchSchemaAttributeValue = voluptuous.Any(
+    six.text_type, float, int, bool, None)
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request)
@@ -1195,21 +1211,26 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"in",
-                    u"like",
+                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
-                    voluptuous.Any(
-                        {"id": voluptuous.Any(
-                            [_ResourceUUID], _ResourceUUID),
-                         voluptuous.Extra: voluptuous.Extra})),
+                    {"id": _ResourceUUID,
+                     six.text_type: ResourceSearchSchemaAttributeValue},
+                ),
+                voluptuous.Any(
+                    u"in",
+                ): voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {"id": [_ResourceUUID],
+                     six.text_type: [ResourceSearchSchemaAttributeValue]}
+                ),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",
-                    u"not",
                 ): voluptuous.All(
                     [ResourceSearchSchema], voluptuous.Length(min=1)
-                )
+                ),
+                u"not": ResourceSearchSchema,
             }
         )
     )
@@ -1663,9 +1684,9 @@ class AggregationController(rest.RestController):
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        except storage.AggregationDoesNotExist as e:
+        except (storage.MetricDoesNotExist,
+                storage.GranularityDoesNotExist,
+                storage.AggregationDoesNotExist) as e:
             abort(404, e)
 
     @pecan.expose('json')

@@ -56,7 +56,7 @@ def upgrade():
                    help="Number of storage sacks to create."),
 
     ])
-    conf = service.prepare_service(conf=conf)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
     if not conf.skip_index:
         index = indexer.get_driver(conf)
         index.connect()
@@ -84,7 +84,7 @@ def change_sack_size():
         cfg.IntOpt("sacks-number", required=True, min=1,
                    help="Number of storage sacks."),
     ])
-    conf = service.prepare_service(conf=conf)
+    conf = service.prepare_service(conf=conf, log_to_std=True)
     s = storage.get_incoming_driver(conf.incoming)
     try:
         report = s.measures_report(details=False)
@@ -106,6 +106,13 @@ def statsd():
     statsd_service.start()
 
 
+# Retry with exponential backoff for up to 1 minute
+_wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
+
+
+retry_on_exception = tenacity.Retrying(wait=_wait_exponential).call
+
+
 class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
@@ -116,8 +123,8 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown_done = threading.Event()
 
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
+        self.store = retry_on_exception(storage.get_driver, self.conf)
+        self.index = retry_on_exception(indexer.get_driver, self.conf)
         self.index.connect()
 
     def run(self):
@@ -154,7 +161,8 @@ class MetricReporting(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_reporting_delay)
 
     def _configure(self):
-        self.incoming = storage.get_incoming_driver(self.conf.incoming)
+        self.incoming = retry_on_exception(storage.get_incoming_driver,
+                                           self.conf.incoming)
 
     def _run_job(self):
         try:
@@ -173,20 +181,24 @@ class MetricReporting(MetricProcessBase):
 
 class MetricProcessor(MetricProcessBase):
     name = "processing"
-    GROUP_ID = "gnocchi-processing"
+    GROUP_ID = b"gnocchi-processing"
 
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
-        self.coord, __ = utils.get_coordinator_and_start(
-            conf.storage.coordination_url)
         self._tasks = []
         self.group_state = None
 
-    @utils.retry
+    @tenacity.retry(
+        wait=_wait_exponential,
+        # Never retry except when explicitly asked by raising TryAgain
+        retry=tenacity.retry_never)
     def _configure(self):
-        self.store = storage.get_driver(self.conf, self.coord)
-        self.index = indexer.get_driver(self.conf)
+        self.coord, _ = retry_on_exception(utils.get_coordinator_and_start,
+                                           self.conf.storage.coordination_url)
+        self.store = retry_on_exception(storage.get_driver,
+                                        self.conf, self.coord)
+        self.index = retry_on_exception(indexer.get_driver, self.conf)
         self.index.connect()
 
         # create fallback in case paritioning fails or assigned no tasks
@@ -195,7 +207,7 @@ class MetricProcessor(MetricProcessBase):
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
-            LOG.info('Joined coordination group: %s', self.GROUP_ID)
+            LOG.info('Joined coordination group: %s', self.GROUP_ID.decode())
 
             @periodics.periodic(spacing=self.conf.metricd.worker_sync_rate,
                                 run_immediately=True)
