@@ -10,7 +10,7 @@ oslo.middleware>=3.11.0
 pandas>=0.17.0
 pecan>=0.9
 pytimeparse>=1.1.5
-futures
+futures; python_version < '3'
 jsonpatch
 cotyledon>=1.2.2
 requests

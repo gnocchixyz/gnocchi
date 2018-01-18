@@ -23,6 +23,7 @@ import uuid
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
+import six
 
 from gnocchi import storage
 from gnocchi.storage import _carbonara
@@ -50,7 +51,9 @@ OPTS = [
                help='Ceph username (ie: admin without "client." prefix).'),
     cfg.StrOpt('ceph_secret', help='Ceph key', secret=True),
     cfg.StrOpt('ceph_keyring', help='Ceph keyring path.'),
-    cfg.IntOpt('ceph_timeout', help='Ceph connection timeout'),
+    cfg.StrOpt('ceph_timeout',
+               default="30",
+               help='Ceph connection timeout in seconds'),
     cfg.StrOpt('ceph_conffile',
                default='/etc/ceph/ceph.conf',
                help='Ceph configuration file.'),
@@ -139,23 +142,26 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         for xattr in xattrs:
             self.ioctx.rm_xattr(self.MEASURE_PREFIX, xattr)
 
-    def _store_new_measures(self, metric, data):
-        # NOTE(sileht): list all objects in a pool is too slow with
-        # many objects (2min for 20000 objects in 50osds cluster),
-        # and enforce us to iterrate over all objects
-        # So we create an object MEASURE_PREFIX, that have as
-        # omap the list of objects to process (not xattr because
-        # it doesn't allow to configure the locking behavior)
-        name = "_".join((
-            self.MEASURE_PREFIX,
-            str(metric.id),
-            str(uuid.uuid4()),
-            datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-
-        self.ioctx.write_full(name, data)
+    def add_measures_batch(self, metrics_and_measures):
+        names = []
+        for metric, measures in six.iteritems(metrics_and_measures):
+            name = "_".join((
+                self.MEASURE_PREFIX,
+                str(metric.id),
+                str(uuid.uuid4()),
+                datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
+            names.append(name)
+            data = self._encode_measures(measures)
+            self.ioctx.write_full(name, data)
 
         with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, (name,), ("",))
+            # NOTE(sileht): list all objects in a pool is too slow with
+            # many objects (2min for 20000 objects in 50osds cluster),
+            # and enforce us to iterrate over all objects
+            # So we create an object MEASURE_PREFIX, that have as
+            # omap the list of objects to process (not xattr because
+            # it doesn't # allow to configure the locking behavior)
+            self.ioctx.set_omap(op, tuple(names), (b"",) * len(names))
             self.ioctx.operate_write_op(op, self.MEASURE_PREFIX,
                                         flags=self.OMAP_WRITE_FLAGS)
 
@@ -195,13 +201,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
         return len(list(self._list_object_names_to_process(object_prefix)))
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process()
-        if full:
-            objs_it = names
-        else:
-            objs_it = itertools.islice(names, size * part, size * (part + 1))
-        return set([name.split("_")[1] for name in objs_it])
+    def _list_metric_with_measures_to_process(self):
+        # Sort measures objects per metric id
+        names = sorted(o.split("_")[1]
+                       for o in self._list_object_names_to_process())
+        # Group per metric id and store len() of the number of measures
+        return ((metric, len(list(measures)))
+                for metric, measures in itertools.groupby(names))
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
@@ -286,8 +292,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         else:
             for xattr, _ in xattrs:
                 self.ioctx.aio_remove(xattr)
-        for name in ('container', 'none'):
-            self.ioctx.aio_remove("gnocchi_%s_%s" % (metric.id, name))
+
+        self.ioctx.aio_remove("gnocchi_%s_container" % metric.id)
+        self._delete_unaggregated_timeserie(metric)
 
     def _get_measures(self, metric, timestamp_key, aggregation, granularity,
                       version=3):

@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2017 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -27,9 +28,14 @@ OPTS = [
                default='file',
                help='Storage driver to use'),
     cfg.IntOpt('metric_processing_delay',
-               default=60,
+               default=30,
                help="How many seconds to wait between "
                "scheduling new metrics to process"),
+    cfg.IntOpt('tasks_per_worker',
+               default=256,
+               min=1,
+               help="How many tasks to assign each metricd worker when "
+               "scheduling measures processing jobs"),
     cfg.IntOpt('metric_reporting_delay',
                default=120,
                help="How many seconds to wait between "
@@ -217,12 +223,20 @@ class StorageDriver(object):
                 # time, not a big deal
                 pass
 
-    @staticmethod
-    def add_measures(metric, measures):
+    def add_measures(self, metric, measures):
         """Add a measure to a metric.
 
         :param metric: The metric measured.
         :param measures: The actual measures.
+        """
+        self.add_measures_batch({metric: measures})
+
+    @staticmethod
+    def add_measures_batch(metrics_and_measures):
+        """Add a batch of measures for some metrics.
+
+        :param metrics_and_measures: A dict where keys
+        are metrics and value are measure.
         """
         raise exceptions.NotImplementedError
 

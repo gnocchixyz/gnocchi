@@ -83,6 +83,7 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown = threading.Event()
         self._shutdown_done = threading.Event()
 
+    @utils.retry
     def _configure(self):
         self.store = storage.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
@@ -139,12 +140,12 @@ class MetricScheduler(MetricProcessBase):
     MAX_OVERLAP = 0.3
     GROUP_ID = "gnocchi-scheduler"
     SYNC_RATE = 30
-    TASKS_PER_WORKER = 16
     BLOCK_SIZE = 4
 
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
             worker_id, conf, conf.storage.metric_processing_delay)
+        self.TASKS_PER_WORKER = conf.storage.tasks_per_worker
         self._coord, self._my_id = utils.get_coordinator_and_start(
             conf.storage.coordination_url)
         self.queue = queue
@@ -153,9 +154,11 @@ class MetricScheduler(MetricProcessBase):
         self.block_index = 0
         self.block_size_default = self.workers * self.TASKS_PER_WORKER
         self.block_size = self.block_size_default
+        self.block_synced = False
         self.periodic = None
 
     def set_block(self, event):
+        self.block_synced = False
         get_members_req = self._coord.get_members(self.GROUP_ID)
         try:
             members = sorted(get_members_req.get())
@@ -166,11 +169,13 @@ class MetricScheduler(MetricProcessBase):
                 cap = msgpack.loads(req.get(), encoding='utf-8')
                 max_workers = max(cap['workers'], self.workers)
             self.block_size = max_workers * self.TASKS_PER_WORKER
+            self.block_synced = True
             LOG.info('New set of agents detected. Now working on block: %s, '
                      'with up to %s metrics', self.block_index,
                      self.block_size)
         except Exception:
-            LOG.warning('Error getting block to work on, defaulting to first')
+            LOG.error('Error getting block to work on (%s), '
+                      'defaulting to first', exc_info=True)
             self.block_index = 0
             self.block_size = self.block_size_default
 
@@ -186,7 +191,9 @@ class MetricScheduler(MetricProcessBase):
 
             @periodics.periodic(spacing=self.SYNC_RATE, run_immediately=True)
             def run_watchers():
-                self._coord.run_watchers()
+                done = self._coord.run_watchers()
+                if not done and not self.block_synced:
+                    self.set_block(None)
 
             self.periodic = periodics.PeriodicWorker.create([])
             self.periodic.add(run_watchers)

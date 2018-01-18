@@ -335,9 +335,9 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     metric, key, split, aggregation, archive_policy_def,
                     oldest_mutable_timestamp)
 
-    def add_measures(self, metric, measures):
+    def _encode_measures(self, measures):
         measures = list(measures)
-        data = struct.pack(
+        return struct.pack(
             "<" + self._MEASURE_SERIAL_FORMAT * len(measures),
             *list(
                 itertools.chain(
@@ -345,7 +345,10 @@ class CarbonaraBasedStorage(storage.StorageDriver):
                     *((int(utils.datetime_to_unix(timestamp) * int(10e8)),
                        value)
                       for timestamp, value in measures))))
-        self._store_new_measures(metric, data)
+
+    def add_measures_batch(self, metrics_and_measures):
+        for metric, measures in six.iteritems(metrics_and_measures):
+            self._store_new_measures(metric, self._encode_measures(measures))
 
     @staticmethod
     def _store_new_measures(metric, data):
@@ -355,8 +358,20 @@ class CarbonaraBasedStorage(storage.StorageDriver):
     def _delete_metric(metric):
         raise NotImplementedError
 
+    def list_metric_with_measures_to_process(self, size, part, full=False):
+        metrics = map(operator.itemgetter(0),
+                      # Sort by the number of measures, bigger first (reverse)
+                      sorted(
+                          self._list_metric_with_measures_to_process(),
+                          key=operator.itemgetter(1),
+                          reverse=True))
+        if full:
+            return set(metrics)
+        return set(list(metrics)[size * part:size * (part + 1)])
+
     @staticmethod
-    def list_metric_with_measures_to_process(size, part, full=False):
+    def _list_metric_with_measures_to_process():
+        """Return an ordered list of metrics that needs to be processed."""
         raise NotImplementedError
 
     @staticmethod

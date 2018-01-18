@@ -56,3 +56,57 @@ tests:
             - df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e
       response_json_paths:
         $.`len`: 2
+
+    - name: search like created_by_project_id
+      POST: /v1/search/resource/generic
+      request_headers:
+        content-type: application/json
+      data:
+        eq:
+          created_by_project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
+      response_json_paths:
+        $.`len`: 0
+
+    - name: search in_ query string
+      POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
+      request_headers:
+        content-type: application/json
+      response_json_paths:
+        $.`len`: 2
+
+    # NOTE(jd): Does not work: Invalid input: length of value must be at least 1
+    # - name: search empty query
+    #   POST: /v1/search/resource/generic
+    #   request_headers:
+    #     content-type: application/json
+    #   data: {}
+    #   response_json_paths:
+    #     $.`len`: 2
+
+    - name: post generic resource with project/user
+      POST: /v1/resource/generic
+      request_headers:
+        content-type: application/json
+      data:
+          id: 95573760-b085-4e69-9280-91f66fc3ed3c
+          started_at: "2014-01-03T02:02:02.000000"
+      status: 201
+
+    # NOTE(jd): Does not work: Invalid input: length of value must be at least 1
+    # - name: search empty query again
+    #   POST: /v1/search/resource/generic
+    #   request_headers:
+    #     content-type: application/json
+    #   data: {}
+    #   response_json_paths:
+    #     $.`len`: 3
+
+    - name: search all resource not foobar
+      POST: /v1/search/resource/generic
+      request_headers:
+        content-type: application/json
+      data:
+        ne:
+          project_id: foobar
+      response_json_paths:
+        $.`len`: 3
