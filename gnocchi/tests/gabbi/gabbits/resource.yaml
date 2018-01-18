@@ -691,7 +691,6 @@ tests:
       data:
           electron.spin:
               archive_policy_name: medium
-      response_headers:
 
     - name: post metric at instance with empty definition
       POST: $LAST_URL
