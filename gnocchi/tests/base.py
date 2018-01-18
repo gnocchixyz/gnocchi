@@ -41,6 +41,7 @@ from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
 from gnocchi.tests import utils
+from gnocchi import utils as gnocchi_utils
 
 
 class SkipNotImplementedMeta(type):
@@ -331,16 +332,12 @@ class TestCase(BaseTestCase):
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
         self.conf.set_override('driver', storage_driver, 'storage')
 
-        if swexc:
-            self.useFixture(fixtures.MockPatch(
-                'swiftclient.client.Connection',
-                FakeSwiftClient))
-
         if self.conf.storage.driver == 'file':
             tempdir = self.useFixture(fixtures.TempDir())
             self.conf.set_override('file_basepath',
                                    tempdir.path,
                                    'storage')
+
         elif self.conf.storage.driver == 'ceph':
             self.conf.set_override('ceph_conffile',
                                    os.getenv("CEPH_CONF"),
@@ -351,6 +348,28 @@ class TestCase(BaseTestCase):
                     os.getenv("CEPH_CONF"), pool_name), shell=True,
                     stdout=f, stderr=subprocess.STDOUT)
             self.conf.set_override('ceph_pool', pool_name, 'storage')
+
+        elif self.conf.storage.driver == 'swift' and six.PY2:
+            self.conf.set_override("swift_user",
+                                   os.getenv("PIFPAF_SWIFT_USERNAME"),
+                                   "storage")
+            self.conf.set_override("swift_key",
+                                   os.getenv("PIFPAF_SWIFT_PASSWORD"),
+                                   "storage")
+            self.conf.set_override("swift_authurl",
+                                   os.getenv("PIFPAF_SWIFT_AUTH_URL"),
+                                   "storage")
+            self.conf.set_override("swift_container_prefix",
+                                   uuid.uuid4().hex, "storage")
+
+            # FIXME(sileht): For a yet unknown reason, swift tests don't pass
+            # ly a real swift when this is > 1
+            gnocchi_utils.parallel_map.MAX_WORKERS = 1
+
+        elif self.conf.storage.driver == 'swift' and six.PY3:
+            # NOTE(sileht): swift is not py3 ready, so we mock it for py3
+            self.useFixture(fixtures.MockPatch(
+                'gnocchi.common.swift.CustomSwiftConnecion', FakeSwiftClient))
 
         # Override the bucket prefix to be unique to avoid concurrent access
         # with any other test
@@ -364,10 +383,20 @@ class TestCase(BaseTestCase):
             # Create one prefix per test
             self.storage.STORAGE_PREFIX = str(uuid.uuid4()).encode()
 
-        if self.conf.incoming.driver == 'redis':
-            self.incoming.SACK_NAME_FORMAT = (
-                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+        if self.conf.incoming.driver == ['redis', 'swift']:
+            prefix = str(uuid.uuid4()) + "_"
+            self.incoming.CFG_PREFIX = (
+                prefix + incoming.IncomingDriver.CFG_PREFIX
             )
+            self.incoming.SACK_NAME_FORMAT = (
+                prefix + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
+
+        if self.conf.incoming.driver == 'swift' and six.PY2:
+            # NOTE(sileht): makes sure objects are ready in swift after
+            # put_object(), so metricd can found it.
+            self.incoming.STORE_SYNC = True
+            self.storage.STORE_SYNC = True
 
         self.storage.upgrade()
         self.incoming.upgrade(3)

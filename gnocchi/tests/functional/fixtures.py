@@ -32,6 +32,7 @@ from gabbi import fixture
 import numpy
 from oslo_config import cfg
 from oslo_middleware import cors
+import six
 import sqlalchemy_utils
 import yaml
 
@@ -45,6 +46,7 @@ from gnocchi import service
 from gnocchi import storage
 from gnocchi.tests import base
 from gnocchi.tests import utils
+from gnocchi import utils as gnocchi_utils
 
 # NOTE(chdent): Hack to restore semblance of global configuration to
 # pass to the WSGI app used per test suite. LOAD_APP_KWARGS are the olso
@@ -132,6 +134,7 @@ class ConfigFixture(fixture.GabbiFixture):
         conf.set_override('driver', storage_driver, 'storage')
         if conf.storage.driver == 'file':
             conf.set_override('file_basepath', data_tmp_dir, 'storage')
+
         elif conf.storage.driver == 'ceph':
             conf.set_override('ceph_conffile', os.getenv("CEPH_CONF"),
                               'storage')
@@ -141,6 +144,7 @@ class ConfigFixture(fixture.GabbiFixture):
                     os.getenv("CEPH_CONF"), pool_name), shell=True,
                     stdout=f, stderr=subprocess.STDOUT)
             conf.set_override('ceph_pool', pool_name, 'storage')
+
         elif conf.storage.driver == "s3":
             conf.set_override('s3_endpoint_url',
                               os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
@@ -150,10 +154,28 @@ class ConfigFixture(fixture.GabbiFixture):
                               group="storage")
             conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
                               "storage")
-        elif conf.storage.driver == "swift":
+
+        elif conf.storage.driver == 'swift' and six.PY2:
+            conf.set_override("swift_user",
+                              os.getenv("PIFPAF_SWIFT_USERNAME"),
+                              "storage")
+            conf.set_override("swift_key",
+                              os.getenv("PIFPAF_SWIFT_PASSWORD"),
+                              "storage")
+            conf.set_override("swift_authurl",
+                              os.getenv("PIFPAF_SWIFT_AUTH_URL"),
+                              "storage")
+            conf.set_override("swift_container_prefix",
+                              uuid.uuid4().hex, "storage")
+
+            # FIXME(sileht): For a yet unknown reason, swift tests don't pass
+            # on a real swift when this is > 1
+            gnocchi_utils.parallel_map.MAX_WORKERS = 1
+
+        elif conf.storage.driver == 'swift' and six.PY3:
             # NOTE(sileht): This fixture must start before any driver stuff
             swift_fixture = fixtures.MockPatch(
-                'swiftclient.client.Connection',
+                'gnocchi.common.swift.CustomSwiftConnecion',
                 base.FakeSwiftClient)
             swift_fixture.setUp()
 
@@ -182,10 +204,20 @@ class ConfigFixture(fixture.GabbiFixture):
             # Create one prefix per test
             s.STORAGE_PREFIX = str(uuid.uuid4()).encode()
 
-        if conf.incoming.driver == 'redis':
-            i.SACK_NAME_FORMAT = (
-                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+        if conf.incoming.driver in ['redis', 'swift']:
+            prefix = str(uuid.uuid4()) + "_"
+            i.CFG_PREFIX = (
+                prefix + incoming.IncomingDriver.CFG_PREFIX
             )
+            i.SACK_NAME_FORMAT = (
+                prefix + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
+
+        if conf.incoming.driver == 'swift' and six.PY2:
+            # NOTE(sileht): makes sure objects are ready in swift after
+            # put_object(), so metricd can found it.
+            i.STORE_SYNC = True
+            s.STORE_SYNC = True
 
         self.fixtures = [
             fixtures.MockPatch("gnocchi.storage.get_driver",
@@ -201,7 +233,7 @@ class ConfigFixture(fixture.GabbiFixture):
         for f in self.fixtures:
             f.setUp()
 
-        if conf.storage.driver == 'swift':
+        if conf.storage.driver == 'swift' and six.PY3:
             self.fixtures.append(swift_fixture)
 
         LOAD_APP_KWARGS = {

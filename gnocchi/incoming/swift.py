@@ -30,9 +30,15 @@ LOG = daiquiri.getLogger(__name__)
 
 
 class SwiftStorage(incoming.IncomingDriver):
+
+    # NOTE(sileht): Set by test to ensure measures are sync on disk
+    # before metricd use get_container() to list them
+    STORE_SYNC = False
+
     def __init__(self, conf, greedy=True):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
+        # FIXME(sileht): Should we use conf.swift_container_prefix ?
 
     def __str__(self):
         return self.__class__.__name__
@@ -48,16 +54,26 @@ class SwiftStorage(incoming.IncomingDriver):
         for sack in self.iter_sacks():
             self.swift.put_container(str(sack))
 
+        if self.STORE_SYNC:
+            self.swift.get_container(self.CFG_PREFIX)
+            self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)
+            for sack in self.iter_sacks():
+                self.swift.get_container(str(sack))
+
     def remove_sacks(self):
         for sack in self.iter_sacks():
             self.swift.delete_container(str(sack))
 
     def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
+        name = str(metric_id) + "/" + str(uuid.uuid4()) + now
         self.swift.put_object(
             str(self.sack_for_metric(metric_id)),
-            str(metric_id) + "/" + str(uuid.uuid4()) + now,
-            data)
+            name, data)
+
+        if self.STORE_SYNC:
+            self.swift.get_object(
+                str(self.sack_for_metric(metric_id)), name)
 
     def _build_report(self, details):
         metric_details = defaultdict(int)

@@ -92,6 +92,8 @@ class SwiftStorage(storage.StorageDriver):
 
     WRITE_FULL = True
 
+    STORE_SYNC = False
+
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
@@ -121,12 +123,20 @@ class SwiftStorage(storage.StorageDriver):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
+        if self.STORE_SYNC:
+            self.swift.get_container(self._container_name(metric))
+
     def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
                                        offset, version):
         self.swift.put_object(
             self._container_name(metric),
             self._object_name(key, aggregation.method, version),
             data)
+
+        if self.STORE_SYNC:
+            self.swift.get_object(
+                self._container_name(metric),
+                self._object_name(key, aggregation.method, version))
 
     def _delete_metric_splits_unbatched(
             self, metric, key, aggregation, version=3):
@@ -223,3 +233,9 @@ class SwiftStorage(storage.StorageDriver):
             self._container_name(metric),
             self._build_unaggregated_timeserie_path(version),
             data)
+
+        if self.STORE_SYNC:
+            self.swift.get_object(
+                self._container_name(metric),
+                self._build_unaggregated_timeserie_path(version)
+            )
