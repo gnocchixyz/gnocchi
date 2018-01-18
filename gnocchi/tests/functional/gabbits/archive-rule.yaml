@@ -101,7 +101,7 @@ tests:
         metric_pattern: "disk.foo.*"
       status: 400
       response_strings:
-        - "Archive policy does not exist"
+        - "Archive policy not-exists does not exist"
 
     - name: missing auth archive policy rule
       POST: /v1/archive_policy_rule
