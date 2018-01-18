@@ -36,6 +36,10 @@ def create_rados_connection(conf):
         options['keyring'] = conf.ceph_keyring
     if conf.ceph_secret:
         options['key'] = conf.ceph_secret
+    if conf.ceph_timeout:
+        options['rados_osd_op_timeout'] = conf.ceph_timeout
+        options['rados_mon_op_timeout'] = conf.ceph_timeout
+        options['client_mount_timeout'] = conf.ceph_timeout
 
     if not rados:
         raise ImportError("No module named 'rados' nor 'cradox'")

@@ -43,7 +43,7 @@ class UUIDSchema(resource_type.UUIDSchema, SchemaMixin):
 
     def for_filling(self, dialect):
         if self.fill is None:
-            return False  # Don't set any server_default
+            return None
         return sqlalchemy.literal(
             self.satype.process_bind_param(self.fill, dialect))
 

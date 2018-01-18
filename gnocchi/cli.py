@@ -83,6 +83,13 @@ def statsd():
     statsd_service.start()
 
 
+# Retry with exponential backoff for up to 1 minute
+_wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
+
+
+retry_on_exception = tenacity.Retrying(wait=_wait_exponential).call
+
+
 class MetricProcessBase(cotyledon.Service):
     def __init__(self, worker_id, conf, interval_delay=0):
         super(MetricProcessBase, self).__init__(worker_id)
@@ -93,8 +100,8 @@ class MetricProcessBase(cotyledon.Service):
         self._shutdown_done = threading.Event()
 
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
+        self.store = retry_on_exception(storage.get_driver, self.conf)
+        self.index = retry_on_exception(indexer.get_driver, self.conf)
         self.index.connect()
 
     def run(self):
@@ -151,14 +158,12 @@ class MetricScheduler(MetricProcessBase):
     MAX_OVERLAP = 0.3
     GROUP_ID = "gnocchi-scheduler"
     SYNC_RATE = 30
-    TASKS_PER_WORKER = 16
     BLOCK_SIZE = 4
 
     def __init__(self, worker_id, conf, queue):
         super(MetricScheduler, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
-        self._coord, self._my_id = utils.get_coordinator_and_start(
-            conf.storage.coordination_url)
+        self.TASKS_PER_WORKER = conf.metricd.tasks_per_worker
         self.queue = queue
         self.previously_scheduled_metrics = set()
         self.workers = conf.metricd.workers
@@ -190,9 +195,15 @@ class MetricScheduler(MetricProcessBase):
             self.block_index = 0
             self.block_size = self.block_size_default
 
-    @utils.retry
+    @tenacity.retry(
+        wait=_wait_exponential,
+        # Never retry except when explicitly asked by raising TryAgain
+        retry=tenacity.retry_never)
     def _configure(self):
         super(MetricScheduler, self)._configure()
+        self._coord, self._my_id = retry_on_exception(
+            utils.get_coordinator_and_start,
+            self.conf.storage.coordination_url)
         try:
             cap = msgpack.dumps({'workers': self.workers})
             join_req = self._coord.join_group(self.GROUP_ID, cap)

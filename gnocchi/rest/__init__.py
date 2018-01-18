@@ -556,6 +556,7 @@ class MetricsController(rest.RestController):
                 pecan.request.headers)
             if provided_creator and creator != provided_creator:
                 abort(403, "Insufficient privileges to filter by user/project")
+            provided_creator = creator
         attr_filter = {}
         if provided_creator is not None:
             attr_filter['creator'] = provided_creator
@@ -1140,6 +1141,12 @@ def ResourceSearchSchema(v):
     return _ResourceSearchSchema()(v)
 
 
+# NOTE(sileht): indexer will cast this type to the real attribute
+# type, here we just want to be sure this is not a dict or a list
+ResourceSearchSchemaAttributeValue = voluptuous.Any(
+    six.text_type, float, int, bool, None)
+
+
 def _ResourceSearchSchema():
     user = pecan.request.auth_helper.get_current_user(
         pecan.request.headers)
@@ -1156,21 +1163,26 @@ def _ResourceSearchSchema():
                     u"<=", u"≤", u"le",
                     u">=", u"≥", u"ge",
                     u"!=", u"≠", u"ne",
-                    u"in",
-                    u"like",
+                    u"like"
                 ): voluptuous.All(
                     voluptuous.Length(min=1, max=1),
-                    voluptuous.Any(
-                        {"id": voluptuous.Any(
-                            [_ResourceUUID], _ResourceUUID),
-                         voluptuous.Extra: voluptuous.Extra})),
+                    {"id": _ResourceUUID,
+                     six.text_type: ResourceSearchSchemaAttributeValue},
+                ),
+                voluptuous.Any(
+                    u"in",
+                ): voluptuous.All(
+                    voluptuous.Length(min=1, max=1),
+                    {"id": [_ResourceUUID],
+                     six.text_type: [ResourceSearchSchemaAttributeValue]}
+                ),
                 voluptuous.Any(
                     u"and", u"∨",
                     u"or", u"∧",
-                    u"not",
                 ): voluptuous.All(
                     [ResourceSearchSchema], voluptuous.Length(min=1)
-                )
+                ),
+                u"not": ResourceSearchSchema,
             }
         )
     )
@@ -1616,9 +1628,9 @@ class AggregationController(rest.RestController):
         except storage.MetricUnaggregatable as e:
             abort(400, ("One of the metrics being aggregated doesn't have "
                         "matching granularity: %s") % str(e))
-        except storage.MetricDoesNotExist as e:
-            abort(404, e)
-        except storage.AggregationDoesNotExist as e:
+        except (storage.MetricDoesNotExist,
+                storage.GranularityDoesNotExist,
+                storage.AggregationDoesNotExist) as e:
             abort(404, e)
 
     @pecan.expose('json')

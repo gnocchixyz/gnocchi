@@ -15,7 +15,6 @@ from collections import defaultdict
 import contextlib
 import datetime
 import errno
-import functools
 import itertools
 import uuid
 
@@ -140,14 +139,13 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
                 return ()
             return (k for k, v in omaps)
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        names = self._list_object_names_to_process(limit=-1 if full else
-                                                   size * (part + 1))
-        if full:
-            objs_it = names
-        else:
-            objs_it = itertools.islice(names, size * part, size * (part + 1))
-        return set([name.split("_")[1] for name in objs_it])
+    def _list_metric_with_measures_to_process(self):
+        # Sort measures objects per metric id
+        names = sorted(o.split("_")[1]
+                       for o in self._list_object_names_to_process())
+        # Group per metric id and store len() of the number of measures
+        return ((metric, len(list(measures)))
+                for metric, measures in itertools.groupby(names))
 
     def delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
@@ -169,35 +167,9 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
         object_names = list(self._list_object_names_to_process(object_prefix))
 
         measures = []
-        ops = []
-        bufsize = 8192  # Same sa rados_read one
-
-        tmp_measures = {}
-
-        def add_to_measures(name, comp, data):
-            if name in tmp_measures:
-                tmp_measures[name] += data
-            else:
-                tmp_measures[name] = data
-            if len(data) < bufsize:
-                measures.extend(self._unserialize_measures(name,
-                                                           tmp_measures[name]))
-                del tmp_measures[name]
-            else:
-                ops.append(self.ioctx.aio_read(
-                    name, bufsize, len(tmp_measures[name]),
-                    functools.partial(add_to_measures, name)
-                ))
-
-        for name in object_names:
-            ops.append(self.ioctx.aio_read(
-                name, bufsize, 0,
-                functools.partial(add_to_measures, name)
-            ))
-
-        while ops:
-            op = ops.pop()
-            op.wait_for_complete_and_cb()
+        for n in object_names:
+            data = self._get_object_content(n)
+            measures.extend(self._unserialize_measures(n, data))
 
         yield measures
 
@@ -211,3 +183,14 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
         for n in object_names:
             self.ioctx.aio_remove(n)
+
+    def _get_object_content(self, name):
+        offset = 0
+        content = b''
+        while True:
+            data = self.ioctx.read(name, offset=offset)
+            if not data:
+                break
+            content += data
+            offset += len(data)
+        return content

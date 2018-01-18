@@ -65,7 +65,7 @@ def list_opts():
                        help='Number of workers for Gnocchi metric daemons. '
                        'By default the available number of CPU is used.'),
             cfg.IntOpt('metric_processing_delay',
-                       default=60,
+                       default=30,
                        required=True,
                        deprecated_group='storage',
                        help="How many seconds to wait between "
@@ -84,6 +84,11 @@ def list_opts():
                        required=True,
                        help="How many seconds to wait between "
                        "cleaning of expired data"),
+            cfg.IntOpt('tasks_per_worker',
+                       default=256,
+                       min=1,
+                       help="How many tasks to assign each metricd worker "
+                       "when scheduling measures processing jobs"),
         )),
         ("api", (
             cfg.StrOpt('paste_config',

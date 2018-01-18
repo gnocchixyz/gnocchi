@@ -24,13 +24,14 @@ except ImportError:
     swift_utils = None
 
 from gnocchi import storage
-from gnocchi import utils
 
 LOG = log.getLogger(__name__)
 
 
-@utils.retry
-def _get_connection(conf):
+def get_connection(conf):
+    if swclient is None:
+        raise RuntimeError("python-swiftclient unavailable")
+
     return swclient.Connection(
         auth_version=conf.swift_auth_version,
         authurl=conf.swift_authurl,
@@ -42,13 +43,6 @@ def _get_connection(conf):
         os_options={'endpoint_type': conf.swift_endpoint_type,
                     'user_domain_name': conf.swift_user_domain_name},
         retries=0)
-
-
-def get_connection(conf):
-    if swclient is None:
-        raise RuntimeError("python-swiftclient unavailable")
-
-    return _get_connection(conf)
 
 
 POST_HEADERS = {'Accept': 'application/json', 'Content-Type': 'text/plain'}

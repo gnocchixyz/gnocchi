@@ -14,6 +14,7 @@
 from collections import defaultdict
 import contextlib
 import datetime
+import itertools
 import uuid
 
 from oslo_log import log
@@ -60,17 +61,12 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
         measures = int(headers.get('x-container-object-count'))
         return nb_metrics, measures, metric_details if details else None
 
-    def list_metric_with_measures_to_process(self, size, part, full=False):
-        limit = None
-        if not full:
-            limit = size * (part + 1)
+    def _list_metric_with_measures_to_process(self):
         headers, files = self.swift.get_container(self.MEASURE_PREFIX,
-                                                  delimiter='/',
-                                                  full_listing=full,
-                                                  limit=limit)
-        if not full:
-            files = files[size * part:]
-        return set(f['subdir'][:-1] for f in files if 'subdir' in f)
+                                                  full_listing=True)
+        names = sorted(f['name'].split("/", 1)[0] for f in files)
+        return ((metric, len(list(measures)))
+                for metric, measures in itertools.groupby(names))
 
     def _list_measure_files_for_metric_id(self, metric_id):
         headers, files = self.swift.get_container(

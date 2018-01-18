@@ -96,3 +96,6 @@ class TestArchivePolicyItem(base.BaseTestCase):
         self.assertRaises(ValueError,
                           archive_policy.ArchivePolicyItem,
                           1, -1)
+        self.assertRaises(ValueError,
+                          archive_policy.ArchivePolicyItem,
+                          2, None, 1)
