@@ -51,9 +51,12 @@ class MetricReference(object):
                 self.aggregation == other.aggregation)
 
 
-def _get_measures_timeserie(storage, ref, *args, **kwargs):
+def _get_measures_timeserie(storage, ref, granularity, *args, **kwargs):
     return (ref, storage._get_measures_timeserie(
-        ref.metric, ref.aggregation, *args, **kwargs))
+        ref.metric,
+        ref.metric.archive_policy.get_aggregation(
+            ref.aggregation, granularity),
+        *args, **kwargs))
 
 
 def get_measures(storage, references, operations,

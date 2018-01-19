@@ -23,6 +23,7 @@ from oslo_config import cfg
 from oslo_config import types
 import six
 
+from gnocchi import aggregation
 from gnocchi import utils
 
 
@@ -85,6 +86,19 @@ class ArchivePolicy(object):
             self.aggregation_methods = self.DEFAULT_AGGREGATION_METHODS
         else:
             self.aggregation_methods = aggregation_methods
+
+    def get_aggregation(self, method, granularity):
+        # Find the timespan
+        for d in self.definition:
+            if d.granularity == granularity:
+                return aggregation.Aggregation(
+                    method, d.granularity, d.timespan)
+
+    @property
+    def aggregations(self):
+        return [aggregation.Aggregation(method, d.granularity, d.timespan)
+                for method in self.aggregation_methods
+                for d in self.definition]
 
     @property
     def aggregation_methods(self):
