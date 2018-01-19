@@ -65,7 +65,10 @@ def create_rados_connection(conf):
     conn = rados.Rados(conffile=conf.ceph_conffile,
                        rados_id=conf.ceph_username,
                        conf=options)
-    conn.connect()
+    try:
+        conn.connect()
+    except rados.InvalidArgumentError:
+        raise Exception("Unable to connect to ceph, check the configuration")
     ioctx = conn.open_ioctx(conf.ceph_pool)
     return conn, ioctx
 
