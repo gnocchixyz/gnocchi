@@ -41,11 +41,6 @@ tests:
         archive_policy_name: medium
       status: 201
 
-# The top of the API is a bit confusing and presents some URIs which
-# are not very useful. This isn't strictly a bug but does represent
-# a measure of unfriendliness that we may wish to address. Thus the
-# xfails.
-
     - name: root of all
       GET: /
       response_headers:
