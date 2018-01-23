@@ -547,10 +547,9 @@ class MetricsController(rest.RestController):
         except ValueError:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
 
-        # NOTE(sileht): Don't get detail for measure
-        details = len(remainder) == 0
+        # Load details for ACL
         metrics = pecan.request.indexer.list_metrics(
-            id=metric_id, details=details)
+            id=metric_id, details=True)
         if not metrics:
             abort(404, six.text_type(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
