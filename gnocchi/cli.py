@@ -178,7 +178,11 @@ class MetricScheduler(MetricProcessBase):
         get_members_req = self._coord.get_members(self.GROUP_ID)
         try:
             members = sorted(get_members_req.get())
-            self.block_index = members.index(self._my_id)
+            try:
+                self.block_index = members.index(self._my_id)
+            except ValueError:
+                LOG.error('Unable to find myself in group, restarting')
+                raise SystemExit(6)
             reqs = list(self._coord.get_member_capabilities(self.GROUP_ID, m)
                         for m in members)
             for req in reqs:
