@@ -165,7 +165,10 @@ class MetricScheduler(MetricProcessBase):
             try:
                 self.block_index = members.index(self._my_id)
             except ValueError:
-                LOG.error('Unable to find myself in group, restarting')
+                # NOTE(sileht): we didn't stop and wait the periodic
+                # because set_block() is the periodic method, so just
+                # close the coordinator and exit
+                self.close_coordinator()
                 raise SystemExit(6)
             reqs = list(self._coord.get_member_capabilities(self.GROUP_ID, m)
                         for m in members)
@@ -248,6 +251,9 @@ class MetricScheduler(MetricProcessBase):
         if self.periodic:
             self.periodic.stop()
             self.periodic.wait()
+        self.close_coordinator()
+
+    def close_coordinator(self):
         self._coord.leave_group(self.GROUP_ID)
         self._coord.stop()
 
