@@ -112,7 +112,7 @@ def get_client(conf):
         sentinel_hosts.insert(0, (kwargs['host'], kwargs['port']))
         sentinel_server = sentinel.Sentinel(
             sentinel_hosts,
-            socket_timeout=kwargs['socket_timeout'])
+            socket_timeout=kwargs.get('socket_timeout'))
         sentinel_name = kwargs['sentinel']
         del kwargs['sentinel']
         if 'sentinel_fallback' in kwargs:
