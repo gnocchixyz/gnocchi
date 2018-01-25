@@ -85,9 +85,12 @@ class MetricProcessBase(cotyledon.Service):
 
     @utils.retry
     def _configure(self):
-        self.store = storage.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
-        self.index.connect()
+        try:
+            self.store = storage.get_driver(self.conf)
+            self.index = indexer.get_driver(self.conf)
+            self.index.connect()
+        except Exception as e:
+            raise utils.Retry(e)
 
     def run(self):
         self._configure()
