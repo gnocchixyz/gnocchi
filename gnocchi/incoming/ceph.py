@@ -214,7 +214,8 @@ class CephStorage(incoming.IncomingDriver):
 
         measures = self._make_measures_array()
         for k, v in omaps:
-            measures = numpy.append(measures, self._unserialize_measures(k, v))
+            measures = numpy.concatenate(
+                (measures, self._unserialize_measures(k, v)))
             processed_keys.append(k)
 
         yield measures
