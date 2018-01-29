@@ -387,12 +387,19 @@ To create a generic |resource|:
 
 {{ scenarios['create-resource-generic']['doc'] }}
 
-The *id*, *user_id* and *project_id* attributes must be an UUID. The timestamp
+The *user_id* and *project_id* attributes must be UUIDs. The timestamp
 describing the lifespan of the |resource| are optional, and *started_at* is by
 default set to the current timestamp.
 
-It's possible to retrieve the |resource| by the URL provided in the `Location`
-header.
+The *id* attribute may be a UUID or some other arbitrary string.  If it is
+not a UUID, the original value will be stored in the *original_resource_id*
+attribute and Gnocchi will generate a new UUID that is unique for the user.
+That is, if two users create resources with the same non-UUID *id* field,
+the resources will have different UUIDs.
+
+You may use either of the *id* or the *original_resource_id* attributes to
+refer to the |resource|.  The value returned by the create operation
+includes a `Location` header referencing the *id*.
 
 Non-generic resources
 ~~~~~~~~~~~~~~~~~~~~~
