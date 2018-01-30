@@ -478,6 +478,32 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIn('foo', metric_names)
         self.assertIn('bar', metric_names)
 
+    def test_update_resource_metrics_append_after_delete(self):
+        r1 = uuid.uuid4()
+        m1 = uuid.uuid4()
+        m2 = uuid.uuid4()
+        m3 = uuid.uuid4()
+        creator = str(uuid.uuid4())
+        self.index.create_metric(m1, creator,
+                                 archive_policy_name="low")
+        self.index.create_metric(m2, creator,
+                                 archive_policy_name="low")
+        self.index.create_metric(m3, creator,
+                                 archive_policy_name="low")
+        self.index.create_resource('generic', r1, creator,
+                                   metrics={'foo': m1})
+        rc = self.index.update_resource('generic', r1, metrics={'bar': m2},
+                                        append_metrics=True)
+        self.index.delete_metric(m1)
+        rc = self.index.update_resource('generic', r1, metrics={'foo': m3},
+                                        append_metrics=True)
+        r = self.index.get_resource('generic', r1, with_metrics=True)
+        self.assertEqual(rc, r)
+        metric_names = [m.name for m in rc.metrics]
+        self.assertEqual(2, len(metric_names))
+        self.assertIn('foo', metric_names)
+        self.assertIn('bar', metric_names)
+
     def test_update_resource_metrics_append_fail(self):
         r1 = uuid.uuid4()
         e1 = uuid.uuid4()
