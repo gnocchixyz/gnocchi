@@ -153,7 +153,7 @@ def list_opts():
                        deprecated_group='storage',
                        default=300,
                        required=True,
-                       help="How many seconds to wait between "
+                       help="How many seconds to wait (at least) between "
                        "cleaning of expired data"),
             cfg.IntOpt('processing_replicas',
                        default=3,
