@@ -180,6 +180,34 @@ tests:
       response_headers:
         content-length: 0
 
+    - name: push measurements to unknown named metrics and create it with new format
+      POST: /v1/batch/resources/metrics/measures?create_metrics=true
+      data:
+        46c9418d-d63b-4cdd-be89-8f57ffc5952e:
+          newformat:
+            archive_policy_name: simple
+            unit: "ks"
+            measures:
+              - timestamp: "2015-03-06T14:33:57"
+                value: 43.1
+              - timestamp: "2015-03-06T14:34:12"
+                value: 42
+          auto.newformat:
+            measures:
+              - timestamp: "2015-03-06T14:33:57"
+                value: 43.1
+              - timestamp: "2015-03-06T14:34:12"
+                value: 24
+          auto.test:
+            measures:
+              - timestamp: "2015-03-06T14:33:57"
+                value: 43.1
+              - timestamp: "2015-03-06T14:35:12"
+                value: 24
+      status: 202
+      response_headers:
+        content-length: 0
+
     - name: get created metric to check creation
       GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.test
 
@@ -188,6 +216,25 @@ tests:
       response_json_paths:
         $:
           - ["2015-03-06T14:34:12+00:00", 1.0, 12.0]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 24.0]
+
+    - name: get created metric to check creation with newformat
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/newformat
+
+    - name: get created metric to check creation with newformat2
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.newformat
+
+    - name: ensure measure have been posted with newformat
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/newformat/measures?refresh=true&start=2015-03-06T14:34
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 42.0]
+
+    - name: ensure measure have been posted with newformat2
+      GET: /v1/resource/generic/46c9418d-d63b-4cdd-be89-8f57ffc5952e/metric/auto.newformat/measures?refresh=true&start=2015-03-06T14:34
+      response_json_paths:
+        $:
+          - ["2015-03-06T14:34:12+00:00", 1.0, 24.0]
 
     - name: push measurements to unknown named metrics and resource with create_metrics with uuid resource id
       POST: /v1/batch/resources/metrics/measures?create_metrics=true
@@ -202,10 +249,11 @@ tests:
               value: 12
         bbbbbbbb-d63b-4cdd-be89-111111111111:
           auto.test:
-            - timestamp: "2015-03-06T14:33:57"
-              value: 43.1
-            - timestamp: "2015-03-06T14:34:12"
-              value: 12
+            measures:
+              - timestamp: "2015-03-06T14:33:57"
+                value: 43.1
+              - timestamp: "2015-03-06T14:34:12"
+                value: 12
       status: 400
       response_json_paths:
           $.description.cause: "Unknown resources"
@@ -275,4 +323,4 @@ tests:
             - [ "2015-03-06T14:34:12", 12]
       status: 400
       response_strings:
-        - "Invalid format for measures"
+        - "unexpected measures format"
