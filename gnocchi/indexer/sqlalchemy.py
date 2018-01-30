@@ -1082,7 +1082,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with self.facade.writer() as session:
             if session.query(Metric).filter(
                 Metric.id == id, Metric.status == 'active').update(
-                    {"status": "delete"}) == 0:
+                    {"status": "delete", "resource_id": None}) == 0:
                 raise indexer.NoSuchMetric(id)
 
     @staticmethod
