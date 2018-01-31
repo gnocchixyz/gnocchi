@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    A new format for the batch payload is available to allow to pass
+    the archive policy description
