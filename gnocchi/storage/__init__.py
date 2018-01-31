@@ -514,7 +514,7 @@ class StorageDriver(object):
             LOG.debug("Skipping %s (already processed)", metric)
             return
 
-        measures.sort(order='timestamps')
+        measures = numpy.sort(measures, order='timestamps')
 
         agg_methods = list(metric.archive_policy.aggregation_methods)
         block_size = metric.archive_policy.max_block_size
