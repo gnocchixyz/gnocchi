@@ -73,10 +73,9 @@ return ids
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):
-        key = self._metric_key(metric)
-        if self._client.exists(key):
+        if self._client.hsetnx(
+                self._metric_key(metric), self._unaggregated_field(), "") == 0:
             raise storage.MetricAlreadyExists(metric)
-        self._client.hset(key, self._unaggregated_field(), '')
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self._client.hset(self._metric_key(metric),
