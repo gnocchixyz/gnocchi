@@ -230,6 +230,8 @@ class StorageDriver(object):
                                       for ts in agg_timeseries]))
 
     def _get_measures_and_unserialize(self, metric, keys, aggregation):
+        if not keys:
+            return []
         raw_measures = self._get_measures(metric, keys, aggregation)
         results = []
         for key, raw in six.moves.zip(keys, raw_measures):

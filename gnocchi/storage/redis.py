@@ -93,6 +93,8 @@ class RedisStorage(storage.StorageDriver):
         self._client.delete(self._metric_key(metric))
 
     def _get_measures(self, metric, keys, aggregation, version=3):
+        if not keys:
+            return []
         redis_key = self._metric_key(metric)
         fields = [
             self._aggregated_field_for_split(aggregation, key, version)
