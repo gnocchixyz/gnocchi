@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2017 Red Hat
+# Copyright © 2017-2018 Red Hat
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 from oslo_config import cfg
+import six
 from six.moves.urllib import parse
 
 try:
@@ -106,7 +107,7 @@ OPTS = [
 ]
 
 
-def get_client(conf):
+def get_client(conf, scripts=None):
     if redis is None:
         raise RuntimeError("Redis Python module is unavailable")
     parsed_url = parse.urlparse(conf.redis_url)
@@ -156,4 +157,13 @@ def get_client(conf):
         # The master_client is a redis.StrictRedis using a
         # Sentinel managed connection pool.
         return master_client
-    return redis.StrictRedis(**kwargs)
+
+    client = redis.StrictRedis(**kwargs)
+
+    if scripts is not None:
+        scripts = {
+            name: client.register_script(code)
+            for name, code in six.iteritems(scripts)
+        }
+
+    return client, scripts
