@@ -68,8 +68,6 @@ class RedisStorage(storage.StorageDriver):
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
         key = self._metric_key(metric)
-        if not self._client.exists(key):
-            raise storage.MetricDoesNotExist(metric)
         split_keys = set()
         hashes = self._client.hscan_iter(
             key, match=self._aggregated_field_for_split(
@@ -77,6 +75,8 @@ class RedisStorage(storage.StorageDriver):
         for f, __ in hashes:
             meta = f.decode("utf8").split(self.FIELD_SEP, 1)
             split_keys.add(meta[0])
+        if not split_keys and not self._client.exists(key):
+            raise storage.MetricDoesNotExist(metric)
         return split_keys
 
     def _delete_metric_measures(self, metric, key, aggregation, version=3):
