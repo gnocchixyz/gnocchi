@@ -169,8 +169,8 @@ class FileStorage(incoming.IncomingDriver):
         for f in files:
             abspath = self._build_measure_path(metric_id, f)
             with open(abspath, "rb") as e:
-                measures = numpy.append(
-                    measures, self._unserialize_measures(f, e.read()))
+                measures = numpy.concatenate((
+                    measures, self._unserialize_measures(f, e.read())))
 
         yield measures
 

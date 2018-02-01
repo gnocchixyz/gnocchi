@@ -96,7 +96,7 @@ def combine_timeseries(ts1, ts2):
     :param ts: The timeseries to combine.
     :return: A new timeseries.
     """
-    ts = numpy.append(ts1, ts2)
+    ts = numpy.concatenate((ts1, ts2))
     _, index = numpy.unique(ts['timestamps'], return_index=True)
     return ts[index]
 
