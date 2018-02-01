@@ -191,7 +191,7 @@ def handle_resample(agg, granularity, timestamps, values, is_aggregated,
         if new_values is None:
             new_values = numpy.array([ts["values"]])
         else:
-            new_values = numpy.append(new_values, [ts["values"]], axis=0)
+            new_values = numpy.concatenate((new_values, [ts["values"]]))
     return sampling, result_timestamps, new_values.T, is_aggregated
 
 
