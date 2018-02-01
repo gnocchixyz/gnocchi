@@ -27,9 +27,36 @@ class RedisStorage(storage.StorageDriver):
     STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
 
+    _SCRIPTS = {
+        "list_split_keys": """
+local metric_key = KEYS[1]
+local ids = {}
+local cursor = 0
+local substring = "([^" .. ARGV[2] .. "]*)"
+repeat
+    local result = redis.call("HSCAN", metric_key, cursor, "MATCH", ARGV[1])
+    cursor = tonumber(result[1])
+    for i, v in ipairs(result[2]) do
+        -- Only return keys, not values
+        if i % 2 ~= 0 then
+            ids[#ids + 1] = v:gmatch(substring)()
+        end
+    end
+until cursor == 0
+if #ids == 0 and redis.call("EXISTS", metric_key) == 0 then
+    return -1
+end
+return ids
+""",
+    }
+
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
+        self._scripts = {
+            name: self._client.register_script(code)
+            for name, code in six.iteritems(self._SCRIPTS)
+        }
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)
@@ -68,16 +95,12 @@ class RedisStorage(storage.StorageDriver):
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
         key = self._metric_key(metric)
-        split_keys = set()
-        hashes = self._client.hscan_iter(
-            key, match=self._aggregated_field_for_split(
-                aggregation, '*', version, granularity))
-        for f, __ in hashes:
-            meta = f.decode("utf8").split(self.FIELD_SEP, 1)
-            split_keys.add(meta[0])
-        if not split_keys and not self._client.exists(key):
+        split_keys = self._scripts["list_split_keys"](
+            keys=[key], args=[self._aggregated_field_for_split(
+                aggregation, '*', version, granularity), self.FIELD_SEP])
+        if split_keys == -1:
             raise storage.MetricDoesNotExist(metric)
-        return split_keys
+        return set(split_keys)
 
     def _delete_metric_measures(self, metric, key, aggregation, version=3):
         field = self._aggregated_field_for_split(aggregation, key, version)
