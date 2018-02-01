@@ -249,6 +249,19 @@ tests:
             value: -23
       status: 202
 
+    - name: push measurements with wrong measure objects
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
+      request_headers:
+        accept: application/json
+      data:
+        - [ "2015-03-06T14:33:57", 43.1]
+        - [ "2015-03-06T14:34:12", 12]
+      status: 400
+      response_json_paths:
+        $.description.cause: "Attribute value error"
+        $.description.detail: []
+        $.description.reason: "unexpected measures format"
+
     - name: refresh metric
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
 
