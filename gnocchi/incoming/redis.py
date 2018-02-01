@@ -110,10 +110,8 @@ class RedisStorage(incoming.IncomingDriver):
         # lrange is inclusive on both ends, decrease to grab exactly n items
         item_len = item_len - 1 if item_len else item_len
 
-        yield self._array_concatenate([
-            self._unserialize_measures('%s-%s' % (metric_id, i), data)
-            for i, data in enumerate(self._client.lrange(key, 0, item_len))
-        ])
+        yield self._unserialize_measures(metric_id, b"".join(
+            self._client.lrange(key, 0, item_len)))
 
         # ltrim is inclusive, bump 1 to remove up to and including nth item
         self._client.ltrim(key, item_len + 1, -1)
