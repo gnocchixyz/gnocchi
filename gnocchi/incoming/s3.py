@@ -167,10 +167,10 @@ class S3Storage(incoming.IncomingDriver):
             response = self.s3.get_object(
                 Bucket=self._bucket_name_measures,
                 Key=f)
-            measures = numpy.append(
+            measures = numpy.concatenate((
                 measures,
                 self._unserialize_measures(f, response['Body'].read())
-            )
+            ))
 
         yield measures
 
