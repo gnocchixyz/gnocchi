@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2017 Red Hat
+# Copyright © 2017-2018 Red Hat
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -14,8 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import six
-
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
@@ -26,6 +24,7 @@ class RedisStorage(storage.StorageDriver):
 
     STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
+    FIELD_SEP_B = b'_'
 
     _SCRIPTS = {
         "list_split_keys": """
@@ -47,6 +46,21 @@ if #ids == 0 and redis.call("EXISTS", metric_key) == 0 then
     return -1
 end
 return ids
+""",
+        "get_measures": """
+local results = redis.call("HMGET", KEYS[1], unpack(ARGV))
+local final = {}
+for i, result in ipairs(results) do
+    if result == false then
+        local field = ARGV[i]
+        if redis.call("EXISTS", KEYS[1]) == 1 then
+            return {-1, field}
+        end
+        return {-2, field}
+    end
+    final[#final + 1] = result
+end
+return {0, final}
 """,
     }
 
@@ -114,16 +128,18 @@ return ids
     def _get_measures(self, metric, keys, aggregation, version=3):
         if not keys:
             return []
-        redis_key = self._metric_key(metric)
         fields = [
             self._aggregated_field_for_split(aggregation, key, version)
             for key in keys
         ]
-        results = self._client.hmget(redis_key, fields)
-        for key, data in six.moves.zip(keys, results):
-            if data is None:
-                if not self._client.exists(redis_key):
-                    raise storage.MetricDoesNotExist(metric)
-                raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
-        return results
+        code, result = self._scripts['get_measures'](
+            keys=[self._metric_key(metric)],
+            args=fields,
+        )
+        if code == -1:
+            sampling = utils.to_timespan(result.split(self.FIELD_SEP_B)[2])
+            raise storage.AggregationDoesNotExist(
+                metric, aggregation, sampling)
+        if code == -2:
+            raise storage.MetricDoesNotExist(metric)
+        return result
