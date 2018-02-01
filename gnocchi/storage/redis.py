@@ -52,11 +52,7 @@ return ids
 
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
-        self._client = redis.get_client(conf)
-        self._scripts = {
-            name: self._client.register_script(code)
-            for name, code in six.iteritems(self._SCRIPTS)
-        }
+        self._client, self._scripts = redis.get_client(conf, self._SCRIPTS)
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)

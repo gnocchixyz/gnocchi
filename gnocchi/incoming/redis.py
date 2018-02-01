@@ -23,9 +23,18 @@ from gnocchi import incoming
 
 class RedisStorage(incoming.IncomingDriver):
 
+    _SCRIPTS = {
+        "process_measure_for_metric": """
+local llen = redis.call("LLEN", KEYS[1])
+-- lrange is inclusive on both ends, decrease to grab exactly n items
+if llen > 0 then llen = llen - 1 end
+return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
+""",
+    }
+
     def __init__(self, conf, greedy=True):
         super(RedisStorage, self).__init__(conf)
-        self._client = redis.get_client(conf)
+        self._client, self._scripts = redis.get_client(conf, self._SCRIPTS)
         self.greedy = greedy
 
     def __str__(self):
@@ -106,12 +115,11 @@ class RedisStorage(incoming.IncomingDriver):
     @contextlib.contextmanager
     def process_measure_for_metric(self, metric_id):
         key = self._build_measure_path(metric_id)
-        item_len = self._client.llen(key)
-        # lrange is inclusive on both ends, decrease to grab exactly n items
-        item_len = item_len - 1 if item_len else item_len
+        item_len, data = self._scripts['process_measure_for_metric'](
+            keys=[key],
+        )
 
-        yield self._unserialize_measures(metric_id, b"".join(
-            self._client.lrange(key, 0, item_len)))
+        yield self._unserialize_measures(metric_id, data)
 
         # ltrim is inclusive, bump 1 to remove up to and including nth item
         self._client.ltrim(key, item_len + 1, -1)
