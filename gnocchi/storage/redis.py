@@ -22,33 +22,28 @@ from gnocchi import utils
 class RedisStorage(storage.StorageDriver):
     WRITE_FULL = True
 
-    STORAGE_PREFIX = b"timeseries"
-    FIELD_SEP = '_'
-    FIELD_SEP_B = b'_'
+    STORAGE_PREFIX = "timeseries"
 
     _SCRIPTS = {
         "list_split_keys": """
 local metric_key = KEYS[1]
 local ids = {}
 local cursor = 0
-local substring = "([^" .. ARGV[2] .. "]*)"
+local substring = "[^%s]*%s[^%s]*%s([^%s]*)"
 repeat
-    local result = redis.call("HSCAN", metric_key, cursor, "MATCH", ARGV[1])
+    local result = redis.call("SCAN", cursor, "MATCH", ARGV[1])
     cursor = tonumber(result[1])
     for i, v in ipairs(result[2]) do
-        -- Only return keys, not values
-        if i % 2 ~= 0 then
-            ids[#ids + 1] = v:gmatch(substring)()
-        end
+        ids[#ids + 1] = v:gmatch(substring)()
     end
 until cursor == 0
 if #ids == 0 and redis.call("EXISTS", metric_key) == 0 then
     return -1
 end
 return ids
-""",
+""" % (redis.SEP, redis.SEP, redis.SEP, redis.SEP, redis.SEP),
         "get_measures": """
-local results = redis.call("HMGET", KEYS[1], unpack(ARGV))
+local results = redis.call("MGET", unpack(ARGV))
 local final = {}
 for i, result in ipairs(results) do
     if result == false then
@@ -62,6 +57,19 @@ for i, result in ipairs(results) do
 end
 return {0, final}
 """,
+        "delete_metric": """
+redis.replicate_commands()
+local cursor = 0
+local ids = {}
+repeat
+    local result = redis.call("SCAN", cursor, "MATCH", ARGV[1])
+    cursor = tonumber(result[1])
+    for i, v in ipairs(result[2]) do
+        ids[#ids + 1] = v
+    end
+until cursor == 0
+redis.call("DEL", KEYS[1], unpack(ids))
+"""
     }
 
     def __init__(self, conf):
@@ -72,32 +80,25 @@ return {0, final}
         return "%s: %s" % (self.__class__.__name__, self._client)
 
     def _metric_key(self, metric):
-        return redis.SEP.join([self.STORAGE_PREFIX, str(metric.id).encode()])
+        return redis.SEP.join([self.STORAGE_PREFIX, str(metric.id)])
 
-    @staticmethod
-    def _unaggregated_field(version=3):
-        return 'none' + ("_v%s" % version if version else "")
-
-    @classmethod
-    def _aggregated_field_for_split(cls, aggregation, key, version=3,
-                                    granularity=None):
-        path = cls.FIELD_SEP.join([
-            str(key), aggregation,
+    def _aggregated_field_for_split(self, metric_id, aggregation, key,
+                                    version=3, granularity=None):
+        path = redis.SEP.join([
+            self.STORAGE_PREFIX,
+            str(metric_id), str(key), aggregation,
             str(utils.timespan_total_seconds(granularity or key.sampling))])
-        return path + '_v%s' % version if version else path
+        return path + redis.SEP + 'v%s' % version if version else path
 
     def _create_metric(self, metric):
-        if self._client.hsetnx(
-                self._metric_key(metric), self._unaggregated_field(), "") == 0:
+        if self._client.setnx(self._metric_key(metric), "") == 0:
             raise storage.MetricAlreadyExists(metric)
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self._client.hset(self._metric_key(metric),
-                          self._unaggregated_field(version), data)
+        self._client.set(self._metric_key(metric), data)
 
     def _get_unaggregated_timeserie(self, metric, version=3):
-        data = self._client.hget(self._metric_key(metric),
-                                 self._unaggregated_field(version))
+        data = self._client.get(self._metric_key(metric))
         if data is None:
             raise storage.MetricDoesNotExist(metric)
         return data
@@ -106,29 +107,34 @@ return {0, final}
         key = self._metric_key(metric)
         split_keys = self._scripts["list_split_keys"](
             keys=[key], args=[self._aggregated_field_for_split(
-                aggregation, '*', version, granularity), self.FIELD_SEP])
+                metric.id,
+                aggregation, '*', version, granularity)])
         if split_keys == -1:
             raise storage.MetricDoesNotExist(metric)
         return set(split_keys)
 
     def _delete_metric_measures(self, metric, key, aggregation, version=3):
-        field = self._aggregated_field_for_split(aggregation, key, version)
-        self._client.hdel(self._metric_key(metric), field)
+        self._client.delete(self._aggregated_field_for_split(
+            metric.id, aggregation, key, version))
 
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=None, version=3):
-        field = self._aggregated_field_for_split(
-            aggregation, key, version)
-        self._client.hset(self._metric_key(metric), field, data)
+        self._client.set(self._aggregated_field_for_split(
+            metric.id, aggregation, key, version), data)
 
     def _delete_metric(self, metric):
-        self._client.delete(self._metric_key(metric))
+        self._scripts['delete_metric'](
+            keys=[self._metric_key(metric)],
+            args=[redis.SEP.join([self.STORAGE_PREFIX, str(metric.id),
+                                  "*", "*", "v3"])],
+        )
 
     def _get_measures(self, metric, keys, aggregation, version=3):
         if not keys:
             return []
         fields = [
-            self._aggregated_field_for_split(aggregation, key, version)
+            self._aggregated_field_for_split(
+                metric.id, aggregation, key, version)
             for key in keys
         ]
         code, result = self._scripts['get_measures'](
@@ -136,7 +142,7 @@ return {0, final}
             args=fields,
         )
         if code == -1:
-            sampling = utils.to_timespan(result.split(self.FIELD_SEP_B)[2])
+            sampling = utils.to_timespan(result.split(redis.SEP_B)[4])
             raise storage.AggregationDoesNotExist(
                 metric, aggregation, sampling)
         if code == -2:

@@ -25,7 +25,7 @@ The list of variants available is:
 * `s3` – provides Amazon S3 storage support
 * `ceph` – provides Ceph (>= 0.80) storage support
 * `ceph_alternative` – provides Ceph (>= 12.2.0) storage support
-* `redis` – provides Redis storage support
+* `redis` – provides Redis storage support (requires Redis >= 3.2)
 * `prometheus` – provides Prometheus Remote Write support
 * `doc` – documentation building support
 * `test` – unit and functional tests support

@@ -52,7 +52,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
         pass
 
     def _build_measure_path_with_sack(self, metric_id, sack_name):
-        return redis.SEP.join([sack_name.encode(), str(metric_id).encode()])
+        return redis.SEP.join([sack_name, str(metric_id)])
 
     def _build_measure_path(self, metric_id):
         return self._build_measure_path_with_sack(
@@ -80,7 +80,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
                 report_vars['metric_details'].update(
                     dict(six.moves.zip(m_list, results)))
 
-        match = redis.SEP.join([self.get_sack_name("*").encode(), b"*"])
+        match = redis.SEP.join([self.get_sack_name("*"), "*"])
         metrics = 0
         m_list = []
         pipe = self._client.pipeline()
@@ -88,7 +88,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
             metrics += 1
             pipe.llen(key)
             if details:
-                m_list.append(key.split(redis.SEP)[1].decode("utf8"))
+                m_list.append(key.split(redis.SEP_B)[1].decode("utf8"))
             # group 100 commands/call
             if metrics % 100 == 0:
                 results = pipe.execute()
@@ -102,9 +102,9 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
                 report_vars['metric_details'] if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
-        match = redis.SEP.join([self.get_sack_name(sack).encode(), b"*"])
+        match = redis.SEP.join([self.get_sack_name(sack), "*"])
         keys = self._client.scan_iter(match=match, count=1000)
-        return set([k.split(redis.SEP)[1].decode("utf8") for k in keys])
+        return set([k.split(redis.SEP_B)[1].decode("utf8") for k in keys])
 
     def delete_unprocessed_measures_for_metric(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
