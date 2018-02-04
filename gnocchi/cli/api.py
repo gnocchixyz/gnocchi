@@ -87,7 +87,7 @@ def api():
                                     conf.port or conf.api.port),
         "--master",
         "--enable-threads",
-        "--thunder-lock", "true",
+        "--thunder-lock",
         "--hook-master-start", "unix_signal:15 gracefully_kill_them_all",
         "--die-on-term",
         # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
