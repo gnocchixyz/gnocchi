@@ -81,17 +81,19 @@ def api():
 
     workers = utils.get_default_workers()
 
+    # TODO(sileht): When uwsgi 2.1 will be release we should be able
+    # to use --wsgi-manage-chunked-input
+    # https://github.com/unbit/uwsgi/issues/1428
     args = [
         "--if-not-plugin", "python", "--plugin", "python", "--endif",
-        "--http-socket", "%s:%d" % (conf.host or conf.api.host,
-                                    conf.port or conf.api.port),
+        "--%s" % conf.api.uwsgi_mode, "%s:%d" % (
+            conf.host or conf.api.host,
+            conf.port or conf.api.port),
         "--master",
         "--enable-threads",
         "--thunder-lock",
         "--hook-master-start", "unix_signal:15 gracefully_kill_them_all",
         "--die-on-term",
-        # NOTE(jd) See https://github.com/gnocchixyz/gnocchi/issues/156
-        "--add-header", "Connection: close",
         "--processes", str(math.floor(workers * 1.5)),
         "--threads", str(workers),
         "--lazy-apps",
@@ -99,6 +101,12 @@ def api():
         "--wsgi", "gnocchi.rest.wsgi",
         "--pyargv", " ".join(sys.argv[1:]),
     ]
+    if conf.api.uwsgi_mode == "http":
+        args.extend([
+            "--so-keepalive",
+            "--http-keepalive",
+            "--add-header", "Connection: Keep-Alive"
+        ])
 
     virtual_env = os.getenv("VIRTUAL_ENV")
     if virtual_env is not None:

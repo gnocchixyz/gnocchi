@@ -64,6 +64,15 @@ API_OPTS = (
     cfg.PortOpt('port',
                 default=8041,
                 help="Port to listen on"),
+    cfg.StrOpt('uwsgi-mode',
+               default='http',
+               choices=["http", "http-socket", "socket"],
+               help="""Socket type to use for uWSGI:
+* http: support HTTP/1.1 and keepalive,
+  but not chunked encoding (InfluxDB)
+* http-socket/socket: support chunked encoding, but require a upstream HTTP
+  Server for HTTP/1.1, keepalive and HTTP protocol correctness.
+""")
 )
 
 

@@ -39,5 +39,14 @@ configuration example::
     http_headers = {"X-Gnocchi-InfluxDB-Tag-Resource-ID" = "host"}
 
 
+Gnocchi configuration
+=====================
+
+The default Gnocchi API server does not support the chunked encoding required
+by the InfluxDB compatible endpoint. To enable chunked encoding, you must put a
+real HTTP Server (Apache/NGINX/...) on front of Gnocchi API, and set
+`[api]/uwsgi_mode = http-socket`.
+
+
 .. _`Telegraf`: https://github.com/influxdata/telegraf
 .. _`InfluxDB line protocol`: https://docs.influxdata.com/influxdb/v1.3/write_protocols/line_protocol_reference/
