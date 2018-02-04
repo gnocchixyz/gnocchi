@@ -142,6 +142,9 @@ class InfluxDBController(rest.RestController):
     def _write_get_lines():
         encoding = pecan.request.headers.get('Transfer-Encoding', "").lower()
         if encoding == "chunked":
+            # TODO(sileht): Support reading chunk without uwsgi when
+            # pecan.request.environ['wsgi.input_terminated'] is set.
+            # https://github.com/unbit/uwsgi/issues/1428
             if uwsgi is None:
                 api.abort(
                     501, {"cause": "Not implemented error",

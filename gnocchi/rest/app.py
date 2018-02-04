@@ -62,6 +62,16 @@ class GnocchiHook(pecan.hooks.PecanHook):
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
 
+    @staticmethod
+    def after(state):
+        # NOTE(sileht): uwsgi expects the application to consume the wsgi.input
+        # fd. Otherwise the connection with the application freeze. In our
+        # case, if we raise an error before we read request.body_file, or if
+        # json.load(body_file) doesn't read the whole file the freeze can
+        # occurs. This will ensures we always read the full body_file.
+        if state.request.content_length is not None:
+            state.request.body_file.read()
+
     BACKEND_LOCKS = {
         'coordinator': threading.Lock(),
         'storage': threading.Lock(),
