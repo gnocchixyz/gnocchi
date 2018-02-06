@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2017 Red Hat, Inc.
+# Copyright © 2017-2018 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -159,7 +159,7 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def process_measure_for_metric(metric_id):
+    def process_measure_for_metrics(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod

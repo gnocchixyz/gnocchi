@@ -158,21 +158,23 @@ class S3Storage(incoming.IncomingDriver):
         return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric_id):
-        sack = self.sack_for_metric(metric_id)
-        files = self._list_measure_files_for_metric(sack, metric_id)
-
-        measures = self._make_measures_array()
-        for f in files:
-            response = self.s3.get_object(
-                Bucket=self._bucket_name_measures,
-                Key=f)
-            measures = numpy.concatenate((
-                measures,
-                self._unserialize_measures(f, response['Body'].read())
-            ))
+    def process_measure_for_metrics(self, metric_ids):
+        measures = defaultdict(self._make_measures_array)
+        all_files = []
+        for metric_id in metric_ids:
+            sack = self.sack_for_metric(metric_id)
+            files = self._list_measure_files_for_metric(sack, metric_id)
+            all_files.extend(files)
+            for f in files:
+                response = self.s3.get_object(
+                    Bucket=self._bucket_name_measures,
+                    Key=f)
+                measures[metric_id] = numpy.concatenate((
+                    measures[metric_id],
+                    self._unserialize_measures(f, response['Body'].read())
+                ))
 
         yield measures
 
         # Now clean objects
-        s3.bulk_delete(self.s3, self._bucket_name_measures, files)
+        s3.bulk_delete(self.s3, self._bucket_name_measures, all_files)

@@ -486,18 +486,21 @@ class StorageDriver(object):
         # measures will be skipped until cleaned by janitor.
         metrics = indexer.list_metrics(
             attribute_filter={"in": {"id": metrics_to_process}})
-        for metric in metrics:
-            # NOTE(gordc): must lock at sack level
-            try:
-                LOG.debug("Processing measures for %s", metric)
-                with incoming.process_measure_for_metric(metric.id) \
-                        as measures:
-                    self._compute_and_store_timeseries(metric, measures)
-                LOG.debug("Measures for metric %s processed", metric)
-            except Exception:
-                if sync:
-                    raise
-                LOG.error("Error processing new measures", exc_info=True)
+        metrics_by_id = {m.id: m for m in metrics}
+        # NOTE(gordc): must lock at sack level
+        try:
+            LOG.debug("Processing measures for %s", metrics)
+            with incoming.process_measure_for_metrics([m.id for m in metrics]) \
+                    as metrics_and_measures:
+                for metric, measures in six.iteritems(metrics_and_measures):
+                    self._compute_and_store_timeseries(
+                        metrics_by_id[metric], measures
+                    )
+                    LOG.debug("Measures for metric %s processed", metrics)
+        except Exception:
+            if sync:
+                raise
+            LOG.error("Error processing new measures", exc_info=True)
 
     def _compute_and_store_timeseries(self, metric, measures):
         # NOTE(mnaser): The metric could have been handled by
