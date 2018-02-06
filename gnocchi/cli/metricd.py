@@ -241,8 +241,7 @@ class MetricProcessor(MetricProcessBase):
             try:
                 metrics = self.incoming.list_metric_with_measures_to_process(s)
                 m_count += len(metrics)
-                self.store.process_new_measures(
-                    self.index, self.incoming, metrics)
+                self.chef.process_new_measures(metrics)
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
@@ -310,8 +309,8 @@ def metricd_tester(conf):
         metrics.update(inc.list_metric_with_measures_to_process(i))
         if len(metrics) >= conf.stop_after_processing_metrics:
             break
-    s.process_new_measures(
-        index, inc,
+    c = chef.Chef(None, inc, index, s)
+    c.process_new_measures(
         list(metrics)[:conf.stop_after_processing_metrics], True)
 
 

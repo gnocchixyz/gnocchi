@@ -33,6 +33,7 @@ import voluptuous
 import werkzeug.http
 
 from gnocchi import archive_policy
+from gnocchi import chef
 from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
@@ -528,11 +529,10 @@ class MetricController(rest.RestController):
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
-                pecan.request.storage.refresh_metric(
-                    pecan.request.coordinator,
-                    pecan.request.indexer, pecan.request.incoming, self.metric,
+                pecan.request.chef.refresh_metric(
+                    self.metric,
                     pecan.request.conf.api.operation_timeout)
-            except storage.SackLockTimeoutError as e:
+            except chef.SackLockTimeoutError as e:
                 abort(503, six.text_type(e))
         try:
             return pecan.request.storage.get_measures(
@@ -1899,11 +1899,9 @@ class AggregationController(rest.RestController):
                     if pecan.request.incoming.has_unprocessed(m.id)]
                 for m in metrics_to_update:
                     try:
-                        pecan.request.storage.refresh_metric(
-                            pecan.request.coordinator,
-                            pecan.request.indexer, pecan.request.incoming, m,
-                            pecan.request.conf.api.operation_timeout)
-                    except storage.SackLockTimeoutError as e:
+                        pecan.request.chef.refresh_metric(
+                            m, pecan.request.conf.api.operation_timeout)
+                    except chef.SackLockTimeoutError as e:
                         abort(503, six.text_type(e))
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
