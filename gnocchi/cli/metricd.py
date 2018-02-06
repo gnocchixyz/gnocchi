@@ -28,6 +28,7 @@ import tenacity
 import tooz
 from tooz import coordination
 
+from gnocchi import chef
 from gnocchi import exceptions
 from gnocchi import incoming
 from gnocchi import indexer
@@ -71,6 +72,8 @@ class MetricProcessBase(cotyledon.Service):
         self.store = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
+        self.chef = chef.Chef(self.coord, self.incoming,
+                              self.index, self.store)
 
     def run(self):
         self._configure()
@@ -266,7 +269,7 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
-        self.store.expunge_metrics(self.coord, self.incoming, self.index)
+        self.chef.expunge_metrics()
         LOG.debug("Metrics marked for deletion removed from backend")
 
 

@@ -150,30 +150,6 @@ class TestStorageDriver(tests_base.TestCase):
                           self.storage._get_unaggregated_timeserie,
                           self.metric)
 
-    def test_delete_nonempty_metric_unprocessed(self):
-        self.incoming.add_measures(self.metric.id, [
-            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-        ])
-        self.index.delete_metric(self.metric.id)
-        self.trigger_processing()
-        __, __, details = self.incoming._build_report(True)
-        self.assertIn(str(self.metric.id), details)
-        self.storage.expunge_metrics(self.coord,
-                                     self.incoming, self.index, sync=True)
-        __, __, details = self.incoming._build_report(True)
-        self.assertNotIn(str(self.metric.id), details)
-
-    def test_delete_expunge_metric(self):
-        self.incoming.add_measures(self.metric.id, [
-            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-        ])
-        self.trigger_processing()
-        self.index.delete_metric(self.metric.id)
-        self.storage.expunge_metrics(self.coord,
-                                     self.incoming, self.index, sync=True)
-        self.assertRaises(indexer.NoSuchMetric, self.index.delete_metric,
-                          self.metric.id)
-
     def test_measures_reporting_format(self):
         report = self.incoming.measures_report(True)
         self.assertIsInstance(report, dict)

@@ -24,7 +24,6 @@ from oslo_config import cfg
 import six
 
 from gnocchi import carbonara
-from gnocchi import indexer
 from gnocchi import utils
 
 
@@ -38,7 +37,6 @@ OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
-ITEMGETTER_1 = operator.itemgetter(1)
 ATTRGETTER_AGG_METHOD = operator.attrgetter("aggregation_method")
 
 
@@ -423,57 +421,6 @@ class StorageDriver(object):
                                       [six.text_type(metric.id)])
         finally:
             lock.release()
-
-    def expunge_metrics(self, coord, incoming, index, sync=False):
-        """Remove deleted metrics
-
-        :param incoming: The incoming storage
-        :param index: An indexer to be used for querying metrics
-        :param sync: If True, then delete everything synchronously and raise
-                     on error
-        :type sync: bool
-        """
-        # FIXME(jd) The indexer could return them sorted/grouped by directly
-        metrics_to_expunge = sorted(
-            ((m, incoming.sack_for_metric(m.id))
-             for m in index.list_metrics(status='delete')),
-            key=ITEMGETTER_1)
-        for sack, metrics in itertools.groupby(
-                metrics_to_expunge, key=ITEMGETTER_1):
-            try:
-                lock = incoming.get_sack_lock(coord, sack)
-                if not lock.acquire(blocking=sync):
-                    # Retry later
-                    LOG.debug(
-                        "Sack %s is locked, cannot expunge metrics", sack)
-                    continue
-                # NOTE(gordc): no need to hold lock because the metric has been
-                # already marked as "deleted" in the indexer so no measure
-                # worker is going to process it anymore.
-                lock.release()
-            except Exception:
-                if sync:
-                    raise
-                LOG.error("Unable to lock sack %s for expunging metrics",
-                          sack, exc_info=True)
-            else:
-                for metric, sack in metrics:
-                    LOG.debug("Deleting metric %s", metric)
-                    try:
-                        incoming.delete_unprocessed_measures_for_metric(
-                            metric.id)
-                        self._delete_metric(metric)
-                        try:
-                            index.expunge_metric(metric.id)
-                        except indexer.NoSuchMetric:
-                            # It's possible another process deleted or is
-                            # deleting the metric, not a big deal
-                            pass
-                    except Exception:
-                        if sync:
-                            raise
-                        LOG.error("Unable to expunge metric %s from storage",
-                                  metric, exc_info=True)
 
     def process_new_measures(self, indexer, incoming, metrics_to_process,
                              sync=False):
