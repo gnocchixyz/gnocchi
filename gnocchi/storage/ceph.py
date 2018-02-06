@@ -43,8 +43,8 @@ rados = ceph.rados
 class CephStorage(storage.StorageDriver):
     WRITE_FULL = False
 
-    def __init__(self, conf, coord=None):
-        super(CephStorage, self).__init__(conf, coord)
+    def __init__(self, conf):
+        super(CephStorage, self).__init__(conf)
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
 
     def __str__(self):

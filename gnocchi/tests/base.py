@@ -352,7 +352,7 @@ class TestCase(BaseTestCase):
         self.conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
                                "storage")
 
-        self.storage = storage.get_driver(self.conf, self.coord)
+        self.storage = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
 
         if self.conf.storage.driver == 'redis':
