@@ -61,9 +61,7 @@ class TestingApp(webtest.TestApp):
 
     def __init__(self, *args, **kwargs):
         self.auth_mode = kwargs.pop('auth_mode')
-        self.storage = kwargs.pop('storage')
-        self.indexer = kwargs.pop('indexer')
-        self.incoming = kwargs.pop('incoming')
+        self.chef = kwargs.pop('chef')
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.token = self.VALID_TOKEN
@@ -129,9 +127,8 @@ class TestingApp(webtest.TestApp):
         elif self.auth_mode == "remoteuser":
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.storage.process_new_measures(
-            self.indexer, self.incoming, metrics, sync=True)
+        metrics = tests_utils.list_all_incoming_metrics(self.chef.incoming)
+        self.chef.process_new_measures(metrics, sync=True)
         return response
 
 
@@ -178,9 +175,7 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
 
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            not_implemented_middleware=False),
-                              storage=self.storage,
-                              indexer=self.index,
-                              incoming=self.incoming,
+                              chef=self.chef,
                               auth_mode=self.auth_mode)
 
     def _fake_lazy_load(self, name):

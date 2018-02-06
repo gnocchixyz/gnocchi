@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -95,10 +95,6 @@ class CorruptionError(ValueError, StorageError):
 
     def __init__(self, message):
         super(CorruptionError, self).__init__(message)
-
-
-class SackLockTimeoutError(StorageError):
-    pass
 
 
 @utils.retry_on_exception_and_log("Unable to initialize storage driver")
@@ -407,47 +403,7 @@ class StorageDriver(object):
                                 aggregation, granularity, version=3):
         raise NotImplementedError
 
-    def refresh_metric(self, coord, indexer, incoming, metric, timeout):
-        s = incoming.sack_for_metric(metric.id)
-        lock = incoming.get_sack_lock(coord, s)
-        if not lock.acquire(blocking=timeout):
-            raise SackLockTimeoutError(
-                'Unable to refresh metric: %s. Metric is locked. '
-                'Please try again.' % metric.id)
-        try:
-            self.process_new_measures(indexer, incoming,
-                                      [six.text_type(metric.id)])
-        finally:
-            lock.release()
-
-    def process_new_measures(self, indexer, incoming, metrics_to_process,
-                             sync=False):
-        """Process added measures in background.
-
-        Some drivers might need to have a background task running that process
-        the measures sent to metrics. This is used for that.
-        """
-        # process only active metrics. deleted metrics with unprocessed
-        # measures will be skipped until cleaned by janitor.
-        metrics = indexer.list_metrics(
-            attribute_filter={"in": {"id": metrics_to_process}})
-        metrics_by_id = {m.id: m for m in metrics}
-        # NOTE(gordc): must lock at sack level
-        try:
-            LOG.debug("Processing measures for %s", metrics)
-            with incoming.process_measure_for_metrics([m.id for m in metrics]) \
-                    as metrics_and_measures:
-                for metric, measures in six.iteritems(metrics_and_measures):
-                    self._compute_and_store_timeseries(
-                        metrics_by_id[metric], measures
-                    )
-                    LOG.debug("Measures for metric %s processed", metrics)
-        except Exception:
-            if sync:
-                raise
-            LOG.error("Error processing new measures", exc_info=True)
-
-    def _compute_and_store_timeseries(self, metric, measures):
+    def compute_and_store_timeseries(self, metric, measures):
         # NOTE(mnaser): The metric could have been handled by
         #               another worker, ignore if no measures.
         if len(measures) == 0:

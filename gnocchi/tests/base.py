@@ -33,6 +33,7 @@ except ImportError:
 from testtools import testcase
 
 from gnocchi import archive_policy
+from gnocchi import chef
 from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
@@ -364,6 +365,8 @@ class TestCase(BaseTestCase):
 
         self.storage.upgrade()
         self.incoming.upgrade(128)
+        self.chef = chef.Chef(
+            self.coord, self.incoming, self.index, self.storage)
 
     def tearDown(self):
         self.index.disconnect()
@@ -385,5 +388,4 @@ class TestCase(BaseTestCase):
     def trigger_processing(self, metrics=None):
         if metrics is None:
             metrics = [str(self.metric.id)]
-        self.storage.process_new_measures(
-            self.index, self.incoming, metrics, sync=True)
+        self.chef.process_new_measures(metrics, sync=True)

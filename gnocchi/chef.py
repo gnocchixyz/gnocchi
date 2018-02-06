@@ -18,6 +18,7 @@ import itertools
 import operator
 
 import daiquiri
+import six
 
 from gnocchi import indexer
 
@@ -25,6 +26,10 @@ from gnocchi import indexer
 ITEMGETTER_1 = operator.itemgetter(1)
 
 LOG = daiquiri.getLogger(__name__)
+
+
+class SackLockTimeoutError(Exception):
+        pass
 
 
 class Chef(object):
@@ -92,3 +97,41 @@ class Chef(object):
                             raise
                         LOG.error("Unable to expunge metric %s from storage",
                                   metric, exc_info=True)
+
+    def refresh_metric(self, metric, timeout):
+        s = self.incoming.sack_for_metric(metric.id)
+        lock = self.incoming.get_sack_lock(self.coord, s)
+        if not lock.acquire(blocking=timeout):
+            raise SackLockTimeoutError(
+                'Unable to refresh metric: %s. Metric is locked. '
+                'Please try again.' % metric.id)
+        try:
+            self.process_new_measures([str(metric.id)])
+        finally:
+            lock.release()
+
+    def process_new_measures(self, metrics_to_process, sync=False):
+        """Process added measures in background.
+
+        Some drivers might need to have a background task running that process
+        the measures sent to metrics. This is used for that.
+        """
+        # process only active metrics. deleted metrics with unprocessed
+        # measures will be skipped until cleaned by janitor.
+        metrics = self.index.list_metrics(
+            attribute_filter={"in": {"id": metrics_to_process}})
+        metrics_by_id = {m.id: m for m in metrics}
+        # NOTE(gordc): must lock at sack level
+        try:
+            LOG.debug("Processing measures for %s", metrics)
+            with self.incoming.process_measure_for_metrics(
+                    [m.id for m in metrics]) as metrics_and_measures:
+                for metric, measures in six.iteritems(metrics_and_measures):
+                    self.storage.compute_and_store_timeseries(
+                        metrics_by_id[metric], measures
+                    )
+                    LOG.debug("Measures for metric %s processed", metrics)
+        except Exception:
+            if sync:
+                raise
+            LOG.error("Error processing new measures", exc_info=True)
