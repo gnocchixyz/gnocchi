@@ -190,40 +190,44 @@ class CephStorage(incoming.IncomingDriver):
         return bool(self._list_keys_to_process(sack, object_prefix))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric_id):
-        sack = self.sack_for_metric(metric_id)
-        key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-
-        processed_keys = []
+    def process_measure_for_metrics(self, metric_ids):
+        measures = {}
+        processed_keys = defaultdict(list)
         with rados.ReadOpCtx() as op:
-            omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
-            self.ioctx.operate_read_op(op, self.get_sack_name(sack),
-                                       flag=self.OMAP_READ_FLAGS)
-            # NOTE(sileht): after reading the libradospy, I'm
-            # not sure that ret will have the correct value
-            # get_omap_vals transforms the C int to python int
-            # before operate_read_op is called, I dunno if the int
-            # content is copied during this transformation or if
-            # this is a pointer to the C int, I think it's copied...
-            try:
-                ceph.errno_to_exception(ret)
-            except rados.ObjectNotFound:
-                # Object has been deleted, so this is just a stalled entry
-                # in the OMAP listing, ignore
-                return
+            for metric_id in metric_ids:
+                sack = self.sack_for_metric(metric_id)
+                key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
+                omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
+                self.ioctx.operate_read_op(op, self.get_sack_name(sack),
+                                           flag=self.OMAP_READ_FLAGS)
+                # NOTE(sileht): after reading the libradospy, I'm
+                # not sure that ret will have the correct value
+                # get_omap_vals transforms the C int to python int
+                # before operate_read_op is called, I dunno if the int
+                # content is copied during this transformation or if
+                # this is a pointer to the C int, I think it's copied...
+                try:
+                    ceph.errno_to_exception(ret)
+                except rados.ObjectNotFound:
+                    # Object has been deleted, so this is just a stalled entry
+                    # in the OMAP listing, ignore
+                    continue
 
-        measures = self._make_measures_array()
-        for k, v in omaps:
-            measures = numpy.concatenate(
-                (measures, self._unserialize_measures(k, v)))
-            processed_keys.append(k)
+                m = self._make_measures_array()
+                for k, v in omaps:
+                    m = numpy.concatenate(
+                        (m, self._unserialize_measures(k, v)))
+                    processed_keys[sack].append(k)
+
+                measures[metric_id] = m
 
         yield measures
 
         # Now clean omap
         with rados.WriteOpCtx() as op:
-            # NOTE(sileht): come on Ceph, no return code
-            # for this operation ?!!
-            self.ioctx.remove_omap_keys(op, tuple(processed_keys))
-            self.ioctx.operate_write_op(op, self.get_sack_name(sack),
-                                        flags=self.OMAP_WRITE_FLAGS)
+            for sack, keys in six.iteritems(processed_keys):
+                # NOTE(sileht): come on Ceph, no return code
+                # for this operation ?!!
+                self.ioctx.remove_omap_keys(op, tuple(keys))
+                self.ioctx.operate_write_op(op, self.get_sack_name(sack),
+                                            flags=self.OMAP_WRITE_FLAGS)

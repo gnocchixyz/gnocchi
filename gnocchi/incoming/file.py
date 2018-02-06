@@ -163,15 +163,19 @@ class FileStorage(incoming.IncomingDriver):
         return os.path.isdir(self._build_measure_path(metric_id))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric_id):
-        files = self._list_measures_container_for_metric(metric_id)
-        measures = self._make_measures_array()
-        for f in files:
-            abspath = self._build_measure_path(metric_id, f)
-            with open(abspath, "rb") as e:
-                measures = numpy.concatenate((
-                    measures, self._unserialize_measures(f, e.read())))
+    def process_measure_for_metrics(self, metric_ids):
+        measures = {}
+        for metric_id in metric_ids:
+            files = self._list_measures_container_for_metric(metric_id)
+            m = self._make_measures_array()
+            for f in files:
+                abspath = self._build_measure_path(metric_id, f)
+                with open(abspath, "rb") as e:
+                    m = numpy.concatenate((
+                        m, self._unserialize_measures(f, e.read())))
+            measures[metric_id] = m
 
         yield measures
 
-        self._delete_measures_files_for_metric(metric_id, files)
+        for metric_id in metric_ids:
+            self._delete_measures_files_for_metric(metric_id, files)

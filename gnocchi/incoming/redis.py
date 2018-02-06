@@ -113,16 +113,27 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
         return bool(self._client.exists(self._build_measure_path(metric_id)))
 
     @contextlib.contextmanager
-    def process_measure_for_metric(self, metric_id):
-        key = self._build_measure_path(metric_id)
-        item_len, data = self._scripts['process_measure_for_metric'](
-            keys=[key],
-        )
+    def process_measure_for_metrics(self, metric_ids):
+        measures = {}
+        pipe = self._client.pipeline(transaction=False)
+        for metric_id in metric_ids:
+            key = self._build_measure_path(metric_id)
+            self._scripts['process_measure_for_metric'](
+                keys=[key],
+                client=pipe,
+            )
 
-        yield self._unserialize_measures(metric_id, data)
+        results = pipe.execute()
+        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+            measures[metric_id] = self._unserialize_measures(metric_id, data)
 
-        # ltrim is inclusive, bump 1 to remove up to and including nth item
-        self._client.ltrim(key, item_len + 1, -1)
+        yield measures
+
+        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+            key = self._build_measure_path(metric_id)
+            # ltrim is inclusive, bump 1 to remove up to and including nth item
+            pipe.ltrim(key, item_len + 1, -1)
+        pipe.execute()
 
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
