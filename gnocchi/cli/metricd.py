@@ -68,7 +68,7 @@ class MetricProcessBase(cotyledon.Service):
                                   str(uuid.uuid4()))
         self.coord = get_coordinator_and_start(member_id,
                                                self.conf.coordination_url)
-        self.store = storage.get_driver(self.conf, self.coord)
+        self.store = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
 
@@ -266,7 +266,7 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
-        self.store.expunge_metrics(self.incoming, self.index)
+        self.store.expunge_metrics(self.coord, self.incoming, self.index)
         LOG.debug("Metrics marked for deletion removed from backend")
 
 

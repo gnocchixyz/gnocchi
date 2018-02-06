@@ -112,16 +112,17 @@ class SackLockTimeoutError(StorageError):
 
 
 @utils.retry_on_exception_and_log("Unable to initialize storage driver")
-def get_driver(conf, coord):
+def get_driver(conf):
     """Return the configured driver."""
     return utils.get_driver_class('gnocchi.storage', conf.storage)(
-        conf.storage, coord)
+        conf.storage)
 
 
 class StorageDriver(object):
 
-    def __init__(self, conf, coord):
-        self.coord = coord
+    @staticmethod
+    def __init__(conf):
+        pass
 
     @staticmethod
     def upgrade():
@@ -418,9 +419,9 @@ class StorageDriver(object):
                                 aggregation, granularity, version=3):
         raise NotImplementedError
 
-    def refresh_metric(self, indexer, incoming, metric, timeout):
+    def refresh_metric(self, coord, indexer, incoming, metric, timeout):
         s = incoming.sack_for_metric(metric.id)
-        lock = incoming.get_sack_lock(self.coord, s)
+        lock = incoming.get_sack_lock(coord, s)
         if not lock.acquire(blocking=timeout):
             raise SackLockTimeoutError(
                 'Unable to refresh metric: %s. Metric is locked. '
@@ -431,7 +432,7 @@ class StorageDriver(object):
         finally:
             lock.release()
 
-    def expunge_metrics(self, incoming, index, sync=False):
+    def expunge_metrics(self, coord, incoming, index, sync=False):
         """Remove deleted metrics
 
         :param incoming: The incoming storage
@@ -448,7 +449,7 @@ class StorageDriver(object):
         for sack, metrics in itertools.groupby(
                 metrics_to_expunge, key=ITEMGETTER_1):
             try:
-                lock = incoming.get_sack_lock(self.coord, sack)
+                lock = incoming.get_sack_lock(coord, sack)
                 if not lock.acquire(blocking=sync):
                     # Retry later
                     LOG.debug(

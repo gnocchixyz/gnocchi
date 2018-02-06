@@ -68,8 +68,8 @@ class S3Storage(storage.StorageDriver):
 
     _consistency_wait = tenacity.wait_exponential(multiplier=0.1)
 
-    def __init__(self, conf, coord=None):
-        super(S3Storage, self).__init__(conf, coord)
+    def __init__(self, conf):
+        super(S3Storage, self).__init__(conf)
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )

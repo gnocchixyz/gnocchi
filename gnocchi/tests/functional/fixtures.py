@@ -146,7 +146,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
                                                        conf.coordination_url)
-        s = storage.get_driver(conf, self.coord)
+        s = storage.get_driver(conf)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
@@ -170,7 +170,7 @@ class ConfigFixture(fixture.GabbiFixture):
         }
 
         # start up a thread to async process measures
-        self.metricd_thread = MetricdThread(index, s, i)
+        self.metricd_thread = MetricdThread(self.coord, index, s, i)
         self.metricd_thread.start()
 
     def stop_fixture(self):
@@ -208,8 +208,9 @@ class ConfigFixture(fixture.GabbiFixture):
 class MetricdThread(threading.Thread):
     """Run metricd in a naive thread to process measures."""
 
-    def __init__(self, index, storer, incoming, name='metricd'):
+    def __init__(self, coord, index, storer, incoming, name='metricd'):
         super(MetricdThread, self).__init__(name=name)
+        self.coord = coord
         self.index = index
         self.storage = storer
         self.incoming = incoming
@@ -221,7 +222,8 @@ class MetricdThread(threading.Thread):
             metrics = self.index.list_metrics(
                 attribute_filter={"in": {"id": metrics}})
             for metric in metrics:
-                self.storage.refresh_metric(self.index,
+                self.storage.refresh_metric(self.coord,
+                                            self.index,
                                             self.incoming,
                                             metric,
                                             timeout=None)
