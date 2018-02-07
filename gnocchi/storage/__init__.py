@@ -92,14 +92,6 @@ class MetricAlreadyExists(StorageError):
             "Metric %s already exists" % metric)
 
 
-class LockedMetric(StorageError):
-    """Error raised when this metric is already being handled by another."""
-
-    def __init__(self, metric):
-        self.metric = metric
-        super(LockedMetric, self).__init__("Metric %s is locked" % metric)
-
-
 class CorruptionError(ValueError, StorageError):
     """Data corrupted, damn it."""
 
@@ -108,7 +100,7 @@ class CorruptionError(ValueError, StorageError):
 
 
 class SackLockTimeoutError(StorageError):
-        pass
+    pass
 
 
 @utils.retry_on_exception_and_log("Unable to initialize storage driver")
