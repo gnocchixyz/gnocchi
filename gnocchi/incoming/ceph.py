@@ -70,11 +70,10 @@ class CephStorage(incoming.IncomingDriver):
         self.ioctx.write_full(self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}).encode())
 
-    def remove_sack_group(self, num_sacks):
-        prefix = self.get_sack_prefix(num_sacks)
-        for i in six.moves.xrange(num_sacks):
+    def remove_sacks(self):
+        for sack in self.iter_sacks():
             try:
-                self.ioctx.remove_object(prefix % i)
+                self.ioctx.remove_object(str(sack))
             except rados.ObjectNotFound:
                 pass
 
@@ -86,7 +85,7 @@ class CephStorage(incoming.IncomingDriver):
                 str(metric_id),
                 str(uuid.uuid4()),
                 datetime.datetime.utcnow().strftime("%Y%m%d_%H:%M:%S")))
-            sack = self.get_sack_name(self.sack_for_metric(metric_id))
+            sack = self.sack_for_metric(metric_id)
             data_by_sack[sack]['names'].append(name)
             data_by_sack[sack]['measures'].append(
                 self._encode_measures(measures))
@@ -103,7 +102,7 @@ class CephStorage(incoming.IncomingDriver):
                 self.ioctx.set_omap(op, tuple(data['names']),
                                     tuple(data['measures']))
                 ops.append(self.ioctx.operate_aio_write_op(
-                    op, sack, flags=self.OMAP_WRITE_FLAGS))
+                    op, str(sack), flags=self.OMAP_WRITE_FLAGS))
         while ops:
             op = ops.pop()
             op.wait_for_complete()
@@ -112,11 +111,11 @@ class CephStorage(incoming.IncomingDriver):
         metrics = set()
         count = 0
         metric_details = defaultdict(int)
-        for i in six.moves.range(self.NUM_SACKS):
+        for sack in self.iter_sacks():
             marker = ""
             while True:
                 names = list(self._list_keys_to_process(
-                    i, marker=marker, limit=self.Q_LIMIT))
+                    sack, marker=marker, limit=self.Q_LIMIT))
                 if names and names[0] < marker:
                     raise incoming.ReportGenerationError(
                         "Unable to cleanly compute backlog.")
@@ -138,7 +137,7 @@ class CephStorage(incoming.IncomingDriver):
             omaps, ret = self.ioctx.get_omap_vals(op, marker, prefix, limit)
             try:
                 self.ioctx.operate_read_op(
-                    op, self.get_sack_name(sack), flag=self.OMAP_READ_FLAGS)
+                    op, str(sack), flag=self.OMAP_READ_FLAGS)
             except rados.ObjectNotFound:
                 # API have still written nothing
                 return ()
@@ -181,7 +180,7 @@ class CephStorage(incoming.IncomingDriver):
             # NOTE(sileht): come on Ceph, no return code
             # for this operation ?!!
             self.ioctx.remove_omap_keys(op, keys)
-            self.ioctx.operate_write_op(op, self.get_sack_name(sack),
+            self.ioctx.operate_write_op(op, str(sack),
                                         flags=self.OMAP_WRITE_FLAGS)
 
     def has_unprocessed(self, metric_id):
@@ -198,7 +197,7 @@ class CephStorage(incoming.IncomingDriver):
                 sack = self.sack_for_metric(metric_id)
                 key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
                 omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
-                self.ioctx.operate_read_op(op, self.get_sack_name(sack),
+                self.ioctx.operate_read_op(op, str(sack),
                                            flag=self.OMAP_READ_FLAGS)
                 # NOTE(sileht): after reading the libradospy, I'm
                 # not sure that ret will have the correct value
@@ -229,5 +228,5 @@ class CephStorage(incoming.IncomingDriver):
                 # NOTE(sileht): come on Ceph, no return code
                 # for this operation ?!!
                 self.ioctx.remove_omap_keys(op, tuple(keys))
-                self.ioctx.operate_write_op(op, self.get_sack_name(sack),
+                self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)

@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2017 Red Hat
+# Copyright © 2017-2018 Red Hat
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -47,7 +47,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
         self._client.hset(self.CFG_PREFIX, self.CFG_SACKS, num_sacks)
 
     @staticmethod
-    def remove_sack_group(num_sacks):
+    def remove_sacks():
         # NOTE(gordc): redis doesn't maintain keys with empty values
         pass
 
@@ -56,13 +56,13 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
 
     def _build_measure_path(self, metric_id):
         return self._build_measure_path_with_sack(
-            metric_id, self.get_sack_name(self.sack_for_metric(metric_id)))
+            metric_id, str(self.sack_for_metric(metric_id)))
 
     def add_measures_batch(self, metrics_and_measures):
         notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
         for metric_id, measures in six.iteritems(metrics_and_measures):
-            sack_name = self.get_sack_name(self.sack_for_metric(metric_id))
+            sack_name = str(self.sack_for_metric(metric_id))
             path = self._build_measure_path_with_sack(metric_id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
             if self.greedy and sack_name not in notified_sacks:
@@ -80,7 +80,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
                 report_vars['metric_details'].update(
                     dict(six.moves.zip(m_list, results)))
 
-        match = redis.SEP.join([self.get_sack_name("*").encode(), b"*"])
+        match = redis.SEP.join([self._get_sack_name("*").encode(), b"*"])
         metrics = 0
         m_list = []
         pipe = self._client.pipeline()
@@ -102,7 +102,7 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
                 report_vars['metric_details'] if details else None)
 
     def list_metric_with_measures_to_process(self, sack):
-        match = redis.SEP.join([self.get_sack_name(sack).encode(), b"*"])
+        match = redis.SEP.join([str(sack).encode(), b"*"])
         keys = self._client.scan_iter(match=match, count=1000)
         return set([k.split(redis.SEP)[1].decode("utf8") for k in keys])
 
@@ -140,15 +140,15 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
         p = self._client.pubsub()
         db = self._client.connection_pool.connection_kwargs['db']
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
-        pattern = keyspace + self.SACK_PREFIX.encode() + b"*"
+        pattern = keyspace + self._get_sack_name("*").encode()
         p.psubscribe(pattern)
         for message in p.listen():
             if message['type'] == 'pmessage' and message['pattern'] == pattern:
                 # FIXME(jd) This is awful, we need a better way to extract this
-                # Format is defined by get_sack_prefix: incoming128-17
-                yield int(message['channel'].split(b"-")[-1])
+                # Format is defined by _get_sack_name: incoming128-17
+                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
         # notification in iter_on_sacks_to_process
-        self._client.delete(self.get_sack_name(sack))
+        self._client.delete(str(sack))

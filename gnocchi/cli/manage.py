@@ -95,7 +95,7 @@ def change_sack_size():
         LOG.error('Cannot change sack when non-empty backlog. Process '
                   'remaining %s measures and try again', remainder)
         return
-    LOG.info("Changing sack size to: %s", conf.sacks_number)
-    old_num_sacks = s.NUM_SACKS
-    s.set_storage_settings(conf.sacks_number)
-    s.remove_sack_group(old_num_sacks)
+    LOG.info("Removing current %d sacks", s.NUM_SACKS)
+    s.remove_sacks()
+    LOG.info("Creating new %d sacks", conf.sacks_number)
+    s.upgrade(conf.sacks_number)
