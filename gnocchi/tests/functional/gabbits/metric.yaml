@@ -207,8 +207,8 @@ tests:
         accept: application/json
       status: 400
       response_json_paths:
-        $.description.cause: Attribute value error
-        $.description.reason: Invalid granularity
+        $.description.cause: Argument value error
+        $.description.reason: Unable to parse timespan
         $.description.detail: granularity
 
     - name: push measurements to metric again
