@@ -494,18 +494,6 @@ class MetricController(rest.RestController):
                 agg=aggregation,
                 std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
-        if start is not None:
-            try:
-                start = utils.to_timestamp(start)
-            except Exception:
-                abort(400, "Invalid value for start")
-
-        if stop is not None:
-            try:
-                stop = utils.to_timestamp(stop)
-            except Exception:
-                abort(400, "Invalid value for stop")
-
         if resample:
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
@@ -517,13 +505,11 @@ class MetricController(rest.RestController):
         if granularity is None:
             granularity = [d.granularity
                            for d in self.metric.archive_policy.definition]
+            start, stop, _, _, _ = validate_qs(
+                start=start, stop=stop)
         else:
-            try:
-                granularity = [utils.to_timespan(granularity)]
-            except ValueError:
-                abort(400, {"cause": "Attribute value error",
-                            "detail": "granularity",
-                            "reason": "Invalid granularity"})
+            start, stop, granularity, _, _ = validate_qs(
+                start=start, stop=stop, granularity=granularity)
 
         if aggregation not in self.metric.archive_policy.aggregation_methods:
             abort(404, {
@@ -1773,9 +1759,8 @@ FillSchema = voluptuous.Schema(
                    msg="Must be a float, 'dropna' or 'null'"))
 
 
-# FIXME(sileht): should be in aggregates.api but we need to split all
-# controllers to do this
-def validate_qs(start, stop, granularity, needed_overlap, fill):
+def validate_qs(start=None, stop=None, granularity=None,
+                needed_overlap=None, fill=None):
     if needed_overlap is not None:
         try:
             needed_overlap = float(needed_overlap)
