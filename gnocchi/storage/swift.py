@@ -83,8 +83,8 @@ class SwiftStorage(storage.StorageDriver):
 
     WRITE_FULL = True
 
-    def __init__(self, conf, coord=None):
-        super(SwiftStorage, self).__init__(conf, coord)
+    def __init__(self, conf):
+        super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 

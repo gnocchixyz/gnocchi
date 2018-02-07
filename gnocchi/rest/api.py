@@ -535,6 +535,7 @@ class MetricController(rest.RestController):
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
                 pecan.request.storage.refresh_metric(
+                    pecan.request.coordinator,
                     pecan.request.indexer, pecan.request.incoming, self.metric,
                     pecan.request.conf.api.operation_timeout)
             except storage.SackLockTimeoutError as e:
@@ -1913,6 +1914,7 @@ class AggregationController(rest.RestController):
                 for m in metrics_to_update:
                     try:
                         pecan.request.storage.refresh_metric(
+                            pecan.request.coordinator,
                             pecan.request.indexer, pecan.request.incoming, m,
                             pecan.request.conf.api.operation_timeout)
                     except storage.SackLockTimeoutError as e:
