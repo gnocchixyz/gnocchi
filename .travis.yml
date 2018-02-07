@@ -12,12 +12,12 @@ env:
   - TARGET: docs
   - TARGET: docs-gnocchi.xyz
 
-  - TARGET: py27-mysql-ceph-upgrade-from-3.1
-  - TARGET: py35-postgresql-file-upgrade-from-3.1
   - TARGET: py27-mysql-ceph-upgrade-from-4.0
   - TARGET: py35-postgresql-file-upgrade-from-4.0
   - TARGET: py27-mysql-ceph-upgrade-from-4.1
   - TARGET: py35-postgresql-file-upgrade-from-4.1
+  - TARGET: py27-mysql-ceph-upgrade-from-4.2
+  - TARGET: py35-postgresql-file-upgrade-from-4.2
 
   - TARGET: py27-mysql
   - TARGET: py35-mysql
