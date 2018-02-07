@@ -27,8 +27,8 @@ class RedisStorage(storage.StorageDriver):
     STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
 
-    def __init__(self, conf, coord=None):
-        super(RedisStorage, self).__init__(conf, coord)
+    def __init__(self, conf):
+        super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
 
     def __str__(self):

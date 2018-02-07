@@ -97,9 +97,8 @@ class GnocchiHook(pecan.hooks.PecanHook):
                                 self.conf.coordination_url)
                         )
                     elif name == "storage":
-                        coord = self._lazy_load("coordinator")
                         self.backends[name] = (
-                            gnocchi_storage.get_driver(self.conf, coord)
+                            gnocchi_storage.get_driver(self.conf)
                         )
                     elif name == "incoming":
                         self.backends[name] = (

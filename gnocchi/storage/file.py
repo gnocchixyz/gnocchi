@@ -35,8 +35,8 @@ OPTS = [
 class FileStorage(storage.StorageDriver):
     WRITE_FULL = True
 
-    def __init__(self, conf, coord=None):
-        super(FileStorage, self).__init__(conf, coord)
+    def __init__(self, conf):
+        super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
 
