@@ -15,6 +15,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import collections
+import functools
+import hashlib
+import operator
 
 import daiquiri
 import numpy
@@ -38,9 +41,66 @@ class SackDetectionError(Exception):
     pass
 
 
+@functools.total_ordering
+class Sack(object):
+    """A sack is a recipient that contains measures for a group of metrics.
+
+    It is identified by a positive integer called `number`.
+    """
+
+    # Use slots to make them as small as possible since we can create a ton of
+    # those.
+    __slots__ = [
+        "number",
+        "total",
+        "name",
+    ]
+
+    def __init__(self, number, total, name):
+        """Create a new sack.
+
+        :param number: The sack number, identifying it.
+        :param total: The total number of sacks.
+        :param name: The sack name.
+        """
+        self.number = number
+        self.total = total
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<%s(%d/%d) %s>" % (
+            self.__class__.__name__, self.number, self.total, str(self),
+        )
+
+    def _compare(self, op, other):
+        if isinstance(other, Sack):
+            if self.total != other.total:
+                raise TypeError(
+                    "Cannot compare %s with different total number" %
+                    self.__class__.__name__)
+            return op(self.number, other.number)
+        raise TypeError("Cannot compare %r with %r" % (self, other))
+
+    def __lt__(self, other):
+        return self._compare(operator.lt, other)
+
+    def __eq__(self, other):
+        return self._compare(operator.eq, other)
+
+    def __ne__(self, other):
+        # neither total_ordering nor py2 sets ne as the opposite of eq
+        return self._compare(operator.ne, other)
+
+    def __hash__(self):
+        return hash(self.name)
+
+
 class IncomingDriver(object):
     MEASURE_PREFIX = "measure"
-    SACK_PREFIX = "incoming"
+    SACK_NAME_FORMAT = "incoming{total}-{number}"
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
 
@@ -53,13 +113,8 @@ class IncomingDriver(object):
                 raise SackDetectionError(e)
         return self._num_sacks
 
-    @staticmethod
-    def __init__(conf, greedy=True):
-        pass
-
-    def get_sack_prefix(self, num_sacks=None):
-        sacks = num_sacks if num_sacks else self.NUM_SACKS
-        return self.SACK_PREFIX + str(sacks) + '-%s'
+    def __init__(self, conf, greedy=True):
+        self._sacks = None
 
     def upgrade(self, num_sacks):
         try:
@@ -82,7 +137,11 @@ class IncomingDriver(object):
 
     @staticmethod
     def get_sack_lock(coord, sack):
-        lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
+        # FIXME(jd) Some tooz drivers have a limitation on lock name length
+        # (e.g. MySQL). This should be handled by tooz, but it's not yet.
+        lock_name = hashlib.new(
+            'sha1',
+            ('gnocchi-sack-%s-lock' % str(sack)).encode()).hexdigest().encode()
         return coord.get_lock(lock_name)
 
     def _make_measures_array(self):
@@ -166,11 +225,18 @@ class IncomingDriver(object):
     def has_unprocessed(metric_id):
         raise exceptions.NotImplementedError
 
-    def sack_for_metric(self, metric_id):
-        return metric_id.int % self.NUM_SACKS
+    def _get_sack_name(self, number):
+        return self.SACK_NAME_FORMAT.format(
+            total=self.NUM_SACKS, number=number)
 
-    def get_sack_name(self, sack):
-        return self.get_sack_prefix() % sack
+    def _make_sack(self, i):
+        return Sack(i, self.NUM_SACKS, self._get_sack_name(i))
+
+    def sack_for_metric(self, metric_id):
+        return self._make_sack(metric_id.int % self.NUM_SACKS)
+
+    def iter_sacks(self):
+        return (self._make_sack(i) for i in six.moves.range(self.NUM_SACKS))
 
     @staticmethod
     def iter_on_sacks_to_process():

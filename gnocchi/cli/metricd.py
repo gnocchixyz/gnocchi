@@ -23,7 +23,6 @@ import cotyledon
 from cotyledon import oslo_config_glue
 import daiquiri
 from oslo_config import cfg
-import six
 import tenacity
 import tooz
 from tooz import coordination
@@ -160,8 +159,7 @@ class MetricProcessor(MetricProcessBase):
         super(MetricProcessor, self)._configure()
 
         # create fallback in case paritioning fails or assigned no tasks
-        self.fallback_tasks = list(
-            six.moves.range(self.incoming.NUM_SACKS))
+        self.fallback_tasks = list(self.incoming.iter_sacks())
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
@@ -206,9 +204,9 @@ class MetricProcessor(MetricProcessBase):
                     self.group_state != self.partitioner.ring.nodes):
                 self.group_state = self.partitioner.ring.nodes.copy()
                 self._tasks = [
-                    i for i in six.moves.range(self.incoming.NUM_SACKS)
+                    sack for sack in self.incoming.iter_sacks()
                     if self.partitioner.belongs_to_self(
-                        i, replicas=self.conf.metricd.processing_replicas)]
+                        sack, replicas=self.conf.metricd.processing_replicas)]
         except tooz.NotImplemented:
             # Do not log anything. If `run_watchers` is not implemented, it's
             # likely that partitioning is not implemented either, so it already
@@ -305,8 +303,8 @@ def metricd_tester(conf):
     s = storage.get_driver(conf)
     inc = incoming.get_driver(conf)
     metrics = set()
-    for i in six.moves.range(inc.NUM_SACKS):
-        metrics.update(inc.list_metric_with_measures_to_process(i))
+    for sack in inc.iter_sacks():
+        metrics.update(inc.list_metric_with_measures_to_process(sack))
         if len(metrics) >= conf.stop_after_processing_metrics:
             break
     c = chef.Chef(None, inc, index, s)
