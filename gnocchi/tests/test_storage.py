@@ -146,9 +146,9 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({"mean": []}, self.storage.get_measures(
             self.metric, aggregations))
-        self.assertRaises(storage.MetricDoesNotExist,
-                          self.storage._get_unaggregated_timeserie,
-                          self.metric)
+        self.assertEqual(
+            {self.metric: None},
+            self.storage._get_or_create_unaggregated_timeseries([self.metric]))
 
     def test_measures_reporting_format(self):
         report = self.incoming.measures_report(True)
