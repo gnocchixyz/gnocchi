@@ -232,7 +232,7 @@ class MetricProcessor(MetricProcessBase):
         for s in sacks:
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
-            lock = self.incoming.get_sack_lock(self.coord, s)
+            lock = self.chef.get_sack_lock(s)
             if not lock.acquire(blocking=False):
                 continue
 
