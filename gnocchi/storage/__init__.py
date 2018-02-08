@@ -90,13 +90,6 @@ class MetricAlreadyExists(StorageError):
             "Metric %s already exists" % metric)
 
 
-class CorruptionError(ValueError, StorageError):
-    """Data corrupted, damn it."""
-
-    def __init__(self, message):
-        super(CorruptionError, self).__init__(message)
-
-
 @utils.retry_on_exception_and_log("Unable to initialize storage driver")
 def get_driver(conf):
     """Return the configured driver."""
@@ -125,35 +118,31 @@ class StorageDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def _get_unaggregated_timeserie(metric, version=3):
+    def _get_or_create_unaggregated_timeseries_unbatched(metric, version=3):
+        """Get the unaggregated timeserie of metrics.
+
+        If the metrics does not exist, it is created.
+
+        :param metric: A metric.
+        :param version: The storage format version number.
+        """
         raise NotImplementedError
 
-    def _get_unaggregated_timeserie_and_unserialize(
-            self, metric, block_size, back_window):
-        """Retrieve unaggregated timeserie for a metric and unserialize it.
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        """Get the unaggregated timeserie of metrics.
 
-        Returns a gnocchi.carbonara.BoundTimeSerie object. If the data cannot
-        be retrieved, returns None.
+        If the metrics does not exist, it is created.
 
+        :param metrics: A list of metrics.
+        :param version: The storage format version number.
         """
-        with utils.StopWatch() as sw:
-            raw_measures = (
-                self._get_unaggregated_timeserie(
-                    metric)
-            )
-        if not raw_measures:
-            return
-        LOG.debug(
-            "Retrieve unaggregated measures "
-            "for %s in %.2fs",
-            metric.id, sw.elapsed())
-        try:
-            return carbonara.BoundTimeSerie.unserialize(
-                raw_measures, block_size, back_window)
-        except carbonara.InvalidData:
-            raise CorruptionError(
-                "Data corruption detected for %s "
-                "unaggregated timeserie" % metric.id)
+        return dict(
+            six.moves.zip(
+                metrics,
+                utils.parallel_map(
+                    utils.return_none_on_failure(
+                        self._get_or_create_unaggregated_timeseries_unbatched),
+                    ((metric, version) for metric in metrics))))
 
     @staticmethod
     def _store_unaggregated_timeserie(metric, data, version=3):
@@ -421,19 +410,25 @@ class StorageDriver(object):
         if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
             back_window += 1
 
-        try:
-            ts = self._get_unaggregated_timeserie_and_unserialize(
-                metric, block_size=block_size, back_window=back_window)
-        except MetricDoesNotExist:
+        with utils.StopWatch() as sw:
+            raw_measures = (
+                self._get_or_create_unaggregated_timeseries(
+                    [metric])[metric]
+            )
+        LOG.debug("Retrieve unaggregated measures for %s in %.2fs",
+                  metric.id, sw.elapsed())
+
+        if raw_measures is None:
+            ts = None
+        else:
             try:
-                self._create_metric(metric)
-            except MetricAlreadyExists:
-                # Created in the mean time, do not worry
-                pass
-            ts = None
-        except CorruptionError as e:
-            LOG.error(e)
-            ts = None
+                ts = carbonara.BoundTimeSerie.unserialize(
+                    raw_measures, block_size, back_window)
+            except carbonara.InvalidData:
+                LOG.error("Data corruption detected for %s "
+                          "unaggregated timeserie, creating a new one",
+                          metric.id)
+                ts = None
 
         if ts is None:
             # This is the first time we treat measures for this

@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import six
 
 from gnocchi.common import redis
 from gnocchi import storage
@@ -86,21 +87,26 @@ return {0, final}
             str(utils.timespan_total_seconds(granularity or key.sampling))])
         return path + '_v%s' % version if version else path
 
-    def _create_metric(self, metric):
-        if self._client.hsetnx(
-                self._metric_key(metric), self._unaggregated_field(), "") == 0:
-            raise storage.MetricAlreadyExists(metric)
-
     def _store_unaggregated_timeserie(self, metric, data, version=3):
         self._client.hset(self._metric_key(metric),
                           self._unaggregated_field(version), data)
 
-    def _get_unaggregated_timeserie(self, metric, version=3):
-        data = self._client.hget(self._metric_key(metric),
-                                 self._unaggregated_field(version))
-        if data is None:
-            raise storage.MetricDoesNotExist(metric)
-        return data
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        for metric in metrics:
+            metric_key = self._metric_key(metric)
+            unagg_key = self._unaggregated_field(version)
+            # Create the metric if it was not created
+            pipe.hsetnx(metric_key, unagg_key, "")
+            # Get the data
+            pipe.hget(metric_key, unagg_key)
+        ts = {
+            # Replace "" by None
+            metric: data or None
+            for metric, (created, data)
+            in six.moves.zip(metrics, utils.grouper(pipe.execute(), 2))
+        }
+        return ts
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
         key = self._metric_key(metric)
