@@ -27,6 +27,7 @@ import gnocchi.storage.ceph
 import gnocchi.storage.file
 import gnocchi.storage.s3
 import gnocchi.storage.swift
+import gnocchi.storage.rocksdb
 
 
 # NOTE(sileht): The oslo.config interpolation is buggy when the value
@@ -49,6 +50,7 @@ _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
                                      gnocchi.storage.file.OPTS,
                                      gnocchi.storage.swift.OPTS,
                                      gnocchi.common.redis.OPTS,
+                                     gnocchi.storage.rocksdb.OPTS,
                                      gnocchi.storage.s3.OPTS))
 
 

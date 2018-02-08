@@ -156,6 +156,14 @@ class ConfigFixture(fixture.GabbiFixture):
                 'swiftclient.client.Connection',
                 base.FakeSwiftClient)
             swift_fixture.setUp()
+        elif conf.storage.driver == 'rocksdb':
+            conf.set_override('rocksdb_readonly', False, 'storage')
+            conf.set_override('rocksdb_path', data_tmp_dir, 'storage')
+            conf.set_override('rocksdb_writer_socket',
+                              os.path.join(data_tmp_dir, "writer.sock"),
+                              'storage')
+            conf.set_override('driver', 'file', 'incoming')
+            conf.set_override('file_basepath', data_tmp_dir, 'incoming')
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.

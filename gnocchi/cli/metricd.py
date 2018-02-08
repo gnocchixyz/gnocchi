@@ -139,6 +139,9 @@ class MetricProcessor(MetricProcessBase):
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
             worker_id, conf, conf.metricd.metric_processing_delay)
+
+        conf.storage.rocksdb_readonly = False
+
         self._tasks = []
         self.group_state = None
         self.sacks_with_measures_to_process = set()
@@ -243,11 +246,15 @@ class MetricProcessor(MetricProcessBase):
                           exc_info=True)
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
         # Update statistics
-        self.coord.update_capabitilities(self.GROUP_ID, self.statistics)
+        # self.coord.update_capabitilities(self.GROUP_ID, self.statistics)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
             self._last_full_sack_scan.reset()
             LOG.debug("Full scan of sacks has been done")
+
+        if self.conf.storage.driver == "rocksdb":
+            self.chef.expunge_metrics()
+            LOG.debug("Metrics marked for deletion removed from backend")
 
     def close_services(self):
         self.coord.stop()
@@ -273,11 +280,14 @@ class MetricdServiceManager(cotyledon.ServiceManager):
         self.conf = conf
         self.metric_processor_id = self.add(
             MetricProcessor, args=(self.conf,),
-            workers=conf.metricd.workers)
+            workers=self.get_workers())
+
         if self.conf.metricd.metric_reporting_delay >= 0:
             self.add(MetricReporting, args=(self.conf,))
-        self.add(MetricJanitor, args=(self.conf,))
 
+        # FIXME(sileht): Maybe not the best solution
+        if self.conf.storage.driver == "rocksdb":
+            self.add(MetricJanitor, args=(self.conf,))
         self.register_hooks(on_reload=self.on_reload)
 
     def on_reload(self):
@@ -287,7 +297,12 @@ class MetricdServiceManager(cotyledon.ServiceManager):
         # we use the number of worker to declare the capability in tooz and
         # to select the block of metrics to proceed.
         self.reconfigure(self.metric_processor_id,
-                         workers=self.conf.metricd.workers)
+                         workers=self.get_workers())
+
+    def get_workers(self):
+        if self.conf.storage.driver == "rocksdb":
+            return 1
+        return self.conf.metricd.workers
 
 
 def metricd_tester(conf):

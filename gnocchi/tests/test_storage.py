@@ -28,6 +28,7 @@ from gnocchi import storage
 from gnocchi.storage import ceph
 from gnocchi.storage import file
 from gnocchi.storage import redis
+from gnocchi.storage import rocksdb
 from gnocchi.storage import s3
 from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
@@ -57,6 +58,8 @@ class TestStorageDriver(tests_base.TestCase):
             s = driver._bucket_name
         elif isinstance(driver, swift.SwiftStorage):
             s = driver._container_prefix
+        elif isinstance(driver, rocksdb.RocksDBStorage):
+            s = driver._conf.rocksdb_path
 
         self.assertEqual(str(driver), "%s: %s" % (
                          driver.__class__.__name__, s))

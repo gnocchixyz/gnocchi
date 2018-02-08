@@ -340,6 +340,25 @@ class TestCase(BaseTestCase):
             self.conf.set_override('file_basepath',
                                    tempdir.path,
                                    'storage')
+        elif self.conf.storage.driver == 'rocksdb':
+            tempdir = self.useFixture(fixtures.TempDir())
+            self.conf.set_override('rocksdb_readonly', False, 'storage')
+            self.conf.set_override('rocksdb_path',
+                                   os.path.join(tempdir.path, "storage"),
+                                   'storage')
+            self.conf.set_override('rocksdb_writer_socket',
+                                   os.path.join(tempdir.path, "writer.sock"),
+                                   'storage')
+            self.conf.set_override('rocksdb_flush_every_operation', 1,
+                                   'storage')
+
+            tempdir = self.useFixture(fixtures.TempDir())
+            # Rockdb doesn't implement incoming
+            self.conf.set_override('driver', 'file', 'incoming')
+            self.conf.set_override('file_basepath',
+                                   os.path.join(tempdir.path, "incoming"),
+                                   'incoming')
+
         elif self.conf.storage.driver == 'ceph':
             pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:

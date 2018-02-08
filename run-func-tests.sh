@@ -44,6 +44,9 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                 fi
                 eval $(pifpaf -e STORAGE run s3rver)
                 ;;
+            rocksdb)
+                STORAGE_URL=rocksdb://
+                ;;
             file)
                 STORAGE_URL=file://
                 ;;

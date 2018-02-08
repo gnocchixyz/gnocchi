@@ -40,8 +40,8 @@ class FileStorage(incoming.IncomingDriver):
         return "%s: %s" % (self.__class__.__name__, str(self.basepath))
 
     def upgrade(self, num_sacks):
-        super(FileStorage, self).upgrade(num_sacks)
         utils.ensure_paths([self.basepath_tmp])
+        super(FileStorage, self).upgrade(num_sacks)
 
     def _get_storage_sacks(self):
         with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX),
@@ -89,7 +89,7 @@ class FileStorage(incoming.IncomingDriver):
                 if e.errno != errno.ENOENT:
                     raise
                 try:
-                    os.mkdir(self._build_measure_path(metric_id))
+                    os.makedirs(self._build_measure_path(metric_id))
                 except OSError as e:
                     # NOTE(jd) It's possible that another process created the
                     # path just before us! In this case, good for us, let's do
