@@ -178,9 +178,13 @@ tests:
 
     - name: get measurements invalid agg method
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?aggregation=wtf
-      status: 400
-      response_strings:
-        - Invalid aggregation value
+      request_headers:
+        accept: application/json
+      status: 404
+      response_json_paths:
+        $.description.cause: Aggregation method does not exist for this metric
+        $.description.detail.metric: $HISTORY['list valid metrics'].$RESPONSE['$[0].id']
+        $.description.detail.aggregation_method: wtf
 
     - name: get measurements by start
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34

@@ -487,12 +487,6 @@ class MetricController(rest.RestController):
                      granularity=None, resample=None, refresh=False,
                      **param):
         self.enforce_metric("get measures")
-        if (aggregation not in
-           archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
-            msg = "Invalid aggregation value %(agg)s, must be one of %(std)s"
-            abort(400, msg % dict(
-                agg=aggregation,
-                std=archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         if resample:
             if not granularity:
@@ -1833,14 +1827,6 @@ class AggregationController(rest.RestController):
                                             refresh=False, resample=None):
         start, stop, granularity, needed_overlap, fill = validate_qs(
             start, stop, granularity, needed_overlap, fill)
-
-        if (aggregation
-           not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
-            abort(
-                400,
-                'Invalid aggregation value %s, must be one of %s'
-                % (aggregation,
-                   archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
         if reaggregation is None:
             reaggregation = aggregation

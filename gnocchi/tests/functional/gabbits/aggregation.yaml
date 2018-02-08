@@ -113,6 +113,14 @@ tests:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
+    - name: get measure aggregates with invalid aggregation method
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&aggregation=wtf
+      request_headers:
+        accept: application/json
+      status: 404
+      response_json_paths:
+        $.description: Aggregation method 'wtf' at granularity '1.0' for metric $HISTORY['get metric list'].$RESPONSE['$[0].id'] does not exist
+
     - name: get measure aggregates and reaggregate
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&reaggregation=min
       poll:
