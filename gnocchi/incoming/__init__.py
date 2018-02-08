@@ -16,7 +16,6 @@
 # under the License.
 import collections
 import functools
-import hashlib
 import operator
 
 import daiquiri
@@ -134,15 +133,6 @@ class IncomingDriver(object):
     def get_storage_sacks():
         """Return the number of sacks in storage. None if not set."""
         raise exceptions.NotImplementedError
-
-    @staticmethod
-    def get_sack_lock(coord, sack):
-        # FIXME(jd) Some tooz drivers have a limitation on lock name length
-        # (e.g. MySQL). This should be handled by tooz, but it's not yet.
-        lock_name = hashlib.new(
-            'sha1',
-            ('gnocchi-sack-%s-lock' % str(sack)).encode()).hexdigest().encode()
-        return coord.get_lock(lock_name)
 
     def _make_measures_array(self):
         return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)

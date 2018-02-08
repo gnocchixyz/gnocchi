@@ -14,6 +14,7 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import hashlib
 import itertools
 import operator
 
@@ -64,7 +65,7 @@ class Chef(object):
         for sack, metrics in itertools.groupby(
                 metrics_to_expunge, key=ITEMGETTER_1):
             try:
-                lock = self.incoming.get_sack_lock(self.coord, sack)
+                lock = self.get_sack_lock(sack)
                 if not lock.acquire(blocking=sync):
                     # Retry later
                     LOG.debug(
@@ -100,7 +101,7 @@ class Chef(object):
 
     def refresh_metric(self, metric, timeout):
         s = self.incoming.sack_for_metric(metric.id)
-        lock = self.incoming.get_sack_lock(self.coord, s)
+        lock = self.get_sack_lock(s)
         if not lock.acquire(blocking=timeout):
             raise SackLockTimeoutError(
                 'Unable to refresh metric: %s. Metric is locked. '
@@ -135,3 +136,11 @@ class Chef(object):
             if sync:
                 raise
             LOG.error("Error processing new measures", exc_info=True)
+
+    def get_sack_lock(self, sack):
+        # FIXME(jd) Some tooz drivers have a limitation on lock name length
+        # (e.g. MySQL). This should be handled by tooz, but it's not yet.
+        lock_name = hashlib.new(
+            'sha1',
+            ('gnocchi-sack-%s-lock' % str(sack)).encode()).hexdigest().encode()
+        return self.coord.get_lock(lock_name)
