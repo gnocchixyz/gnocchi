@@ -480,12 +480,12 @@ class TestStorageDriver(tests_base.TestCase):
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Now store brand new points that should force a rewrite of one of the
-        # split (keep in mind the back window size in one hour here). We move
+        # split (keep in mind the back window size is one hour here). We move
         # the BoundTimeSerie processing timeserie far away from its current
         # range.
 
         # Here we test a special case where the oldest_mutable_timestamp will
-        # be 2016-01-10TOO:OO:OO = 1452384000.0, our new split key.
+        # be 2016-01-10T00:00:00 = 1452384000.0, our new split key.
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 0, 12), 45),
         ])
