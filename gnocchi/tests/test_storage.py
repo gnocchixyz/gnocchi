@@ -97,7 +97,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 5),
         ])
-        with mock.patch.object(self.storage, '_store_unaggregated_timeserie',
+        with mock.patch.object(self.storage, '_store_unaggregated_timeseries',
                                side_effect=Exception):
             try:
                 self.trigger_processing()

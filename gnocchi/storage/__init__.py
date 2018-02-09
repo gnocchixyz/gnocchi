@@ -145,8 +145,25 @@ class StorageDriver(object):
                     ((metric, version) for metric in metrics))))
 
     @staticmethod
-    def _store_unaggregated_timeserie(metric, data, version=3):
+    def _store_unaggregated_timeseries_unbatched(metric, data, version=3):
+        """Store unaggregated timeseries.
+
+        :param metric: A metric.
+        :param data: The data to store.
+        :param version: Storage engine data format version
+        """
         raise NotImplementedError
+
+    def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        """Store unaggregated timeseries.
+
+        :param metrics_and_data: A list of (metric, serialized_data) tuples
+        :param version: Storage engine data format version
+        """
+        utils.parallel_map(
+            utils.return_none_on_failure(
+                self._store_unaggregated_timeseries_unbatched),
+            ((metric, data, version) for metric, data in metrics_and_data))
 
     @staticmethod
     def _store_metric_splits(metric, keys_and_data_and_offset, aggregation,
@@ -490,7 +507,7 @@ class StorageDriver(object):
                   "in %.2f seconds%s",
                   metric.id, len(measures), elapsed, perf)
 
-        self._store_unaggregated_timeserie(metric, ts.serialize())
+        self._store_unaggregated_timeseries([(metric, ts.serialize())])
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):
