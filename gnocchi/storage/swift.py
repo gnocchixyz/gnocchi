@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
+# Copyright © 2018 Red Hat
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -203,7 +204,9 @@ class SwiftStorage(storage.StorageDriver):
         else:
             return contents
 
-    def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self.swift.put_object(self._container_name(metric),
-                              self._build_unaggregated_timeserie_path(version),
-                              data)
+    def _store_unaggregated_timeseries_unbatched(
+            self, metric, data, version=3):
+        self.swift.put_object(
+            self._container_name(metric),
+            self._build_unaggregated_timeserie_path(version),
+            data)

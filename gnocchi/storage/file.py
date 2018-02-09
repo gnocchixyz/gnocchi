@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 #
 # Copyright © 2014 Objectif Libre
-# Copyright © 2015 Red Hat
+# Copyright © 2015-2018 Red Hat
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -96,7 +96,8 @@ class FileStorage(storage.StorageDriver):
                 if e.errno != errno.EEXIST:
                     raise
 
-    def _store_unaggregated_timeserie(self, metric, data, version=3):
+    def _store_unaggregated_timeseries_unbatched(
+            self, metric, data, version=3):
         dest = self._build_unaggregated_timeserie_path(metric, version)
         with open(dest, "wb") as f:
             f.write(data)

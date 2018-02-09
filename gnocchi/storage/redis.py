@@ -87,9 +87,12 @@ return {0, final}
             str(utils.timespan_total_seconds(granularity or key.sampling))])
         return path + '_v%s' % version if version else path
 
-    def _store_unaggregated_timeserie(self, metric, data, version=3):
-        self._client.hset(self._metric_key(metric),
-                          self._unaggregated_field(version), data)
+    def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        unagg_key = self._unaggregated_field(version)
+        for metric, data in metrics_and_data:
+            pipe.hset(self._metric_key(metric), unagg_key, data)
+        pipe.execute()
 
     def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
         pipe = self._client.pipeline(transaction=False)
