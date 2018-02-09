@@ -77,15 +77,16 @@ class CephStorage(storage.StorageDriver):
         else:
             self.ioctx.write_full(name, b"")
 
-    def _store_metric_measures(self, metric, key, aggregation,
-                               data, offset=None, version=3):
-        name = self._get_object_name(metric, key, aggregation, version)
-        if offset is None:
-            self.ioctx.write_full(name, data)
-        else:
-            self.ioctx.write(name, data, offset=offset)
+    def _store_metric_splits(self, metric, keys_and_data_and_offset,
+                             aggregation, version=3):
         with rados.WriteOpCtx() as op:
-            self.ioctx.set_omap(op, (name,), (b"",))
+            for key, data, offset in keys_and_data_and_offset:
+                name = self._get_object_name(metric, key, aggregation, version)
+                if offset is None:
+                    self.ioctx.write_full(name, data)
+                else:
+                    self.ioctx.write(name, data, offset=offset)
+                self.ioctx.set_omap(op, (name,), (b"",))
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 

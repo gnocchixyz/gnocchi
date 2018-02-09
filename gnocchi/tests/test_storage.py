@@ -212,7 +212,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 6, 1, 58, 1), 100)])
 
-        with mock.patch.object(self.storage, '_store_metric_measures') as c:
+        with mock.patch.object(self.storage, '_store_metric_splits') as c:
             # should only resample last aggregate
             self.trigger_processing([str(m.id)])
         count = 0
@@ -221,7 +221,7 @@ class TestStorageDriver(tests_base.TestCase):
             args = call[1]
             if (args[0] == m_sql
                and args[2] == 'mean'
-               and args[1].sampling == numpy.timedelta64(1, 'm')):
+               and args[1][0][0].sampling == numpy.timedelta64(1, 'm')):
                 count += 1
         self.assertEqual(1, count)
 
@@ -689,12 +689,13 @@ class TestStorageDriver(tests_base.TestCase):
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Test what happens if we write garbage
-        self.storage._store_metric_measures(
-            self.metric, carbonara.SplitKey(
-                numpy.datetime64(1451952000, 's'),
-                numpy.timedelta64(1, 'm'),
-            ), "mean",
-            b"oh really?")
+        self.storage._store_metric_splits(
+            self.metric, [
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451952000, 's'),
+                    numpy.timedelta64(1, 'm')),
+                 b"oh really?", None)
+            ], "mean")
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
