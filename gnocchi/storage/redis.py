@@ -115,11 +115,14 @@ return {0, final}
         field = self._aggregated_field_for_split(aggregation, key, version)
         self._client.hdel(self._metric_key(metric), field)
 
-    def _store_metric_measures(self, metric, key, aggregation,
-                               data, offset=None, version=3):
-        field = self._aggregated_field_for_split(
-            aggregation, key, version)
-        self._client.hset(self._metric_key(metric), field, data)
+    def _store_metric_splits(self, metric, keys_and_data_and_offset,
+                             aggregation, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        metric_key = self._metric_key(metric)
+        for key, data, offset in keys_and_data_and_offset:
+            key = self._aggregated_field_for_split(aggregation, key, version)
+            pipe.hset(metric_key, key, data)
+        pipe.execute()
 
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
