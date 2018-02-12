@@ -120,9 +120,13 @@ return {0, final}
             raise storage.MetricDoesNotExist(metric)
         return set(split_keys)
 
-    def _delete_metric_measures(self, metric, key, aggregation, version=3):
-        field = self._aggregated_field_for_split(aggregation, key, version)
-        self._client.hdel(self._metric_key(metric), field)
+    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+        metric_key = self._metric_key(metric)
+        pipe = self._client.pipeline(transaction=False)
+        for key in keys:
+            pipe.hdel(metric_key, self._aggregated_field_for_split(
+                aggregation, key, version))
+        pipe.execute()
 
     def _store_metric_splits(self, metric, keys_and_data_and_offset,
                              aggregation, version=3):

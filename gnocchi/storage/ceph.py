@@ -91,19 +91,21 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 
-    def _delete_metric_measures(self, metric, key, aggregation, version=3):
-        name = self._get_object_name(metric, key, aggregation, version)
-
-        try:
-            self.ioctx.remove_object(name)
-        except rados.ObjectNotFound:
-            # It's possible that we already remove that object and then crashed
-            # before removing it from the OMAP key list; then no big deal
-            # anyway.
-            pass
-
+    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+        names = tuple(
+            self._get_object_name(metric, key, aggregation, version)
+            for key in keys
+        )
         with rados.WriteOpCtx() as op:
-            self.ioctx.remove_omap_keys(op, (name,))
+            for name in names:
+                try:
+                    self.ioctx.remove_object(name)
+                except rados.ObjectNotFound:
+                    # It's possible that we already remove that object and then
+                    # crashed before removing it from the OMAP key list; then
+                    # no big deal anyway.
+                    pass
+            self.ioctx.remove_omap_keys(op, names)
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 

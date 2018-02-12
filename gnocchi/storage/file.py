@@ -133,7 +133,8 @@ class FileStorage(storage.StorageDriver):
                 keys.add(meta[0])
         return keys
 
-    def _delete_metric_measures(self, metric, key, aggregation, version=3):
+    def _delete_metric_splits_unbatched(
+            self, metric, key, aggregation, version=3):
         os.unlink(self._build_metric_path_for_split(
             metric, aggregation, key, version))
 
