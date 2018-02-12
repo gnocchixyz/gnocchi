@@ -111,8 +111,8 @@ class ArchivePolicy(object):
     @property
     def aggregations(self):
         return [aggregation.Aggregation(method, d.granularity, d.timespan)
-                for method in self.aggregation_methods
-                for d in self.definition]
+                for d in sorted(self.definition, key=ATTRGETTER_GRANULARITY)
+                for method in self.aggregation_methods]
 
     @property
     def aggregation_methods(self):
