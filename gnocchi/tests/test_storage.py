@@ -608,11 +608,11 @@ class TestStorageDriver(tests_base.TestCase):
 
         # Test what happens if we delete the latest split and then need to
         # compress it!
-        self.storage._delete_metric_measures(
-            self.metric, carbonara.SplitKey(
+        self.storage._delete_metric_splits(
+            self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
-            ), 'mean')
+            )], 'mean')
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
