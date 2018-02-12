@@ -360,8 +360,6 @@ class StorageDriver(object):
 
                 # First, check for old splits to delete
                 if ap_def.timespan:
-                    oldest_point_to_keep = ts.last - ap_def.timespan
-                    oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
                     for key in list(existing_keys):
                         # NOTE(jd) Only delete if the key is strictly inferior
                         # the timestamp; we don't delete any timeserie split
