@@ -15,6 +15,7 @@
 # under the License.
 import six
 
+from gnocchi import carbonara
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
@@ -32,22 +33,20 @@ class RedisStorage(storage.StorageDriver):
 local metric_key = KEYS[1]
 local ids = {}
 local cursor = 0
-local substring = "([^" .. ARGV[2] .. "]*)"
+local substring = "([^%s]*)%s([^%s]*)%s([^%s]*)"
 repeat
     local result = redis.call("HSCAN", metric_key, cursor, "MATCH", ARGV[1])
     cursor = tonumber(result[1])
     for i, v in ipairs(result[2]) do
         -- Only return keys, not values
-        if i % 2 ~= 0 then
-            ids[#ids + 1] = v:gmatch(substring)()
+        if i %% 2 ~= 0 then
+            local timestamp, method, granularity = v:gmatch(substring)()
+            ids[#ids + 1] = {timestamp, method, granularity}
         end
     end
 until cursor == 0
-if #ids == 0 and redis.call("EXISTS", metric_key) == 0 then
-    return -1
-end
 return ids
-""",
+""" % (FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP),
         "get_measures": """
 local results = redis.call("HMGET", KEYS[1], unpack(ARGV))
 local final = {}
@@ -111,14 +110,36 @@ return {0, final}
         }
         return ts
 
-    def _list_split_keys(self, metric, aggregation, granularity, version=3):
+    def _list_split_keys(self, metric, aggregations, version=3):
         key = self._metric_key(metric)
-        split_keys = self._scripts["list_split_keys"](
-            keys=[key], args=[self._aggregated_field_for_split(
-                aggregation, '*', version, granularity), self.FIELD_SEP])
-        if split_keys == -1:
+        pipe = self._client.pipeline(transaction=False)
+        pipe.exists(key)
+        for aggregation in aggregations:
+            self._scripts["list_split_keys"](
+                keys=[key], args=[self._aggregated_field_for_split(
+                    aggregation.method, "*",
+                    version, aggregation.granularity)],
+                client=pipe,
+            )
+        results = pipe.execute()
+        metric_exists_p = results.pop(0)
+        if not metric_exists_p:
             raise storage.MetricDoesNotExist(metric)
-        return set(split_keys)
+        keys = {}
+        for aggregation, k in six.moves.zip(aggregations, results):
+            if not k:
+                keys[aggregation] = set()
+                continue
+            timestamps, methods, granularities = list(zip(*k))
+            timestamps = utils.to_timestamps(timestamps)
+            granularities = map(utils.to_timespan, granularities)
+            keys[aggregation] = {
+                carbonara.SplitKey(timestamp,
+                                   sampling=granularity)
+                for timestamp, granularity
+                in six.moves.zip(timestamps, granularities)
+            }
+        return keys
 
     def _delete_metric_splits(self, metric, keys, aggregation, version=3):
         metric_key = self._metric_key(metric)

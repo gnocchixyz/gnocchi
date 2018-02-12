@@ -14,9 +14,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 
 from oslo_config import cfg
+import six
 
+from gnocchi import carbonara
 from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi import utils
@@ -153,7 +156,7 @@ class CephStorage(storage.StorageDriver):
             else:
                 raise storage.MetricDoesNotExist(metric)
 
-    def _list_split_keys(self, metric, aggregation, granularity, version=3):
+    def _list_split_keys(self, metric, aggregations, version=3):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
             try:
@@ -173,13 +176,26 @@ class CephStorage(storage.StorageDriver):
             except rados.ObjectNotFound:
                 raise storage.MetricDoesNotExist(metric)
 
-            keys = set()
-            granularity = str(utils.timespan_total_seconds(granularity))
-            for name, value in omaps:
-                meta = name.split('_')
-                if (aggregation == meta[3] and granularity == meta[4]
-                        and self._version_check(name, version)):
-                    keys.add(meta[2])
+            raw_keys = [name.split("_")
+                        for name, value in omaps
+                        if self._version_check(name, version)]
+            keys = collections.defaultdict(set)
+            if not raw_keys:
+                return keys
+            zipped = list(zip(*raw_keys))
+            k_timestamps = utils.to_timestamps(zipped[2])
+            k_methods = zipped[3]
+            k_granularities = list(map(utils.to_timespan, zipped[4]))
+
+            for timestamp, method, granularity in six.moves.zip(
+                    k_timestamps, k_methods, k_granularities):
+                for aggregation in aggregations:
+                    if (aggregation.method == method
+                       and aggregation.granularity == granularity):
+                        keys[aggregation].add(carbonara.SplitKey(
+                            timestamp,
+                            sampling=granularity))
+                        break
             return keys
 
     @staticmethod

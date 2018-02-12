@@ -14,9 +14,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 
 from oslo_config import cfg
+import six
 
+from gnocchi import carbonara
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi import utils
@@ -163,7 +166,7 @@ class SwiftStorage(storage.StorageDriver):
             raise
         return contents
 
-    def _list_split_keys(self, metric, aggregation, granularity, version=3):
+    def _list_split_keys(self, metric, aggregations, version=3):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -172,17 +175,29 @@ class SwiftStorage(storage.StorageDriver):
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
-        keys = set()
-        granularity = str(utils.timespan_total_seconds(granularity))
-        for f in files:
-            try:
-                meta = f['name'].split('_')
-                if (aggregation == meta[1] and granularity == meta[2]
-                        and self._version_check(f['name'], version)):
-                    keys.add(meta[0])
-            except (ValueError, IndexError):
-                # Might be "none", or any other file. Be resilient.
-                continue
+
+        raw_keys = list(map(
+            lambda k: k.split("_"),
+            (f['name'] for f in files
+             if self._version_check(f['name'], version)
+             and not f['name'].startswith('none'))))
+        keys = collections.defaultdict(set)
+        if not raw_keys:
+            return keys
+        zipped = list(zip(*raw_keys))
+        k_timestamps = utils.to_timestamps(zipped[0])
+        k_methods = zipped[1]
+        k_granularities = list(map(utils.to_timespan, zipped[2]))
+
+        for timestamp, method, granularity in six.moves.zip(
+                k_timestamps, k_methods, k_granularities):
+            for aggregation in aggregations:
+                if (aggregation.method == method
+                   and aggregation.granularity == granularity):
+                    keys[aggregation].add(carbonara.SplitKey(
+                        timestamp,
+                        sampling=granularity))
+                    break
         return keys
 
     @staticmethod
