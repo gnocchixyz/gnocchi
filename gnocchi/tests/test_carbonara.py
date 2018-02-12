@@ -16,6 +16,7 @@
 import datetime
 import functools
 import math
+import operator
 
 import fixtures
 import iso8601
@@ -808,16 +809,19 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             numpy.datetime64("2014-10-07"),
             carbonara.SplitKey.from_timestamp_and_sampling(
                 numpy.datetime64("2015-01-01T15:03"),
-                numpy.timedelta64(3600, 's')))
+                numpy.timedelta64(3600, 's'),
+                "mean"))
         self.assertEqual(
             numpy.datetime64("2014-12-31 18:00"),
             carbonara.SplitKey.from_timestamp_and_sampling(
                 numpy.datetime64("2015-01-01 15:03:58"),
-                numpy.timedelta64(58, 's')))
+                numpy.timedelta64(58, 's'),
+                "mean"))
 
         key = carbonara.SplitKey.from_timestamp_and_sampling(
             numpy.datetime64("2015-01-01 15:03"),
-            numpy.timedelta64(3600, 's'))
+            numpy.timedelta64(3600, 's'),
+            "mean")
 
         self.assertGreater(key, numpy.datetime64("1970"))
 
@@ -830,28 +834,33 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         td = numpy.timedelta64(60, 's')
 
         self.assertEqual(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
         self.assertEqual(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td, "mean"))
         self.assertNotEqual(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
+        self.assertRaises(
+            TypeError,
+            operator.le,
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "max"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td, "mean"))
 
         self.assertLess(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
         self.assertLessEqual(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
 
         self.assertGreater(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
         self.assertGreaterEqual(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td),
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
 
     def test_split_key_cmp_negative(self):
         dt1 = numpy.datetime64("2015-01-01T15:03")
@@ -860,40 +869,42 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         td = numpy.timedelta64(60, 's')
 
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean") !=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean") !=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1_1, td, "mean"))
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean") ==
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
 
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >=
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean") >=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean") >
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
 
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td) <=
-            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean") <=
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td, "mean"))
         self.assertFalse(
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td) <
-            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean") <
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td, "mean"))
 
     def test_split_key_next(self):
         self.assertEqual(
             numpy.datetime64("2015-03-06"),
             next(carbonara.SplitKey.from_timestamp_and_sampling(
                 numpy.datetime64("2015-01-01 15:03"),
-                numpy.timedelta64(3600, 's'))))
+                numpy.timedelta64(3600, 's'),
+                "mean")))
         self.assertEqual(
             numpy.datetime64("2015-08-03"),
             next(next(carbonara.SplitKey.from_timestamp_and_sampling(
                 numpy.datetime64("2015-01-01T15:03"),
-                numpy.timedelta64(3600, 's')))))
+                numpy.timedelta64(3600, 's'),
+                "mean"))))
 
     def test_split(self):
         sampling = numpy.timedelta64(5, 's')
@@ -911,7 +922,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                       / carbonara.SplitKey.POINTS_PER_SPLIT),
             len(grouped_points))
         self.assertEqual("0.0",
-                         str(carbonara.SplitKey(grouped_points[0][0], 0)))
+                         str(carbonara.SplitKey(
+                             grouped_points[0][0], 0, "mean")))
         # 3600 × 5s = 5 hours
         self.assertEqual(datetime64(1970, 1, 1, 5),
                          grouped_points[1][0])

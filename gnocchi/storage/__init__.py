@@ -182,7 +182,9 @@ class StorageDriver(object):
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
                                     version=3):
         return set(map(
-            functools.partial(carbonara.SplitKey, sampling=granularity),
+            functools.partial(carbonara.SplitKey,
+                              sampling=granularity,
+                              aggregation_method=aggregation),
             (numpy.array(
                 list(self._list_split_keys(
                     metric, aggregation, granularity, version)),
@@ -258,11 +260,11 @@ class StorageDriver(object):
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                from_timestamp, aggregation.granularity)
+                from_timestamp, aggregation.granularity, aggregation.method)
 
         if to_timestamp:
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                to_timestamp, aggregation.granularity)
+                to_timestamp, aggregation.granularity, aggregation.method)
 
         keys = [key for key in sorted(all_keys)
                 if ((not from_timestamp or key >= from_timestamp)
