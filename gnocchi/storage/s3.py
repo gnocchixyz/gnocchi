@@ -18,6 +18,7 @@ import os
 from oslo_config import cfg
 import tenacity
 
+from gnocchi import carbonara
 from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi import utils
@@ -176,37 +177,42 @@ class S3Storage(storage.StorageDriver):
             raise
         return response['Body'].read()
 
-    def _list_split_keys(self, metric, aggregation, granularity, version=3):
+    def _list_split_keys(self, metric, aggregations, version=3):
         bucket = self._bucket_name
-        keys = set()
-        response = {}
-        while response.get('IsTruncated', True):
-            if 'NextContinuationToken' in response:
-                kwargs = {
-                    'ContinuationToken': response['NextContinuationToken']
-                }
-            else:
-                kwargs = {}
-            try:
-                response = self.s3.list_objects_v2(
-                    Bucket=bucket,
-                    Prefix=self._prefix(metric) + '%s_%s' % (
-                        aggregation,
-                        utils.timespan_total_seconds(granularity),
-                    ),
-                    **kwargs)
-            except botocore.exceptions.ClientError as e:
-                if e.response['Error'].get('Code') == "NoSuchKey":
-                    raise storage.MetricDoesNotExist(metric)
-                raise
-            for f in response.get('Contents', ()):
+        keys = {}
+        for aggregation in aggregations:
+            keys[aggregation] = set()
+            response = {}
+            while response.get('IsTruncated', True):
+                if 'NextContinuationToken' in response:
+                    kwargs = {
+                        'ContinuationToken': response['NextContinuationToken']
+                    }
+                else:
+                    kwargs = {}
                 try:
-                    meta = f['Key'].split('_')
-                    if (self._version_check(f['Key'], version)):
-                        keys.add(meta[2])
-                except (ValueError, IndexError):
-                    # Might be "none", or any other file. Be resilient.
-                    continue
+                    response = self.s3.list_objects_v2(
+                        Bucket=bucket,
+                        Prefix=self._prefix(metric) + '%s_%s' % (
+                            aggregation.method,
+                            utils.timespan_total_seconds(
+                                aggregation.granularity),
+                        ),
+                        **kwargs)
+                except botocore.exceptions.ClientError as e:
+                    if e.response['Error'].get('Code') == "NoSuchKey":
+                        raise storage.MetricDoesNotExist(metric)
+                    raise
+                for f in response.get('Contents', ()):
+                    try:
+                        if (self._version_check(f['Key'], version)):
+                            meta = f['Key'].split('_')
+                            keys[aggregation].add(carbonara.SplitKey(
+                                utils.to_timestamp(meta[2]),
+                                sampling=aggregation.granularity))
+                    except (ValueError, IndexError):
+                        # Might be "none", or any other file. Be resilient.
+                        continue
         return keys
 
     @staticmethod

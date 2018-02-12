@@ -14,13 +14,18 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import errno
+import itertools
+import operator
 import os
 import shutil
 import tempfile
 
 from oslo_config import cfg
+import six
 
+from gnocchi import carbonara
 from gnocchi import storage
 from gnocchi import utils
 
@@ -30,6 +35,8 @@ OPTS = [
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
 ]
+
+ATTRGETTER_METHOD = operator.attrgetter("method")
 
 # Python 2 compatibility
 try:
@@ -118,19 +125,37 @@ class FileStorage(storage.StorageDriver):
         except storage.MetricAlreadyExists:
             pass
 
-    def _list_split_keys(self, metric, aggregation, granularity, version=3):
-        try:
-            files = os.listdir(self._build_metric_path(metric, aggregation))
-        except OSError as e:
-            if e.errno == errno.ENOENT:
-                raise storage.MetricDoesNotExist(metric)
-            raise
-        keys = set()
-        granularity = str(utils.timespan_total_seconds(granularity))
-        for f in files:
-            meta = f.split("_")
-            if meta[1] == granularity and self._version_check(f, version):
-                keys.add(meta[0])
+    def _list_split_keys(self, metric, aggregations, version=3):
+        keys = collections.defaultdict(set)
+        for method, grouped_aggregations in itertools.groupby(
+                sorted(aggregations, key=ATTRGETTER_METHOD),
+                ATTRGETTER_METHOD):
+            try:
+                files = os.listdir(
+                    self._build_metric_path(metric, method))
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    raise storage.MetricDoesNotExist(metric)
+                raise
+            raw_keys = list(map(
+                lambda k: k.split("_"),
+                filter(
+                    lambda f: self._version_check(f, version),
+                    files)))
+            if not raw_keys:
+                continue
+            zipped = list(zip(*raw_keys))
+            k_timestamps = utils.to_timestamps(zipped[0])
+            k_granularities = list(map(utils.to_timespan, zipped[1]))
+            grouped_aggregations = list(grouped_aggregations)
+            for timestamp, granularity in six.moves.zip(
+                    k_timestamps, k_granularities):
+                for agg in grouped_aggregations:
+                    if granularity == agg.granularity:
+                        keys[agg].add(carbonara.SplitKey(
+                            timestamp,
+                            sampling=granularity))
+                        break
         return keys
 
     def _delete_metric_splits_unbatched(

@@ -14,7 +14,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import functools
 import itertools
 import operator
 
@@ -179,21 +178,21 @@ class StorageDriver(object):
         """
         raise NotImplementedError
 
-    def _list_split_keys_for_metric(self, metric, aggregation, granularity,
-                                    version=3):
-        return set(map(
-            functools.partial(carbonara.SplitKey, sampling=granularity),
-            (numpy.array(
-                list(self._list_split_keys(
-                    metric, aggregation, granularity, version)),
-                dtype=numpy.float) * 10e8).astype('datetime64[ns]')))
-
     @staticmethod
-    def _list_split_keys(metric, aggregation, granularity, version=3):
+    def _list_split_keys(metric, aggregations, version=3):
+        """List split keys for a metric.
+
+        :param metric: The metric to look key for.
+        :param aggregations: List of Aggregations to look for.
+        :param version: Storage engine format version.
+        :return: A dict where keys are Aggregation objects and values are
+                 a set of SplitKey objects.
+        """
         raise NotImplementedError
 
     @staticmethod
     def _version_check(name, v):
+
         """Validate object matches expected version.
 
         Version should be last attribute and start with 'v'
@@ -252,8 +251,8 @@ class StorageDriver(object):
     def _get_measures_timeserie(self, metric, aggregation,
                                 from_timestamp=None, to_timestamp=None):
         try:
-            all_keys = self._list_split_keys_for_metric(
-                metric, aggregation.method, aggregation.granularity)
+            all_keys = self._list_split_keys(
+                metric, [aggregation])[aggregation]
         except MetricDoesNotExist:
             return carbonara.AggregatedTimeSerie(aggregation)
 
@@ -374,8 +373,8 @@ class StorageDriver(object):
             # only cleanup if there is a new object, as there must be a new
             # object for an old object to be cleanup
             if previous_oldest_mutable_key != oldest_mutable_key:
-                existing_keys = sorted(self._list_split_keys_for_metric(
-                    metric, aggregation.method, aggregation.granularity))
+                existing_keys = sorted(self._list_split_keys(
+                    metric, [aggregation])[aggregation])
 
                 # First, check for old splits to delete
                 if aggregation.timespan:
