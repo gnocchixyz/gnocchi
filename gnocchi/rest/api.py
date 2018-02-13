@@ -537,9 +537,10 @@ class MetricController(rest.RestController):
         try:
             return pecan.request.storage.get_measures(
                 self.metric, aggregations, start, stop, resample)[aggregation]
-        except (storage.MetricDoesNotExist,
-                storage.AggregationDoesNotExist) as e:
+        except storage.AggregationDoesNotExist as e:
             abort(404, six.text_type(e))
+        except storage.MetricDoesNotExist:
+            return []
 
     @pecan.expose()
     def delete(self):
@@ -1918,8 +1919,12 @@ class AggregationController(rest.RestController):
                             "aggregation_method": aggregation,
                         },
                     })
-                return pecan.request.storage.get_measures(
-                    metric, aggregations, start, stop, resample)[aggregation]
+                try:
+                    return pecan.request.storage.get_measures(
+                        metric, aggregations, start, stop, resample
+                    )[aggregation]
+                except storage.MetricDoesNotExist:
+                    return []
             return processor.get_measures(
                 pecan.request.storage,
                 [processor.MetricReference(m, aggregation) for m in metrics],
@@ -1927,8 +1932,7 @@ class AggregationController(rest.RestController):
                 granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
-        except (storage.MetricDoesNotExist,
-                storage.AggregationDoesNotExist) as e:
+        except storage.AggregationDoesNotExist as e:
             abort(404, six.text_type(e))
 
     MetricIDsSchema = [utils.UUID]
