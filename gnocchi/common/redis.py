@@ -30,7 +30,8 @@ except ImportError:
 from gnocchi import utils
 
 
-SEP = b':'
+SEP = ':'
+SEP_B = b':'
 
 CLIENT_ARGS = frozenset([
     'db',

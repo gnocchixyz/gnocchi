@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The Redis storage driver for aggregates have been rewritten and uses a
+    different storage layout. This version is not compatible with Gnocchi 4 and
+    before.
