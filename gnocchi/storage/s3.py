@@ -165,17 +165,22 @@ class S3Storage(storage.StorageDriver):
                     key, aggregation, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
-                try:
-                    response = self.s3.list_objects_v2(
-                        Bucket=self._bucket_name, Prefix=self._prefix(metric))
-                except botocore.exceptions.ClientError as e:
-                    if e.response['Error'].get('Code') == 'NoSuchKey':
-                        raise storage.MetricDoesNotExist(metric)
-                    raise
-                raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
+                if self._metric_exists_p(metric, version):
+                    raise storage.AggregationDoesNotExist(
+                        metric, aggregation, key.sampling)
+                raise storage.MetricDoesNotExist(metric)
             raise
         return response['Body'].read()
+
+    def _metric_exists_p(self, metric, version):
+        unaggkey = self._build_unaggregated_timeserie_path(metric, version)
+        try:
+            self.s3.head_object(Bucket=self._bucket_name, Key=unaggkey)
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error'].get('Code') == "404":
+                return False
+            raise
+        return True
 
     def _list_split_keys(self, metric, aggregations, version=3):
         bucket = self._bucket_name
@@ -190,20 +195,19 @@ class S3Storage(storage.StorageDriver):
                     }
                 else:
                     kwargs = {}
-                try:
-                    response = self.s3.list_objects_v2(
-                        Bucket=bucket,
-                        Prefix=self._prefix(metric) + '%s_%s' % (
-                            aggregation.method,
-                            utils.timespan_total_seconds(
-                                aggregation.granularity),
-                        ),
-                        **kwargs)
-                except botocore.exceptions.ClientError as e:
-                    if e.response['Error'].get('Code') == "NoSuchKey":
-                        raise storage.MetricDoesNotExist(metric)
-                    raise
-                for f in response.get('Contents', ()):
+                response = self.s3.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=self._prefix(metric) + '%s_%s' % (
+                        aggregation.method,
+                        utils.timespan_total_seconds(
+                            aggregation.granularity),
+                    ),
+                    **kwargs)
+                # If response is empty then check that the metric exists
+                contents = response.get('Contents', ())
+                if not contents and not self._metric_exists_p(metric, version):
+                    raise storage.MetricDoesNotExist(metric)
+                for f in contents:
                     try:
                         if (self._version_check(f['Key'], version)):
                             meta = f['Key'].split('_')
@@ -227,10 +231,14 @@ class S3Storage(storage.StorageDriver):
             response = self.s3.get_object(
                 Bucket=self._bucket_name, Key=key)
         except botocore.exceptions.ClientError as e:
-            if e.response['Error'].get('Code') != "NoSuchKey":
+            if e.response['Error'].get('Code') == "NoSuchKey":
+                # Create the metric with empty data
+                self._put_object_safe(
+                    Bucket=self._bucket_name, Key=key, Body="")
+            else:
                 raise
         else:
-            return response['Body'].read()
+            return response['Body'].read() or None
 
     def _store_unaggregated_timeseries_unbatched(
             self, metric, data, version=3):

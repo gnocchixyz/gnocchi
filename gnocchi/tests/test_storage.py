@@ -143,8 +143,9 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
-        self.assertEqual({"mean": []}, self.storage.get_measures(
-            self.metric, aggregations))
+        self.assertRaises(storage.MetricDoesNotExist,
+                          self.storage.get_measures,
+                          self.metric, aggregations)
         self.assertEqual(
             {self.metric: None},
             self.storage._get_or_create_unaggregated_timeseries([self.metric]))
@@ -897,8 +898,10 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric.archive_policy.get_aggregations_for_method("last")
         )
 
-        self.assertEqual(
-            {"last": []}, self.storage.get_measures(self.metric, aggregations))
+        self.assertRaises(
+            storage.MetricDoesNotExist,
+            self.storage.get_measures,
+            self.metric, aggregations)
 
     def test_find_measures(self):
         metric2, __ = self._create_metric()
@@ -1009,13 +1012,13 @@ class TestStorageDriver(tests_base.TestCase):
         """https://github.com/gnocchixyz/gnocchi/issues/69"""
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(300, 's'))
-        self.assertEqual({"mean": []},
-                         self.storage.get_measures(
-                             self.metric,
-                             [aggregation],
-                             datetime64(2014, 1, 1),
-                             datetime64(2015, 1, 1),
-                             resample=numpy.timedelta64(1, 'h')))
+        self.assertRaises(storage.MetricDoesNotExist,
+                          self.storage.get_measures,
+                          self.metric,
+                          [aggregation],
+                          datetime64(2014, 1, 1),
+                          datetime64(2015, 1, 1),
+                          resample=numpy.timedelta64(1, 'h'))
 
 
 class TestMeasureQuery(tests_base.TestCase):

@@ -52,11 +52,16 @@ class MetricReference(object):
 
 
 def _get_measures_timeserie(storage, ref, granularity, *args, **kwargs):
-    return (ref, storage._get_measures_timeserie(
-        ref.metric,
-        ref.metric.archive_policy.get_aggregation(
-            ref.aggregation, granularity),
-        *args, **kwargs))
+    try:
+        data = storage._get_measures_timeserie(
+            ref.metric,
+            ref.metric.archive_policy.get_aggregation(
+                ref.aggregation, granularity),
+            *args, **kwargs)
+    except gnocchi_storage.MetricDoesNotExist:
+        data = carbonara.AggregatedTimeSerie(
+            carbonara.Aggregation(ref.aggregation, granularity, None))
+    return (ref, data)
 
 
 def get_measures(storage, references, operations,
