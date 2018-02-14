@@ -36,6 +36,7 @@ OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
+ATTRGETTER_METHOD = operator.attrgetter("method")
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
@@ -199,10 +200,30 @@ class StorageDriver(object):
         """
         return name.split("_")[-1] == 'v%s' % v
 
+    def get_aggregated_measures(self, metric, aggregations,
+                                from_timestamp=None, to_timestamp=None):
+        """Get aggregated measures from a metric.
+
+        :param metric: The metric measured.
+        :param aggregations: The aggregations to retrieve.
+        :param from timestamp: The timestamp to get the measure from.
+        :param to timestamp: The timestamp to get the measure to.
+        """
+        timeseries = utils.parallel_map(
+            self._get_measures_timeserie,
+            ((metric, agg, from_timestamp, to_timestamp)
+             for agg in aggregations))
+        return {
+            agg: ts.fetch(from_timestamp, to_timestamp)
+            for agg, ts in six.moves.zip(aggregations, timeseries)
+        }
+
     def get_measures(self, metric, aggregations,
                      from_timestamp=None, to_timestamp=None,
                      resample=None):
-        """Get a measure to a metric.
+        """Get aggregated measures from a metric.
+
+        Deprecated. Use `get_aggregated_measures` instead.
 
         :param metric: The metric measured.
         :param aggregations: The aggregations to retrieve.
@@ -210,24 +231,23 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         :param resample: The granularity to resample to.
         """
-        agg_timeseries = utils.parallel_map(
-            self._get_measures_timeserie,
-            ((metric, ag, from_timestamp, to_timestamp)
-             for ag in aggregations))
+        timeseries = self.get_aggregated_measures(
+            metric, aggregations, from_timestamp, to_timestamp)
 
         if resample:
-            agg_timeseries = list(map(lambda agg: agg.resample(resample),
-                                      agg_timeseries))
+            for agg, ts in six.iteritems(timeseries):
+                timeseries[agg] = ts.resample(resample)
 
         return {
             aggmethod: list(itertools.chain(
-                *[[(timestamp, ts.aggregation.granularity, value)
+                *[[(timestamp, timeseries[agg].aggregation.granularity, value)
                    for timestamp, value
-                   in ts.fetch(from_timestamp, to_timestamp)]
-                  for ts in aggts]))
-            for aggmethod, aggts
-            in itertools.groupby(agg_timeseries,
-                                 lambda v: v.aggregation.method)
+                   in timeseries[agg].fetch(from_timestamp, to_timestamp)]
+                  for agg in sorted(aggs,
+                                    key=ATTRGETTER_GRANULARITY,
+                                    reverse=True)]))
+            for aggmethod, aggs in itertools.groupby(timeseries.keys(),
+                                                     ATTRGETTER_METHOD)
         }
 
     def _get_measures_and_unserialize(self, metric, keys, aggregation):
@@ -531,13 +551,12 @@ class StorageDriver(object):
             raise AggregationDoesNotExist(metric, aggregation, granularity)
 
         try:
-            timeserie = self._get_measures_timeserie(
-                metric, agg, from_timestamp, to_timestamp)
+            ts = self.get_aggregated_measures(
+                metric, [agg], from_timestamp, to_timestamp)[agg]
         except MetricDoesNotExist:
             return []
-        values = timeserie.fetch(from_timestamp, to_timestamp)
-        return [(timestamp, granularity, value)
-                for timestamp, value in values
+        return [(timestamp, ts.aggregation.granularity, value)
+                for timestamp, value in ts
                 if predicate(value)]
 
 
