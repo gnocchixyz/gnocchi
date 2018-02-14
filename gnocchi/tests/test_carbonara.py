@@ -132,33 +132,24 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             values=[3, 5, 6],
             sampling=numpy.timedelta64(1, 's'))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12),
-              numpy.timedelta64(1000000, 'us'), 3),
-             (datetime64(2014, 1, 1, 12, 0, 4),
-              numpy.timedelta64(1000000, 'us'), 5),
-             (datetime64(2014, 1, 1, 12, 0, 9),
-              numpy.timedelta64(1000000, 'us'), 6)],
+            [(datetime64(2014, 1, 1, 12), 3),
+             (datetime64(2014, 1, 1, 12, 0, 4), 5),
+             (datetime64(2014, 1, 1, 12, 0, 9), 6)],
             list(ts.fetch()))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12, 0, 4),
-              numpy.timedelta64(1000000, 'us'), 5),
-             (datetime64(2014, 1, 1, 12, 0, 9),
-              numpy.timedelta64(1000000, 'us'), 6)],
+            [(datetime64(2014, 1, 1, 12, 0, 4), 5),
+             (datetime64(2014, 1, 1, 12, 0, 9), 6)],
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12, 0, 4))))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12, 0, 4),
-              numpy.timedelta64(1000000, 'us'), 5),
-             (datetime64(2014, 1, 1, 12, 0, 9),
-              numpy.timedelta64(1000000, 'us'), 6)],
+            [(datetime64(2014, 1, 1, 12, 0, 4), 5),
+             (datetime64(2014, 1, 1, 12, 0, 9), 6)],
             list(ts.fetch(
                 from_timestamp=numpy.datetime64(iso8601.parse_date(
                     "2014-01-01 12:00:04")))))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12, 0, 4),
-              numpy.timedelta64(1000000, 'us'), 5),
-             (datetime64(2014, 1, 1, 12, 0, 9),
-              numpy.timedelta64(1000000, 'us'), 6)],
+            [(datetime64(2014, 1, 1, 12, 0, 4), 5),
+             (datetime64(2014, 1, 1, 12, 0, 9), 6)],
             list(ts.fetch(
                 from_timestamp=numpy.datetime64(iso8601.parse_date(
                     "2014-01-01 13:00:04+01:00")))))
@@ -201,16 +192,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(5, len(ts))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12, 0, 0),
-              numpy.timedelta64(60, 's'), 5),
-             (datetime64(2014, 1, 1, 12, 1, 0),
-              numpy.timedelta64(60, 's'), 5),
-             (datetime64(2014, 1, 1, 12, 2, 0),
-              numpy.timedelta64(60, 's'), 11),
-             (datetime64(2014, 1, 1, 12, 3, 0),
-              numpy.timedelta64(60, 's'), -32),
-             (datetime64(2014, 1, 1, 12, 4, 0),
-              numpy.timedelta64(60, 's'), 16)],
+            [(datetime64(2014, 1, 1, 12, 0, 0), 5),
+             (datetime64(2014, 1, 1, 12, 1, 0), 5),
+             (datetime64(2014, 1, 1, 12, 2, 0), 11),
+             (datetime64(2014, 1, 1, 12, 3, 0), -32),
+             (datetime64(2014, 1, 1, 12, 4, 0), 16)],
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12))))
 
@@ -231,14 +217,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(4, len(ts))
         self.assertEqual(
-            [(datetime64(2014, 1, 1, 12, 0, 0),
-              numpy.timedelta64(60, 's'), 5),
-             (datetime64(2014, 1, 1, 12, 1, 0),
-              numpy.timedelta64(60, 's'), 4),
-             (datetime64(2014, 1, 1, 12, 3, 0),
-              numpy.timedelta64(60, 's'), 92),
-             (datetime64(2014, 1, 1, 12, 4, 0),
-              numpy.timedelta64(60, 's'), 2)],
+            [(datetime64(2014, 1, 1, 12, 0, 0), 5),
+             (datetime64(2014, 1, 1, 12, 1, 0), 4),
+             (datetime64(2014, 1, 1, 12, 3, 0), 92),
+             (datetime64(2014, 1, 1, 12, 4, 0), 2)],
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12))))
 
@@ -467,47 +449,28 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (numpy.datetime64('2014-01-01T11:46:00.000000000'),
-             numpy.timedelta64(60, 's'), 4.0),
-            (numpy.datetime64('2014-01-01T11:47:00.000000000'),
-             numpy.timedelta64(60, 's'), 8.0),
-            (numpy.datetime64('2014-01-01T11:50:00.000000000'),
-             numpy.timedelta64(60, 's'), 50.0),
-            (datetime64(2014, 1, 1, 11, 54),
-             numpy.timedelta64(60000000000, 'ns'), 4.0),
-            (datetime64(2014, 1, 1, 11, 56),
-             numpy.timedelta64(60000000000, 'ns'), 4.0),
-            (datetime64(2014, 1, 1, 11, 57),
-             numpy.timedelta64(60000000000, 'ns'), 6.0),
-            (datetime64(2014, 1, 1, 11, 58),
-             numpy.timedelta64(60000000000, 'ns'), 5.0),
-            (datetime64(2014, 1, 1, 12, 1),
-             numpy.timedelta64(60000000000, 'ns'), 5.5),
-            (datetime64(2014, 1, 1, 12, 2),
-             numpy.timedelta64(60000000000, 'ns'), 8.0),
-            (datetime64(2014, 1, 1, 12, 3),
-             numpy.timedelta64(60000000000, 'ns'), 3.0),
-            (datetime64(2014, 1, 1, 12, 4),
-             numpy.timedelta64(60000000000, 'ns'), 7.0),
-            (datetime64(2014, 1, 1, 12, 5),
-             numpy.timedelta64(60000000000, 'ns'), 8.0),
-            (datetime64(2014, 1, 1, 12, 6),
-             numpy.timedelta64(60000000000, 'ns'), 4.0)
+            (numpy.datetime64('2014-01-01T11:46:00.000000000'), 4.0),
+            (numpy.datetime64('2014-01-01T11:47:00.000000000'), 8.0),
+            (numpy.datetime64('2014-01-01T11:50:00.000000000'), 50.0),
+            (datetime64(2014, 1, 1, 11, 54), 4.0),
+            (datetime64(2014, 1, 1, 11, 56), 4.0),
+            (datetime64(2014, 1, 1, 11, 57), 6.0),
+            (datetime64(2014, 1, 1, 11, 58), 5.0),
+            (datetime64(2014, 1, 1, 12, 1), 5.5),
+            (datetime64(2014, 1, 1, 12, 2), 8.0),
+            (datetime64(2014, 1, 1, 12, 3), 3.0),
+            (datetime64(2014, 1, 1, 12, 4), 7.0),
+            (datetime64(2014, 1, 1, 12, 5), 8.0),
+            (datetime64(2014, 1, 1, 12, 6), 4.0)
         ], list(ts['return'].fetch()))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 1),
-             numpy.timedelta64(60000000000, 'ns'), 5.5),
-            (datetime64(2014, 1, 1, 12, 2),
-             numpy.timedelta64(60000000000, 'ns'), 8.0),
-            (datetime64(2014, 1, 1, 12, 3),
-             numpy.timedelta64(60000000000, 'ns'), 3.0),
-            (datetime64(2014, 1, 1, 12, 4),
-             numpy.timedelta64(60000000000, 'ns'), 7.0),
-            (datetime64(2014, 1, 1, 12, 5),
-             numpy.timedelta64(60000000000, 'ns'), 8.0),
-            (datetime64(2014, 1, 1, 12, 6),
-             numpy.timedelta64(60000000000, 'ns'), 4.0)
+            (datetime64(2014, 1, 1, 12, 1), 5.5),
+            (datetime64(2014, 1, 1, 12, 2), 8.0),
+            (datetime64(2014, 1, 1, 12, 3), 3.0),
+            (datetime64(2014, 1, 1, 12, 4), 7.0),
+            (datetime64(2014, 1, 1, 12, 5), 8.0),
+            (datetime64(2014, 1, 1, 12, 6), 4.0)
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_fetch_agg_pct(self):
@@ -526,19 +489,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         reference = [
             (datetime64(
                 2014, 1, 1, 12, 0, 0
-            ), 1.0, 3.9),
+            ), 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
-            ), 1.0, 4)
+            ), 4)
         ]
 
         self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
-            self.assertEqual(ref[1], res[1])
             # Rounding \o/
-            self.assertAlmostEqual(ref[2], res[2])
+            self.assertAlmostEqual(ref[1], res[1])
 
         tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 2, 113), 110)],
@@ -550,19 +512,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         reference = [
             (datetime64(
                 2014, 1, 1, 12, 0, 0
-            ), 1.0, 3.9),
+            ), 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
-            ), 1.0, 99.4)
+            ), 99.4)
         ]
 
         self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
-            self.assertEqual(ref[1], res[1])
             # Rounding \o/
-            self.assertAlmostEqual(ref[2], res[2])
+            self.assertAlmostEqual(ref[1], res[1])
 
     def test_fetch_nano(self):
         ts = {'sampling': numpy.timedelta64(200, 'ms'),
@@ -586,15 +547,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 11, 46, 0, 200000),
-             numpy.timedelta64(200000000, 'ns'), 6.0),
-            (datetime64(2014, 1, 1, 11, 47, 0, 200000),
-             numpy.timedelta64(200000000, 'ns'), 50.0),
-            (datetime64(2014, 1, 1, 11, 48, 0, 400000),
-             numpy.timedelta64(200000000, 'ns'), 4.0),
-            (datetime64(2014, 1, 1, 11, 48, 0, 800000),
-             numpy.timedelta64(200000000, 'ns'), 4.5)
+            (datetime64(2014, 1, 1, 11, 46, 0, 200000), 6.0),
+            (datetime64(2014, 1, 1, 11, 47, 0, 200000), 50.0),
+            (datetime64(2014, 1, 1, 11, 48, 0, 400000), 4.0),
+            (datetime64(2014, 1, 1, 11, 48, 0, 800000), 4.5)
         ], list(ts['return'].fetch()))
+        self.assertEqual(numpy.timedelta64(200000000, 'ns'),
+                         ts['return'].sampling)
 
     def test_fetch_agg_std(self):
         # NOTE (gordc): this is a good test to ensure we drop NaN entries
@@ -613,10 +572,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 1, 0),
-             numpy.timedelta64(60000000000, 'ns'), 2.1213203435596424),
-            (datetime64(2014, 1, 1, 12, 2, 0),
-             numpy.timedelta64(60000000000, 'ns'), 9.8994949366116654),
+            (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
+            (datetime64(2014, 1, 1, 12, 2, 0), 9.8994949366116654),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
@@ -625,10 +582,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 1, 0),
-             numpy.timedelta64(60000000000, 'ns'), 2.1213203435596424),
-            (datetime64(2014, 1, 1, 12, 2, 0),
-             numpy.timedelta64(60000000000, 'ns'), 59.304300012730948),
+            (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
+            (datetime64(2014, 1, 1, 12, 2, 0), 59.304300012730948),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_fetch_agg_max(self):
@@ -646,12 +601,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(60000000000, 'ns'), 3),
-            (datetime64(2014, 1, 1, 12, 1, 0),
-             numpy.timedelta64(60000000000, 'ns'), 7),
-            (datetime64(2014, 1, 1, 12, 2, 0),
-             numpy.timedelta64(60000000000, 'ns'), 15),
+            (datetime64(2014, 1, 1, 12, 0, 0), 3),
+            (datetime64(2014, 1, 1, 12, 1, 0), 7),
+            (datetime64(2014, 1, 1, 12, 2, 0), 15),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
@@ -660,12 +612,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(60, 's'), 3),
-            (datetime64(2014, 1, 1, 12, 1, 0),
-             numpy.timedelta64(60, 's'), 7),
-            (datetime64(2014, 1, 1, 12, 2, 0),
-             numpy.timedelta64(60, 's'), 110),
+            (datetime64(2014, 1, 1, 12, 0, 0), 3),
+            (datetime64(2014, 1, 1, 12, 1, 0), 7),
+            (datetime64(2014, 1, 1, 12, 2, 0), 110),
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_serialize(self):
@@ -726,15 +675,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (datetime64(
-                    2014, 1, 1, 12, 0, 1
-                ), numpy.timedelta64(1, 's'), 1.5),
-                (datetime64(
-                    2014, 1, 1, 12, 0, 2
-                ), numpy.timedelta64(1, 's'), 3.5),
-                (datetime64(
-                    2014, 1, 1, 12, 0, 3
-                ), numpy.timedelta64(1, 's'), 2.5),
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
             ],
             list(ts['return'].fetch()))
 
@@ -759,12 +702,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (datetime64(2014, 1, 1, 12, 0, 1),
-                 numpy.timedelta64(1, 's'), 1.5),
-                (datetime64(2014, 1, 1, 12, 0, 2),
-                 numpy.timedelta64(1, 's'), 3.5),
-                (datetime64(2014, 1, 1, 12, 0, 3),
-                 numpy.timedelta64(1, 's'), 2.5),
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
             ],
             list(ts['return'].fetch()))
 
@@ -776,12 +716,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (datetime64(2014, 1, 1, 12, 0, 1),
-                 numpy.timedelta64(1, 's'), 1.5),
-                (datetime64(2014, 1, 1, 12, 0, 2),
-                 numpy.timedelta64(1, 's'), 3.5),
-                (datetime64(2014, 1, 1, 12, 0, 3),
-                 numpy.timedelta64(1, 's'), 2.5),
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
             ],
             list(ts['return'].fetch()))
 
@@ -794,12 +731,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(
             [
-                (datetime64(2014, 1, 1, 12, 0, 1),
-                 numpy.timedelta64(1, 's'), 1.5),
-                (datetime64(2014, 1, 1, 12, 0, 2),
-                 numpy.timedelta64(1, 's'), 3.5),
-                (datetime64(2014, 1, 1, 12, 0, 3),
-                 numpy.timedelta64(1, 's'), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 3.5),
             ],
             list(ts['return'].fetch()))
 
@@ -950,3 +884,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(2, len(agg_ts))
         self.assertEqual(5, agg_ts[0][1])
         self.assertEqual(3, agg_ts[1][1])
+
+    def test_iter(self):
+        ts = carbonara.TimeSerie.from_data(
+            [datetime64(2014, 1, 1, 12, 0, 0),
+             datetime64(2014, 1, 1, 12, 0, 11),
+             datetime64(2014, 1, 1, 12, 0, 12)],
+            [3, 5, 6])
+        self.assertEqual([
+            (numpy.datetime64('2014-01-01T12:00:00'), 3.),
+            (numpy.datetime64('2014-01-01T12:00:11'), 5.),
+            (numpy.datetime64('2014-01-01T12:00:12'), 6.),
+        ], list(ts))

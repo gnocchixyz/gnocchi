@@ -222,7 +222,9 @@ class StorageDriver(object):
 
         return {
             aggmethod: list(itertools.chain(
-                *[ts.fetch(from_timestamp, to_timestamp)
+                *[[(timestamp, ts.sampling, value)
+                   for timestamp, value
+                   in ts.fetch(from_timestamp, to_timestamp)]
                   for ts in aggts]))
             for aggmethod, aggts in itertools.groupby(agg_timeseries,
                                                       ATTRGETTER_AGG_METHOD)
@@ -545,8 +547,8 @@ class StorageDriver(object):
         timeserie = self._get_measures_timeserie(
             metric, agg, from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
-        return [(timestamp, g, value)
-                for timestamp, g, value in values
+        return [(timestamp, granularity, value)
+                for timestamp, value in values
                 if predicate(value)]
 
 

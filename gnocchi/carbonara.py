@@ -17,7 +17,6 @@
 """Time series data manipulation, better with pancetta."""
 
 import functools
-import itertools
 import math
 import operator
 import random
@@ -217,13 +216,16 @@ class TimeSerie(object):
             ts = make_timeseries([], [])
         self.ts = ts
 
+    def __iter__(self):
+        return (tuple(i) for i in self.ts)
+
     @classmethod
     def from_data(cls, timestamps=None, values=None):
         return cls(make_timeseries(timestamps, values))
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerie) and
-                numpy.all(self.ts == other.ts))
+                numpy.array_equal(self.ts,  other.ts))
 
     def __getitem__(self, key):
         if isinstance(key, numpy.datetime64):
@@ -602,11 +604,13 @@ class AggregatedTimeSerie(TimeSerie):
     def from_timeseries(cls, timeseries, sampling, aggregation_method):
         # NOTE(gordc): Indices must be unique across all timeseries. Also,
         # timeseries should be a list that is ordered within list and series.
-        if not timeseries:
-            timeseries = [make_timeseries([], [])]
+        if timeseries:
+            ts = numpy.concatenate([ts.ts for ts in timeseries])
+        else:
+            ts = None
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
-                   ts=numpy.concatenate(timeseries))
+                   ts=ts)
 
     @classmethod
     def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method):
@@ -750,10 +754,8 @@ class AggregatedTimeSerie(TimeSerie):
             from_ = None
         else:
             from_ = round_timestamp(from_timestamp, self.sampling)
-        points = self[from_:to_timestamp]
-        return six.moves.zip(points['timestamps'],
-                             itertools.repeat(self.sampling),
-                             points['values'])
+        return self.__class__(self.sampling, self.aggregation_method,
+                              ts=self[from_:to_timestamp])
 
     @classmethod
     def benchmark(cls):
