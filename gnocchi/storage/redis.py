@@ -54,7 +54,7 @@ for i, result in ipairs(results) do
     if result == false then
         local field = ARGV[i]
         if redis.call("EXISTS", KEYS[1]) == 1 then
-            return {-1, field}
+            return {-1, i - 1}
         end
         return {-2, field}
     end
@@ -154,28 +154,29 @@ return {0, final}
         pipe = self._client.pipeline(transaction=False)
         metric_key = self._metric_key(metric)
         for key, data, offset in keys_and_data_and_offset:
-            key = self._aggregated_field_for_split(aggregation, key, version)
+            key = self._aggregated_field_for_split(
+                aggregation.method, key, version)
             pipe.hset(metric_key, key, data)
         pipe.execute()
 
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    def _get_measures(self, metric, keys, aggregation, version=3):
-        if not keys:
+    def _get_measures(self, metric, keys_and_aggregations, version=3):
+        if not keys_and_aggregations:
             return []
         fields = [
-            self._aggregated_field_for_split(aggregation, key, version)
-            for key in keys
+            self._aggregated_field_for_split(aggregation.method, key, version)
+            for key, aggregation in keys_and_aggregations
         ]
         code, result = self._scripts['get_measures'](
             keys=[self._metric_key(metric)],
             args=fields,
         )
         if code == -1:
-            sampling = utils.to_timespan(result.split(self.FIELD_SEP_B)[2])
+            missing_key, missing_agg = keys_and_aggregations[int(result)]
             raise storage.AggregationDoesNotExist(
-                metric, aggregation, sampling)
+                metric, missing_agg.method, missing_agg.granularity)
         if code == -2:
             raise storage.MetricDoesNotExist(metric)
         return result

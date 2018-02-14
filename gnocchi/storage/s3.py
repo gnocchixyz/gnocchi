@@ -126,7 +126,7 @@ class S3Storage(storage.StorageDriver):
             self._put_object_safe(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    key, aggregation, version),
+                    key, aggregation.method, version),
                 Body=data)
 
     def _delete_metric_splits_unbatched(self, metric, key, aggregation,
@@ -162,12 +162,12 @@ class S3Storage(storage.StorageDriver):
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
-                    key, aggregation, version))
+                    key, aggregation.method, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
                 if self._metric_exists_p(metric, version):
                     raise storage.AggregationDoesNotExist(
-                        metric, aggregation, key.sampling)
+                        metric, aggregation.method, key.sampling)
                 raise storage.MetricDoesNotExist(metric)
             raise
         return response['Body'].read()

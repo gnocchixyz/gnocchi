@@ -121,7 +121,7 @@ class SwiftStorage(storage.StorageDriver):
         for key, data, offset in keys_and_data_and_offset:
             self.swift.put_object(
                 self._container_name(metric),
-                self._object_name(key, aggregation, version),
+                self._object_name(key, aggregation.method, version),
                 data)
 
     def _delete_metric_splits_unbatched(
@@ -152,7 +152,7 @@ class SwiftStorage(storage.StorageDriver):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
-                    key, aggregation, version))
+                    key, aggregation.method, version))
         except swclient.ClientException as e:
             if e.http_status == 404:
                 try:
@@ -162,7 +162,7 @@ class SwiftStorage(storage.StorageDriver):
                         raise storage.MetricDoesNotExist(metric)
                     raise
                 raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
+                    metric, aggregation.method, key.sampling)
             raise
         return contents
 

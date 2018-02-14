@@ -168,7 +168,7 @@ class FileStorage(storage.StorageDriver):
         for key, data, offset in keys_and_data_and_offset:
             self._atomic_file_store(
                 self._build_metric_path_for_split(
-                    metric, aggregation, key, version),
+                    metric, aggregation.method, key, version),
                 data)
 
     def _delete_metric(self, metric):
@@ -183,7 +183,7 @@ class FileStorage(storage.StorageDriver):
 
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         path = self._build_metric_path_for_split(
-            metric, aggregation, key, version)
+            metric, aggregation.method, key, version)
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()
