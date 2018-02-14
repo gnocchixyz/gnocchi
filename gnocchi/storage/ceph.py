@@ -85,7 +85,8 @@ class CephStorage(storage.StorageDriver):
                              aggregation, version=3):
         with rados.WriteOpCtx() as op:
             for key, data, offset in keys_and_data_and_offset:
-                name = self._get_object_name(metric, key, aggregation, version)
+                name = self._get_object_name(
+                    metric, key, aggregation.method, version)
                 if offset is None:
                     self.ioctx.write_full(name, data)
                 else:
@@ -146,13 +147,14 @@ class CephStorage(storage.StorageDriver):
 
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         try:
-            name = self._get_object_name(metric, key, aggregation, version)
+            name = self._get_object_name(
+                metric, key, aggregation.method, version)
             return self._get_object_content(name)
         except rados.ObjectNotFound:
             if self._object_exists(
                     self._build_unaggregated_timeserie_path(metric, 3)):
                 raise storage.AggregationDoesNotExist(
-                    metric, aggregation, key.sampling)
+                    metric, aggregation.method, key.sampling)
             else:
                 raise storage.MetricDoesNotExist(metric)
 
