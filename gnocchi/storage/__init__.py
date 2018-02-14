@@ -209,9 +209,10 @@ class StorageDriver(object):
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         """
+        keys = self._list_split_keys(metric, aggregations)
         timeseries = utils.parallel_map(
             self._get_measures_timeserie,
-            ((metric, agg, from_timestamp, to_timestamp)
+            ((metric, agg, keys[agg], from_timestamp, to_timestamp)
              for agg in aggregations))
         return {
             agg: ts.fetch(from_timestamp, to_timestamp)
@@ -268,10 +269,8 @@ class StorageDriver(object):
                 results.append(ts)
         return results
 
-    def _get_measures_timeserie(self, metric, aggregation,
+    def _get_measures_timeserie(self, metric, aggregation, keys,
                                 from_timestamp=None, to_timestamp=None):
-        all_keys = self._list_split_keys(metric, [aggregation])[aggregation]
-
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
                 from_timestamp, aggregation.granularity)
@@ -280,7 +279,7 @@ class StorageDriver(object):
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
                 to_timestamp, aggregation.granularity)
 
-        keys = [key for key in sorted(all_keys)
+        keys = [key for key in sorted(keys)
                 if ((not from_timestamp or key >= from_timestamp)
                     and (not to_timestamp or key <= to_timestamp))]
 
