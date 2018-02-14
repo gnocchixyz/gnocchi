@@ -31,6 +31,10 @@ OPTS = [
     cfg.StrOpt('driver',
                default='file',
                help='Storage driver to use'),
+    cfg.BoolOpt('enable_telemetry', default=True,
+                help='Occasionally logs stats regarding service health. '
+                     'Details should be reported to developers at '
+                     'https://github.com/gnocchixyz/gnocchi/issues'),
 ]
 
 
@@ -106,8 +110,8 @@ def get_driver(conf):
 
 class StorageDriver(object):
 
-    @staticmethod
-    def __init__(conf):
+    def __init__(self, conf):
+        self.enable_telemetry = conf.enable_telemetry
         pass
 
     @staticmethod
@@ -443,6 +447,14 @@ class StorageDriver(object):
             current_first_block_timestamp = None
         else:
             current_first_block_timestamp = ts.first_block_timestamp()
+            # log if backwindow is larger than ~4MB to anticipate potential
+            # performance issue
+            if self.enable_telemetry and ts.ts.size > 320000:
+                LOG.warning("TELEMETRY: The defined backwindow size for "
+                            "metric %s may negatively affect performance: "
+                            "(size: %s, back_window: %s, granularities: %s)",
+                            metric.id, ts.ts.size, back_window,
+                            [d.granularity for d in definition])
 
         # NOTE(jd) This is Python where you need such
         # hack to pass a variable around a closure,
