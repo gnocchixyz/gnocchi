@@ -251,7 +251,14 @@ class StorageDriver(object):
                                                      ATTRGETTER_METHOD)
         }
 
-    def _get_measures_and_unserialize(self, metric, keys_and_aggregations):
+    def _get_splits_and_unserialize(self, metric, keys_and_aggregations):
+        """Get splits and unserialize them
+
+        :param metric: The metric to retrieve.
+        :param keys_and_aggregations: A list of tuple (SplitKey, Aggregation)
+                                      to retrieve.
+        :return: A list of AggregatedTimeSerie.
+        """
         if not keys_and_aggregations:
             return []
         raw_measures = self._get_measures(metric, keys_and_aggregations)
@@ -286,7 +293,7 @@ class StorageDriver(object):
                 and (not to_timestamp or key <= to_timestamp))
         ]
 
-        timeseries = self._get_measures_and_unserialize(
+        timeseries = self._get_splits_and_unserialize(
             metric, keys_and_aggregations)
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
@@ -321,18 +328,15 @@ class StorageDriver(object):
         # Update the splits that were passed as argument with the data already
         # stored in the case that we need to rewrite them fully.
         # First, fetch all those existing splits.
-        try:
-            existing_data = self._get_measures_and_unserialize(
-                metric, [(key, aggregation) for key in keys_to_rewrite])
-        except AggregationDoesNotExist:
-            pass
-        else:
-            for key, split, existing in six.moves.zip(
-                    keys_to_rewrite, splits_to_rewrite, existing_data):
-                if existing:
-                    if split is not None:
-                        existing.merge(split)
-                    keys_and_splits[key] = existing
+        existing_data = self._get_splits_and_unserialize(
+            metric, [(key, aggregation) for key in keys_to_rewrite])
+
+        for key, split, existing in six.moves.zip(
+                keys_to_rewrite, splits_to_rewrite, existing_data):
+            if existing:
+                if split is not None:
+                    existing.merge(split)
+                keys_and_splits[key] = existing
 
         key_data_offset = []
         for key, split in six.iteritems(keys_and_splits):

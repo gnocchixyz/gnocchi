@@ -161,8 +161,7 @@ class SwiftStorage(storage.StorageDriver):
                     if e.http_status == 404:
                         raise storage.MetricDoesNotExist(metric)
                     raise
-                raise storage.AggregationDoesNotExist(
-                    metric, aggregation.method, key.sampling)
+                return
             raise
         return contents
 

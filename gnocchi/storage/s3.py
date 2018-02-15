@@ -166,8 +166,7 @@ class S3Storage(storage.StorageDriver):
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
                 if self._metric_exists_p(metric, version):
-                    raise storage.AggregationDoesNotExist(
-                        metric, aggregation.method, key.sampling)
+                    return
                 raise storage.MetricDoesNotExist(metric)
             raise
         return response['Body'].read()
