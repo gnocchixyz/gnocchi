@@ -199,10 +199,10 @@ def strtobool(varname, v):
         abort(400, "Unable to parse `%s': %s" % (varname, six.text_type(e)))
 
 
-RESOURCE_DEFAULT_PAGINATION = ['revision_start:asc',
-                               'started_at:asc']
+RESOURCE_DEFAULT_PAGINATION = [u'revision_start:asc',
+                               u'started_at:asc']
 
-METRIC_DEFAULT_PAGINATION = ['id:asc']
+METRIC_DEFAULT_PAGINATION = [u'id:asc']
 
 
 def get_pagination_options(params, default):
@@ -302,7 +302,7 @@ class ArchivePoliciesController(rest.RestController):
             voluptuous.Required("back_window", default=0): PositiveOrNullInt,
             voluptuous.Required(
                 "aggregation_methods",
-                default=set(conf.archive_policy.default_aggregation_methods)):
+                default=list(conf.archive_policy.default_aggregation_methods)):
             [ValidAggMethod],
             voluptuous.Required("definition"):
             voluptuous.All([{
