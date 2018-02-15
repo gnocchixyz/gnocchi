@@ -205,27 +205,6 @@ to build a Docker image containing Gnocchi latest version (fetched from PyPI).
 
 .. _gnocchi-openshift repository: https://github.com/gnocchixyz/gnocchi-openshift
 
-Installation Using Devstack
-===========================
-
-To enable Gnocchi in `devstack`_, add the following to local.conf:
-
-::
-
-    enable_plugin gnocchi https://github.com/gnocchixyz/gnocchi master
-
-To enable Grafana support in devstack, you can also enable `gnocchi-grafana`::
-
-    enable_service gnocchi-grafana
-
-Then, you can start devstack:
-
-::
-
-    ./stack.sh
-
-.. _devstack: http://devstack.org
-
 
 Gnocchi Configuration sample
 ============================
