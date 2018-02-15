@@ -161,11 +161,11 @@ class FileStorage(storage.StorageDriver):
     def _delete_metric_splits_unbatched(
             self, metric, key, aggregation, version=3):
         os.unlink(self._build_metric_path_for_split(
-            metric, aggregation, key, version))
+            metric, aggregation.method, key, version))
 
-    def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
-        for key, data, offset in keys_and_data_and_offset:
+    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
+                             version=3):
+        for key, aggregation, data, offset in keys_aggregations_data_offset:
             self._atomic_file_store(
                 self._build_metric_path_for_split(
                     metric, aggregation.method, key, version),

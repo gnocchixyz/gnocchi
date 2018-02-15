@@ -81,12 +81,11 @@ class CephStorage(storage.StorageDriver):
         else:
             self.ioctx.write_full(name, b"")
 
-    def _store_metric_splits(self, metric, keys_and_data_and_offset,
-                             aggregation, version=3):
+    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
+                             version=3):
         with rados.WriteOpCtx() as op:
-            for key, data, offset in keys_and_data_and_offset:
-                name = self._get_object_name(
-                    metric, key, aggregation.method, version)
+            for key, agg, data, offset in keys_aggregations_data_offset:
+                name = self._get_object_name(metric, key, agg.method, version)
                 if offset is None:
                     self.ioctx.write_full(name, data)
                 else:
@@ -95,10 +94,10 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 
-    def _delete_metric_splits(self, metric, keys, aggregation, version=3):
+    def _delete_metric_splits(self, metric, keys_and_aggregations, version=3):
         names = tuple(
-            self._get_object_name(metric, key, aggregation, version)
-            for key in keys
+            self._get_object_name(metric, key, aggregation.method, version)
+            for key, aggregation in keys_and_aggregations
         )
         with rados.WriteOpCtx() as op:
             for name in names:
