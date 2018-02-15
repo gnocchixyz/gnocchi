@@ -580,16 +580,17 @@ class AggregatedTimeSerie(TimeSerie):
 
         :param oldest_point: Oldest point to keep from, this excluded.
         :type oldest_point: numpy.datetime64 or numpy.timedelta64
+        :return: The oldest point that could have been kept.
         """
         last = self.last
         if last is None:
-            # There's nothing to truncate
             return
         if isinstance(oldest_point, numpy.timedelta64):
             oldest_point = last - oldest_point
         index = numpy.searchsorted(self.ts['timestamps'], oldest_point,
                                    side='right')
         self.ts = self.ts[index:]
+        return oldest_point
 
     def split(self):
         # NOTE(sileht): We previously use groupby with
@@ -694,12 +695,14 @@ class AggregatedTimeSerie(TimeSerie):
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
 
-        :param timestamp: If None, the first timestamp of the timeserie
+        :param timestamp: If None, the first timestamp of the timeseries
                           is used.
-        :return: A SplitKey object.
+        :return: A SplitKey object or None if the timeseries is empty.
         """
         if timestamp is None:
             timestamp = self.first
+            if timestamp is None:
+                return
         return SplitKey.from_timestamp_and_sampling(
             timestamp, self.sampling)
 
