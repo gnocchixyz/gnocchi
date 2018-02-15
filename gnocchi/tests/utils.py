@@ -13,14 +13,13 @@
 # under the License.
 from oslo_config import cfg
 from oslo_policy import opts as policy_opts
-import six
 
 from gnocchi import opts
 
 
 def list_all_incoming_metrics(incoming):
-    return set.union(*[incoming.list_metric_with_measures_to_process(i)
-                       for i in six.moves.range(incoming.NUM_SACKS)])
+    return set.union(*[incoming.list_metric_with_measures_to_process(sack)
+                       for sack in incoming.iter_sacks()])
 
 
 def prepare_conf():

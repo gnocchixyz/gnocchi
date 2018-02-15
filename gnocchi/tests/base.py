@@ -361,7 +361,9 @@ class TestCase(BaseTestCase):
             self.storage.STORAGE_PREFIX = str(uuid.uuid4()).encode()
 
         if self.conf.incoming.driver == 'redis':
-            self.incoming.SACK_PREFIX = str(uuid.uuid4())
+            self.incoming.SACK_NAME_FORMAT = (
+                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
 
         self.storage.upgrade()
         self.incoming.upgrade(128)

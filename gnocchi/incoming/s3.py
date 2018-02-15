@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -20,7 +20,6 @@ import json
 import uuid
 
 import numpy
-import six
 
 from gnocchi.common import s3
 from gnocchi import incoming
@@ -30,6 +29,9 @@ botocore = s3.botocore
 
 
 class S3Storage(incoming.IncomingDriver):
+
+    # NOTE(gordc): override to follow s3 partitioning logic
+    SACK_NAME_FORMAT = "{number}-{total}/"
 
     def __init__(self, conf, greedy=True):
         super(S3Storage, self).__init__(conf)
@@ -55,12 +57,8 @@ class S3Storage(incoming.IncomingDriver):
                            Key=self.CFG_PREFIX,
                            Body=json.dumps(data).encode())
 
-    def get_sack_prefix(self, num_sacks=None):
-        # NOTE(gordc): override to follow s3 partitioning logic
-        return '%s-' + ('%s/' % (num_sacks if num_sacks else self.NUM_SACKS))
-
     @staticmethod
-    def remove_sack_group(num_sacks):
+    def remove_sacks(num_sacks):
         # nothing to cleanup since sacks are part of path
         pass
 
@@ -80,9 +78,9 @@ class S3Storage(incoming.IncomingDriver):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.s3.put_object(
             Bucket=self._bucket_name_measures,
-            Key=(self.get_sack_name(self.sack_for_metric(metric_id))
-                 + six.text_type(metric_id) + "/"
-                 + six.text_type(uuid.uuid4()) + now),
+            Key=(str(self.sack_for_metric(metric_id))
+                 + str(metric_id) + "/"
+                 + str(uuid.uuid4()) + now),
             Body=data)
 
     def _build_report(self, details):
@@ -119,7 +117,7 @@ class S3Storage(incoming.IncomingDriver):
                 kwargs = {}
             response = self.s3.list_objects_v2(
                 Bucket=self._bucket_name_measures,
-                Prefix=self.get_sack_name(sack),
+                Prefix=str(sack),
                 Delimiter="/",
                 MaxKeys=limit,
                 **kwargs)
@@ -139,8 +137,7 @@ class S3Storage(incoming.IncomingDriver):
                 kwargs = {}
             response = self.s3.list_objects_v2(
                 Bucket=self._bucket_name_measures,
-                Prefix=(self.get_sack_name(sack)
-                        + six.text_type(metric_id) + "/"),
+                Prefix=(str(sack) + str(metric_id) + "/"),
                 **kwargs)
 
             for c in response.get('Contents', ()):

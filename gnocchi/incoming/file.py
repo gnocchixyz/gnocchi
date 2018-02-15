@@ -49,16 +49,14 @@ class FileStorage(incoming.IncomingDriver):
         data = {self.CFG_SACKS: num_sacks}
         with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX), 'w') as f:
             json.dump(data, f)
-        utils.ensure_paths([self._sack_path(i)
-                            for i in six.moves.range(self.NUM_SACKS)])
+        utils.ensure_paths((self._sack_path(s) for s in self.iter_sacks()))
 
-    def remove_sack_group(self, num_sacks):
-        prefix = self.get_sack_prefix(num_sacks)
-        for i in six.moves.xrange(num_sacks):
-            shutil.rmtree(os.path.join(self.basepath, prefix % i))
+    def remove_sacks(self):
+        for sack in self.iter_sacks():
+            shutil.rmtree(os.path.join(self.basepath, str(sack)))
 
     def _sack_path(self, sack):
-        return os.path.join(self.basepath, self.get_sack_name(sack))
+        return os.path.join(self.basepath, str(sack))
 
     def _measure_path(self, sack, metric_id):
         return os.path.join(self._sack_path(sack), six.text_type(metric_id))
@@ -108,9 +106,9 @@ class FileStorage(incoming.IncomingDriver):
                 report_vars['measures'] += len(
                     self._list_measures_container_for_metric_str(sack, metric))
 
-        for i in six.moves.range(self.NUM_SACKS):
-            for metric in self.list_metric_with_measures_to_process(i):
-                build_metric_report(metric, i)
+        for sack in self.iter_sacks():
+            for metric in self.list_metric_with_measures_to_process(sack):
+                build_metric_report(metric, sack)
         return (report_vars['metrics'] or
                 len(report_vars['metric_details'].keys()),
                 report_vars['measures'] or
