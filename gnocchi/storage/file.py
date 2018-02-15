@@ -190,7 +190,6 @@ class FileStorage(storage.StorageDriver):
         except IOError as e:
             if e.errno == errno.ENOENT:
                 if os.path.exists(self._build_metric_dir(metric)):
-                    raise storage.AggregationDoesNotExist(
-                        metric, aggregation, key.sampling)
+                    return
                 raise storage.MetricDoesNotExist(metric)
             raise
