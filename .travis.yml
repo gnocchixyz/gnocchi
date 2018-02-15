@@ -25,8 +25,13 @@ env:
   - TARGET: py35-postgresql
 
 before_script:
-  # Travis We need to fetch all tags/branches for documentation target
+  # NOTE(sileht): We need to fetch all tags/branches for documentation.
+  # For the multiversioning, we change all remotes refs to point to
+  # the pull request checkout. So the "master" branch will be the PR sha and not
+  # real "master" branch. This ensures the doc build use the PR code for initial
+  # doc setup.
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+      set -x;
       case $TARGET in
         docs*)
           git config --get-all remote.origin.fetch;
@@ -36,6 +41,16 @@ before_script:
           git fetch --unshallow --tags;
           ;;
       esac ;
+      case $TARGET in
+        docs-gnocchi.xyz)
+          git branch -a | sed -n "/\/HEAD /d; /\/master$/d; s,remotes/origin/,,p;" | xargs -i git branch {} origin/{} ;
+          git branch -D master;
+          git checkout -b master;
+          git remote set-url origin file:///home/tester/src;
+          git ls-remote --heads --tags | grep heads;
+          ;;
+      esac ;
+      set +x;
     fi
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
