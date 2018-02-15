@@ -84,7 +84,7 @@ class ArchivePolicy(object):
         if aggregation_methods is None:
             self.aggregation_methods = self.DEFAULT_AGGREGATION_METHODS
         else:
-            self.aggregation_methods = aggregation_methods
+            self.aggregation_methods = set(aggregation_methods)
 
     @property
     def aggregation_methods(self):
