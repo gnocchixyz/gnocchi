@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 import os
 import shutil
+import subprocess
 import tempfile
 import threading
 import time
@@ -126,8 +127,35 @@ class ConfigFixture(fixture.GabbiFixture):
         if conf.indexer.url is None:
             raise case.SkipTest("No indexer configured")
 
-        conf.set_override('driver', 'file', 'storage')
-        conf.set_override('file_basepath', data_tmp_dir, 'storage')
+        storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
+
+        conf.set_override('driver', storage_driver, 'storage')
+        if conf.storage.driver == 'file':
+            conf.set_override('file_basepath', data_tmp_dir, 'storage')
+        elif conf.storage.driver == 'ceph':
+            conf.set_override('ceph_conffile', os.getenv("CEPH_CONF"),
+                              'storage')
+            pool_name = uuid.uuid4().hex
+            with open(os.devnull, 'w') as f:
+                subprocess.call("rados -c %s mkpool %s" % (
+                    os.getenv("CEPH_CONF"), pool_name), shell=True,
+                    stdout=f, stderr=subprocess.STDOUT)
+            conf.set_override('ceph_pool', pool_name, 'storage')
+        elif conf.storage.driver == "s3":
+            conf.set_override('s3_endpoint_url',
+                              os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
+                              group="storage")
+            conf.set_override('s3_access_key_id', "gnocchi", group="storage")
+            conf.set_override('s3_secret_access_key', "anythingworks",
+                              group="storage")
+            conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
+                              "storage")
+        elif conf.storage.driver == "swift":
+            # NOTE(sileht): This fixture must start before any driver stuff
+            swift_fixture = fixtures.MockPatch(
+                'swiftclient.client.Connection',
+                base.FakeSwiftClient)
+            swift_fixture.setUp()
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
@@ -148,9 +176,16 @@ class ConfigFixture(fixture.GabbiFixture):
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
                                                        conf.coordination_url)
         s = storage.get_driver(conf)
-        s.upgrade()
         i = incoming.get_driver(conf)
-        i.upgrade(128)
+
+        if conf.storage.driver == 'redis':
+            # Create one prefix per test
+            s.STORAGE_PREFIX = str(uuid.uuid4()).encode()
+
+        if conf.incoming.driver == 'redis':
+            i.SACK_NAME_FORMAT = (
+                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
 
         self.fixtures = [
             fixtures.MockPatch("gnocchi.storage.get_driver",
@@ -166,9 +201,15 @@ class ConfigFixture(fixture.GabbiFixture):
         for f in self.fixtures:
             f.setUp()
 
+        if conf.storage.driver == 'swift':
+            self.fixtures.append(swift_fixture)
+
         LOAD_APP_KWARGS = {
             'conf': conf,
         }
+
+        s.upgrade()
+        i.upgrade(128)
 
         # start up a thread to async process measures
         self.metricd_thread = MetricdThread(chef.Chef(self.coord, i, index, s))
