@@ -1,1 +1,4 @@
-include etc/gnocchi/gnocchi.conf
+include ChangeLog
+include AUTHORS
+exclude .gitignore
+exclude .github

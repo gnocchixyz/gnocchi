@@ -5,6 +5,7 @@
 AUTHORS
 ChangeLog
 etc/gnocchi/gnocchi.conf
+gnocchi/rest/gnocchi-api
 doc/build
 doc/source/rest.rst
 doc/source/gnocchi.conf.sample
