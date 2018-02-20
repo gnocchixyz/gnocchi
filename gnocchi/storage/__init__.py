@@ -149,8 +149,17 @@ class StorageDriver(object):
         raise NotImplementedError
 
     @staticmethod
-    def _store_metric_measures(metric, timestamp_key, aggregation,
-                               data, offset=None, version=3):
+    def _store_metric_splits(metric, keys_and_data_and_offset, aggregation,
+                             version=3):
+        """Store metric split.
+
+        Store a bunch of splits for a metric.
+
+        :param metric: The metric to store for
+        :param keys_and_data_and_offset: A list of (key, data, offset) tuples
+        :param aggregation: The aggregation method concerned
+        :param version: Storage engine format version.
+        """
         raise NotImplementedError
 
     def _list_split_keys_for_metric(self, metric, aggregation, granularity,
@@ -297,8 +306,8 @@ class StorageDriver(object):
 
         offset, data = split.serialize(key, compressed=write_full)
 
-        return self._store_metric_measures(metric, key, aggregation,
-                                           data, offset=offset)
+        return self._store_metric_splits(
+            metric, [(key, data, offset)], aggregation)
 
     def _add_measures(self, aggregation, ap_def, metric, grouped_serie,
                       previous_oldest_mutable_timestamp,

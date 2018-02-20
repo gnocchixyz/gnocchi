@@ -119,13 +119,14 @@ class S3Storage(storage.StorageDriver):
                 wait=self._consistency_wait,
                 stop=self._consistency_stop)(_head)
 
-    def _store_metric_measures(self, metric, key, aggregation,
-                               data, offset=0, version=3):
-        self._put_object_safe(
-            Bucket=self._bucket_name,
-            Key=self._prefix(metric) + self._object_name(
-                key, aggregation, version),
-            Body=data)
+    def _store_metric_splits(self, metric, keys_and_data_and_offset,
+                             aggregation, version=3):
+        for key, data, offset in keys_and_data_and_offset:
+            self._put_object_safe(
+                Bucket=self._bucket_name,
+                Key=self._prefix(metric) + self._object_name(
+                    key, aggregation, version),
+                Body=data)
 
     def _delete_metric_measures(self, metric, key, aggregation,
                                 version=3):

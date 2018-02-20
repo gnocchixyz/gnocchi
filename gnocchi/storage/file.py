@@ -136,12 +136,13 @@ class FileStorage(storage.StorageDriver):
         os.unlink(self._build_metric_path_for_split(
             metric, aggregation, key, version))
 
-    def _store_metric_measures(self, metric, key, aggregation,
-                               data, offset=None, version=3):
-        self._atomic_file_store(
-            self._build_metric_path_for_split(
-                metric, aggregation, key, version),
-            data)
+    def _store_metric_splits(self, metric, keys_and_data_and_offset,
+                             aggregation, version=3):
+        for key, data, offset in keys_and_data_and_offset:
+            self._atomic_file_store(
+                self._build_metric_path_for_split(
+                    metric, aggregation, key, version),
+                data)
 
     def _delete_metric(self, metric):
         path = self._build_metric_dir(metric)
