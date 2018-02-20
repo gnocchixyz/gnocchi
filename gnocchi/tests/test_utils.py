@@ -138,3 +138,13 @@ class ParallelMap(tests_base.TestCase):
                              utils.parallel_map(lambda x: x,
                                                 [[1], [2], [3]]))
             sm.assert_not_called()
+
+
+class ReturnNoneOnFailureTest(tests_base.TestCase):
+    def test_works(self):
+
+        @utils.return_none_on_failure
+        def foobar():
+            raise Exception("boom")
+
+        self.assertIsNone(foobar())

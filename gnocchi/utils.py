@@ -314,6 +314,25 @@ def parallel_map(fn, list_of_args):
 
 parallel_map.MAX_WORKERS = get_default_workers()
 
+
+def return_none_on_failure(f):
+    try:
+        # Python 3
+        fname = f.__qualname__
+    except AttributeError:
+        fname = f.__name__
+
+    @six.wraps(f)
+    def _return_none_on_failure(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            LOG.critical("Unexpected error while calling %s: %s",
+                         fname, e, exc_info=True)
+
+    return _return_none_on_failure
+
+
 # Retry with exponential backoff for up to 1 minute
 wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
 
