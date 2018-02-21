@@ -1705,7 +1705,8 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
-             groupby=None, fill=None, refresh=False, resample=None):
+             groupby=None, fill=None, refresh=False, resample=None,
+             **kwargs):
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1714,7 +1715,8 @@ class AggregationResourceController(rest.RestController):
         # groups when using itertools.groupby later.
         try:
             resources = SearchResourceTypeController(
-                self.resource_type)._search(sort=groupby)
+                self.resource_type)._search(sort=groupby,
+                                            filter=kwargs.get("filter"))
         except indexer.InvalidPagination:
             abort(400, "Invalid groupby attribute")
         except indexer.IndexerException as e:
@@ -1747,7 +1749,6 @@ class AggregationResourceController(rest.RestController):
             })
 
         return results
-
 
 FillSchema = voluptuous.Schema(
     voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",

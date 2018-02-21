@@ -97,6 +97,26 @@ tests:
           value: 45.41
       status: 202
 
+    - name: aggregate metric with groupby on project_id with filter
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&filter=user_id%3D%276c865dd0-7945-4e08-8b27-d0d7f1c2b667%27
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $:
+          - measures:
+            - ["2015-03-06T14:30:00+00:00", 300.0, 21.525]
+            - ["2015-03-06T14:33:57+00:00", 1.0, 33.05]
+            - ["2015-03-06T14:34:12+00:00", 1.0, 10.0]
+            group:
+              project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
+          - measures:
+            - ["2015-03-06T14:30:00+00:00", 300.0, 137.70499999999998]
+            - ["2015-03-06T14:33:57+00:00", 1.0, 230.0]
+            - ["2015-03-06T14:34:12+00:00", 1.0, 45.41]
+            group:
+              project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
+
     - name: aggregate metric with groupby on project_id
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
       data:
