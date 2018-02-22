@@ -1295,7 +1295,7 @@ class QueryStringSearchAttrFilter(object):
         try:
             parsed_query = cls.expr.parseString(query, parseAll=True)[0]
         except pyparsing.ParseException as e:
-            raise abort(400, "Invalid filter: %s" % six.text_type(e))
+            raise abort(400, "Invalid filter: %s" % str(e))
         return cls._parsed_query2dict(parsed_query)
 
     @classmethod
