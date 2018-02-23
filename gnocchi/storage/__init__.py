@@ -235,13 +235,15 @@ class StorageDriver(object):
         results = []
         for key, raw in six.moves.zip(keys, raw_measures):
             try:
-                results.append(carbonara.AggregatedTimeSerie.unserialize(
-                    raw, key, aggregation))
+                ts = carbonara.AggregatedTimeSerie.unserialize(
+                    raw, key, aggregation)
             except carbonara.InvalidData:
                 LOG.error("Data corruption detected for %s "
                           "aggregated `%s' timeserie, granularity `%s' "
                           "around time `%s', ignoring.",
                           metric.id, aggregation, key.sampling, key)
+            else:
+                results.append(ts)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation,
@@ -285,46 +287,62 @@ class StorageDriver(object):
             ts.truncate(aggregation.timespan)
         return ts
 
-    def _store_timeserie_split(self, metric, key, split,
-                               aggregation, oldest_mutable_timestamp,
-                               oldest_point_to_keep):
-        # NOTE(jd) We write the full split only if the driver works that way
-        # (self.WRITE_FULL) or if the oldest_mutable_timestamp is out of range.
-        write_full = self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
-        if write_full:
-            try:
-                existing = self._get_measures_and_unserialize(
-                    metric, [key], aggregation)
-            except AggregationDoesNotExist:
-                pass
-            else:
+    def _store_timeserie_splits(self, metric, keys_and_splits,
+                                aggregation, oldest_mutable_timestamp,
+                                oldest_point_to_keep):
+        keys_to_rewrite = []
+        splits_to_rewrite = []
+        for key, split in six.iteritems(keys_and_splits):
+            # NOTE(jd) We write the full split only if the driver works that
+            # way (self.WRITE_FULL) or if the oldest_mutable_timestamp is out
+            # of range.
+            write_full = (
+                self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
+            )
+            if write_full:
+                keys_to_rewrite.append(key)
+                splits_to_rewrite.append(split)
+
+        # Update the splits that were passed as argument with the data already
+        # stored in the case that we need to rewrite them fully.
+        # First, fetch all those existing splits.
+        try:
+            existing_data = self._get_measures_and_unserialize(
+                metric, keys_to_rewrite, aggregation)
+        except AggregationDoesNotExist:
+            pass
+        else:
+            for key, split, existing in six.moves.zip(
+                    keys_to_rewrite, splits_to_rewrite, existing_data):
                 if existing:
-                    existing = existing[0]
                     if split is not None:
                         existing.merge(split)
-                    split = existing
+                    keys_and_splits[key] = existing
 
-        if split is None:
-            # `split' can be none if existing is None and no split was passed
-            # in order to rewrite and compress the data; in that case, it means
-            # the split key is present and listed, but some aggregation method
-            # or granularity is missing. That means data is corrupted, but it
-            # does not mean we have to fail, we can just do nothing and log a
-            # warning.
-            LOG.warning("No data found for metric %s, granularity %f "
-                        "and aggregation method %s (split key %s): "
-                        "possible data corruption",
-                        metric, key.sampling,
-                        aggregation, key)
-            return
+        key_data_offset = []
+        for key, split in six.iteritems(keys_and_splits):
+            if split is None:
+                # `split' can be none if existing is None and no split was
+                # passed in order to rewrite and compress the data; in that
+                # case, it means the split key is present and listed, but some
+                # aggregation method or granularity is missing. That means data
+                # is corrupted, but it does not mean we have to fail, we can
+                # just do nothing and log a warning.
+                LOG.warning("No data found for metric %s, granularity %f "
+                            "and aggregation method %s (split key %s): "
+                            "possible data corruption",
+                            metric, key.sampling,
+                            aggregation, key)
+                continue
 
-        if oldest_point_to_keep is not None:
-            split.truncate(oldest_point_to_keep)
+            if oldest_point_to_keep is not None:
+                split.truncate(oldest_point_to_keep)
 
-        offset, data = split.serialize(key, compressed=write_full)
+            offset, data = split.serialize(
+                key, compressed=key in keys_to_rewrite)
+            key_data_offset.append((key, data, offset))
 
-        return self._store_metric_splits(
-            metric, [(key, data, offset)], aggregation)
+        return self._store_metric_splits(metric, key_data_offset, aggregation)
 
     def _add_measures(self, aggregation, ap_def, metric, grouped_serie,
                       previous_oldest_mutable_timestamp,
@@ -356,6 +374,8 @@ class StorageDriver(object):
         else:
             oldest_point_to_keep = None
             oldest_key_to_keep = None
+
+        keys_and_split_to_store = {}
 
         if previous_oldest_mutable_timestamp and (ap_def.timespan or
                                                   need_rewrite):
@@ -399,18 +419,18 @@ class StorageDriver(object):
                             # NOTE(jd) Rewrite it entirely for fun (and later
                             # for compression). For that, we just pass None as
                             # split.
-                            self._store_timeserie_split(
-                                metric, key, None, aggregation,
-                                oldest_mutable_timestamp, oldest_point_to_keep)
+                            keys_and_split_to_store[key] = None
 
         for key, split in ts.split():
             if oldest_key_to_keep is None or key >= oldest_key_to_keep:
                 LOG.debug(
                     "Storing split %s (%s) for metric %s",
                     key, aggregation, metric)
-                self._store_timeserie_split(
-                    metric, key, split, aggregation, oldest_mutable_timestamp,
-                    oldest_point_to_keep)
+                keys_and_split_to_store[key] = split
+
+        self._store_timeserie_splits(
+            metric, keys_and_split_to_store, aggregation,
+            oldest_mutable_timestamp, oldest_point_to_keep)
 
     @staticmethod
     def _delete_metric(metric):
