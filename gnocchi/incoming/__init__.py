@@ -212,6 +212,10 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+    def process_measures_for_sack(sack):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
     def has_unprocessed(metric_id):
         raise exceptions.NotImplementedError
 

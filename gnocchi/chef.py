@@ -137,6 +137,35 @@ class Chef(object):
                 raise
             LOG.error("Error processing new measures", exc_info=True)
 
+    def process_new_measures_for_sack(self, sack, sync=False):
+        """Process added measures in background.
+
+        :param sack: The sack to process new measures for.
+        :param sync: If True, raise any issue immediately otherwise just log it
+        :return: The number of metrics processed.
+        """
+        # NOTE(gordc): must lock at sack level
+        LOG.debug("Processing measures for sack %s", sack)
+        try:
+            with self.incoming.process_measures_for_sack(sack) as measures:
+                # process only active metrics. deleted metrics with unprocessed
+                # measures will be skipped until cleaned by janitor.
+                metrics = self.index.list_metrics(
+                    attribute_filter={
+                        "in": {"id": measures.keys()}
+                    })
+                for metric in metrics:
+                    self.storage.compute_and_store_timeseries(
+                        metric, measures[metric.id]
+                    )
+                    LOG.debug("Measures for metric %s processed", metric)
+                return len(measures)
+        except Exception:
+            if sync:
+                raise
+            LOG.error("Error processing new measures", exc_info=True)
+            return 0
+
     def get_sack_lock(self, sack):
         # FIXME(jd) Some tooz drivers have a limitation on lock name length
         # (e.g. MySQL). This should be handled by tooz, but it's not yet.

@@ -20,11 +20,14 @@ import shutil
 import tempfile
 import uuid
 
+import daiquiri
 import numpy
 import six
 
 from gnocchi import incoming
 from gnocchi import utils
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class FileStorage(incoming.IncomingDriver):
@@ -166,6 +169,33 @@ class FileStorage(incoming.IncomingDriver):
         processed_files = {}
         for metric_id in metric_ids:
             files = self._list_measures_container_for_metric(metric_id)
+            processed_files[metric_id] = files
+            m = self._make_measures_array()
+            for f in files:
+                abspath = self._build_measure_path(metric_id, f)
+                with open(abspath, "rb") as e:
+                    m = numpy.concatenate((
+                        m, self._unserialize_measures(f, e.read())))
+            measures[metric_id] = m
+
+        yield measures
+
+        for metric_id, files in six.iteritems(processed_files):
+            self._delete_measures_files_for_metric(metric_id, files)
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        measures = {}
+        processed_files = {}
+        for metric_id in self._list_target(self._sack_path(sack)):
+            try:
+                metric_id = uuid.UUID(metric_id)
+            except ValueError:
+                LOG.error("Unable to parse %s as an UUID, ignoring metric",
+                          metric_id)
+                continue
+            files = self._list_measures_container_for_metric_str(
+                sack, metric_id)
             processed_files[metric_id] = files
             m = self._make_measures_array()
             for f in files:

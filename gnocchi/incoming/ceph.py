@@ -13,6 +13,7 @@
 # under the License.
 from collections import defaultdict
 import contextlib
+import daiquiri
 import datetime
 import json
 import uuid
@@ -24,6 +25,8 @@ from gnocchi.common import ceph
 from gnocchi import incoming
 
 rados = ceph.rados
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class CephStorage(incoming.IncomingDriver):
@@ -212,5 +215,33 @@ class CephStorage(incoming.IncomingDriver):
                 # NOTE(sileht): come on Ceph, no return code
                 # for this operation ?!!
                 self.ioctx.remove_omap_keys(op, tuple(keys.keys()))
+                self.ioctx.operate_write_op(op, str(sack),
+                                            flags=self.OMAP_WRITE_FLAGS)
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        measures = defaultdict(self._make_measures_array)
+        omaps = self._list_keys_to_process(
+            sack, prefix=self.MEASURE_PREFIX + "_")
+        for k, v in six.iteritems(omaps):
+            try:
+                metric_id = uuid.UUID(k.split("_")[1])
+            except (ValueError, IndexError):
+                LOG.warning("Unable to parse measure object name %s",
+                            k)
+                continue
+            measures[metric_id] = numpy.concatenate(
+                (measures[metric_id], self._unserialize_measures(k, v))
+            )
+
+        yield measures
+
+        # Now clean omap
+        processed_keys = tuple(omaps.keys())
+        if processed_keys:
+            with rados.WriteOpCtx() as op:
+                # NOTE(sileht): come on Ceph, no return code
+                # for this operation ?!!
+                self.ioctx.remove_omap_keys(op, tuple(processed_keys))
                 self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)
