@@ -41,10 +41,8 @@ class TestChef(base.TestCase):
         self.index.delete_metric(self.metric.id)
         self.trigger_processing()
         __, __, details = self.incoming._build_report(True)
-        self.assertIn(str(self.metric.id), details)
-        self.chef.expunge_metrics(sync=True)
-        __, __, details = self.incoming._build_report(True)
         self.assertNotIn(str(self.metric.id), details)
+        self.chef.expunge_metrics(sync=True)
 
     def test_delete_expunge_metric(self):
         self.incoming.add_measures(self.metric.id, [

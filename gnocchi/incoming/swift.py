@@ -13,6 +13,7 @@
 # under the License.
 from collections import defaultdict
 import contextlib
+import daiquiri
 import datetime
 import json
 import uuid
@@ -24,6 +25,8 @@ from gnocchi import incoming
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class SwiftStorage(incoming.IncomingDriver):
@@ -117,3 +120,27 @@ class SwiftStorage(incoming.IncomingDriver):
         # Now clean objects
         for sack_name, files in six.iteritems(all_files):
             swift.bulk_delete(self.swift, sack_name, files)
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        measures = defaultdict(self._make_measures_array)
+        sack_name = str(sack)
+        headers, files = self.swift.get_container(sack_name, full_listing=True)
+        for f in files:
+            try:
+                metric_id, random_id = f['name'].split("/")
+                metric_id = uuid.UUID(metric_id)
+            except ValueError:
+                LOG.warning("Unable to parse measure file name %s", f)
+                continue
+            measures[metric_id] = self._array_concatenate([
+                measures[metric_id],
+                self._unserialize_measures(
+                    metric_id,
+                    self.swift.get_object(sack_name, f['name'])[1],
+                )
+            ])
+
+        yield measures
+
+        swift.bulk_delete(self.swift, sack_name, files)

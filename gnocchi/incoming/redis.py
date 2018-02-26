@@ -14,11 +14,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import contextlib
+import uuid
 
+import daiquiri
 import six
 
 from gnocchi.common import redis
 from gnocchi import incoming
+
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class RedisStorage(incoming.IncomingDriver):
@@ -30,6 +35,23 @@ local llen = redis.call("LLEN", KEYS[1])
 if llen > 0 then llen = llen - 1 end
 return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
 """,
+        "process_measures_for_sack": """
+local results = {}
+local metric_id_extractor = "[^%s]*%s([^%s]*)"
+local metric_with_measures = redis.call("KEYS", KEYS[1] .. "%s*")
+for i, sack_metric in ipairs(metric_with_measures) do
+    local llen = redis.call("LLEN", sack_metric)
+    local metric_id = sack_metric:gmatch(metric_id_extractor)()
+    -- lrange is inclusive on both ends, decrease to grab exactly n items
+    if llen > 0 then llen = llen - 1 end
+    results[#results + 1] = {
+        metric_id,
+        llen,
+        table.concat(redis.call("LRANGE", sack_metric, 0, llen), "")
+    }
+end
+return results
+""" % (redis.SEP_S, redis.SEP_S, redis.SEP_S, redis.SEP_S),
     }
 
     def __init__(self, conf, greedy=True):
@@ -131,6 +153,30 @@ return {llen, table.concat(redis.call("LRANGE", KEYS[1], 0, llen), "")}
 
         for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
             key = self._build_measure_path(metric_id)
+            # ltrim is inclusive, bump 1 to remove up to and including nth item
+            pipe.ltrim(key, item_len + 1, -1)
+        pipe.execute()
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        results = self._scripts['process_measures_for_sack'](keys=[str(sack)])
+
+        measures = {}
+        for metric_id, item_len, data in results:
+            try:
+                metric_id = uuid.UUID(metric_id.decode())
+            except ValueError:
+                LOG.error("Unable to parse metric id %s, ignoring",
+                          metric_id)
+                continue
+            measures[metric_id] = self._unserialize_measures(metric_id, data)
+
+        yield measures
+
+        pipe = self._client.pipeline()
+        for metric_id, item_len, data in results:
+            key = self._build_measure_path_with_sack(
+                metric_id.decode(), str(sack))
             # ltrim is inclusive, bump 1 to remove up to and including nth item
             pipe.ltrim(key, item_len + 1, -1)
         pipe.execute()

@@ -237,9 +237,7 @@ class MetricProcessor(MetricProcessBase):
                 continue
 
             try:
-                metrics = self.incoming.list_metric_with_measures_to_process(s)
-                m_count += len(metrics)
-                self.chef.process_new_measures(metrics)
+                m_count += self.chef.process_new_measures_for_sack(s)
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
