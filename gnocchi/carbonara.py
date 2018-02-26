@@ -498,6 +498,10 @@ class SplitKey(object):
     def _compare(self, op, other):
         if isinstance(other, SplitKey):
             if self.sampling != other.sampling:
+                if op == operator.eq:
+                    return False
+                if op == operator.ne:
+                    return True
                 raise TypeError(
                     "Cannot compare %s with different sampling" %
                     self.__class__.__name__)
