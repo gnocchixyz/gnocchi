@@ -452,6 +452,11 @@ class SplitKey(object):
     are regularly spaced.
     """
 
+    __slots__ = (
+        'key',
+        'sampling',
+    )
+
     POINTS_PER_SPLIT = 3600
 
     def __init__(self, value, sampling):
