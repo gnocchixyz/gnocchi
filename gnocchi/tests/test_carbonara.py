@@ -16,6 +16,7 @@
 import datetime
 import functools
 import math
+import operator
 
 import fixtures
 import iso8601
@@ -828,6 +829,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         dt1_1 = numpy.datetime64("2015-01-01T15:03")
         dt2 = numpy.datetime64("2015-01-05T15:03")
         td = numpy.timedelta64(60, 's')
+        td2 = numpy.timedelta64(300, 's')
 
         self.assertEqual(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
@@ -838,6 +840,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertNotEqual(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+        self.assertNotEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td2))
 
         self.assertLess(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
@@ -858,6 +863,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         dt1_1 = numpy.datetime64("2015-01-01T15:03")
         dt2 = numpy.datetime64("2015-01-05T15:03")
         td = numpy.timedelta64(60, 's')
+        td2 = numpy.timedelta64(300, 's')
 
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
@@ -868,6 +874,29 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
+        self.assertFalse(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
+        self.assertRaises(
+            TypeError,
+            operator.le,
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
+        self.assertRaises(
+            TypeError,
+            operator.ge,
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
+        self.assertRaises(
+            TypeError,
+            operator.gt,
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
+        self.assertRaises(
+            TypeError,
+            operator.lt,
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
 
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >=
