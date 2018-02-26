@@ -398,7 +398,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
-        """Helper method that mimics _add_measures workflow."""
+        """Helper method that mimics _compute_splits_operations workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
