@@ -279,17 +279,20 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1244160000, 's'),
-                               numpy.timedelta64(1, 'D')),
+                               numpy.timedelta64(1, 'D'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'D')))
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1412640000, 's'),
-                               numpy.timedelta64(1, 'h')),
+                               numpy.timedelta64(1, 'h'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'h')))
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1419120000, 's'),
-                               numpy.timedelta64(5, 'm')),
+                               numpy.timedelta64(5, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(5, 'm')))
 
@@ -314,11 +317,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 
@@ -331,18 +337,21 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -369,31 +378,38 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1452384000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -401,6 +417,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1452384000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -436,11 +453,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 
@@ -453,18 +473,21 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
-                numpy.timedelta64(1, 'm')
+                numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -493,31 +516,38 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
-                numpy.timedelta64(60, 's')
+                numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         # Now this one is compressed because it has been rewritten!
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -525,6 +555,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1452384000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -558,11 +589,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 
@@ -576,18 +610,21 @@ class TestStorageDriver(tests_base.TestCase):
             [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
-                numpy.timedelta64(1, 'm')
+                numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -612,6 +649,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], 'mean')
 
         # Now store brand new points that should force a rewrite of one of the
@@ -645,11 +683,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
             carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                               numpy.timedelta64(1, 'm')),
+                               numpy.timedelta64(1, 'm'),
+                               "mean"),
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 
@@ -662,18 +703,21 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451520000, 's'),
                 numpy.timedelta64(60, 's'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451736000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         self.assertTrue(carbonara.AggregatedTimeSerie.is_compressed(data))
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
+                "mean",
             )], "mean")[0]
         assertCompressedIfWriteFull(
             carbonara.AggregatedTimeSerie.is_compressed(data))
@@ -693,7 +737,8 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [
                 (carbonara.SplitKey(
                     numpy.datetime64(1451952000, 's'),
-                    numpy.timedelta64(1, 'm')),
+                    numpy.timedelta64(1, 'm'),
+                    "mean"),
                  b"oh really?", None)
             ], "mean")
 

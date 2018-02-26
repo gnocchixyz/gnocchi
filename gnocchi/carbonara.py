@@ -452,23 +452,31 @@ class SplitKey(object):
     are regularly spaced.
     """
 
+    __slots__ = (
+        'key',
+        'sampling',
+        'aggregation_method',
+    )
+
     POINTS_PER_SPLIT = 3600
 
-    def __init__(self, value, sampling):
+    def __init__(self, value, sampling, aggregation_method):
         if isinstance(value, SplitKey):
             self.key = value.key
         else:
             self.key = value
 
         self.sampling = sampling
+        self.aggregation_method = aggregation_method
 
     @classmethod
-    def from_timestamp_and_sampling(cls, timestamp, sampling):
+    def from_timestamp_and_sampling(cls, timestamp, sampling,
+                                    aggregation_method):
         return cls(
             round_timestamp(
                 timestamp,
                 freq=sampling * cls.POINTS_PER_SPLIT),
-            sampling)
+            sampling, aggregation_method)
 
     def __next__(self):
         """Get the split key of the next split.
@@ -477,7 +485,9 @@ class SplitKey(object):
         """
         return self.__class__(
             self.key + self.sampling * self.POINTS_PER_SPLIT,
-            self.sampling)
+            self.sampling,
+            self.aggregation_method,
+        )
 
     next = __next__
 
@@ -486,13 +496,24 @@ class SplitKey(object):
 
     def __hash__(self):
         return hash(str(self.key.astype('datetime64[ns]')) +
-                    str(self.sampling.astype('timedelta64[ns]')))
+                    str(self.sampling.astype('timedelta64[ns]')) +
+                    self.aggregation_method)
 
     def _compare(self, op, other):
         if isinstance(other, SplitKey):
+            if op == operator.eq:
+                return (op(self.key, other.key) and
+                        op(self.sampling, other.sampling) and
+                        op(self.aggregation_method, other.aggregation_method))
+            if op == operator.ne:
+                return not self._compare(operator.eq, other)
             if self.sampling != other.sampling:
                 raise TypeError(
                     "Cannot compare %s with different sampling" %
+                    self.__class__.__name__)
+            if self.aggregation_method != other.aggregation_method:
+                raise TypeError(
+                    "Cannot compare %s with different aggregation methods" %
                     self.__class__.__name__)
             return op(self.key, other.key)
         if isinstance(other, numpy.datetime64):
@@ -516,9 +537,10 @@ class SplitKey(object):
         return datetime64_to_epoch(self.key)
 
     def __repr__(self):
-        return "<%s: %s / %s>" % (self.__class__.__name__,
-                                  self.key,
-                                  self.sampling)
+        return "<%s: %s / %s / %s>" % (self.__class__.__name__,
+                                       self.key,
+                                       self.sampling,
+                                       self.aggregation_method)
 
 
 class AggregatedTimeSerie(TimeSerie):
@@ -593,7 +615,7 @@ class AggregatedTimeSerie(TimeSerie):
         start = 0
         for key, count in six.moves.zip(keys, counts):
             end = start + count
-            yield (SplitKey(key, self.sampling),
+            yield (SplitKey(key, self.sampling, self.aggregation_method),
                    AggregatedTimeSerie(self.sampling, self.aggregation_method,
                                        self[start:end]))
             start = end
@@ -683,7 +705,7 @@ class AggregatedTimeSerie(TimeSerie):
         if timestamp is None:
             timestamp = self.first
         return SplitKey.from_timestamp_and_sampling(
-            timestamp, self.sampling)
+            timestamp, self.sampling, self.aggregation_method)
 
     def serialize(self, start, compressed=True):
         """Serialize an aggregated timeserie.
