@@ -185,7 +185,9 @@ def handle_resample(agg, granularity, timestamps, values, is_aggregated,
     new_values = None
     result_timestamps = timestamps
     for ts in values.T:
-        ts = carbonara.AggregatedTimeSerie.from_data(None, agg, timestamps, ts)
+        ts = carbonara.AggregatedTimeSerie.from_data(
+            carbonara.Aggregation(agg, None, None),
+            timestamps, ts)
         ts = ts.resample(sampling)
         result_timestamps = ts["timestamps"]
         if new_values is None:

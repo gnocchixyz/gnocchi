@@ -136,10 +136,12 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     lookup_keys = collections.defaultdict(list)
     for (ref, timeserie) in refs_and_timeseries:
         from_ = (None if from_timestamp is None else
-                 carbonara.round_timestamp(from_timestamp, timeserie.sampling))
-        references[timeserie.sampling].append(ref)
-        lookup_keys[timeserie.sampling].append(ref.lookup_key)
-        series[timeserie.sampling].append(timeserie[from_:to_timestamp])
+                 carbonara.round_timestamp(
+                     from_timestamp, timeserie.aggregation.granularity))
+        references[timeserie.aggregation.granularity].append(ref)
+        lookup_keys[timeserie.aggregation.granularity].append(ref.lookup_key)
+        series[timeserie.aggregation.granularity].append(
+            timeserie[from_:to_timestamp])
 
     result = []
     is_aggregated = False

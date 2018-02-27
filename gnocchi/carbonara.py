@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -16,6 +16,7 @@
 # under the License.
 """Time series data manipulation, better with pancetta."""
 
+import collections
 import functools
 import math
 import operator
@@ -532,6 +533,12 @@ class SplitKey(object):
                                   self.sampling)
 
 
+Aggregation = collections.namedtuple(
+    "Aggregation",
+    ["method", "granularity", "timespan"],
+)
+
+
 class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
@@ -540,7 +547,7 @@ class AggregatedTimeSerie(TimeSerie):
     COMPRESSED_SERIAL_LEN = struct.calcsize("<Hd")
     COMPRESSED_TIMESPAMP_LEN = struct.calcsize("<H")
 
-    def __init__(self, sampling, aggregation_method, ts=None):
+    def __init__(self, aggregation, ts=None):
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -548,18 +555,17 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
         super(AggregatedTimeSerie, self).__init__(ts)
-        self.sampling = sampling
-        self.aggregation_method = aggregation_method
+        self.aggregation = aggregation
 
     def resample(self, sampling):
         return AggregatedTimeSerie.from_grouped_serie(
-            self.group_serie(sampling), sampling, self.aggregation_method)
+            self.group_serie(sampling),
+            Aggregation(self.aggregation.method, sampling,
+                        self.aggregation.timespan))
 
     @classmethod
-    def from_data(cls, sampling, aggregation_method, timestamps,
-                  values):
-        return cls(sampling=sampling,
-                   aggregation_method=aggregation_method,
+    def from_data(cls, aggregation, timestamps, values):
+        return cls(aggregation=aggregation,
                    ts=make_timeseries(timestamps, values))
 
     @staticmethod
@@ -575,16 +581,21 @@ class AggregatedTimeSerie(TimeSerie):
             aggregation_method_func_name = aggregation_method
         return aggregation_method_func_name, q
 
-    def truncate(self, oldest_point):
+    def truncate(self, oldest_point=None):
         """Truncate the time series up to oldest_point excluded.
 
         :param oldest_point: Oldest point to keep from, this excluded.
+                             Default is the aggregation timespan.
         :type oldest_point: numpy.datetime64 or numpy.timedelta64
         """
         last = self.last
         if last is None:
             # There's nothing to truncate
             return
+        if oldest_point is None:
+            oldest_point = self.aggregation.timespan
+            if oldest_point is None:
+                return
         if isinstance(oldest_point, numpy.timedelta64):
             oldest_point = last - oldest_point
         index = numpy.searchsorted(self.ts['timestamps'], oldest_point,
@@ -597,54 +608,49 @@ class AggregatedTimeSerie(TimeSerie):
         # this is slow because pandas can do that on any kind DataFrame
         # but we have ordered timestamps, so don't need
         # to iter the whole series.
-        freq = self.sampling * SplitKey.POINTS_PER_SPLIT
+        freq = self.aggregation.granularity * SplitKey.POINTS_PER_SPLIT
         keys, counts = numpy.unique(
             round_timestamp(self.timestamps, freq),
             return_counts=True)
         start = 0
         for key, count in six.moves.zip(keys, counts):
             end = start + count
-            yield (SplitKey(key, self.sampling),
-                   AggregatedTimeSerie(self.sampling, self.aggregation_method,
-                                       self[start:end]))
+            yield (SplitKey(key, self.aggregation.granularity),
+                   AggregatedTimeSerie(self.aggregation, self[start:end]))
             start = end
 
     @classmethod
-    def from_timeseries(cls, timeseries, sampling, aggregation_method):
+    def from_timeseries(cls, timeseries, aggregation):
         # NOTE(gordc): Indices must be unique across all timeseries. Also,
         # timeseries should be a list that is ordered within list and series.
         if timeseries:
             ts = numpy.concatenate([ts.ts for ts in timeseries])
         else:
             ts = None
-        return cls(sampling=sampling,
-                   aggregation_method=aggregation_method,
-                   ts=ts)
+        return cls(aggregation=aggregation, ts=ts)
 
     @classmethod
-    def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method):
-        if aggregation_method.startswith("rate:"):
+    def from_grouped_serie(cls, grouped_serie, aggregation):
+        if aggregation.method.startswith("rate:"):
             grouped_serie = grouped_serie.derived()
-            aggregation_method_name = aggregation_method[5:]
+            aggregation_method_name = aggregation.method[5:]
         else:
-            aggregation_method_name = aggregation_method
+            aggregation_method_name = aggregation.method
         agg_name, q = cls._get_agg_method(aggregation_method_name)
-        return cls(sampling, aggregation_method,
-                   ts=cls._resample_grouped(grouped_serie, agg_name,
-                                            q))
+        return cls(aggregation,
+                   ts=cls._resample_grouped(grouped_serie, agg_name, q))
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
                 and super(AggregatedTimeSerie, self).__eq__(other)
-                and self.sampling == other.sampling
-                and self.aggregation_method == other.aggregation_method)
+                and self.aggregation == other.aggregation)
 
     def __repr__(self):
-        return "<%s 0x%x sampling=%s agg_method=%s>" % (
+        return "<%s 0x%x granularity=%s agg_method=%s>" % (
             self.__class__.__name__,
             id(self),
-            self.sampling,
-            self.aggregation_method,
+            self.aggregation.granularity,
+            self.aggregation.method,
         )
 
     @staticmethod
@@ -689,7 +695,7 @@ class AggregatedTimeSerie(TimeSerie):
                 y = index * key.sampling + key.key
                 x = everything['v'][index]
 
-        return cls.from_data(key.sampling, agg_method, y, x)
+        return cls.from_data(Aggregation(agg_method, key.sampling, None), y, x)
 
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
@@ -701,7 +707,7 @@ class AggregatedTimeSerie(TimeSerie):
         if timestamp is None:
             timestamp = self.first
         return SplitKey.from_timestamp_and_sampling(
-            timestamp, self.sampling)
+            timestamp, self.aggregation.granularity)
 
     def serialize(self, start, compressed=True):
         """Serialize an aggregated timeserie.
@@ -718,7 +724,7 @@ class AggregatedTimeSerie(TimeSerie):
         :return: a tuple of (offset, data)
 
         """
-        offset_div = self.sampling
+        offset_div = self.aggregation.granularity
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
         if compressed:
@@ -767,9 +773,9 @@ class AggregatedTimeSerie(TimeSerie):
         if from_timestamp is None:
             from_ = None
         else:
-            from_ = round_timestamp(from_timestamp, self.sampling)
-        return self.__class__(self.sampling, self.aggregation_method,
-                              ts=self[from_:to_timestamp])
+            from_ = round_timestamp(from_timestamp,
+                                    self.aggregation.granularity)
+        return self.__class__(self.aggregation, ts=self[from_:to_timestamp])
 
     @classmethod
     def benchmark(cls):
@@ -807,7 +813,8 @@ class AggregatedTimeSerie(TimeSerie):
         ]:
             print(title)
             serialize_times = 50
-            ts = cls.from_data(sampling, 'mean', timestamps, values)
+            aggregation = Aggregation("mean", sampling, None)
+            ts = cls.from_data(aggregation, timestamps, values)
             t0 = time.time()
             key = ts.get_split_key()
             for i in six.moves.range(serialize_times):
@@ -854,7 +861,7 @@ class AggregatedTimeSerie(TimeSerie):
 
             # NOTE(sileht): propose a new series with half overload timestamps
             pts = ts.ts.copy()
-            tsbis = cls(ts=pts, sampling=sampling, aggregation_method='mean')
+            tsbis = cls(ts=pts, aggregation=aggregation)
             tsbis.ts['timestamps'] = (
                 tsbis.timestamps - numpy.timedelta64(
                     sampling * points / 2, 's')
@@ -869,8 +876,7 @@ class AggregatedTimeSerie(TimeSerie):
             for agg in ['mean', 'sum', 'max', 'min', 'std', 'median', 'first',
                         'last', 'count', '5pct', '90pct']:
                 serialize_times = 3 if agg.endswith('pct') else 10
-                ts = cls(ts=pts, sampling=sampling,
-                         aggregation_method=agg)
+                ts = cls(ts=pts, aggregation=aggregation)
                 t0 = time.time()
                 for i in six.moves.range(serialize_times):
                     ts.resample(resample)

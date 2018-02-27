@@ -23,7 +23,7 @@ from oslo_config import cfg
 from oslo_config import types
 import six
 
-from gnocchi import aggregation
+from gnocchi import carbonara
 from gnocchi import utils
 
 
@@ -94,7 +94,7 @@ class ArchivePolicy(object):
         # Find the timespan
         for d in self.definition:
             if d.granularity == granularity:
-                return aggregation.Aggregation(
+                return carbonara.Aggregation(
                     method, d.granularity, d.timespan)
 
     def get_aggregations_for_method(self, method):
@@ -104,13 +104,13 @@ class ArchivePolicy(object):
 
         :param method: Aggregation method.
         """
-        return [aggregation.Aggregation(method, d.granularity, d.timespan)
+        return [carbonara.Aggregation(method, d.granularity, d.timespan)
                 for d in sorted(self.definition,
                                 key=ATTRGETTER_GRANULARITY, reverse=True)]
 
     @property
     def aggregations(self):
-        return [aggregation.Aggregation(method, d.granularity, d.timespan)
+        return [carbonara.Aggregation(method, d.granularity, d.timespan)
                 for d in sorted(self.definition, key=ATTRGETTER_GRANULARITY)
                 for method in self.aggregation_methods]
 

@@ -20,7 +20,6 @@ import mock
 import numpy
 import six.moves
 
-from gnocchi import aggregation as gaggregation
 from gnocchi import archive_policy
 from gnocchi import carbonara
 from gnocchi import incoming
@@ -855,7 +854,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual({"mean": []},
                          self.storage.get_measures(
                              self.metric,
-                             [gaggregation.Aggregation(
+                             [carbonara.Aggregation(
                                  "mean", numpy.timedelta64(42, 's'), None)]))
 
     def test_get_measure_unknown_aggregation(self):

@@ -37,7 +37,6 @@ OPTS = [
 LOG = daiquiri.getLogger(__name__)
 
 
-ATTRGETTER_AGG_METHOD = operator.attrgetter("aggregation_method")
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
@@ -223,12 +222,13 @@ class StorageDriver(object):
 
         return {
             aggmethod: list(itertools.chain(
-                *[[(timestamp, ts.sampling, value)
+                *[[(timestamp, ts.aggregation.granularity, value)
                    for timestamp, value
                    in ts.fetch(from_timestamp, to_timestamp)]
                   for ts in aggts]))
-            for aggmethod, aggts in itertools.groupby(agg_timeseries,
-                                                      ATTRGETTER_AGG_METHOD)
+            for aggmethod, aggts
+            in itertools.groupby(agg_timeseries,
+                                 lambda v: v.aggregation.method)
         }
 
     def _get_measures_and_unserialize(self, metric, keys, aggregation):
@@ -255,9 +255,7 @@ class StorageDriver(object):
             all_keys = self._list_split_keys_for_metric(
                 metric, aggregation.method, aggregation.granularity)
         except MetricDoesNotExist:
-            return carbonara.AggregatedTimeSerie(
-                sampling=aggregation.granularity,
-                aggregation_method=aggregation.method)
+            return carbonara.AggregatedTimeSerie(aggregation)
 
         if from_timestamp:
             from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
@@ -275,9 +273,7 @@ class StorageDriver(object):
             metric, keys, aggregation.method)
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            sampling=aggregation.granularity,
-            aggregation_method=aggregation.method,
-            timeseries=timeseries)
+            timeseries, aggregation)
         # We need to truncate because:
         # - If the driver is not in WRITE_FULL mode, then it might read too
         # much data that will be deleted once the split is rewritten. Just
@@ -351,7 +347,7 @@ class StorageDriver(object):
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped_serie, aggregation.granularity, aggregation.method)
+            grouped_serie, aggregation)
 
         # Don't do anything if the timeserie is empty
         if not ts:
