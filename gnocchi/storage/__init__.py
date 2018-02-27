@@ -38,6 +38,7 @@ LOG = daiquiri.getLogger(__name__)
 
 
 ATTRGETTER_AGG_METHOD = operator.attrgetter("aggregation_method")
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
 class StorageError(Exception):
@@ -346,18 +347,11 @@ class StorageDriver(object):
 
         return self._store_metric_splits(metric, key_data_offset, aggregation)
 
-    def _add_measures(self, aggregation, ap_def, metric, grouped_serie,
+    def _add_measures(self, metric, aggregation, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
-
-        if aggregation.startswith("rate:"):
-            grouped_serie = grouped_serie.derived()
-            aggregation_to_compute = aggregation[5:]
-        else:
-            aggregation_to_compute = aggregation
-
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped_serie, ap_def.granularity, aggregation_to_compute)
+            grouped_serie, aggregation.granularity, aggregation.method)
 
         # Don't do anything if the timeserie is empty
         if not ts:
@@ -370,8 +364,8 @@ class StorageDriver(object):
             and previous_oldest_mutable_timestamp is not None
         )
 
-        if ap_def.timespan:
-            oldest_point_to_keep = ts.last - ap_def.timespan
+        if aggregation.timespan:
+            oldest_point_to_keep = ts.last - aggregation.timespan
             oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
         else:
             oldest_point_to_keep = None
@@ -379,7 +373,7 @@ class StorageDriver(object):
 
         keys_and_split_to_store = {}
 
-        if previous_oldest_mutable_timestamp and (ap_def.timespan or
+        if previous_oldest_mutable_timestamp and (aggregation.timespan or
                                                   need_rewrite):
             previous_oldest_mutable_key = ts.get_split_key(
                 previous_oldest_mutable_timestamp)
@@ -389,10 +383,10 @@ class StorageDriver(object):
             # object for an old object to be cleanup
             if previous_oldest_mutable_key != oldest_mutable_key:
                 existing_keys = sorted(self._list_split_keys_for_metric(
-                    metric, aggregation, ap_def.granularity))
+                    metric, aggregation.method, aggregation.granularity))
 
                 # First, check for old splits to delete
-                if ap_def.timespan:
+                if aggregation.timespan:
                     deleted_keys = set()
                     for key in list(existing_keys):
                         # NOTE(jd) Only delete if the key is strictly inferior
@@ -404,7 +398,7 @@ class StorageDriver(object):
                         deleted_keys.add(key)
                         existing_keys.remove(key)
                     self._delete_metric_splits(
-                        metric, deleted_keys, aggregation)
+                        metric, deleted_keys, aggregation.method)
 
                 # Rewrite all read-only splits just for fun (and compression).
                 # This only happens if `previous_oldest_mutable_timestamp'
@@ -417,7 +411,8 @@ class StorageDriver(object):
                             if key >= oldest_mutable_key:
                                 break
                             LOG.debug("Compressing previous split %s (%s) for "
-                                      "metric %s", key, aggregation, metric)
+                                      "metric %s", key, aggregation.method,
+                                      metric)
                             # NOTE(jd) Rewrite it entirely for fun (and later
                             # for compression). For that, we just pass None as
                             # split.
@@ -427,11 +422,11 @@ class StorageDriver(object):
             if oldest_key_to_keep is None or key >= oldest_key_to_keep:
                 LOG.debug(
                     "Storing split %s (%s) for metric %s",
-                    key, aggregation, metric)
+                    key, aggregation.method, metric)
                 keys_and_split_to_store[key] = split
 
         self._store_timeserie_splits(
-            metric, keys_and_split_to_store, aggregation,
+            metric, keys_and_split_to_store, aggregation.method,
             oldest_mutable_timestamp, oldest_point_to_keep)
 
     @staticmethod
@@ -507,17 +502,21 @@ class StorageDriver(object):
             tstamp = max(bound_timeserie.first, measures['timestamps'][0])
             new_first_block_timestamp = bound_timeserie.first_block_timestamp()
             computed_points['number'] = len(bound_timeserie)
-            for d in definition:
+
+            for granularity, aggregations in itertools.groupby(
+                    # No need to sort the aggregation, they are already
+                    metric.archive_policy.aggregations,
+                    ATTRGETTER_GRANULARITY):
                 ts = bound_timeserie.group_serie(
-                    d.granularity, carbonara.round_timestamp(
-                        tstamp, d.granularity))
+                    granularity, carbonara.round_timestamp(
+                        tstamp, granularity))
 
                 utils.parallel_map(
                     self._add_measures,
-                    ((aggregation, d, metric, ts,
+                    ((metric, aggregation, ts,
                         current_first_block_timestamp,
                         new_first_block_timestamp)
-                        for aggregation in agg_methods))
+                        for aggregation in aggregations))
 
         with utils.StopWatch() as sw:
             ts.set_values(measures,
