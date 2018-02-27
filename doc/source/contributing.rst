@@ -33,7 +33,29 @@ When opening a pull-request, make sure that:
   `git rebase --interactive` and/or `git commit --amend`.
 * We recommend using `git pull-request`_ to send your pull-requests.
 
+All sent pull-requests are checked using `Travis-CI`_, which is in charge of
+running the tests suites. There are different scenarios being run: `PEP 8`_
+compliance tests, upgrade tests, unit and functional tests.
+
+All pull-requests must be reviewed by `members of the Gnocchi project`_.
+
+When a pull-request is approved by at least two of the members and when
+Travis-CI confirms that all the tests run fine, the patch will be merged.
+
+The Gnocchi project leverages `Pastamaker`_ in order to schedule the merge of
+the different pull-requests. Pastamaker is in charge of making sure that the
+pull-request is up-to-date with respect to the `master` branch and that the
+tests pass. Pull-requests are always merged in a serialized manner in order to
+make sure that no pull-request can break another one.
+
+`Gnocchi's Pastamaker dashboard`_ shows the current status of the merge queue.
+
 .. _`git pull-request`: https://github.com/jd/git-pull-request
+.. _`PEP 8`: https://www.python.org/dev/peps/pep-0008/
+.. _`Travis-CI`: http://travis-ci.org
+.. _`members of the Gnocchi project`: https://github.com/orgs/gnocchixyz/people
+.. _`Pastamaker`: https://github.com/sileht/pastamaker
+.. _`Gnocchi's Pastamaker dashboard`: https://pastamaker.gnocchi.xyz
 
 
 Running the Tests
