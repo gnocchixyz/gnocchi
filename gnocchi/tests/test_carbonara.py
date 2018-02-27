@@ -105,21 +105,6 @@ class TestBoundTimeSerie(base.BaseTestCase):
 
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
-    @staticmethod
-    def test_base():
-        carbonara.AggregatedTimeSerie.from_data(
-            3, 'mean',
-            [datetime64(2014, 1, 1, 12, 0, 0),
-             datetime64(2014, 1, 1, 12, 0, 4),
-             datetime64(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6])
-        carbonara.AggregatedTimeSerie.from_data(
-            "4s", 'mean',
-            [datetime64(2014, 1, 1, 12, 0, 0),
-             datetime64(2014, 1, 1, 12, 0, 4),
-             datetime64(2014, 1, 1, 12, 0, 9)],
-            [3, 5, 6])
-
     def test_benchmark(self):
         self.useFixture(fixtures.Timeout(300, gentle=True))
         carbonara.AggregatedTimeSerie.benchmark()
@@ -129,9 +114,9 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             timestamps=[datetime64(2014, 1, 1, 12, 0, 0),
                         datetime64(2014, 1, 1, 12, 0, 4),
                         datetime64(2014, 1, 1, 12, 0, 9)],
-            aggregation_method='mean',
             values=[3, 5, 6],
-            sampling=numpy.timedelta64(1, 's'))
+            aggregation=carbonara.Aggregation(
+                "mean", numpy.timedelta64(1, 's'), None))
         self.assertEqual(
             [(datetime64(2014, 1, 1, 12), 3),
              (datetime64(2014, 1, 1, 12, 0, 4), 5),
@@ -167,11 +152,12 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     @staticmethod
     def _resample(ts, sampling, agg, derived=False):
+        aggregation = carbonara.Aggregation(agg, sampling, None)
         grouped = ts.group_serie(sampling)
         if derived:
             grouped = grouped.derived()
         return carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, sampling, agg)
+            grouped, aggregation)
 
     def test_derived_mean(self):
         ts = carbonara.TimeSerie.from_data(
@@ -344,13 +330,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                          ts[datetime64(2014, 1, 1, 12, 0, 0)][1])
 
     def test_different_length_in_timestamps_and_data(self):
-        self.assertRaises(ValueError,
-                          carbonara.AggregatedTimeSerie.from_data,
-                          3, 'mean',
-                          [datetime64(2014, 1, 1, 12, 0, 0),
-                           datetime64(2014, 1, 1, 12, 0, 4),
-                           datetime64(2014, 1, 1, 12, 0, 9)],
-                          [3, 5])
+        self.assertRaises(
+            ValueError,
+            carbonara.AggregatedTimeSerie.from_data,
+            carbonara.Aggregation('mean', numpy.timedelta64(3, 's'), None),
+            [datetime64(2014, 1, 1, 12, 0, 0),
+             datetime64(2014, 1, 1, 12, 0, 4),
+             datetime64(2014, 1, 1, 12, 0, 9)],
+            [3, 5])
 
     def test_truncate(self):
         ts = carbonara.TimeSerie.from_data(
@@ -413,7 +400,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped, agg_dict['sampling'], agg_dict['agg'])
+            grouped, carbonara.Aggregation(
+                agg_dict['agg'], agg_dict['sampling'], None))
         if existing:
             existing.merge(agg_dict['return'])
             agg_dict['return'] = existing
@@ -554,7 +542,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 11, 48, 0, 800000), 4.5)
         ], list(ts['return'].fetch()))
         self.assertEqual(numpy.timedelta64(200000000, 'ns'),
-                         ts['return'].sampling)
+                         ts['return'].aggregation.granularity)
 
     def test_fetch_agg_std(self):
         # NOTE (gordc): this is a good test to ensure we drop NaN entries
@@ -894,9 +882,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual(agg,
                          carbonara.AggregatedTimeSerie.from_timeseries(
-                             split,
-                             sampling=agg.sampling,
-                             aggregation_method=agg.aggregation_method))
+                             split, aggregation=agg.aggregation))
 
     def test_resample(self):
         ts = carbonara.TimeSerie.from_data(

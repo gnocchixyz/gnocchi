@@ -53,7 +53,10 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         agg_dict['return'] = (
             processor.MetricReference(metric, "mean", resource),
             carbonara.AggregatedTimeSerie.from_grouped_serie(
-                grouped, agg_dict['sampling'], agg_dict['agg']))
+                grouped,
+                carbonara.Aggregation(agg_dict['agg'],
+                                      agg_dict['sampling'],
+                                      None)))
         if existing:
             existing[2].merge(agg_dict['return'][2])
             agg_dict['return'] = existing
@@ -88,8 +91,7 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 'size': 50, 'agg': 'mean'}
         tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
         tsc2 = carbonara.AggregatedTimeSerie(
-            sampling=numpy.timedelta64(60, 's'),
-            aggregation_method='mean')
+            carbonara.Aggregation('mean', numpy.timedelta64(60, 's'), None))
 
         tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
                                     dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
