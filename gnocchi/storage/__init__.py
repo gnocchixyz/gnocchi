@@ -348,15 +348,8 @@ class StorageDriver(object):
     def _add_measures(self, metric, aggregation, grouped_serie,
                       previous_oldest_mutable_timestamp,
                       oldest_mutable_timestamp):
-
-        if aggregation.method.startswith("rate:"):
-            grouped_serie = grouped_serie.derived()
-            aggregation_to_compute = aggregation.method[5:]
-        else:
-            aggregation_to_compute = aggregation.method
-
         ts = carbonara.AggregatedTimeSerie.from_grouped_serie(
-            grouped_serie, aggregation.granularity, aggregation_to_compute)
+            grouped_serie, aggregation.granularity, aggregation.method)
 
         # Don't do anything if the timeserie is empty
         if not ts:
