@@ -601,30 +601,48 @@ Gnocchi's search API supports to the ability to execute a query across
 |resources| or |metrics|. This API provides a language to construct more
 complex matching contraints beyond basic filtering.
 
-Usage
------
+Usage and format
+----------------
 
 You can specify a time range to look for by specifying the `start` and/or
 `stop` query parameter, and the |aggregation method| to use by specifying the
 `aggregation` query parameter.
 
+Query can be expressed in two formats: `JSON` or `STRING`.
+
 The supported operators are: equal to (`=`, `==` or `eq`), lesser than (`<` or
 `lt`), greater than (`>` or `gt`), less than or equal to (`<=`, `le` or `≤`)
 greater than or equal to (`>=`, `ge` or `≥`) not equal to (`!=`, `ne` or `≠`),
 addition (`+` or `add`), substraction (`-` or `sub`), multiplication (`*`,
-`mul` or `×`), division (`/`, `div` or `÷`). These operations take either one
-argument, and in this case the second argument passed is the value, or it.
+`mul` or `×`), division (`/`, `div` or `÷`). In JSON format, these operations
+take only one argument, the second argument being automatically set to the
+field value. In STRING format, this is just `<first argument> <operator>
+<second argument>`
 
 The operators or (`or` or `∨`), and (`and` or `∧`) and `not` are also
-supported, and take a list of arguments as parameters.
+supported. In JSON format, it takes a list of arguments as parameters. Using
+STRING, the format is `<left group> and/or <right group>` or `not <right
+group>`. With the STRING format, parenthesis can be used to create group.
+
+An example of the JSON format::
+
+    ["and",
+      ["=", ["host", "example1"]],
+      ["like", ["owner", "admin-%"]],
+    ]
+
+And its STRING format equivalent::
+
+    host = "example1" or owner like "admin-%"
 
 .. _search-resource:
 
 Resource
 --------
 
-It's possible to search for |resources| using a query mechanism, using the
-`POST` method and uploading a JSON formatted query.
+It's possible to search for |resources| using a query mechanism by using the
+`POST` method and uploading a JSON formatted query or by passing a
+STRING a formatted query URL-encoded in the ``filter`` parameter.
 
 Single filter
 ~~~~~~~~~~~~~
@@ -638,12 +656,23 @@ Or even:
 
 {{ scenarios['search-resource-for-host-like']['doc'] }}
 
+For the ``filter`` parameter version, the value is the URL-encoded version of
+``{{ scenarios['search-resource-for-host-like-filter']['filter'] }}``
+
+{{ scenarios['search-resource-for-host-like-filter']['doc'] }}
+
 Multiple filters
 ~~~~~~~~~~~~~~~~
 
 Complex operators such as `and` and `or` are also available:
 
 {{ scenarios['search-resource-for-user-after-timestamp']['doc'] }}
+
+``filter`` version is
+``{{ scenarios['search-resource-for-user-after-timestamp-filter']['filter'] }}``
+URL-encoded.
+
+{{ scenarios['search-resource-for-user-after-timestamp-filter']['doc'] }}
 
 With details
 ~~~~~~~~~~~~
@@ -677,6 +706,14 @@ Time range
 The timerange of the history can be set, too:
 
 {{ scenarios['search-resource-history-partial']['doc'] }}
+
+This can be done with the ``filter`` parameter too:
+
+``{{ scenarios['search-resource-history-partial-filter']['filter'] }}``
+
+
+{{ scenarios['search-resource-history-partial-filter']['doc'] }}
+
 
 Magic
 ~~~~~
@@ -931,6 +968,12 @@ In order to select these |resources|, the following endpoint accepts a query
 such as the one described in the :ref:`resource search API <search-resource>`.
 
 {{ scenarios['get-across-metrics-measures-by-attributes-lookup']['doc'] }}
+
+Like for searching resource, the query
+``{{ scenarios['get-across-metrics-measures-by-attributes-lookup-filter']['filter'] }}``
+can be passed in ``filter`` parameter
+
+{{ scenarios['get-across-metrics-measures-by-attributes-lookup-filter']['doc'] }}
 
 It is possible to group the |resource| search results by any attribute of the
 requested |resource| type, and then compute the aggregation:
