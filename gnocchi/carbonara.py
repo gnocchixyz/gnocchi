@@ -614,7 +614,12 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
     def from_grouped_serie(cls, grouped_serie, sampling, aggregation_method):
-        agg_name, q = cls._get_agg_method(aggregation_method)
+        if aggregation_method.startswith("rate:"):
+            grouped_serie = grouped_serie.derived()
+            aggregation_method_name = aggregation_method[5:]
+        else:
+            aggregation_method_name = aggregation_method
+        agg_name, q = cls._get_agg_method(aggregation_method_name)
         return cls(sampling, aggregation_method,
                    ts=cls._resample_grouped(grouped_serie, agg_name,
                                             q))
