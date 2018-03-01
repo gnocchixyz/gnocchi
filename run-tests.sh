@@ -1,5 +1,17 @@
 #!/bin/bash -x
 set -e
+
+# NOTE(sileht): Enable bash process tracking and send sigterm to the whole
+# process group
+
+cleanup(){
+    for PID in $PIDS; do
+        PGID=$(ps -o pgid "$PID" | grep [0-9] | tr -d ' ')
+        kill -- -$PGID
+    done
+}
+trap cleanup EXIT
+
 PIDS=""
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
