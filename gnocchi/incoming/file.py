@@ -163,8 +163,10 @@ class FileStorage(incoming.IncomingDriver):
     @contextlib.contextmanager
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
+        processed_files = {}
         for metric_id in metric_ids:
             files = self._list_measures_container_for_metric(metric_id)
+            processed_files[metric_id] = files
             m = self._make_measures_array()
             for f in files:
                 abspath = self._build_measure_path(metric_id, f)
@@ -175,5 +177,5 @@ class FileStorage(incoming.IncomingDriver):
 
         yield measures
 
-        for metric_id in metric_ids:
+        for metric_id, files in six.iteritems(processed_files):
             self._delete_measures_files_for_metric(metric_id, files)
