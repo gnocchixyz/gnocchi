@@ -125,9 +125,14 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
         ])
+        m2, __ = self._create_metric('medium')
+        self.incoming.add_measures(m2.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+        ])
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.assertEqual(set([str(self.metric.id)]), metrics)
-        self.trigger_processing()
+        m_list = [str(self.metric.id), str(m2.id)]
+        self.assertEqual(set(m_list), metrics)
+        self.trigger_processing(m_list)
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.assertEqual(set([]), metrics)
 
