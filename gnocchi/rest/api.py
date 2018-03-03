@@ -532,8 +532,9 @@ class MetricController(rest.RestController):
                 pecan.request.chef.refresh_metric(
                     self.metric,
                     pecan.request.conf.api.operation_timeout)
-            except chef.SackLockTimeoutError as e:
-                abort(503, six.text_type(e))
+            except chef.SackAlreadyLocked as e:
+                abort(503, 'Unable to refresh metric: %s. Metric is locked. '
+                      'Please try again.' % self.metric.id)
         try:
             return pecan.request.storage.get_measures(
                 self.metric, aggregations, start, stop, resample)[aggregation]
@@ -1904,7 +1905,9 @@ class AggregationController(rest.RestController):
                         pecan.request.chef.refresh_metric(
                             m, pecan.request.conf.api.operation_timeout)
                     except chef.SackLockTimeoutError as e:
-                        abort(503, six.text_type(e))
+                        abort(503, 'Unable to refresh metric: %s. '
+                              'Metric is locked. '
+                              'Please try again.' % m.id)
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric

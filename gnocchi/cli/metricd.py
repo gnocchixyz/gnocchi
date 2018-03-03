@@ -230,22 +230,17 @@ class MetricProcessor(MetricProcessBase):
             sacks = (self.sacks_with_measures_to_process.copy()
                      or self._get_sacks_to_process())
         for s in sacks:
-            # TODO(gordc): support delay release lock so we don't
-            # process a sack right after another process
-            lock = self.chef.get_sack_lock(s)
-            if not lock.acquire(blocking=False):
-                continue
-
             try:
-                m_count += self.chef.process_new_measures_for_sack(s)
+                try:
+                    m_count += self.chef.process_new_measures_for_sack(s)
+                except chef.SackAlreadyLocked:
+                    continue
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
-            finally:
-                lock.release()
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
