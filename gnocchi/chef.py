@@ -29,8 +29,11 @@ ITEMGETTER_1 = operator.itemgetter(1)
 LOG = daiquiri.getLogger(__name__)
 
 
-class SackLockTimeoutError(Exception):
-        pass
+class SackAlreadyLocked(Exception):
+    def __init__(self, sack):
+        self.sack = sack
+        super(SackAlreadyLocked, self).__init__(
+                "Sack %s already locked" % sack)
 
 
 class Chef(object):
@@ -103,9 +106,7 @@ class Chef(object):
         s = self.incoming.sack_for_metric(metric.id)
         lock = self.get_sack_lock(s)
         if not lock.acquire(blocking=timeout):
-            raise SackLockTimeoutError(
-                'Unable to refresh metric: %s. Metric is locked. '
-                'Please try again.' % metric.id)
+            raise SackAlreadyLocked(s)
         try:
             self.process_new_measures([str(metric.id)])
         finally:
@@ -140,11 +141,17 @@ class Chef(object):
     def process_new_measures_for_sack(self, sack, sync=False):
         """Process added measures in background.
 
+        Lock a sack and try to process measures from it. If the sack cannot be
+        locked, the method will raise `SackAlreadyLocked`.
+
         :param sack: The sack to process new measures for.
         :param sync: If True, raise any issue immediately otherwise just log it
         :return: The number of metrics processed.
+
         """
-        # NOTE(gordc): must lock at sack level
+        lock = self.get_sack_lock(sack)
+        if not lock.acquire(blocking=False):
+            raise SackAlreadyLocked(sack)
         LOG.debug("Processing measures for sack %s", sack)
         try:
             with self.incoming.process_measures_for_sack(sack) as measures:
@@ -165,6 +172,8 @@ class Chef(object):
                 raise
             LOG.error("Error processing new measures", exc_info=True)
             return 0
+        finally:
+            lock.release()
 
     def get_sack_lock(self, sack):
         # FIXME(jd) Some tooz drivers have a limitation on lock name length
