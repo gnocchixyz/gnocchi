@@ -47,22 +47,6 @@ repeat
 until cursor == 0
 return ids
 """ % (FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP),
-        "get_measures": """
-local results = redis.call("HMGET", KEYS[1], unpack(ARGV))
-local final = {}
-local metric_exists = false
-for i, result in ipairs(results) do
-    if result == false then
-        if not metric_exists and redis.call("EXISTS", KEYS[1]) == 0 then
-            return {-2, false}
-        else
-            metric_exists = true
-        end
-    end
-    final[#final + 1] = result
-end
-return {0, final}
-""",
     }
 
     def __init__(self, conf):
@@ -166,14 +150,7 @@ return {0, final}
     def _get_measures(self, metric, keys_and_aggregations, version=3):
         if not keys_and_aggregations:
             return []
-        fields = [
-            self._aggregated_field_for_split(aggregation.method, key, version)
-            for key, aggregation in keys_and_aggregations
-        ]
-        code, result = self._scripts['get_measures'](
-            keys=[self._metric_key(metric)],
-            args=fields,
-        )
-        if code == -2:
-            raise storage.MetricDoesNotExist(metric)
-        return result
+        return self._client.hmget(
+            self._metric_key(metric),
+            [self._aggregated_field_for_split(aggregation.method, key, version)
+             for key, aggregation in keys_and_aggregations])
