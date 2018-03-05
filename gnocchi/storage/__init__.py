@@ -487,120 +487,129 @@ class StorageDriver(object):
             ((metric, key, aggregation)
              for key, aggregation in keys_and_aggregations))
 
-    def compute_and_store_timeseries(self, metric, measures):
-        # NOTE(mnaser): The metric could have been handled by
-        #               another worker, ignore if no measures.
-        if len(measures) == 0:
-            LOG.debug("Skipping %s (already processed)", metric)
-            return
+    def add_measures_to_metrics(self, metrics_and_measures):
+        """Update a metric with a new measures, computing new aggregations.
 
-        measures = numpy.sort(measures, order='timestamps')
-
-        agg_methods = list(metric.archive_policy.aggregation_methods)
-        block_size = metric.archive_policy.max_block_size
-        back_window = metric.archive_policy.back_window
-        definition = metric.archive_policy.definition
-        # NOTE(sileht): We keep one more blocks to calculate rate of change
-        # correctly
-        if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
-            back_window += 1
-
+        :param metrics_and_measures: A dict there keys are `storage.Metric`
+                                     objects and values are timeseries array of
+                                     the new measures.
+        """
         with utils.StopWatch() as sw:
-            raw_measures = (
-                self._get_or_create_unaggregated_timeseries(
-                    [metric])[metric]
-            )
-        LOG.debug("Retrieve unaggregated measures for %s in %.2fs",
-                  metric.id, sw.elapsed())
+            raw_measures = self._get_or_create_unaggregated_timeseries(
+                metrics_and_measures.keys())
+        LOG.debug("Retrieve unaggregated measures for %d metric in %.2fs",
+                  len(metrics_and_measures), sw.elapsed())
 
-        if raw_measures is None:
-            ts = None
-        else:
-            try:
-                ts = carbonara.BoundTimeSerie.unserialize(
-                    raw_measures, block_size, back_window)
-            except carbonara.InvalidData:
-                LOG.error("Data corruption detected for %s "
-                          "unaggregated timeserie, creating a new one",
-                          metric.id)
+        new_boundts = []
+
+        for metric, measures in six.iteritems(metrics_and_measures):
+            if len(measures) == 0:
+                continue
+
+            measures = numpy.sort(measures, order='timestamps')
+
+            agg_methods = list(metric.archive_policy.aggregation_methods)
+            block_size = metric.archive_policy.max_block_size
+            back_window = metric.archive_policy.back_window
+            definition = metric.archive_policy.definition
+            # NOTE(sileht): We keep one more blocks to calculate rate of change
+            # correctly
+            if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+                back_window += 1
+
+            if raw_measures[metric] is None:
                 ts = None
+            else:
+                try:
+                    ts = carbonara.BoundTimeSerie.unserialize(
+                        raw_measures[metric], block_size, back_window)
+                except carbonara.InvalidData:
+                    LOG.error("Data corruption detected for %s "
+                              "unaggregated timeserie, creating a new one",
+                              metric.id)
+                    ts = None
 
-        if ts is None:
-            # This is the first time we treat measures for this
-            # metric, or data are corrupted, create a new one
-            ts = carbonara.BoundTimeSerie(block_size=block_size,
-                                          back_window=back_window)
-            current_first_block_timestamp = None
-        else:
-            current_first_block_timestamp = ts.first_block_timestamp()
+            if ts is None:
+                # This is the first time we treat measures for this
+                # metric, or data are corrupted, create a new one
+                ts = carbonara.BoundTimeSerie(block_size=block_size,
+                                              back_window=back_window)
+                current_first_block_timestamp = None
+            else:
+                current_first_block_timestamp = ts.first_block_timestamp()
 
-        # NOTE(jd) This is Python where you need such
-        # hack to pass a variable around a closure,
-        # sorry.
-        computed_points = {"number": 0}
+            # NOTE(jd) This is Python where you need such
+            # hack to pass a variable around a closure,
+            # sorry.
+            computed_points = {"number": 0}
 
-        def _map_compute_splits_operations(bound_timeserie):
-            # NOTE (gordc): bound_timeserie is entire set of
-            # unaggregated measures matching largest
-            # granularity. the following takes only the points
-            # affected by new measures for specific granularity
-            tstamp = max(bound_timeserie.first, measures['timestamps'][0])
-            new_first_block_timestamp = bound_timeserie.first_block_timestamp()
-            computed_points['number'] = len(bound_timeserie)
+            def _map_compute_splits_operations(bound_timeserie):
+                # NOTE (gordc): bound_timeserie is entire set of
+                # unaggregated measures matching largest
+                # granularity. the following takes only the points
+                # affected by new measures for specific granularity
+                tstamp = max(bound_timeserie.first, measures['timestamps'][0])
+                new_first_block_timestamp = (
+                    bound_timeserie.first_block_timestamp()
+                )
+                computed_points['number'] = len(bound_timeserie)
 
-            aggregations = metric.archive_policy.aggregations
+                aggregations = metric.archive_policy.aggregations
 
-            grouped_timeseries = {
-                granularity: bound_timeserie.group_serie(
-                    granularity,
-                    carbonara.round_timestamp(tstamp, granularity))
-                for granularity, aggregations
-                # No need to sort the aggregation, they are already
-                in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
-            }
+                grouped_timeseries = {
+                    granularity: bound_timeserie.group_serie(
+                        granularity,
+                        carbonara.round_timestamp(tstamp, granularity))
+                    for granularity, aggregations
+                    # No need to sort the aggregation, they are already
+                    in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
+                }
 
-            aggregations_and_timeseries = {
-                aggregation: carbonara.AggregatedTimeSerie.from_grouped_serie(
-                    grouped_timeseries[aggregation.granularity], aggregation)
-                for aggregation in aggregations
-            }
+                aggregations_and_timeseries = {
+                    aggregation:
+                    carbonara.AggregatedTimeSerie.from_grouped_serie(
+                        grouped_timeseries[aggregation.granularity],
+                        aggregation)
+                    for aggregation in aggregations
+                }
 
-            deleted_keys, keys_and_split_to_store = (
-                self._compute_split_operations(
-                    metric, aggregations_and_timeseries,
-                    current_first_block_timestamp,
-                    new_first_block_timestamp)
-            )
+                deleted_keys, keys_and_split_to_store = (
+                    self._compute_split_operations(
+                        metric, aggregations_and_timeseries,
+                        current_first_block_timestamp,
+                        new_first_block_timestamp)
+                )
 
-            return (new_first_block_timestamp,
-                    deleted_keys,
-                    keys_and_split_to_store)
+                return (new_first_block_timestamp,
+                        deleted_keys,
+                        keys_and_split_to_store)
 
-        with utils.StopWatch() as sw:
-            (new_first_block_timestamp,
-             deleted_keys,
-             keys_and_splits_to_store) = ts.set_values(
-                 measures,
-                 before_truncate_callback=_map_compute_splits_operations,
-            )
-            self._delete_metric_splits(metric, deleted_keys)
-            self._store_timeserie_splits(metric, keys_and_splits_to_store,
-                                         new_first_block_timestamp)
+            with utils.StopWatch() as sw:
+                (new_first_block_timestamp,
+                 deleted_keys,
+                 keys_and_splits_to_store) = ts.set_values(
+                     measures,
+                     before_truncate_callback=_map_compute_splits_operations)
+                self._delete_metric_splits(metric, deleted_keys)
+                self._store_timeserie_splits(metric, keys_and_splits_to_store,
+                                             new_first_block_timestamp)
 
-        number_of_operations = (len(agg_methods) * len(definition))
-        perf = ""
-        elapsed = sw.elapsed()
-        if elapsed > 0:
-            perf = " (%d points/s, %d measures/s)" % (
-                ((number_of_operations * computed_points['number']) /
-                    elapsed),
-                ((number_of_operations * len(measures)) / elapsed)
-            )
-        LOG.debug("Computed new metric %s with %d new measures "
-                  "in %.2f seconds%s",
-                  metric.id, len(measures), elapsed, perf)
+            new_boundts.append((metric, ts.serialize()))
 
-        self._store_unaggregated_timeseries([(metric, ts.serialize())])
+            number_of_operations = (len(agg_methods) * len(definition))
+            perf = ""
+            elapsed = sw.elapsed()
+            if elapsed > 0:
+                perf = " (%d points/s, %d measures/s)" % (
+                    ((number_of_operations * computed_points['number']) /
+                        elapsed),
+                    ((number_of_operations * len(measures)) / elapsed)
+                )
+            LOG.debug("Computed new metric %s with %d new measures "
+                      "in %.2f seconds%s",
+                      metric.id, len(measures), elapsed, perf)
+
+        self._store_unaggregated_timeseries(new_boundts)
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):
