@@ -128,11 +128,13 @@ class Chef(object):
             LOG.debug("Processing measures for %s", metrics)
             with self.incoming.process_measure_for_metrics(
                     [m.id for m in metrics]) as metrics_and_measures:
-                for metric, measures in six.iteritems(metrics_and_measures):
-                    self.storage.compute_and_store_timeseries(
-                        metrics_by_id[metric], measures
-                    )
-                    LOG.debug("Measures for metric %s processed", metrics)
+                    self.storage.add_measures_to_metrics({
+                        metrics_by_id[metric]: measures
+                        for metric, measures
+                        in six.iteritems(metrics_and_measures)
+                    })
+                    LOG.debug("Measures for %d metrics processed",
+                              len(metrics))
         except Exception:
             if sync:
                 raise
@@ -161,11 +163,12 @@ class Chef(object):
                     attribute_filter={
                         "in": {"id": measures.keys()}
                     })
-                for metric in metrics:
-                    self.storage.compute_and_store_timeseries(
-                        metric, measures[metric.id]
-                    )
-                    LOG.debug("Measures for metric %s processed", metric)
+                self.storage.add_measures_to_metrics({
+                    metric: measures[metric.id]
+                    for metric in metrics
+                })
+                LOG.debug("Measures for %d metrics processed",
+                          len(metrics))
                 return len(measures)
         except Exception:
             if sync:
