@@ -572,15 +572,20 @@ class StorageDriver(object):
                     new_first_block_timestamp)
             )
 
-            self._delete_metric_splits(metric, deleted_keys)
-            self._store_timeserie_splits(metric, keys_and_split_to_store,
-                                         new_first_block_timestamp)
+            return (new_first_block_timestamp,
+                    deleted_keys,
+                    keys_and_split_to_store)
 
         with utils.StopWatch() as sw:
-            ts.set_values(
-                measures,
-                before_truncate_callback=_map_compute_splits_operations
+            (new_first_block_timestamp,
+             deleted_keys,
+             keys_and_splits_to_store) = ts.set_values(
+                 measures,
+                 before_truncate_callback=_map_compute_splits_operations,
             )
+            self._delete_metric_splits(metric, deleted_keys)
+            self._store_timeserie_splits(metric, keys_and_splits_to_store,
+                                         new_first_block_timestamp)
 
         number_of_operations = (len(agg_methods) * len(definition))
         perf = ""
