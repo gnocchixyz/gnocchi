@@ -52,6 +52,6 @@ steps:
   :alt: Grafana screenshot
 
 .. _`Grafana`: http://grafana.org
-.. _`Documentation`: https://grafana.net/plugins/sileht-gnocchi-datasource
+.. _`Documentation`: https://grafana.net/plugins/gnocchixyz-gnocchi-datasource
 .. _`Source`: https://github.com/gnocchixyz/grafana-gnocchi-datasource
 .. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing
