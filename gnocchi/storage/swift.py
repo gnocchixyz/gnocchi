@@ -155,12 +155,6 @@ class SwiftStorage(storage.StorageDriver):
                     key, aggregation.method, version))
         except swclient.ClientException as e:
             if e.http_status == 404:
-                try:
-                    self.swift.head_container(self._container_name(metric))
-                except swclient.ClientException as e:
-                    if e.http_status == 404:
-                        raise storage.MetricDoesNotExist(metric)
-                    raise
                 return
             raise
         return contents
