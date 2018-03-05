@@ -337,15 +337,25 @@ class BoundTimeSerie(TimeSerie):
                 and self.back_window == other.back_window)
 
     def set_values(self, values, before_truncate_callback=None):
-        # NOTE: values must be sorted when passed in.
+        """Set the timestamps and values in this timeseries.
+
+        :param values: A sorted timeseries array.
+        :param before_truncate_callback: A callback function to call before
+                                         truncating the BoundTimeSerie to its
+                                         maximum size.
+        :return: None of the return value of before_truncate_callback
+        """
         if self.block_size is not None and len(self.ts) != 0:
             index = numpy.searchsorted(values['timestamps'],
                                        self.first_block_timestamp())
             values = values[index:]
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
-            before_truncate_callback(self)
+            return_value = before_truncate_callback(self)
+        else:
+            return_value = None
         self._truncate()
+        return return_value
 
     _SERIALIZATION_TIMESTAMP_VALUE_LEN = struct.calcsize("<Qd")
     _SERIALIZATION_TIMESTAMP_LEN = struct.calcsize("<Q")
