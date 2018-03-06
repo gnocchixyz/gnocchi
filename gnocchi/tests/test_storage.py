@@ -65,6 +65,31 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
+    def test_corrupted_split(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+        ])
+        self.trigger_processing()
+
+        aggregation = self.metric.archive_policy.get_aggregation(
+            "mean", numpy.timedelta64(5, 'm'))
+
+        with mock.patch('gnocchi.carbonara.AggregatedTimeSerie.unserialize',
+                        side_effect=carbonara.InvalidData()):
+            results = self.storage._get_splits_and_unserialize(
+                self.metric,
+                [
+                    (carbonara.SplitKey(
+                        numpy.datetime64(1387800000, 's'),
+                        numpy.timedelta64(5, 'm')),
+                     aggregation)
+                ])
+            self.assertEqual(1, len(results))
+            self.assertIsInstance(results[0], carbonara.AggregatedTimeSerie)
+            # Assert it's an empty one since corrupted
+            self.assertEqual(0, len(results[0]))
+            self.assertEqual(results[0].aggregation, aggregation)
+
     def test_corrupted_data(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
