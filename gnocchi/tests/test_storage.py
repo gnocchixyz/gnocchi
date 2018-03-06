@@ -346,6 +346,79 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, [agg],
         ))
 
+    def test_get_measures_return(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2016, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2016, 1, 2, 13, 7, 31), 42),
+            incoming.Measure(datetime64(2016, 1, 4, 14, 9, 31), 4),
+            incoming.Measure(datetime64(2016, 1, 6, 15, 12, 45), 44),
+        ])
+        self.trigger_processing()
+
+        aggregation = self.metric.archive_policy.get_aggregation(
+            "mean", numpy.timedelta64(5, 'm'))
+
+        data = self.storage._get_measures(
+            self.metric, [(carbonara.SplitKey(
+                numpy.datetime64(1451520000, 's'),
+                numpy.timedelta64(5, 'm'),
+            ), aggregation)])
+        self.assertEqual(1, len(data))
+        self.assertIsInstance(data[0], bytes)
+        self.assertGreater(len(data[0]), 0)
+        existing = data[0]
+
+        # Now retrieve an existing and a non-existing key
+        data = self.storage._get_measures(
+            self.metric, [
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451520000, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451520010, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+            ])
+        self.assertEqual(2, len(data))
+        self.assertIsInstance(data[0], bytes)
+        self.assertGreater(len(data[0]), 0)
+        self.assertEqual(existing, data[0])
+        self.assertIsNone(data[1])
+
+        # Now retrieve a non-existing and an existing key
+        data = self.storage._get_measures(
+            self.metric, [
+                (carbonara.SplitKey(
+                    numpy.datetime64(155152000, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451520000, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+            ])
+        self.assertEqual(2, len(data))
+        self.assertIsInstance(data[1], bytes)
+        self.assertGreater(len(data[1]), 0)
+        self.assertEqual(existing, data[1])
+        self.assertIsNone(data[0])
+
+        m2, _ = self._create_metric()
+        # Now retrieve a non-existing (= no aggregated measures) metric
+        data = self.storage._get_measures(
+            m2, [
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451520010, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+                (carbonara.SplitKey(
+                    numpy.datetime64(1451520000, 's'),
+                    numpy.timedelta64(5, 'm'),
+                ), aggregation),
+            ])
+        self.assertEqual([None, None], data)
+
     def test_rewrite_measures(self):
         # Create an archive policy that spans on several splits. Each split
         # being 3600 points, let's go for 36k points so we have 10 splits.
