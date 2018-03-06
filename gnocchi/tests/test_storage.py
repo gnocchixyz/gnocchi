@@ -190,6 +190,21 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(2, report['summary']['metrics'])
         self.assertEqual(120, report['summary']['measures'])
 
+    def test_get_aggregated_measures(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
+            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+        self.trigger_processing([str(self.metric.id)])
+
+        aggregations = self.metric.archive_policy.aggregations
+
+        measures = self.storage.get_aggregated_measures(
+            self.metric, aggregations)
+        self.assertEqual(len(aggregations), len(measures))
+        self.assertGreater(len(measures[aggregations[0]]), 0)
+        for agg in aggregations:
+            self.assertEqual(agg, measures[agg].aggregation)
+
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
         self.incoming.add_measures(m.id, [
