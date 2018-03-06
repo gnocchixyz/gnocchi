@@ -151,10 +151,7 @@ class CephStorage(storage.StorageDriver):
                 metric, key, aggregation.method, version)
             return self._get_object_content(name)
         except rados.ObjectNotFound:
-            if self._object_exists(
-                    self._build_unaggregated_timeserie_path(metric, 3)):
-                return
-            raise storage.MetricDoesNotExist(metric)
+            return
 
     def _list_split_keys(self, metric, aggregations, version=3):
         with rados.ReadOpCtx() as op:

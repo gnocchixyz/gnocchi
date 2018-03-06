@@ -273,8 +273,8 @@ class StorageDriver(object):
                           "aggregated `%s' timeserie, granularity `%s' "
                           "around time `%s', ignoring.",
                           metric.id, aggregation.method, key.sampling, key)
-            else:
-                results.append(ts)
+                ts = carbonara.AggregatedTimeSerie(aggregation)
+            results.append(ts)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation, keys,
