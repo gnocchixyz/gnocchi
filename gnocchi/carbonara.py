@@ -660,12 +660,12 @@ class AggregatedTimeSerie(TimeSerie):
         return six.indexbytes(serialized_data, 0) == ord("c")
 
     @classmethod
-    def unserialize(cls, data, key, agg_method):
+    def unserialize(cls, data, key, aggregation):
         """Unserialize an aggregated timeserie.
 
         :param data: Raw data buffer.
         :param key: A :class:`SplitKey` key.
-        :param agg_method: The aggregation method of this timeseries.
+        :param aggregation: The Aggregation object of this timeseries.
         """
         x, y = [], []
 
@@ -696,7 +696,7 @@ class AggregatedTimeSerie(TimeSerie):
                 y = index * key.sampling + key.key
                 x = everything['v'][index]
 
-        return cls.from_data(Aggregation(agg_method, key.sampling, None), y, x)
+        return cls.from_data(aggregation, y, x)
 
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
