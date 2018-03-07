@@ -545,6 +545,8 @@ class StorageDriver(object):
                   len(metrics_and_measures), sw.elapsed())
 
         new_boundts = []
+        splits_to_delete = {}
+        splits_to_update = {}
 
         for metric, measures in six.iteritems(metrics_and_measures):
             measures = numpy.sort(measures, order='timestamps')
@@ -630,12 +632,12 @@ class StorageDriver(object):
                  deleted_keys,
                  keys_and_splits_to_store) = ts.set_values(
                      measures,
-                     before_truncate_callback=_map_compute_splits_operations)
-                self._delete_metric_splits({metric: deleted_keys})
-                self._update_metric_splits({
-                    metric: (keys_and_splits_to_store,
-                             new_first_block_timestamp),
-                })
+                     before_truncate_callback=_map_compute_splits_operations,
+                )
+
+            splits_to_delete[metric] = deleted_keys
+            splits_to_update[metric] = (keys_and_splits_to_store,
+                                        new_first_block_timestamp)
 
             new_boundts.append((metric, ts.serialize()))
 
@@ -652,6 +654,8 @@ class StorageDriver(object):
                       "in %.2f seconds%s",
                       metric.id, len(measures), elapsed, perf)
 
+        self._delete_metric_splits(splits_to_delete)
+        self._update_metric_splits(splits_to_update)
         self._store_unaggregated_timeseries(new_boundts)
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
