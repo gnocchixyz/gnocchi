@@ -180,7 +180,7 @@ class FileStorage(storage.StorageDriver):
                 # measures)
                 raise
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         path = self._build_metric_path_for_split(
             metric, aggregation.method, key, version)
         try:

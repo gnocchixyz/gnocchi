@@ -128,14 +128,22 @@ class StorageDriver(object):
     def upgrade():
         pass
 
-    def _get_measures(self, metric, keys_and_aggregations, version=3):
-        return utils.parallel_map(
-            self._get_measures_unbatched,
-            ((metric, key, aggregation, version)
-             for key, aggregation in keys_and_aggregations))
+    def _get_splits(self, metrics_aggregations_keys, version=3):
+        results = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+        for metric, aggregation, split in utils.parallel_map(
+                lambda m, k, a, v: (m, a, self._get_splits_unbatched(m, k, a, v)),  # noqa
+                ((metric, key, aggregation, version)
+                 for metric, aggregations_and_keys
+                 in six.iteritems(metrics_aggregations_keys)
+                 for aggregation, keys
+                 in six.iteritems(aggregations_and_keys)
+                 for key in keys)):
+            results[metric][aggregation].append(split)
+        return results
 
     @staticmethod
-    def _get_measures_unbatched(metric, timestamp_key, aggregation, version=3):
+    def _get_splits_unbatched(metric, timestamp_key, aggregation, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -293,30 +301,34 @@ class StorageDriver(object):
                                                      ATTRGETTER_METHOD)
         }
 
-    def _get_splits_and_unserialize(self, metric, keys_and_aggregations):
+    def _get_splits_and_unserialize(self, metrics_aggregations_keys):
         """Get splits and unserialize them
 
-        :param metric: The metric to retrieve.
-        :param keys_and_aggregations: A list of tuple (SplitKey, Aggregation)
-                                      to retrieve.
-        :return: A list of AggregatedTimeSerie.
+        :param metrics_aggregations_keys: A dict where keys are
+                                         `storage.Metric` and values are dict
+                                          of {Aggregation: [SplitKey]} to
+                                          retrieve.
+        :return: A dict where keys are `storage.Metric` and values are dict
+                 {aggregation: [`carbonara.AggregatedTimeSerie`]}.
         """
-        if not keys_and_aggregations:
-            return []
-        raw_measures = self._get_measures(metric, keys_and_aggregations)
-        results = []
-        for (key, aggregation), raw in six.moves.zip(
-                keys_and_aggregations, raw_measures):
-            try:
-                ts = carbonara.AggregatedTimeSerie.unserialize(
-                    raw, key, aggregation)
-            except carbonara.InvalidData:
-                LOG.error("Data corruption detected for %s "
-                          "aggregated `%s' timeserie, granularity `%s' "
-                          "around time `%s', ignoring.",
-                          metric.id, aggregation.method, key.sampling, key)
-                ts = carbonara.AggregatedTimeSerie(aggregation)
-            results.append(ts)
+        raw_measures = self._get_splits(metrics_aggregations_keys)
+        results = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+        for metric, aggregations_and_raws in six.iteritems(raw_measures):
+            for aggregation, raws in six.iteritems(aggregations_and_raws):
+                for key, raw in six.moves.zip(
+                        metrics_aggregations_keys[metric][aggregation], raws):
+                    try:
+                        ts = carbonara.AggregatedTimeSerie.unserialize(
+                            raw, key, aggregation)
+                    except carbonara.InvalidData:
+                        LOG.error("Data corruption detected for %s "
+                                  "aggregated `%s' timeserie, granularity "
+                                  "`%s' around time `%s', ignoring.",
+                                  metric.id, aggregation.method, key.sampling,
+                                  key)
+                        ts = carbonara.AggregatedTimeSerie(aggregation)
+                    results[metric][aggregation].append(ts)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation, keys,
@@ -329,14 +341,15 @@ class StorageDriver(object):
             to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
                 to_timestamp, aggregation.granularity)
 
-        keys_and_aggregations = [
-            (key, aggregation) for key in sorted(keys)
+        keys = [
+            key for key in sorted(keys)
             if ((not from_timestamp or key >= from_timestamp)
                 and (not to_timestamp or key <= to_timestamp))
         ]
 
         timeseries = self._get_splits_and_unserialize(
-            metric, keys_and_aggregations)
+            {metric: {aggregation: keys}}
+        )[metric][aggregation]
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
             timeseries, aggregation)
@@ -365,35 +378,37 @@ class StorageDriver(object):
                                                   oldest_mutable_timestamp)
         """
         metrics_splits_to_store = {}
+        keys_to_get = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+        splits_to_rewrite = collections.defaultdict(
+            lambda: collections.defaultdict(list))
 
         for metric, (keys_and_aggregations_and_splits,
                      oldest_mutable_timestamp) in six.iteritems(
                          metrics_keys_aggregations_splits):
-            keys_to_rewrite = []
-            splits_to_rewrite = []
             for (key, aggregation), split in six.iteritems(
                     keys_and_aggregations_and_splits):
                 # NOTE(jd) We write the full split only if the driver works
                 # that way (self.WRITE_FULL) or if the oldest_mutable_timestamp
                 # is out of range.
-                write_full = (
-                    self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
-                )
-                if write_full:
-                    keys_to_rewrite.append(key)
-                    splits_to_rewrite.append(split)
+                if self.WRITE_FULL or next(key) <= oldest_mutable_timestamp:
+                    # Update the splits that were passed as argument with the
+                    # data already stored in the case that we need to rewrite
+                    # them fully. First, fetch all those existing splits.
+                    keys_to_get[metric][aggregation].append(key)
+                    splits_to_rewrite[metric][aggregation].append(split)
 
-            # Update the splits that were passed as argument with the data
-            # already stored in the case that we need to rewrite them fully.
-            # First, fetch all those existing splits.
-            existing_data = self._get_splits_and_unserialize(
-                metric, [(key, split.aggregation)
-                         for key, split
-                         in six.moves.zip(keys_to_rewrite, splits_to_rewrite)])
+        existing_data = self._get_splits_and_unserialize(keys_to_get)
 
-            for key, split, existing in six.moves.zip(
-                    keys_to_rewrite, splits_to_rewrite, existing_data):
-                if existing:
+        for metric, (keys_and_aggregations_and_splits,
+                     oldest_mutable_timestamp) in six.iteritems(
+                         metrics_keys_aggregations_splits):
+            for aggregation, existing_list in six.iteritems(
+                    existing_data[metric]):
+                for key, split, existing in six.moves.zip(
+                        keys_to_get[metric][aggregation],
+                        splits_to_rewrite[metric][aggregation],
+                        existing_list):
                     existing.merge(split)
                     keys_and_aggregations_and_splits[
                         (key, split.aggregation)] = existing
@@ -404,7 +419,8 @@ class StorageDriver(object):
                 # Do not store the split if it's empty.
                 if split:
                     offset, data = split.serialize(
-                        key, compressed=key in keys_to_rewrite)
+                        key,
+                        compressed=key in keys_to_get[metric][aggregation])
                     keys_aggregations_data_offset.append(
                         (key, split.aggregation, data, offset))
             metrics_splits_to_store[metric] = keys_aggregations_data_offset
