@@ -211,7 +211,7 @@ class CephStorage(_carbonara.CarbonaraBasedStorage):
 
     def _delete_unprocessed_measures_for_metric_id(self, metric_id):
         object_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-        object_names = self._list_object_names_to_process(object_prefix)
+        object_names = list(self._list_object_names_to_process(object_prefix))
         # Now clean objects and xattrs
         with rados.WriteOpCtx() as op:
             # NOTE(sileht): come on Ceph, no return code
