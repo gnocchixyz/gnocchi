@@ -287,11 +287,12 @@ class TestStorageDriver(tests_base.TestCase):
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
-            if args[0] == m_sql:
-                for key, aggregation, data, offset in args[1]:
-                    if (key.sampling == numpy.timedelta64(1, 'm')
-                       and aggregation.method == "mean"):
-                        count += 1
+            for metric, key_agg_data_offset in six.iteritems(args[0]):
+                if metric == m_sql:
+                    for key, aggregation, data, offset in key_agg_data_offset:
+                        if (key.sampling == numpy.timedelta64(1, 'm')
+                            and aggregation.method == "mean"):
+                            count += 1
         self.assertEqual(1, count)
 
     def test_add_measures_update_subset(self):
@@ -859,13 +860,13 @@ class TestStorageDriver(tests_base.TestCase):
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Test what happens if we write garbage
-        self.storage._store_metric_splits(
-            self.metric, [
+        self.storage._store_metric_splits({
+            self.metric: [
                 (carbonara.SplitKey(
                     numpy.datetime64(1451952000, 's'),
                     numpy.timedelta64(1, 'm')),
                  aggregation, b"oh really?", None),
-            ])
+            ]})
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
