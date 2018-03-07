@@ -156,7 +156,7 @@ class S3Storage(storage.StorageDriver):
             s3.bulk_delete(self.s3, bucket,
                            [c['Key'] for c in response.get('Contents', ())])
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
