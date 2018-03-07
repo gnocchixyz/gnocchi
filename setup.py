@@ -16,6 +16,33 @@
 
 import setuptools
 
+import gnocchi.setuptools
+
+cmdclass = {
+    'egg_info': gnocchi.setuptools.local_egg_info,
+    'develop': gnocchi.setuptools.local_develop,
+    'install_scripts': gnocchi.setuptools.local_install_scripts,
+}
+
+try:
+    from sphinx import setup_command
+    cmdclass['build_sphinx'] = setup_command.BuildDoc
+except ImportError:
+    pass
+
+
+def pbr_compat(v):
+    from setuptools_scm import version
+    # NOTE(sileht): this removes +g<sha>.<sha> to generate the same number as
+    # pbr. i don't get why yet but something call pbr even we don't depends on
+    # it anymore
+    v.dirty = False
+    v.node = None
+    return version.guess_next_dev_version(v)
+
+
 setuptools.setup(
-    setup_requires=['pbr', 'setuptools>=20.6.8'],
-    pbr=True)
+    setup_requires=['setuptools>=30.3.0', 'setuptools_scm'],
+    use_scm_version={'version_scheme': pbr_compat},
+    cmdclass=cmdclass,
+)

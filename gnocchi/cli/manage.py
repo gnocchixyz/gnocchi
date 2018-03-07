@@ -14,14 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+import os
 import sys
 
 import daiquiri
 from oslo_config import cfg
+from oslo_config import generator
 import six
 
 from gnocchi import archive_policy
-from gnocchi import genconfig
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
@@ -32,7 +33,13 @@ LOG = daiquiri.getLogger(__name__)
 
 
 def config_generator():
-    return genconfig.prehook(None, sys.argv[1:])
+    args = sys.argv[1:]
+    if args is None:
+        args = ['--output-file', 'etc/gnocchi/gnocchi.conf']
+    return generator.main(['--config-file',
+                           '%s/../gnocchi-config-generator.conf' %
+                           os.path.dirname(__file__)]
+                          + args)
 
 
 _SACK_NUMBER_OPT = cfg.IntOpt(
