@@ -331,49 +331,64 @@ class StorageDriver(object):
             ts.truncate(aggregation.timespan)
         return ts
 
-    def _store_timeserie_splits(self, metric, keys_and_aggregations_and_splits,
-                                oldest_mutable_timestamp):
-        keys_to_rewrite = []
-        splits_to_rewrite = []
-        for (key, aggregation), split in six.iteritems(
-                keys_and_aggregations_and_splits):
-            # NOTE(jd) We write the full split only if the driver works that
-            # way (self.WRITE_FULL) or if the oldest_mutable_timestamp is out
-            # of range.
-            write_full = (
-                self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
-            )
-            if write_full:
-                keys_to_rewrite.append(key)
-                splits_to_rewrite.append(split)
+    def _update_metric_splits(self, metrics_keys_aggregations_splits):
+        """Store splits of `carbonara.`AggregatedTimeSerie` for a metric.
 
-        # Update the splits that were passed as argument with the data already
-        # stored in the case that we need to rewrite them fully.
-        # First, fetch all those existing splits.
-        existing_data = self._get_splits_and_unserialize(
-            metric, [(key, split.aggregation)
-                     for key, split
-                     in six.moves.zip(keys_to_rewrite, splits_to_rewrite)])
+        This reads the existing split and merge it with the new one give as
+        argument, then writing it to the storage.
 
-        for key, split, existing in six.moves.zip(
-                keys_to_rewrite, splits_to_rewrite, existing_data):
-            if existing:
-                existing.merge(split)
-                keys_and_aggregations_and_splits[
-                    (key, split.aggregation)] = existing
+        :param metrics_keys_aggregations_splits: A dict where keys are
+                                                 `storage.Metric` and values
+                                                 are tuples of the form
+                                                 ({(key, aggregation): split},
+                                                  oldest_mutable_timestamp)
+        """
+        metrics_splits_to_store = {}
 
-        keys_aggregations_data_offset = []
-        for (key, aggregation), split in six.iteritems(
-                keys_and_aggregations_and_splits):
-            # Do not store the split if it's empty.
-            if split:
-                offset, data = split.serialize(
-                    key, compressed=key in keys_to_rewrite)
-                keys_aggregations_data_offset.append(
-                    (key, split.aggregation, data, offset))
+        for metric, (keys_and_aggregations_and_splits,
+                     oldest_mutable_timestamp) in six.iteritems(
+                         metrics_keys_aggregations_splits):
+            keys_to_rewrite = []
+            splits_to_rewrite = []
+            for (key, aggregation), split in six.iteritems(
+                    keys_and_aggregations_and_splits):
+                # NOTE(jd) We write the full split only if the driver works that
+                # way (self.WRITE_FULL) or if the oldest_mutable_timestamp is out
+                # of range.
+                write_full = (
+                    self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
+                )
+                if write_full:
+                    keys_to_rewrite.append(key)
+                    splits_to_rewrite.append(split)
 
-        return self._store_metric_splits(
-            {metric: keys_aggregations_data_offset})
+            # Update the splits that were passed as argument with the data already
+            # stored in the case that we need to rewrite them fully.
+            # First, fetch all those existing splits.
+            existing_data = self._get_splits_and_unserialize(
+                metric, [(key, split.aggregation)
+                         for key, split
+                         in six.moves.zip(keys_to_rewrite, splits_to_rewrite)])
+
+            for key, split, existing in six.moves.zip(
+                    keys_to_rewrite, splits_to_rewrite, existing_data):
+                if existing:
+                    existing.merge(split)
+                    keys_and_aggregations_and_splits[
+                        (key, split.aggregation)] = existing
+
+            keys_aggregations_data_offset = []
+            for (key, aggregation), split in six.iteritems(
+                    keys_and_aggregations_and_splits):
+                # Do not store the split if it's empty.
+                if split:
+                    offset, data = split.serialize(
+                        key, compressed=key in keys_to_rewrite)
+                    keys_aggregations_data_offset.append(
+                        (key, split.aggregation, data, offset))
+            metrics_splits_to_store[metric] = keys_aggregations_data_offset
+
+        return self._store_metric_splits(metrics_splits_to_store)
 
     def _compute_split_operations(self, metric, aggregations_and_timeseries,
                                   previous_oldest_mutable_timestamp,
@@ -620,8 +635,10 @@ class StorageDriver(object):
                      measures,
                      before_truncate_callback=_map_compute_splits_operations)
                 self._delete_metric_splits({metric: deleted_keys})
-                self._store_timeserie_splits(metric, keys_and_splits_to_store,
-                                             new_first_block_timestamp)
+                self._update_metric_splits({
+                    metric: (keys_and_splits_to_store,
+                             new_first_block_timestamp),
+                })
 
             new_boundts.append((metric, ts.serialize()))
 
