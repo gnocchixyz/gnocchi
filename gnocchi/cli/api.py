@@ -24,6 +24,7 @@ from oslo_config import cfg
 from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
+from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import utils
 
@@ -46,6 +47,10 @@ def prepare_service(conf=None):
                                    '..', 'rest', 'policy.json'))
     conf.set_default('policy_file', cfg_path, group='oslo_policy')
     return conf
+
+
+def wsgi():
+    return app.load_app(prepare_service())
 
 
 def api():
