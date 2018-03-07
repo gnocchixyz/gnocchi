@@ -13,8 +13,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import collections
-
 import six
 
 from gnocchi import carbonara
@@ -153,30 +151,17 @@ return ids
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    def _get_splits(self, metrics_aggregations_keys, version=3):
-        # Use a list of metric and aggregations with a constant sorting
-        metrics_aggregations = [
-            (metric, aggregation)
-            for metric, aggregation_and_keys in six.iteritems(
-                metrics_aggregations_keys)
-            for aggregation, keys in six.iteritems(aggregation_and_keys)
-            # Do not send any fetch request if keys is empty
-            if keys
-        ]
-
+    def _get_splits(self, metrics_keys_aggregations, version=3):
         pipe = self._client.pipeline(transaction=False)
-        for metric, aggregation in metrics_aggregations:
+        # Use a list of metric with a constant sorting
+        metrics = list(metrics_keys_aggregations.keys())
+        for metric in metrics:
             pipe.hmget(
                 self._metric_key(metric),
                 [self._aggregated_field_for_split(aggregation.method,
                                                   key, version)
-                 for key in metrics_aggregations_keys[metric][aggregation]])
-
-        results = collections.defaultdict(
-            lambda: collections.defaultdict(list))
-
-        for (metric, aggregation), result in six.moves.zip(
-                metrics_aggregations, pipe.execute()):
-            results[metric][aggregation] = result
-
-        return results
+                 for key, aggregation in metrics_keys_aggregations[metric]])
+        return {
+            metric: splits
+            for metric, splits in six.moves.zip(metrics, pipe.execute())
+        }
