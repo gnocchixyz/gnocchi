@@ -481,10 +481,18 @@ class StorageDriver(object):
     def _delete_metric_splits_unbatched(metric, keys, aggregation, version=3):
         raise NotImplementedError
 
-    def _delete_metric_splits(self, metric, keys_and_aggregations, version=3):
+    def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
+        """Delete splits of metrics.
+
+        :param metrics_keys_aggregations: A dict where keys are
+                                         `storage.Metric` and values are lists
+                                         of (key, aggregation) tuples.
+        """
         utils.parallel_map(
             utils.return_none_on_failure(self._delete_metric_splits_unbatched),
             ((metric, key, aggregation)
+             for metric, keys_and_aggregations
+             in six.iteritems(metrics_keys_aggregations)
              for key, aggregation in keys_and_aggregations))
 
     def add_measures_to_metrics(self, metrics_and_measures):
@@ -590,7 +598,7 @@ class StorageDriver(object):
                  keys_and_splits_to_store) = ts.set_values(
                      measures,
                      before_truncate_callback=_map_compute_splits_operations)
-                self._delete_metric_splits(metric, deleted_keys)
+                self._delete_metric_splits({metric: deleted_keys})
                 self._store_timeserie_splits(metric, keys_and_splits_to_store,
                                              new_first_block_timestamp)
 
