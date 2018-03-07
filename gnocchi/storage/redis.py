@@ -151,10 +151,17 @@ return ids
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
-    def _get_measures(self, metric, keys_and_aggregations, version=3):
-        if not keys_and_aggregations:
-            return []
-        return self._client.hmget(
-            self._metric_key(metric),
-            [self._aggregated_field_for_split(aggregation.method, key, version)
-             for key, aggregation in keys_and_aggregations])
+    def _get_splits(self, metrics_keys_aggregations, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        # Use a list of metric with a constant sorting
+        metrics = list(metrics_keys_aggregations.keys())
+        for metric in metrics:
+            pipe.hmget(
+                self._metric_key(metric),
+                [self._aggregated_field_for_split(aggregation.method,
+                                                  key, version)
+                 for key, aggregation in metrics_keys_aggregations[metric]])
+        return {
+            metric: splits
+            for metric, splits in six.moves.zip(metrics, pipe.execute())
+        }

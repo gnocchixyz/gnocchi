@@ -147,7 +147,7 @@ class SwiftStorage(storage.StorageDriver):
                     # Deleted in the meantime? Whatever.
                     raise
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
