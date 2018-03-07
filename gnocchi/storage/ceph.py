@@ -94,23 +94,27 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 
-    def _delete_metric_splits(self, metric, keys_and_aggregations, version=3):
-        names = tuple(
-            self._get_object_name(metric, key, aggregation.method, version)
-            for key, aggregation in keys_and_aggregations
-        )
+    def _delete_metric_splits(self, metric, metrics_keys_aggregations,
+                              version=3):
         with rados.WriteOpCtx() as op:
-            for name in names:
-                try:
-                    self.ioctx.remove_object(name)
-                except rados.ObjectNotFound:
-                    # It's possible that we already remove that object and then
-                    # crashed before removing it from the OMAP key list; then
-                    # no big deal anyway.
-                    pass
-            self.ioctx.remove_omap_keys(op, names)
-            self.ioctx.operate_write_op(
-                op, self._build_unaggregated_timeserie_path(metric, 3))
+            for metric, keys_and_aggregations in six.iteritems(
+                    metrics_keys_aggregations):
+                names = tuple(
+                    self._get_object_name(
+                        metric, key, aggregation.method, version)
+                    for key, aggregation in keys_and_aggregations
+                )
+                for name in names:
+                    try:
+                        self.ioctx.remove_object(name)
+                    except rados.ObjectNotFound:
+                        # It's possible that we already remove that object and
+                        # then crashed before removing it from the OMAP key
+                        # list; then no big deal anyway.
+                        pass
+                self.ioctx.remove_omap_keys(op, names)
+                self.ioctx.operate_write_op(
+                    op, self._build_unaggregated_timeserie_path(metric, 3))
 
     def _delete_metric(self, metric):
         with rados.ReadOpCtx() as op:

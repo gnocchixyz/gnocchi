@@ -126,12 +126,14 @@ return ids
             }
         return keys
 
-    def _delete_metric_splits(self, metric, keys_and_aggregations, version=3):
-        metric_key = self._metric_key(metric)
+    def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
         pipe = self._client.pipeline(transaction=False)
-        for key, aggregation in keys_and_aggregations:
-            pipe.hdel(metric_key, self._aggregated_field_for_split(
-                aggregation.method, key, version))
+        for metric, keys_and_aggregations in six.iteritems(
+                metrics_keys_aggregations):
+            metric_key = self._metric_key(metric)
+            for key, aggregation in keys_and_aggregations:
+                pipe.hdel(metric_key, self._aggregated_field_for_split(
+                    aggregation.method, key, version))
         pipe.execute()
 
     def _store_metric_splits(self, metric, keys_aggregations_data_offset,
