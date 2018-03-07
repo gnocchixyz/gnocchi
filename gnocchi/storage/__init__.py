@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import itertools
 import operator
 
@@ -277,31 +278,32 @@ class StorageDriver(object):
                                                      ATTRGETTER_METHOD)
         }
 
-    def _get_splits_and_unserialize(self, metric, keys_and_aggregations):
+    def _get_splits_and_unserialize(self, metrics_keys_aggregations):
         """Get splits and unserialize them
 
-        :param metric: The metric to retrieve.
-        :param keys_and_aggregations: A list of tuple (SplitKey, Aggregation)
-                                      to retrieve.
-        :return: A list of AggregatedTimeSerie.
+        :param metrics_keys_aggregations: A dict where keys are
+                                         `storage.Metric` and values are tuples
+                                          of (SplitKey, Aggregation) to
+                                          retrieve.
+        :return: A dict where keys are `storage.Metric` and values are lists
+                 of `carbonara.AggregatedTimeSerie`.
         """
-        if not keys_and_aggregations:
-            return []
-        raw_measures = self._get_splits(
-            {metric: keys_and_aggregations})[metric]
-        results = []
-        for (key, aggregation), raw in six.moves.zip(
-                keys_and_aggregations, raw_measures):
-            try:
-                ts = carbonara.AggregatedTimeSerie.unserialize(
-                    raw, key, aggregation)
-            except carbonara.InvalidData:
-                LOG.error("Data corruption detected for %s "
-                          "aggregated `%s' timeserie, granularity `%s' "
-                          "around time `%s', ignoring.",
-                          metric.id, aggregation.method, key.sampling, key)
-                ts = carbonara.AggregatedTimeSerie(aggregation)
-            results.append(ts)
+        raw_measures = self._get_splits(metrics_keys_aggregations)
+        results = collections.defaultdict(list)
+        for metric, keys_and_aggregations in six.iteritems(
+                metrics_keys_aggregations):
+            for (key, aggregation), raw in six.moves.zip(
+                    keys_and_aggregations, raw_measures[metric]):
+                try:
+                    ts = carbonara.AggregatedTimeSerie.unserialize(
+                        raw, key, aggregation)
+                except carbonara.InvalidData:
+                    LOG.error("Data corruption detected for %s "
+                              "aggregated `%s' timeserie, granularity `%s' "
+                              "around time `%s', ignoring.",
+                              metric.id, aggregation.method, key.sampling, key)
+                    ts = carbonara.AggregatedTimeSerie(aggregation)
+                results[metric].append(ts)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation, keys,
@@ -321,7 +323,7 @@ class StorageDriver(object):
         ]
 
         timeseries = self._get_splits_and_unserialize(
-            metric, keys_and_aggregations)
+            {metric: keys_and_aggregations})[metric]
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
             timeseries, aggregation)
@@ -371,10 +373,11 @@ class StorageDriver(object):
             # Update the splits that were passed as argument with the data
             # already stored in the case that we need to rewrite them fully.
             # First, fetch all those existing splits.
-            existing_data = self._get_splits_and_unserialize(
-                metric, [(key, split.aggregation)
+            existing_data = self._get_splits_and_unserialize({
+                metric: [(key, split.aggregation)
                          for key, split
-                         in six.moves.zip(keys_to_rewrite, splits_to_rewrite)])
+                         in six.moves.zip(keys_to_rewrite, splits_to_rewrite)]
+            })[metric]
 
             for key, split, existing in six.moves.zip(
                     keys_to_rewrite, splits_to_rewrite, existing_data):
