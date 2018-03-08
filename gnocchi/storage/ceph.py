@@ -159,7 +159,7 @@ class CephStorage(storage.StorageDriver):
         except rados.ObjectNotFound:
             return
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
             try:
