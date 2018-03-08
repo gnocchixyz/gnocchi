@@ -352,6 +352,7 @@ class StorageDriver(object):
                                                   oldest_mutable_timestamp)
         """
         metrics_splits_to_store = {}
+        splits_to_get = {}
 
         for metric, (keys_and_aggregations_and_splits,
                      oldest_mutable_timestamp) in six.iteritems(
@@ -373,14 +374,19 @@ class StorageDriver(object):
             # Update the splits that were passed as argument with the data
             # already stored in the case that we need to rewrite them fully.
             # First, fetch all those existing splits.
-            existing_data = self._get_splits_and_unserialize({
-                metric: [(key, split.aggregation)
-                         for key, split
-                         in six.moves.zip(keys_to_rewrite, splits_to_rewrite)]
-            })[metric]
+            splits_to_get[metric] = [
+                (key, split.aggregation)
+                for key, split
+                in six.moves.zip(keys_to_rewrite, splits_to_rewrite)
+            ]
 
+        existing_data = self._get_splits_and_unserialize(splits_to_get)
+
+        for metric, (keys_and_aggregations_and_splits,
+                     oldest_mutable_timestamp) in six.iteritems(
+                         metrics_keys_aggregations_splits):
             for key, split, existing in six.moves.zip(
-                    keys_to_rewrite, splits_to_rewrite, existing_data):
+                    keys_to_rewrite, splits_to_rewrite, existing_data[metric]):
                 if existing:
                     existing.merge(split)
                     keys_and_aggregations_and_splits[
