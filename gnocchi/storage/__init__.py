@@ -207,7 +207,7 @@ class StorageDriver(object):
              in keys_aggregations_data_offset))
 
     @staticmethod
-    def _list_split_keys(metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         """List split keys for a metric.
 
         :param metric: The metric to look key for.
@@ -217,6 +217,28 @@ class StorageDriver(object):
                  a set of SplitKey objects.
         """
         raise NotImplementedError
+
+    def _list_split_keys(self, metrics_and_aggregations, version=3):
+        """List split keys for metrics.
+
+        :param metrics_and_aggregations: Dict of
+                                         {`storage.Metric`:
+                                          [`carbonara.Aggregation`]}
+                                         to look for.
+        :param version: Storage engine format version.
+        :return: A dict where keys are `storage.Metric` and values are dicts
+                 where keys are `carbonara.Aggregation` objects and values are
+                 a set of `carbonara.SplitKey` objects.
+        """
+        metrics = list(metrics_and_aggregations.keys())
+        r = utils.parallel_map(
+            self._list_split_keys_unbatched,
+            ((metric, metrics_and_aggregations[metric], version)
+             for metric in metrics))
+        return {
+            metric: results
+            for metric, results in six.moves.zip(metrics, r)
+        }
 
     @staticmethod
     def _version_check(name, v):
@@ -236,7 +258,7 @@ class StorageDriver(object):
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         """
-        keys = self._list_split_keys(metric, aggregations)
+        keys = self._list_split_keys({metric: aggregations})[metric]
         timeseries = utils.parallel_map(
             self._get_measures_timeserie,
             ((metric, agg, keys[agg], from_timestamp, to_timestamp)
@@ -458,7 +480,7 @@ class StorageDriver(object):
                     aggregations_needing_list_of_keys.add(aggregation)
 
         all_existing_keys = self._list_split_keys(
-            metric, aggregations_needing_list_of_keys)
+            {metric: aggregations_needing_list_of_keys})[metric]
 
         # NOTE(jd) This dict uses (key, aggregation) tuples as keys because
         # using just (key) would not carry the aggregation method and therefore

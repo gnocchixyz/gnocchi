@@ -178,7 +178,7 @@ class S3Storage(storage.StorageDriver):
             raise
         return True
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         bucket = self._bucket_name
         keys = {}
         for aggregation in aggregations:

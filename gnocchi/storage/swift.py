@@ -158,7 +158,7 @@ class SwiftStorage(storage.StorageDriver):
             raise
         return contents
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
