@@ -123,6 +123,11 @@ tests:
       response_json_paths:
         $.`len`: 0
 
+    - name: search == creator and quote in filter
+      POST: /v1/search/resource/generic?creator+%3D%3D+%22foobar%22
+      response_json_paths:
+        $.`len`: 2
+
     - name: search eq creator
       POST: /v1/search/resource/generic
       data:
@@ -140,7 +145,7 @@ tests:
         $.`len`: 2
 
     - name: search invalid query string
-      POST: /v1/search/resource/generic?filter=id%20%3D%3D%20foobar
+      POST: /v1/search/resource/generic?filter=id%20invalid%20foobar
       status: 400
       response_strings:
         - "Invalid filter: Expected"
