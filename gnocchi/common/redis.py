@@ -103,7 +103,7 @@ OPTS = [
   - http://redis.io/topics/sentinel
   - http://redis.io/topics/cluster-spec
 
-""" % "`, `".join(CLIENT_ARGS)),
+""" % "`, `".join(sorted(CLIENT_ARGS))),
 ]
 
 
