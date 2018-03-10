@@ -140,7 +140,7 @@ class CephStorage(incoming.IncomingDriver):
                     op, str(sack), flag=self.OMAP_READ_FLAGS)
             except rados.ObjectNotFound:
                 # API have still written nothing
-                return ()
+                return {}
             # NOTE(sileht): after reading the libradospy, I'm
             # not sure that ret will have the correct value
             # get_omap_vals transforms the C int to python int
@@ -150,16 +150,16 @@ class CephStorage(incoming.IncomingDriver):
             try:
                 ceph.errno_to_exception(ret)
             except rados.ObjectNotFound:
-                return ()
+                return {}
 
-            return (k for k, v in omaps)
+            return dict(omaps)
 
     def list_metric_with_measures_to_process(self, sack):
         names = set()
         marker = ""
         while True:
             obj_names = list(self._list_keys_to_process(
-                sack, marker=marker, limit=self.Q_LIMIT))
+                sack, marker=marker, limit=self.Q_LIMIT).keys())
             names.update(name.split("_")[1] for name in obj_names)
             if len(obj_names) < self.Q_LIMIT:
                 break
@@ -170,7 +170,7 @@ class CephStorage(incoming.IncomingDriver):
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-        keys = tuple(self._list_keys_to_process(sack, key_prefix))
+        keys = tuple(self._list_keys_to_process(sack, key_prefix).keys())
 
         if not keys:
             return
@@ -191,32 +191,16 @@ class CephStorage(incoming.IncomingDriver):
     @contextlib.contextmanager
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
-        processed_keys = defaultdict(list)
+        processed_keys = {}
         with rados.ReadOpCtx() as op:
             for metric_id in metric_ids:
                 sack = self.sack_for_metric(metric_id)
-                key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)
-                omaps, ret = self.ioctx.get_omap_vals(op, "", key_prefix, -1)
-                self.ioctx.operate_read_op(op, str(sack),
-                                           flag=self.OMAP_READ_FLAGS)
-                # NOTE(sileht): after reading the libradospy, I'm
-                # not sure that ret will have the correct value
-                # get_omap_vals transforms the C int to python int
-                # before operate_read_op is called, I dunno if the int
-                # content is copied during this transformation or if
-                # this is a pointer to the C int, I think it's copied...
-                try:
-                    ceph.errno_to_exception(ret)
-                except rados.ObjectNotFound:
-                    # Object has been deleted, so this is just a stalled entry
-                    # in the OMAP listing, ignore
-                    continue
-
+                processed_keys[sack] = self._list_keys_to_process(
+                    sack, prefix=self.MEASURE_PREFIX + "_" + str(metric_id))
                 m = self._make_measures_array()
-                for k, v in omaps:
+                for k, v in six.iteritems(processed_keys[sack]):
                     m = numpy.concatenate(
                         (m, self._unserialize_measures(k, v)))
-                    processed_keys[sack].append(k)
 
                 measures[metric_id] = m
 
@@ -227,6 +211,6 @@ class CephStorage(incoming.IncomingDriver):
             for sack, keys in six.iteritems(processed_keys):
                 # NOTE(sileht): come on Ceph, no return code
                 # for this operation ?!!
-                self.ioctx.remove_omap_keys(op, tuple(keys))
+                self.ioctx.remove_omap_keys(op, tuple(keys.keys()))
                 self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)
