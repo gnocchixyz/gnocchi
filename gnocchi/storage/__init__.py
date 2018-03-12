@@ -98,11 +98,31 @@ def get_driver(conf):
         conf.storage)
 
 
+class Statistics(collections.defaultdict):
+    class StatisticsTimeContext(object):
+        def __init__(self, stats, name):
+            self.stats = stats
+            self.name = name + " time"
+
+        def __enter__(self):
+            self.sw = utils.StopWatch()
+            self.sw.start()
+            return self
+
+        def __exit__(self, type, value, traceback):
+            self.stats[self.name] += self.sw.elapsed()
+
+    def __init__(self):
+        super(Statistics, self).__init__(lambda: 0)
+
+    def time(self, name):
+        return self.StatisticsTimeContext(self, name)
+
+
 class StorageDriver(object):
 
-    @staticmethod
-    def __init__(conf):
-        pass
+    def __init__(self, conf):
+        self.statistics = Statistics()
 
     @staticmethod
     def upgrade():
@@ -575,11 +595,12 @@ class StorageDriver(object):
                                      objects and values are timeseries array of
                                      the new measures.
         """
-        with utils.StopWatch() as sw:
+        with self.statistics.time("raw measures fetch"):
             raw_measures = self._get_or_create_unaggregated_timeseries(
                 metrics_and_measures.keys())
-        LOG.debug("Retrieve unaggregated measures for %d metric in %.2fs",
-                  len(metrics_and_measures), sw.elapsed())
+        self.statistics["raw measures fetch"] += len(metrics_and_measures)
+        self.statistics["processed measures"] += sum(
+            map(len, metrics_and_measures.values()))
 
         new_boundts = []
         splits_to_delete = {}
@@ -594,7 +615,6 @@ class StorageDriver(object):
             agg_methods = list(metric.archive_policy.aggregation_methods)
             block_size = metric.archive_policy.max_block_size
             back_window = metric.archive_policy.back_window
-            definition = metric.archive_policy.definition
             # NOTE(sileht): We keep one more blocks to calculate rate of change
             # correctly
             if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
@@ -667,7 +687,7 @@ class StorageDriver(object):
                         deleted_keys,
                         keys_and_split_to_store)
 
-            with utils.StopWatch() as sw:
+            with self.statistics.time("aggregated measures compute"):
                 (new_first_block_timestamp,
                  deleted_keys,
                  keys_and_splits_to_store) = ts.set_values(
@@ -681,22 +701,15 @@ class StorageDriver(object):
 
             new_boundts.append((metric, ts.serialize()))
 
-            number_of_operations = (len(agg_methods) * len(definition))
-            perf = ""
-            elapsed = sw.elapsed()
-            if elapsed > 0:
-                perf = " (%d points/s, %d measures/s)" % (
-                    ((number_of_operations * computed_points['number']) /
-                        elapsed),
-                    ((number_of_operations * len(measures)) / elapsed)
-                )
-            LOG.debug("Computed new metric %s with %d new measures "
-                      "in %.2f seconds%s",
-                      metric.id, len(measures), elapsed, perf)
-
-        self._delete_metric_splits(splits_to_delete)
-        self._update_metric_splits(splits_to_update)
-        self._store_unaggregated_timeseries(new_boundts)
+        with self.statistics.time("splits delete"):
+            self._delete_metric_splits(splits_to_delete)
+        self.statistics["splits delete"] += len(splits_to_delete)
+        with self.statistics.time("splits update"):
+            self._update_metric_splits(splits_to_update)
+        self.statistics["splits delete"] += len(splits_to_update)
+        with self.statistics.time("raw measures store"):
+            self._store_unaggregated_timeseries(new_boundts)
+        self.statistics["raw measures store"] += len(new_boundts)
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):

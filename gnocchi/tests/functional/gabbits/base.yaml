@@ -132,7 +132,7 @@ tests:
     authorization: "basic YWRtaW46"
   response_json_paths:
     $.storage.`len`: 2
-    $.metricd.`len`: 1
+    $.metricd.`len`: 2
 
 - name: get status, no details
   GET: /v1/status?details=False
@@ -141,4 +141,4 @@ tests:
     authorization: "basic YWRtaW46"
   response_json_paths:
     $.storage.`len`: 1
-    $.metricd.`len`: 1
+    $.metricd.`len`: 2
