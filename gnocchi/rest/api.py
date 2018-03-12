@@ -2005,9 +2005,20 @@ class StatusController(rest.RestController):
             report_dict["storage"]["measures_to_process"] = report['details']
         report_dict['metricd'] = {}
         if members_req:
-            report_dict['metricd']['processors'] = members_req.get()
+            members = members_req.get()
+            caps = [
+                pecan.request.coordinator.get_member_capabilities(
+                    metricd.MetricProcessor.GROUP_ID, member)
+                for member in members
+            ]
+            report_dict['metricd']['processors'] = members
+            report_dict['metricd']['statistics'] = {
+                member: cap.get()
+                for member, cap in six.moves.zip(members, caps)
+            }
         else:
             report_dict['metricd']['processors'] = None
+            report_dict['metricd']['statistics'] = {}
         return report_dict
 
 
