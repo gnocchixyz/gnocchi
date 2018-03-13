@@ -31,7 +31,6 @@ from gnocchi.storage import redis
 from gnocchi.storage import s3
 from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
-from gnocchi.tests import utils as tests_utils
 
 
 def datetime64(*args):
@@ -167,23 +166,6 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((datetime64(2014, 1, 1, 12),
                        numpy.timedelta64(5, 'm'), 5.0), m)
 
-    def test_list_metric_with_measures_to_process(self):
-        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.assertEqual(set(), metrics)
-        self.incoming.add_measures(self.metric.id, [
-            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-        ])
-        m2, __ = self._create_metric('medium')
-        self.incoming.add_measures(m2.id, [
-            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
-        ])
-        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        m_list = [str(self.metric.id), str(m2.id)]
-        self.assertEqual(set(m_list), metrics)
-        self.trigger_processing(m_list)
-        metrics = tests_utils.list_all_incoming_metrics(self.incoming)
-        self.assertEqual(set([]), metrics)
-
     def test_delete_nonempty_metric(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -242,7 +224,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
-        self.trigger_processing([str(self.metric.id)])
+        self.trigger_processing([self.metric])
 
         aggregations = self.metric.archive_policy.aggregations
 
@@ -258,7 +240,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
-        self.trigger_processing([str(m.id)])
+        self.trigger_processing([m])
 
         aggregations = (
             m.archive_policy.get_aggregations_for_method("mean")
@@ -274,7 +256,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
-        self.trigger_processing([str(m.id)])
+        self.trigger_processing([m])
 
         # add measure to end, in same aggregate time as last point.
         self.incoming.add_measures(m.id, [
@@ -282,13 +264,13 @@ class TestStorageDriver(tests_base.TestCase):
 
         with mock.patch.object(self.storage, '_store_metric_splits') as c:
             # should only resample last aggregate
-            self.trigger_processing([str(m.id)])
+            self.trigger_processing([m])
         count = 0
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
             for metric, key_agg_data_offset in six.iteritems(args[0]):
-                if metric == m_sql:
+                if metric.id == m_sql.id:
                     for key, aggregation, data, offset in key_agg_data_offset:
                         if (key.sampling == numpy.timedelta64(1, 'm')
                            and aggregation.method == "mean"):
@@ -301,14 +283,14 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
-        self.trigger_processing([str(m.id)])
+        self.trigger_processing([m])
 
         # add measure to end, in same aggregate time as last point.
         new_point = datetime64(2014, 1, 6, 1, 58, 1)
         self.incoming.add_measures(m.id, [incoming.Measure(new_point, 100)])
 
         with mock.patch.object(self.incoming, 'add_measures') as c:
-            self.trigger_processing([str(m.id)])
+            self.trigger_processing([m])
         for __, args, __ in c.mock_calls:
             self.assertEqual(
                 list(args[3])[0][0], carbonara.round_timestamp(
@@ -1062,7 +1044,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         self.assertEqual(
             [
@@ -1117,7 +1099,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), 1),
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 10), 1),
         ])
-        self.trigger_processing([str(m.id)])
+        self.trigger_processing([m])
 
         aggregation = m.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(5, 's'))
@@ -1134,7 +1116,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 15), 1),
         ])
-        self.trigger_processing([str(m.id)])
+        self.trigger_processing([m])
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),

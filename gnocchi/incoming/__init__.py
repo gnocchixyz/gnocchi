@@ -200,10 +200,6 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def list_metric_with_measures_to_process(sack):
-        raise exceptions.NotImplementedError
-
-    @staticmethod
     def delete_unprocessed_measures_for_metric(metric_id):
         raise exceptions.NotImplementedError
 

@@ -17,11 +17,6 @@ from oslo_policy import opts as policy_opts
 from gnocchi import opts
 
 
-def list_all_incoming_metrics(incoming):
-    return set.union(*[incoming.list_metric_with_measures_to_process(sack)
-                       for sack in incoming.iter_sacks()])
-
-
 def prepare_conf():
     conf = cfg.ConfigOpts()
 

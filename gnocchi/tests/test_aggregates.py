@@ -1031,7 +1031,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1190,7 +1190,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1228,7 +1228,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1265,7 +1265,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1302,7 +1302,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1341,7 +1341,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 15, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1385,7 +1385,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1414,7 +1414,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.trigger_processing([str(self.metric.id)])
+        self.trigger_processing()
 
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
@@ -1441,7 +1441,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
-        self.trigger_processing([str(self.metric.id)])
+        self.trigger_processing()
 
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
@@ -1473,7 +1473,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1511,7 +1511,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,
@@ -1557,7 +1557,7 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), -4),
         ])
-        self.trigger_processing([str(self.metric.id), str(metric2.id)])
+        self.trigger_processing([self.metric, metric2])
 
         values = processor.get_measures(
             self.storage,

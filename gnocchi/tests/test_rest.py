@@ -37,7 +37,6 @@ from gnocchi import archive_policy
 from gnocchi.rest import api
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
-from gnocchi.tests import utils as tests_utils
 from gnocchi import utils
 
 
@@ -127,8 +126,9 @@ class TestingApp(webtest.TestApp):
         elif self.auth_mode == "remoteuser":
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
-        metrics = tests_utils.list_all_incoming_metrics(self.chef.incoming)
-        self.chef.process_new_measures(metrics, sync=True)
+        for sack in self.chef.incoming.iter_sacks():
+            self.chef.process_new_measures_for_sack(
+                sack, blocking=True, sync=True)
         return response
 
 
