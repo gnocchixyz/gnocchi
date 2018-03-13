@@ -123,13 +123,6 @@ class S3Storage(incoming.IncomingDriver):
                 **kwargs)
             yield response
 
-    def list_metric_with_measures_to_process(self, sack):
-        metrics = set()
-        for response in self._list_files((str(sack),), Delimiter="/"):
-            for p in response.get('CommonPrefixes', ()):
-                metrics.add(p['Prefix'].split('/', 2)[1])
-        return metrics
-
     def _list_measure_files(self, path_items):
         files = set()
         for response in self._list_files(path_items):

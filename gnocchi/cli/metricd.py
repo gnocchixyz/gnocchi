@@ -301,7 +301,8 @@ def metricd_tester(conf):
     metrics_count = 0
     for sack in inc.iter_sacks():
         try:
-            metrics_count += c.process_new_measures_for_sack(s, True)
+            metrics_count += c.process_new_measures_for_sack(
+                s, blocking=False, sync=True)
         except chef.SackAlreadyLocked:
             continue
         if metrics_count >= conf.stop_after_processing_metrics:

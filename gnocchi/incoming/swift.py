@@ -78,11 +78,6 @@ class SwiftStorage(incoming.IncomingDriver):
         return (nb_metrics or len(metric_details), measures,
                 metric_details if details else None)
 
-    def list_metric_with_measures_to_process(self, sack):
-        headers, files = self.swift.get_container(
-            str(sack), delimiter='/', full_listing=True)
-        return set(f['subdir'][:-1] for f in files if 'subdir' in f)
-
     def _list_measure_files_for_metric(self, sack, metric_id):
         headers, files = self.swift.get_container(
             str(sack), path=six.text_type(metric_id),

@@ -123,11 +123,6 @@ return results
         return (metrics, report_vars['measures'],
                 report_vars['metric_details'] if details else None)
 
-    def list_metric_with_measures_to_process(self, sack):
-        match = redis.SEP.join([str(sack).encode(), b"*"])
-        keys = self._client.scan_iter(match=match, count=1000)
-        return set([k.split(redis.SEP)[1].decode("utf8") for k in keys])
-
     def delete_unprocessed_measures_for_metric(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
 

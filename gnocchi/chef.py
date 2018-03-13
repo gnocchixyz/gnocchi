@@ -102,32 +102,31 @@ class Chef(object):
                         LOG.error("Unable to expunge metric %s from storage",
                                   metric, exc_info=True)
 
-    def refresh_metric(self, metric, timeout):
-        s = self.incoming.sack_for_metric(metric.id)
-        lock = self.get_sack_lock(s)
-        if not lock.acquire(blocking=timeout):
-            raise SackAlreadyLocked(s)
-        try:
-            self.process_new_measures([str(metric.id)])
-        finally:
-            lock.release()
+    def refresh_metrics(self, metrics, timeout=None, sync=False):
+        """Process added measures in background for some metrics only.
 
-    def process_new_measures(self, metrics_to_process, sync=False):
-        """Process added measures in background.
-
-        Some drivers might need to have a background task running that process
-        the measures sent to metrics. This is used for that.
+        :param metrics: The list of `indexer.Metric` to refresh.
+        :param timeout: Time to wait for the process to happen.
+        :param sync: If an error occurs, raise, otherwise just log it.
         """
         # process only active metrics. deleted metrics with unprocessed
         # measures will be skipped until cleaned by janitor.
-        metrics = self.index.list_metrics(
-            attribute_filter={"in": {"id": metrics_to_process}})
         metrics_by_id = {m.id: m for m in metrics}
-        # NOTE(gordc): must lock at sack level
-        try:
-            LOG.debug("Processing measures for %s", metrics)
-            with self.incoming.process_measure_for_metrics(
-                    [m.id for m in metrics]) as metrics_and_measures:
+        metrics_to_refresh = sorted(
+            ((metric, self.incoming.sack_for_metric(metric.id))
+             for metric in metrics),
+            key=ITEMGETTER_1)
+        for sack, metric_and_sack in itertools.groupby(
+                metrics_to_refresh, ITEMGETTER_1):
+            lock = self.get_sack_lock(sack)
+            # FIXME(jd) timeout should be global for all sack locking
+            if not lock.acquire(blocking=timeout):
+                raise SackAlreadyLocked(sack)
+            metrics = [m[0].id for m in metric_and_sack]
+            try:
+                LOG.debug("Processing measures for %d metrics", len(metrics))
+                with self.incoming.process_measure_for_metrics(
+                        metrics) as metrics_and_measures:
                     self.storage.add_measures_to_metrics({
                         metrics_by_id[metric]: measures
                         for metric, measures
@@ -135,24 +134,28 @@ class Chef(object):
                     })
                     LOG.debug("Measures for %d metrics processed",
                               len(metrics))
-        except Exception:
-            if sync:
-                raise
-            LOG.error("Error processing new measures", exc_info=True)
+            except Exception:
+                if sync:
+                    raise
+                LOG.error("Error processing new measures", exc_info=True)
+            finally:
+                lock.release()
 
-    def process_new_measures_for_sack(self, sack, sync=False):
+    def process_new_measures_for_sack(self, sack, blocking=False, sync=False):
         """Process added measures in background.
 
         Lock a sack and try to process measures from it. If the sack cannot be
         locked, the method will raise `SackAlreadyLocked`.
 
         :param sack: The sack to process new measures for.
+        :param blocking: Block to be sure the sack is processed or raise
+                         `SackAlreadyLocked` otherwise.
         :param sync: If True, raise any issue immediately otherwise just log it
         :return: The number of metrics processed.
 
         """
         lock = self.get_sack_lock(sack)
-        if not lock.acquire(blocking=False):
+        if not lock.acquire(blocking=blocking):
             raise SackAlreadyLocked(sack)
         LOG.debug("Processing measures for sack %s", sack)
         try:

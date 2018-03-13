@@ -258,7 +258,7 @@ class MetricdThread(threading.Thread):
     def run(self):
         while self.flag:
             for sack in self.chef.incoming.iter_sacks():
-                self.chef.process_new_measures_for_sack(sack)
+                self.chef.process_new_measures_for_sack(sack, blocking=True)
             time.sleep(0.1)
 
     def stop(self):

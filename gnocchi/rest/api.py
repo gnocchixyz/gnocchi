@@ -529,8 +529,8 @@ class MetricController(rest.RestController):
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
-                pecan.request.chef.refresh_metric(
-                    self.metric,
+                pecan.request.chef.refresh_metrics(
+                    [self.metric],
                     pecan.request.conf.api.operation_timeout)
             except chef.SackAlreadyLocked as e:
                 abort(503, 'Unable to refresh metric: %s. Metric is locked. '
@@ -1902,8 +1902,8 @@ class AggregationController(rest.RestController):
                     if pecan.request.incoming.has_unprocessed(m.id)]
                 for m in metrics_to_update:
                     try:
-                        pecan.request.chef.refresh_metric(
-                            m, pecan.request.conf.api.operation_timeout)
+                        pecan.request.chef.refresh_metrics(
+                            [m], pecan.request.conf.api.operation_timeout)
                     except chef.SackLockTimeoutError as e:
                         abort(503, 'Unable to refresh metric: %s. '
                               'Metric is locked. '
