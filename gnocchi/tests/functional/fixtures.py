@@ -257,11 +257,8 @@ class MetricdThread(threading.Thread):
 
     def run(self):
         while self.flag:
-            metrics = utils.list_all_incoming_metrics(self.chef.incoming)
-            metrics = self.chef.index.list_metrics(
-                attribute_filter={"in": {"id": metrics}})
-            for metric in metrics:
-                self.chef.refresh_metric(metric, timeout=None)
+            for sack in self.chef.incoming.iter_sacks():
+                self.chef.process_new_measures_for_sack(sack, blocking=True)
             time.sleep(0.1)
 
     def stop(self):

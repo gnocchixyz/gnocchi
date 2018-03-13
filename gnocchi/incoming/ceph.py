@@ -157,19 +157,6 @@ class CephStorage(incoming.IncomingDriver):
 
             return dict(omaps)
 
-    def list_metric_with_measures_to_process(self, sack):
-        names = set()
-        marker = ""
-        while True:
-            obj_names = list(self._list_keys_to_process(
-                sack, marker=marker, limit=self.Q_LIMIT).keys())
-            names.update(name.split("_")[1] for name in obj_names)
-            if len(obj_names) < self.Q_LIMIT:
-                break
-            else:
-                marker = obj_names[-1]
-        return names
-
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         key_prefix = self.MEASURE_PREFIX + "_" + str(metric_id)

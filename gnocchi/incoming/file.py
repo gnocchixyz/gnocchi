@@ -110,16 +110,13 @@ class FileStorage(incoming.IncomingDriver):
                     self._list_measures_container_for_metric_str(sack, metric))
 
         for sack in self.iter_sacks():
-            for metric in self.list_metric_with_measures_to_process(sack):
+            for metric in set(self._list_target(self._sack_path(sack))):
                 build_metric_report(metric, sack)
         return (report_vars['metrics'] or
                 len(report_vars['metric_details'].keys()),
                 report_vars['measures'] or
                 sum(report_vars['metric_details'].values()),
                 report_vars['metric_details'] if details else None)
-
-    def list_metric_with_measures_to_process(self, sack):
-        return set(self._list_target(self._sack_path(sack)))
 
     def _list_measures_container_for_metric_str(self, sack, metric_id):
         return self._list_target(self._measure_path(sack, metric_id))
