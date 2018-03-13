@@ -21,7 +21,6 @@ import operator
 import uuid
 
 import jsonpatch
-import pbr.version
 import pecan
 from pecan import rest
 import pyparsing
@@ -32,6 +31,7 @@ import tooz
 import voluptuous
 import werkzeug.http
 
+import gnocchi
 from gnocchi import archive_policy
 from gnocchi import chef
 from gnocchi.cli import metricd
@@ -2209,7 +2209,7 @@ class VersionsController(object):
     @pecan.expose('json')
     def index():
         return {
-            "build": pbr.version.VersionInfo('gnocchi').version_string(),
+            "build": gnocchi.__version__,
             "versions": [
                 {
                     "status": "CURRENT",
