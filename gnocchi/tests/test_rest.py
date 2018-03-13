@@ -27,12 +27,12 @@ import fixtures
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
-import pbr.version
 import six
 import testscenarios
 from testtools import testcase
 import webtest
 
+import gnocchi
 from gnocchi import archive_policy
 from gnocchi.rest import api
 from gnocchi.rest import app
@@ -217,7 +217,7 @@ class RootTest(RestTest):
             r = self.app.get("/")
         self.assertEqual(
             json.loads(r.text)['build'],
-            pbr.version.VersionInfo('gnocchi').version_string())
+            gnocchi.__version__)
 
     def test_status(self):
         with self.app.use_admin_user():
