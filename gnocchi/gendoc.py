@@ -27,6 +27,7 @@ import six.moves
 import webob.request
 import yaml
 
+import gnocchi.pex
 from gnocchi.tests import test_rest
 
 # HACK(jd) Not sure why but Sphinx setup this multiple times, so we just avoid
@@ -115,6 +116,17 @@ os.chdir(srcdir)
 sys.path.insert(0, srcdir)
 
 version = sys.argv[1]
+
+if version == "<local>":
+    try:
+        import gnocchi.pex
+    except ImportError:
+        pass
+    else:
+        path = gnocchi.pex.build("doc/source/dist")
+elif version == "master":
+    shutil.copytree(local_branch_path + "/doc/source/dist",
+                    "doc/source/dist")
 
 if version not in ["<local>", "master"]:
     # NOTE(sileht): Update _static files (mainly logos)
@@ -242,6 +254,25 @@ def setup(app):
         if six.PY2:
             content = content.encode("utf-8")
         f.write(content)
+
+    if not os.path.exists("doc/source/dist"):
+        gnocchi.pex.build("doc/source/dist")
+
+    files = [b for b in os.listdir("doc/source/dist")
+             if b.startswith("gnocchi-")]
+    if files:
+        with open("doc/source/pex.rst.j2", "r") as f:
+            content = f.read()
+            if six.PY2:
+                content = content.decode("utf-8")
+            template = jinja2.Template(content)
+        with open("doc/source/pex.rst", "w") as f:
+            content = template.render(master_binary=files[0])
+            if six.PY2:
+                content = content.encode("utf-8")
+            f.write(content)
+    else:
+        open("doc/source/pex.rst", "w").close()
 
     config_output_file = 'doc/source/gnocchi.conf.sample'
     app.info("Generating %s" % config_output_file)

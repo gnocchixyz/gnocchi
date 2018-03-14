@@ -1,0 +1,31 @@
+Installation from pex binary
+============================
+
+Gnocchi can be installed by just downloading a binary (built with `pex`_).
+
+(Only master is supported for now, next stable release will also support it)
+
+::
+
+    $ curl -O {{ master_binary }} https://gnocchi.xyz/dist/{{ master_binary }}
+    $ ./{{ master_binary }} make-links
+    gnocchi-change-sack-size symlink created
+    gnocchi-upgrade symlink created
+    gnocchi-config-generator symlink created
+    gnocchi-api symlink created
+    gnocchi-statsd symlink created
+    gnocchi-metricd symlink created
+    $ ls -l
+    total 33036
+    -rwxr-xr-x 1 user user 33828159 Mar 20 07:52 {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-api -> {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-change-sack-size -> {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-config-generator -> {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-metricd -> {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-statsd -> {{ master_binary }}
+    lrwxrwxrwx 1 user user       37 Mar 20 07:53 gnocchi-upgrade -> {{ master_binary }}
+
+You could then use run those symbolic links as they were standard executable.
+For example, call `./gnocchi-upgrade` to run `gnocchi-upgrade`.
+
+.. _pex: https://github.com/pantsbuild/pex

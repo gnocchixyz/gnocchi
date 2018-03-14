@@ -4,8 +4,8 @@
 
 .. _installation:
 
-Installation
-============
+Installation from source
+========================
 
 Gnocchi can be installed using `pip`. Depending on the drivers and features you
 want to use (see :doc:`intro` for which driver to pick), you need to specify
@@ -61,6 +61,7 @@ works with Ceph >= 0.80.0.
 If Ceph and python-rados are >= 12.2.0, the cradox Python library becomes
 optional but is still recommended.
 
+.. include:: pex.rst
 
 Configuration
 =============
