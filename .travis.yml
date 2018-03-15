@@ -4,9 +4,6 @@ sudo: required
 services:
   - docker
 
-cache:
-  directories:
-    - ~/.cache/pip
 env:
   - TARGET: pep8
   - TARGET: docs
@@ -58,7 +55,7 @@ install:
     fi
 script:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
+      docker run -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
     fi
 
 notifications:
