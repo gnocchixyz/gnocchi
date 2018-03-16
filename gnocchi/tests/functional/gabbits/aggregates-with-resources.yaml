@@ -37,7 +37,7 @@ tests:
       POST: /v1/resource/generic
       data:
         id: 1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
-        user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
           cpu.util:
@@ -61,7 +61,7 @@ tests:
       POST: /v1/resource/generic
       data:
         id: 2447CD7E-48A6-4C50-A991-6677CC0D00E6
-        user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
           cpu.util:
@@ -81,7 +81,7 @@ tests:
       POST: /v1/resource/generic
       data:
         id: 33333BC5-5948-4F29-B7DF-7DE607660452
-        user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
           cpu.util:
@@ -124,7 +124,7 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric cpu.util mean))"
       poll:
         count: 10
@@ -143,7 +143,7 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric (cpu.util mean) (cpu.idle mean))"
       poll:
         count: 10
@@ -171,7 +171,7 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric cpu.util mean)"
       poll:
         count: 10
@@ -198,7 +198,7 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric (cpu.* mean) (*way mean))"
       poll:
         count: 10
@@ -227,7 +227,7 @@ tests:
       POST: /v1/aggregates?details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(metric cpu.* mean)"
       poll:
         count: 10
@@ -272,7 +272,7 @@ tests:
       POST: /v1/aggregates?groupby=project_id&groupby=user_id&details=true
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric cpu.util mean))"
       response_json_paths:
         $.`len`: 2
@@ -284,7 +284,7 @@ tests:
               - ['2015-03-06T14:33:57+00:00', 1.0, 33.05]
               - ['2015-03-06T14:34:12+00:00', 1.0, 10.0]
         $[0].group:
-              user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
               project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         $[1].measures.references.`len`: 1
         $[1].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[2]']
@@ -293,7 +293,7 @@ tests:
               - ['2015-03-06T14:33:57+00:00', 1.0, 230.0]
               - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
         $[1].group:
-              user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
               project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
 
 # Negative tests
@@ -322,7 +322,7 @@ tests:
         authorization: "basic Zm9vYmFyOg=="
       data:
         resource_type: generic
-        search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric (notexists mean) (foobar mean)))"
       status: 400
       response_json_paths:
