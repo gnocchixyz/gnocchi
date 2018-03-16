@@ -390,6 +390,7 @@ class TestCase(BaseTestCase):
     def trigger_processing(self, metrics=None):
         if metrics is None:
             self.chef.process_new_measures_for_sack(
-                self.incoming.sack_for_metric(self.metric.id), sync=True)
+                self.incoming.sack_for_metric(self.metric.id),
+                blocking=True, sync=True)
         else:
-            self.chef.process_new_measures(metrics, sync=True)
+            self.chef.refresh_metrics(metrics, sync=True)

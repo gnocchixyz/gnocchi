@@ -125,7 +125,7 @@ class FileStorage(storage.StorageDriver):
         except storage.MetricAlreadyExists:
             pass
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         keys = collections.defaultdict(set)
         for method, grouped_aggregations in itertools.groupby(
                 sorted(aggregations, key=ATTRGETTER_METHOD),
@@ -163,13 +163,12 @@ class FileStorage(storage.StorageDriver):
         os.unlink(self._build_metric_path_for_split(
             metric, aggregation.method, key, version))
 
-    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
-                             version=3):
-        for key, aggregation, data, offset in keys_aggregations_data_offset:
-            self._atomic_file_store(
-                self._build_metric_path_for_split(
-                    metric, aggregation.method, key, version),
-                data)
+    def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
+                                       offset, version):
+        self._atomic_file_store(
+            self._build_metric_path_for_split(
+                metric, aggregation.method, key, version),
+            data)
 
     def _delete_metric(self, metric):
         path = self._build_metric_dir(metric)
@@ -181,7 +180,7 @@ class FileStorage(storage.StorageDriver):
                 # measures)
                 raise
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         path = self._build_metric_path_for_split(
             metric, aggregation.method, key, version)
         try:

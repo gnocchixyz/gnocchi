@@ -529,11 +529,12 @@ class MetricController(rest.RestController):
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
-                pecan.request.chef.refresh_metric(
-                    self.metric,
+                pecan.request.chef.refresh_metrics(
+                    [self.metric],
                     pecan.request.conf.api.operation_timeout)
-            except chef.SackLockTimeoutError as e:
-                abort(503, six.text_type(e))
+            except chef.SackAlreadyLocked as e:
+                abort(503, 'Unable to refresh metric: %s. Metric is locked. '
+                      'Please try again.' % self.metric.id)
         try:
             return pecan.request.storage.get_measures(
                 self.metric, aggregations, start, stop, resample)[aggregation]
@@ -1901,10 +1902,12 @@ class AggregationController(rest.RestController):
                     if pecan.request.incoming.has_unprocessed(m.id)]
                 for m in metrics_to_update:
                     try:
-                        pecan.request.chef.refresh_metric(
-                            m, pecan.request.conf.api.operation_timeout)
+                        pecan.request.chef.refresh_metrics(
+                            [m], pecan.request.conf.api.operation_timeout)
                     except chef.SackLockTimeoutError as e:
-                        abort(503, six.text_type(e))
+                        abort(503, 'Unable to refresh metric: %s. '
+                              'Metric is locked. '
+                              'Please try again.' % m.id)
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
@@ -2002,9 +2005,20 @@ class StatusController(rest.RestController):
             report_dict["storage"]["measures_to_process"] = report['details']
         report_dict['metricd'] = {}
         if members_req:
-            report_dict['metricd']['processors'] = members_req.get()
+            members = members_req.get()
+            caps = [
+                pecan.request.coordinator.get_member_capabilities(
+                    metricd.MetricProcessor.GROUP_ID, member)
+                for member in members
+            ]
+            report_dict['metricd']['processors'] = members
+            report_dict['metricd']['statistics'] = {
+                member: cap.get()
+                for member, cap in six.moves.zip(members, caps)
+            }
         else:
             report_dict['metricd']['processors'] = None
+            report_dict['metricd']['statistics'] = {}
         return report_dict
 
 

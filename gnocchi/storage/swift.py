@@ -116,13 +116,12 @@ class SwiftStorage(storage.StorageDriver):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
-    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
-                             version=3):
-        for key, aggregation, data, offset in keys_aggregations_data_offset:
-            self.swift.put_object(
-                self._container_name(metric),
-                self._object_name(key, aggregation.method, version),
-                data)
+    def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
+                                       offset, version):
+        self.swift.put_object(
+            self._container_name(metric),
+            self._object_name(key, aggregation.method, version),
+            data)
 
     def _delete_metric_splits_unbatched(
             self, metric, key, aggregation, version=3):
@@ -148,7 +147,7 @@ class SwiftStorage(storage.StorageDriver):
                     # Deleted in the meantime? Whatever.
                     raise
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric), self._object_name(
@@ -159,7 +158,7 @@ class SwiftStorage(storage.StorageDriver):
             raise
         return contents
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(

@@ -230,23 +230,20 @@ class MetricProcessor(MetricProcessBase):
             sacks = (self.sacks_with_measures_to_process.copy()
                      or self._get_sacks_to_process())
         for s in sacks:
-            # TODO(gordc): support delay release lock so we don't
-            # process a sack right after another process
-            lock = self.chef.get_sack_lock(s)
-            if not lock.acquire(blocking=False):
-                continue
-
             try:
-                m_count += self.chef.process_new_measures_for_sack(s)
+                try:
+                    m_count += self.chef.process_new_measures_for_sack(s)
+                except chef.SackAlreadyLocked:
+                    continue
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
-            finally:
-                lock.release()
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
+        # Update statistics
+        self.coord.update_capabitilities(self.GROUP_ID, self.statistics)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
             self._last_full_sack_scan.reset()
@@ -300,14 +297,16 @@ def metricd_tester(conf):
     index = indexer.get_driver(conf)
     s = storage.get_driver(conf)
     inc = incoming.get_driver(conf)
-    metrics = set()
-    for sack in inc.iter_sacks():
-        metrics.update(inc.list_metric_with_measures_to_process(sack))
-        if len(metrics) >= conf.stop_after_processing_metrics:
-            break
     c = chef.Chef(None, inc, index, s)
-    c.process_new_measures(
-        list(metrics)[:conf.stop_after_processing_metrics], True)
+    metrics_count = 0
+    for sack in inc.iter_sacks():
+        try:
+            metrics_count += c.process_new_measures_for_sack(
+                s, blocking=False, sync=True)
+        except chef.SackAlreadyLocked:
+            continue
+        if metrics_count >= conf.stop_after_processing_metrics:
+            break
 
 
 def metricd():

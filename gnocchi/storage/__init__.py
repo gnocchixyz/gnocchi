@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import collections
 import itertools
 import operator
 
@@ -97,24 +98,49 @@ def get_driver(conf):
         conf.storage)
 
 
+class Statistics(collections.defaultdict):
+    class StatisticsTimeContext(object):
+        def __init__(self, stats, name):
+            self.stats = stats
+            self.name = name + " time"
+
+        def __enter__(self):
+            self.sw = utils.StopWatch()
+            self.sw.start()
+            return self
+
+        def __exit__(self, type, value, traceback):
+            self.stats[self.name] += self.sw.elapsed()
+
+    def __init__(self):
+        super(Statistics, self).__init__(lambda: 0)
+
+    def time(self, name):
+        return self.StatisticsTimeContext(self, name)
+
+
 class StorageDriver(object):
 
-    @staticmethod
-    def __init__(conf):
-        pass
+    def __init__(self, conf):
+        self.statistics = Statistics()
 
     @staticmethod
     def upgrade():
         pass
 
-    def _get_measures(self, metric, keys_and_aggregations, version=3):
-        return utils.parallel_map(
-            self._get_measures_unbatched,
-            ((metric, key, aggregation, version)
-             for key, aggregation in keys_and_aggregations))
+    def _get_splits(self, metrics_keys_aggregations, version=3):
+        # FIXME(jd) Call parallel_map only once
+        return {
+            metric: utils.parallel_map(
+                self._get_splits_unbatched,
+                ((metric, key, aggregation, version)
+                 for key, aggregation in keys_and_aggregations))
+            for metric, keys_and_aggregations
+            in six.iteritems(metrics_keys_aggregations)
+        }
 
     @staticmethod
-    def _get_measures_unbatched(metric, timestamp_key, aggregation, version=3):
+    def _get_splits_unbatched(metric, timestamp_key, aggregation, version=3):
         raise NotImplementedError
 
     @staticmethod
@@ -166,22 +192,42 @@ class StorageDriver(object):
             ((metric, data, version) for metric, data in metrics_and_data))
 
     @staticmethod
-    def _store_metric_splits(metric, keys_aggregations_data_offset, version=3):
-        """Store metric split.
+    def _store_metric_splits_unbatched(metric, key, aggregation, data, offset,
+                                       version=3):
+        """Store a metric split.
 
-        Store a bunch of splits for a metric.
-
-        :param metric: The metric to store for
-        :param keys_aggregations_data_offset: A list of
-                                             (key, aggregation, data, offset)
-                                             tuples
-
+        :param metric: A metric.
+        :param key: The `carbonara.SplitKey`.
+        :param aggregation: The `carbonara.Aggregation`.
+        :param data: The actual data to write.
+        :param offset: The offset to write to.
         :param version: Storage engine format version.
         """
         raise NotImplementedError
 
+    def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
+                             version=3):
+        """Store metric splits.
+
+        Store a bunch of splits for some metrics.
+
+        :param metrics_keys_aggregations_data_offset: A dict where keys are
+                                                      `storage.Metric` and
+                                                      values are a list of
+                                                      (key, aggregation,
+                                                       data, offset) tuples.
+        :param version: Storage engine format version.
+        """
+        utils.parallel_map(
+            self._store_metric_splits_unbatched,
+            ((metric, key, aggregation, data, offset, version)
+             for metric, keys_aggregations_data_offset
+             in six.iteritems(metrics_keys_aggregations_data_offset)
+             for key, aggregation, data, offset
+             in keys_aggregations_data_offset))
+
     @staticmethod
-    def _list_split_keys(metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         """List split keys for a metric.
 
         :param metric: The metric to look key for.
@@ -191,6 +237,28 @@ class StorageDriver(object):
                  a set of SplitKey objects.
         """
         raise NotImplementedError
+
+    def _list_split_keys(self, metrics_and_aggregations, version=3):
+        """List split keys for metrics.
+
+        :param metrics_and_aggregations: Dict of
+                                         {`storage.Metric`:
+                                          [`carbonara.Aggregation`]}
+                                         to look for.
+        :param version: Storage engine format version.
+        :return: A dict where keys are `storage.Metric` and values are dicts
+                 where keys are `carbonara.Aggregation` objects and values are
+                 a set of `carbonara.SplitKey` objects.
+        """
+        metrics = list(metrics_and_aggregations.keys())
+        r = utils.parallel_map(
+            self._list_split_keys_unbatched,
+            ((metric, metrics_and_aggregations[metric], version)
+             for metric in metrics))
+        return {
+            metric: results
+            for metric, results in six.moves.zip(metrics, r)
+        }
 
     @staticmethod
     def _version_check(name, v):
@@ -210,7 +278,7 @@ class StorageDriver(object):
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         """
-        keys = self._list_split_keys(metric, aggregations)
+        keys = self._list_split_keys({metric: aggregations})[metric]
         timeseries = utils.parallel_map(
             self._get_measures_timeserie,
             ((metric, agg, keys[agg], from_timestamp, to_timestamp)
@@ -252,30 +320,32 @@ class StorageDriver(object):
                                                      ATTRGETTER_METHOD)
         }
 
-    def _get_splits_and_unserialize(self, metric, keys_and_aggregations):
+    def _get_splits_and_unserialize(self, metrics_keys_aggregations):
         """Get splits and unserialize them
 
-        :param metric: The metric to retrieve.
-        :param keys_and_aggregations: A list of tuple (SplitKey, Aggregation)
-                                      to retrieve.
-        :return: A list of AggregatedTimeSerie.
+        :param metrics_keys_aggregations: A dict where keys are
+                                         `storage.Metric` and values are tuples
+                                          of (SplitKey, Aggregation) to
+                                          retrieve.
+        :return: A dict where keys are `storage.Metric` and values are lists
+                 of `carbonara.AggregatedTimeSerie`.
         """
-        if not keys_and_aggregations:
-            return []
-        raw_measures = self._get_measures(metric, keys_and_aggregations)
-        results = []
-        for (key, aggregation), raw in six.moves.zip(
-                keys_and_aggregations, raw_measures):
-            try:
-                ts = carbonara.AggregatedTimeSerie.unserialize(
-                    raw, key, aggregation)
-            except carbonara.InvalidData:
-                LOG.error("Data corruption detected for %s "
-                          "aggregated `%s' timeserie, granularity `%s' "
-                          "around time `%s', ignoring.",
-                          metric.id, aggregation.method, key.sampling, key)
-                ts = carbonara.AggregatedTimeSerie(aggregation)
-            results.append(ts)
+        raw_measures = self._get_splits(metrics_keys_aggregations)
+        results = collections.defaultdict(list)
+        for metric, keys_and_aggregations in six.iteritems(
+                metrics_keys_aggregations):
+            for (key, aggregation), raw in six.moves.zip(
+                    keys_and_aggregations, raw_measures[metric]):
+                try:
+                    ts = carbonara.AggregatedTimeSerie.unserialize(
+                        raw, key, aggregation)
+                except carbonara.InvalidData:
+                    LOG.error("Data corruption detected for %s "
+                              "aggregated `%s' timeserie, granularity `%s' "
+                              "around time `%s', ignoring.",
+                              metric.id, aggregation.method, key.sampling, key)
+                    ts = carbonara.AggregatedTimeSerie(aggregation)
+                results[metric].append(ts)
         return results
 
     def _get_measures_timeserie(self, metric, aggregation, keys,
@@ -295,7 +365,7 @@ class StorageDriver(object):
         ]
 
         timeseries = self._get_splits_and_unserialize(
-            metric, keys_and_aggregations)
+            {metric: keys_and_aggregations})[metric]
 
         ts = carbonara.AggregatedTimeSerie.from_timeseries(
             timeseries, aggregation)
@@ -311,48 +381,71 @@ class StorageDriver(object):
             ts.truncate(aggregation.timespan)
         return ts
 
-    def _store_timeserie_splits(self, metric, keys_and_aggregations_and_splits,
-                                oldest_mutable_timestamp):
-        keys_to_rewrite = []
-        splits_to_rewrite = []
-        for (key, aggregation), split in six.iteritems(
-                keys_and_aggregations_and_splits):
-            # NOTE(jd) We write the full split only if the driver works that
-            # way (self.WRITE_FULL) or if the oldest_mutable_timestamp is out
-            # of range.
-            write_full = (
-                self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
-            )
-            if write_full:
-                keys_to_rewrite.append(key)
-                splits_to_rewrite.append(split)
+    def _update_metric_splits(self, metrics_keys_aggregations_splits):
+        """Store splits of `carbonara.`AggregatedTimeSerie` for a metric.
 
-        # Update the splits that were passed as argument with the data already
-        # stored in the case that we need to rewrite them fully.
-        # First, fetch all those existing splits.
-        existing_data = self._get_splits_and_unserialize(
-            metric, [(key, split.aggregation)
-                     for key, split
-                     in six.moves.zip(keys_to_rewrite, splits_to_rewrite)])
+        This reads the existing split and merge it with the new one give as
+        argument, then writing it to the storage.
 
-        for key, split, existing in six.moves.zip(
-                keys_to_rewrite, splits_to_rewrite, existing_data):
-            if existing:
-                existing.merge(split)
-                keys_and_aggregations_and_splits[
-                    (key, split.aggregation)] = existing
+        :param metrics_keys_aggregations_splits: A dict where keys are
+                                                 `storage.Metric` and values
+                                                 are tuples of the form
+                                                 ({(key, aggregation): split},
+                                                  oldest_mutable_timestamp)
+        """
+        metrics_splits_to_store = {}
+        splits_to_get = {}
 
-        keys_aggregations_data_offset = []
-        for (key, aggregation), split in six.iteritems(
-                keys_and_aggregations_and_splits):
-            # Do not store the split if it's empty.
-            if split:
-                offset, data = split.serialize(
-                    key, compressed=key in keys_to_rewrite)
-                keys_aggregations_data_offset.append(
-                    (key, split.aggregation, data, offset))
+        for metric, (keys_and_aggregations_and_splits,
+                     oldest_mutable_timestamp) in six.iteritems(
+                         metrics_keys_aggregations_splits):
+            keys_to_rewrite = []
+            splits_to_rewrite = []
+            for (key, aggregation), split in six.iteritems(
+                    keys_and_aggregations_and_splits):
+                # NOTE(jd) We write the full split only if the driver works
+                # that way (self.WRITE_FULL) or if the oldest_mutable_timestamp
+                # is out of range.
+                write_full = (
+                    self.WRITE_FULL or next(key) <= oldest_mutable_timestamp
+                )
+                if write_full:
+                    keys_to_rewrite.append(key)
+                    splits_to_rewrite.append(split)
 
-        return self._store_metric_splits(metric, keys_aggregations_data_offset)
+            # Update the splits that were passed as argument with the data
+            # already stored in the case that we need to rewrite them fully.
+            # First, fetch all those existing splits.
+            splits_to_get[metric] = [
+                (key, split.aggregation)
+                for key, split
+                in six.moves.zip(keys_to_rewrite, splits_to_rewrite)
+            ]
+
+        existing_data = self._get_splits_and_unserialize(splits_to_get)
+
+        for metric, (keys_and_aggregations_and_splits,
+                     oldest_mutable_timestamp) in six.iteritems(
+                         metrics_keys_aggregations_splits):
+            for key, split, existing in six.moves.zip(
+                    keys_to_rewrite, splits_to_rewrite, existing_data[metric]):
+                if existing:
+                    existing.merge(split)
+                    keys_and_aggregations_and_splits[
+                        (key, split.aggregation)] = existing
+
+            keys_aggregations_data_offset = []
+            for (key, aggregation), split in six.iteritems(
+                    keys_and_aggregations_and_splits):
+                # Do not store the split if it's empty.
+                if split:
+                    offset, data = split.serialize(
+                        key, compressed=key in keys_to_rewrite)
+                    keys_aggregations_data_offset.append(
+                        (key, split.aggregation, data, offset))
+            metrics_splits_to_store[metric] = keys_aggregations_data_offset
+
+        return self._store_metric_splits(metrics_splits_to_store)
 
     def _compute_split_operations(self, metric, aggregations_and_timeseries,
                                   previous_oldest_mutable_timestamp,
@@ -407,7 +500,7 @@ class StorageDriver(object):
                     aggregations_needing_list_of_keys.add(aggregation)
 
         all_existing_keys = self._list_split_keys(
-            metric, aggregations_needing_list_of_keys)
+            {metric: aggregations_needing_list_of_keys})[metric]
 
         # NOTE(jd) This dict uses (key, aggregation) tuples as keys because
         # using just (key) would not carry the aggregation method and therefore
@@ -481,126 +574,142 @@ class StorageDriver(object):
     def _delete_metric_splits_unbatched(metric, keys, aggregation, version=3):
         raise NotImplementedError
 
-    def _delete_metric_splits(self, metric, keys_and_aggregations, version=3):
+    def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
+        """Delete splits of metrics.
+
+        :param metrics_keys_aggregations: A dict where keys are
+                                         `storage.Metric` and values are lists
+                                         of (key, aggregation) tuples.
+        """
         utils.parallel_map(
             utils.return_none_on_failure(self._delete_metric_splits_unbatched),
             ((metric, key, aggregation)
+             for metric, keys_and_aggregations
+             in six.iteritems(metrics_keys_aggregations)
              for key, aggregation in keys_and_aggregations))
 
-    def compute_and_store_timeseries(self, metric, measures):
-        # NOTE(mnaser): The metric could have been handled by
-        #               another worker, ignore if no measures.
-        if len(measures) == 0:
-            LOG.debug("Skipping %s (already processed)", metric)
-            return
+    def add_measures_to_metrics(self, metrics_and_measures):
+        """Update a metric with a new measures, computing new aggregations.
 
-        measures = numpy.sort(measures, order='timestamps')
+        :param metrics_and_measures: A dict there keys are `storage.Metric`
+                                     objects and values are timeseries array of
+                                     the new measures.
+        """
+        with self.statistics.time("raw measures fetch"):
+            raw_measures = self._get_or_create_unaggregated_timeseries(
+                metrics_and_measures.keys())
+        self.statistics["raw measures fetch"] += len(metrics_and_measures)
+        self.statistics["processed measures"] += sum(
+            map(len, metrics_and_measures.values()))
 
-        agg_methods = list(metric.archive_policy.aggregation_methods)
-        block_size = metric.archive_policy.max_block_size
-        back_window = metric.archive_policy.back_window
-        definition = metric.archive_policy.definition
-        # NOTE(sileht): We keep one more blocks to calculate rate of change
-        # correctly
-        if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
-            back_window += 1
+        new_boundts = []
+        splits_to_delete = {}
+        splits_to_update = {}
 
-        with utils.StopWatch() as sw:
-            raw_measures = (
-                self._get_or_create_unaggregated_timeseries(
-                    [metric])[metric]
-            )
-        LOG.debug("Retrieve unaggregated measures for %s in %.2fs",
-                  metric.id, sw.elapsed())
+        for metric, measures in six.iteritems(metrics_and_measures):
+            if len(measures) == 0:
+                continue
 
-        if raw_measures is None:
-            ts = None
-        else:
-            try:
-                ts = carbonara.BoundTimeSerie.unserialize(
-                    raw_measures, block_size, back_window)
-            except carbonara.InvalidData:
-                LOG.error("Data corruption detected for %s "
-                          "unaggregated timeserie, creating a new one",
-                          metric.id)
+            measures = numpy.sort(measures, order='timestamps')
+
+            agg_methods = list(metric.archive_policy.aggregation_methods)
+            block_size = metric.archive_policy.max_block_size
+            back_window = metric.archive_policy.back_window
+            # NOTE(sileht): We keep one more blocks to calculate rate of change
+            # correctly
+            if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+                back_window += 1
+
+            if raw_measures[metric] is None:
                 ts = None
+            else:
+                try:
+                    ts = carbonara.BoundTimeSerie.unserialize(
+                        raw_measures[metric], block_size, back_window)
+                except carbonara.InvalidData:
+                    LOG.error("Data corruption detected for %s "
+                              "unaggregated timeserie, creating a new one",
+                              metric.id)
+                    ts = None
 
-        if ts is None:
-            # This is the first time we treat measures for this
-            # metric, or data are corrupted, create a new one
-            ts = carbonara.BoundTimeSerie(block_size=block_size,
-                                          back_window=back_window)
-            current_first_block_timestamp = None
-        else:
-            current_first_block_timestamp = ts.first_block_timestamp()
+            if ts is None:
+                # This is the first time we treat measures for this
+                # metric, or data are corrupted, create a new one
+                ts = carbonara.BoundTimeSerie(block_size=block_size,
+                                              back_window=back_window)
+                current_first_block_timestamp = None
+            else:
+                current_first_block_timestamp = ts.first_block_timestamp()
 
-        # NOTE(jd) This is Python where you need such
-        # hack to pass a variable around a closure,
-        # sorry.
-        computed_points = {"number": 0}
+            # NOTE(jd) This is Python where you need such
+            # hack to pass a variable around a closure,
+            # sorry.
+            computed_points = {"number": 0}
 
-        def _map_compute_splits_operations(bound_timeserie):
-            # NOTE (gordc): bound_timeserie is entire set of
-            # unaggregated measures matching largest
-            # granularity. the following takes only the points
-            # affected by new measures for specific granularity
-            tstamp = max(bound_timeserie.first, measures['timestamps'][0])
-            new_first_block_timestamp = bound_timeserie.first_block_timestamp()
-            computed_points['number'] = len(bound_timeserie)
+            def _map_compute_splits_operations(bound_timeserie):
+                # NOTE (gordc): bound_timeserie is entire set of
+                # unaggregated measures matching largest
+                # granularity. the following takes only the points
+                # affected by new measures for specific granularity
+                tstamp = max(bound_timeserie.first, measures['timestamps'][0])
+                new_first_block_timestamp = (
+                    bound_timeserie.first_block_timestamp()
+                )
+                computed_points['number'] = len(bound_timeserie)
 
-            aggregations = metric.archive_policy.aggregations
+                aggregations = metric.archive_policy.aggregations
 
-            grouped_timeseries = {
-                granularity: bound_timeserie.group_serie(
-                    granularity,
-                    carbonara.round_timestamp(tstamp, granularity))
-                for granularity, aggregations
-                # No need to sort the aggregation, they are already
-                in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
-            }
+                grouped_timeseries = {
+                    granularity: bound_timeserie.group_serie(
+                        granularity,
+                        carbonara.round_timestamp(tstamp, granularity))
+                    for granularity, aggregations
+                    # No need to sort the aggregation, they are already
+                    in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
+                }
 
-            aggregations_and_timeseries = {
-                aggregation: carbonara.AggregatedTimeSerie.from_grouped_serie(
-                    grouped_timeseries[aggregation.granularity], aggregation)
-                for aggregation in aggregations
-            }
+                aggregations_and_timeseries = {
+                    aggregation:
+                    carbonara.AggregatedTimeSerie.from_grouped_serie(
+                        grouped_timeseries[aggregation.granularity],
+                        aggregation)
+                    for aggregation in aggregations
+                }
 
-            deleted_keys, keys_and_split_to_store = (
-                self._compute_split_operations(
-                    metric, aggregations_and_timeseries,
-                    current_first_block_timestamp,
-                    new_first_block_timestamp)
-            )
+                deleted_keys, keys_and_split_to_store = (
+                    self._compute_split_operations(
+                        metric, aggregations_and_timeseries,
+                        current_first_block_timestamp,
+                        new_first_block_timestamp)
+                )
 
-            return (new_first_block_timestamp,
-                    deleted_keys,
-                    keys_and_split_to_store)
+                return (new_first_block_timestamp,
+                        deleted_keys,
+                        keys_and_split_to_store)
 
-        with utils.StopWatch() as sw:
-            (new_first_block_timestamp,
-             deleted_keys,
-             keys_and_splits_to_store) = ts.set_values(
-                 measures,
-                 before_truncate_callback=_map_compute_splits_operations,
-            )
-            self._delete_metric_splits(metric, deleted_keys)
-            self._store_timeserie_splits(metric, keys_and_splits_to_store,
-                                         new_first_block_timestamp)
+            with self.statistics.time("aggregated measures compute"):
+                (new_first_block_timestamp,
+                 deleted_keys,
+                 keys_and_splits_to_store) = ts.set_values(
+                     measures,
+                     before_truncate_callback=_map_compute_splits_operations,
+                )
 
-        number_of_operations = (len(agg_methods) * len(definition))
-        perf = ""
-        elapsed = sw.elapsed()
-        if elapsed > 0:
-            perf = " (%d points/s, %d measures/s)" % (
-                ((number_of_operations * computed_points['number']) /
-                    elapsed),
-                ((number_of_operations * len(measures)) / elapsed)
-            )
-        LOG.debug("Computed new metric %s with %d new measures "
-                  "in %.2f seconds%s",
-                  metric.id, len(measures), elapsed, perf)
+            splits_to_delete[metric] = deleted_keys
+            splits_to_update[metric] = (keys_and_splits_to_store,
+                                        new_first_block_timestamp)
 
-        self._store_unaggregated_timeseries([(metric, ts.serialize())])
+            new_boundts.append((metric, ts.serialize()))
+
+        with self.statistics.time("splits delete"):
+            self._delete_metric_splits(splits_to_delete)
+        self.statistics["splits delete"] += len(splits_to_delete)
+        with self.statistics.time("splits update"):
+            self._update_metric_splits(splits_to_update)
+        self.statistics["splits delete"] += len(splits_to_update)
+        with self.statistics.time("raw measures store"):
+            self._store_unaggregated_timeseries(new_boundts)
+        self.statistics["raw measures store"] += len(new_boundts)
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):

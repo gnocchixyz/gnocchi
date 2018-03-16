@@ -120,14 +120,13 @@ class S3Storage(storage.StorageDriver):
                 wait=self._consistency_wait,
                 stop=self._consistency_stop)(_head)
 
-    def _store_metric_splits(self, metric, keys_aggregations_data_offset,
-                             version=3):
-        for key, aggregation, data, offset in keys_aggregations_data_offset:
-            self._put_object_safe(
-                Bucket=self._bucket_name,
-                Key=self._prefix(metric) + self._object_name(
-                    key, aggregation.method, version),
-                Body=data)
+    def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
+                                       offset, version):
+        self._put_object_safe(
+            Bucket=self._bucket_name,
+            Key=self._prefix(metric) + self._object_name(
+                key, aggregation.method, version),
+            Body=data)
 
     def _delete_metric_splits_unbatched(self, metric, key, aggregation,
                                         version=3):
@@ -157,7 +156,7 @@ class S3Storage(storage.StorageDriver):
             s3.bulk_delete(self.s3, bucket,
                            [c['Key'] for c in response.get('Contents', ())])
 
-    def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
@@ -179,7 +178,7 @@ class S3Storage(storage.StorageDriver):
             raise
         return True
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         bucket = self._bucket_name
         keys = {}
         for aggregation in aggregations:
