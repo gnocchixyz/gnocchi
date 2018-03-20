@@ -42,7 +42,8 @@ def pbr_compat(v):
 
 
 setuptools.setup(
-    setup_requires=['setuptools>=30.3.0', 'setuptools_scm'],
+    setup_requires=['setuptools>=30.3.0',
+                    'setuptools_scm!=1.16.0,!=1.16.1,!=1.16.2'],
     use_scm_version={'version_scheme': pbr_compat},
     cmdclass=cmdclass,
 )
