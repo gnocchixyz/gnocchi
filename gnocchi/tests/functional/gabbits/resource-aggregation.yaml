@@ -80,7 +80,7 @@ tests:
     - name: create resource 3
       POST: /v1/resource/generic
       data:
-        id: 33333BC5-5948-4F29-B7DF-7DE607660452
+        id: 0FB0B7CD-9A41-4A76-8B2E-BFC02843506A
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
@@ -89,7 +89,7 @@ tests:
       status: 201
 
     - name: post cpuutil measures 3
-      POST: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
+      POST: /v1/resource/generic/0FB0B7CD-9A41-4A76-8B2E-BFC02843506A/metric/cpu.util/measures
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 230
