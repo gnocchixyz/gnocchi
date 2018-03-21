@@ -166,19 +166,39 @@ class StorageDriver(object):
             ((metric, data, version) for metric, data in metrics_and_data))
 
     @staticmethod
-    def _store_metric_splits(metric, keys_aggregations_data_offset, version=3):
-        """Store metric split.
+    def _store_metric_splits_unbatched(metric, key, aggregation, data, offset,
+                                       version=3):
+        """Store a metric split.
 
-        Store a bunch of splits for a metric.
-
-        :param metric: The metric to store for
-        :param keys_aggregations_data_offset: A list of
-                                             (key, aggregation, data, offset)
-                                             tuples
-
+        :param metric: A metric.
+        :param key: The `carbonara.SplitKey`.
+        :param aggregation: The `carbonara.Aggregation`.
+        :param data: The actual data to write.
+        :param offset: The offset to write to.
         :param version: Storage engine format version.
         """
         raise NotImplementedError
+
+    def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
+                             version=3):
+        """Store metric splits.
+
+        Store a bunch of splits for some metrics.
+
+        :param metrics_keys_aggregations_data_offset: A dict where keys are
+                                                      `storage.Metric` and
+                                                      values are a list of
+                                                      (key, aggregation,
+                                                       data, offset) tuples.
+        :param version: Storage engine format version.
+        """
+        utils.parallel_map(
+            self._store_metric_splits_unbatched,
+            ((metric, key, aggregation, data, offset, version)
+             for metric, keys_aggregations_data_offset
+             in six.iteritems(metrics_keys_aggregations_data_offset)
+             for key, aggregation, data, offset
+             in keys_aggregations_data_offset))
 
     @staticmethod
     def _list_split_keys(metric, aggregations, version=3):
@@ -352,7 +372,8 @@ class StorageDriver(object):
                 keys_aggregations_data_offset.append(
                     (key, split.aggregation, data, offset))
 
-        return self._store_metric_splits(metric, keys_aggregations_data_offset)
+        return self._store_metric_splits(
+            {metric: keys_aggregations_data_offset})
 
     def _compute_split_operations(self, metric, aggregations_and_timeseries,
                                   previous_oldest_mutable_timestamp,
