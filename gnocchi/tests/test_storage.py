@@ -254,7 +254,10 @@ class TestStorageDriver(tests_base.TestCase):
         aggregations = self.metric.archive_policy.aggregations
 
         measures = self.storage.get_aggregated_measures(
-            self.metric, aggregations)
+            {self.metric: aggregations})
+        self.assertEqual(1, len(measures))
+        self.assertIn(self.metric, measures)
+        measures = measures[self.metric]
         self.assertEqual(len(aggregations), len(measures))
         self.assertGreater(len(measures[aggregations[0]]), 0)
         for agg in aggregations:

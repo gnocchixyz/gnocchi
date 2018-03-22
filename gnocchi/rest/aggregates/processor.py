@@ -56,9 +56,8 @@ def _get_measures_timeserie(storage, ref, granularity, *args, **kwargs):
         ref.aggregation, granularity)
     try:
         data = storage.get_aggregated_measures(
-            ref.metric,
-            [agg],
-            *args, **kwargs)[agg]
+            {ref.metric: [agg]},
+            *args, **kwargs)[ref.metric][agg]
     except gnocchi_storage.MetricDoesNotExist:
         data = carbonara.AggregatedTimeSerie(
             carbonara.Aggregation(ref.aggregation, granularity, None))

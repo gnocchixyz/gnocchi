@@ -258,7 +258,7 @@ class StorageDriver(object):
                  a set of `carbonara.SplitKey` objects.
         """
         metrics = list(metrics_and_aggregations.keys())
-        r = utils.parallel_map(
+        r = self.MAP_METHOD(
             self._list_split_keys_unbatched,
             ((metric, metrics_and_aggregations[metric], version)
              for metric in metrics))
@@ -276,24 +276,60 @@ class StorageDriver(object):
         """
         return name.split("_")[-1] == 'v%s' % v
 
-    def get_aggregated_measures(self, metric, aggregations,
+    def get_aggregated_measures(self, metrics_and_aggregations,
                                 from_timestamp=None, to_timestamp=None):
         """Get aggregated measures from a metric.
 
-        :param metric: The metric measured.
-        :param aggregations: The aggregations to retrieve.
+        :param metrics_and_aggregations: The metrics and aggregations to
+                                         retrieve in format
+                                         {metric: [aggregation, …]}.
         :param from timestamp: The timestamp to get the measure from.
         :param to timestamp: The timestamp to get the measure to.
         """
-        keys = self._list_split_keys({metric: aggregations})[metric]
-        timeseries = self.MAP_METHOD(
-            self._get_measures_timeserie,
-            ((metric, agg, keys[agg], from_timestamp, to_timestamp)
-             for agg in aggregations))
-        return {
-            agg: ts.fetch(from_timestamp, to_timestamp)
-            for agg, ts in six.moves.zip(aggregations, timeseries)
-        }
+        metrics_aggs_keys = self._list_split_keys(metrics_and_aggregations)
+
+        for metric, aggregations_keys in six.iteritems(metrics_aggs_keys):
+            for aggregation, keys in six.iteritems(aggregations_keys):
+                start = (
+                    carbonara.SplitKey.from_timestamp_and_sampling(
+                        from_timestamp, aggregation.granularity)
+                ) if from_timestamp else None
+
+                stop = (
+                    carbonara.SplitKey.from_timestamp_and_sampling(
+                        to_timestamp, aggregation.granularity)
+                ) if to_timestamp else None
+
+                # Replace keys with filtered version
+                metrics_aggs_keys[metric][aggregation] = [
+                    key for key in sorted(keys)
+                    if ((not start or key >= start)
+                        and (not stop or key <= stop))
+                ]
+
+        metrics_aggregations_splits = self._get_splits_and_unserialize(
+            metrics_aggs_keys)
+
+        results = collections.defaultdict(dict)
+        for metric, aggregations in six.iteritems(metrics_and_aggregations):
+            for aggregation in aggregations:
+                ts = carbonara.AggregatedTimeSerie.from_timeseries(
+                    metrics_aggregations_splits[metric][aggregation],
+                    aggregation)
+                # We need to truncate because:
+                # - If the driver is not in WRITE_FULL mode, then it might read
+                # too much data that will be deleted once the split is
+                # rewritten. Just truncate so we don't return it.
+                # - If the driver is in WRITE_FULL but the archive policy has
+                # been resized, we might still have too much points stored,
+                # which will be deleted at a later point when new points will
+                # be processed. Truncate to be sure we don't return them.
+                if aggregation.timespan is not None:
+                    ts.truncate(aggregation.timespan)
+                results[metric][aggregation] = ts.fetch(
+                    from_timestamp, to_timestamp)
+
+        return results
 
     def get_measures(self, metric, aggregations,
                      from_timestamp=None, to_timestamp=None,
@@ -309,7 +345,7 @@ class StorageDriver(object):
         :param resample: The granularity to resample to.
         """
         timeseries = self.get_aggregated_measures(
-            metric, aggregations, from_timestamp, to_timestamp)
+            {metric: aggregations}, from_timestamp, to_timestamp)[metric]
 
         if resample:
             for agg, ts in six.iteritems(timeseries):
@@ -356,40 +392,6 @@ class StorageDriver(object):
                         ts = carbonara.AggregatedTimeSerie(aggregation)
                     results[metric][aggregation].append(ts)
         return results
-
-    def _get_measures_timeserie(self, metric, aggregation, keys,
-                                from_timestamp=None, to_timestamp=None):
-        if from_timestamp:
-            from_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                from_timestamp, aggregation.granularity)
-
-        if to_timestamp:
-            to_timestamp = carbonara.SplitKey.from_timestamp_and_sampling(
-                to_timestamp, aggregation.granularity)
-
-        keys = [
-            key for key in sorted(keys)
-            if ((not from_timestamp or key >= from_timestamp)
-                and (not to_timestamp or key <= to_timestamp))
-        ]
-
-        timeseries = self._get_splits_and_unserialize(
-            {metric: {aggregation: keys}}
-        )[metric][aggregation]
-
-        ts = carbonara.AggregatedTimeSerie.from_timeseries(
-            timeseries, aggregation)
-        # We need to truncate because:
-        # - If the driver is not in WRITE_FULL mode, then it might read too
-        # much data that will be deleted once the split is rewritten. Just
-        # truncate so we don't return it.
-        # - If the driver is in WRITE_FULL but the archive policy has been
-        # resized, we might still have too much points stored, which will be
-        # deleted at a later point when new points will be procecessed.
-        # Truncate to be sure we don't return them.
-        if aggregation.timespan is not None:
-            ts.truncate(aggregation.timespan)
-        return ts
 
     def _update_metric_splits(self, metrics_keys_aggregations_splits):
         """Store splits of `carbonara.`AggregatedTimeSerie` for a metric.
@@ -722,7 +724,7 @@ class StorageDriver(object):
 
         try:
             ts = self.get_aggregated_measures(
-                metric, [agg], from_timestamp, to_timestamp)[agg]
+                {metric: [agg]}, from_timestamp, to_timestamp)[metric][agg]
         except MetricDoesNotExist:
             return []
         return [(timestamp, ts.aggregation.granularity, value)
