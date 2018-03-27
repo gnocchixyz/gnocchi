@@ -1106,6 +1106,8 @@ class ResourcesController(rest.RestController):
             abort(400, six.text_type(e))
         except indexer.ResourceAlreadyExists as e:
             abort(409, six.text_type(e))
+        except indexer.UnexpectedResourceTypeState as e:
+            abort(500, e)
         set_resp_location_hdr("/resource/"
                               + self._resource_type + "/"
                               + six.text_type(resource.id))

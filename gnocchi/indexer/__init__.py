@@ -192,6 +192,15 @@ class UnexpectedResourceTypeState(IndexerException):
         self.expected_state = expected_state
         self.state = state
 
+    def jsonify(self):
+        return {
+            "cause": "Resource type has an unexpected state",
+            "detail": {
+                "expected_state": self.expected_state,
+                "current_state": self.state
+            },
+        }
+
 
 class NoSuchArchivePolicyRule(IndexerException):
     """Error raised when an archive policy rule does not exist."""
