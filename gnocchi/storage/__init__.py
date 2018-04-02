@@ -322,10 +322,10 @@ class StorageDriver(object):
         if oldest_point_to_keep is not None:
             split.truncate(oldest_point_to_keep)
 
-        offset, data = split.serialize(key, compressed=write_full)
-
-        return self._store_metric_measures(metric, key, aggregation,
-                                           data, offset=offset)
+        if split:
+            offset, data = split.serialize(key, compressed=write_full)
+            self._store_metric_measures(metric, key, aggregation,
+                                        data, offset=offset)
 
     def _add_measures(self, aggregation, ap_def, metric, grouped_serie,
                       previous_oldest_mutable_timestamp,
