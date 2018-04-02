@@ -127,13 +127,14 @@ class Chef(object):
                 LOG.debug("Processing measures for %d metrics", len(metrics))
                 with self.incoming.process_measure_for_metrics(
                         metrics) as metrics_and_measures:
-                    self.storage.add_measures_to_metrics({
-                        metrics_by_id[metric]: measures
-                        for metric, measures
-                        in six.iteritems(metrics_and_measures)
-                    })
-                    LOG.debug("Measures for %d metrics processed",
-                              len(metrics))
+                    if metrics_and_measures:
+                        self.storage.add_measures_to_metrics({
+                            metrics_by_id[metric]: measures
+                            for metric, measures
+                            in six.iteritems(metrics_and_measures)
+                        })
+                        LOG.debug("Measures for %d metrics processed",
+                                  len(metrics))
             except Exception:
                 if sync:
                     raise
@@ -162,6 +163,9 @@ class Chef(object):
             with self.incoming.process_measures_for_sack(sack) as measures:
                 # process only active metrics. deleted metrics with unprocessed
                 # measures will be skipped until cleaned by janitor.
+                if not measures:
+                    return 0
+
                 metrics = self.index.list_metrics(
                     attribute_filter={
                         "in": {"id": measures.keys()}
