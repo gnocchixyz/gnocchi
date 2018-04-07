@@ -218,7 +218,7 @@ class TimeSerie(object):
         self.ts = ts
 
     def __iter__(self):
-        return (tuple(i) for i in self.ts)
+        return six.moves.zip(self.ts['timestamps'], self.ts['values'])
 
     @classmethod
     def from_data(cls, timestamps=None, values=None):
