@@ -73,7 +73,7 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
-        self.chef.refresh_metrics([metric], sync=True)
+        self.chef.refresh_metrics([metric], timeout=True, sync=True)
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
@@ -92,7 +92,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.chef.refresh_metrics([metric], sync=True)
+        self.chef.refresh_metrics([metric], timeout=True, sync=True)
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
@@ -124,7 +124,7 @@ class TestStatsd(tests_base.TestCase):
         metric = r.get_metric(metric_key)
         self.assertIsNotNone(metric)
 
-        self.chef.refresh_metrics([metric], sync=True)
+        self.chef.refresh_metrics([metric], timeout=True, sync=True)
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
@@ -142,7 +142,7 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
-        self.chef.refresh_metrics([metric], sync=True)
+        self.chef.refresh_metrics([metric], timeout=True, sync=True)
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
