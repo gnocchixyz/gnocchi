@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The API offered several features that accepted option via the the use of
+    the `Accept` header. This usage was not compatible with the RFC7231 and has
+    therefore been removed. This created compatibility problem with WebOb 1.8.0
+    and above.
