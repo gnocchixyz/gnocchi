@@ -534,19 +534,11 @@
 
     {"=": {"id": "{{ scenarios['create-resource-instance']['response'].json['id'] }}"}}
 
-- name: search-resource-history-in-accept
-  request: |
-    POST /v1/search/resource/instance HTTP/1.1
-    Content-Type: application/json
-    Accept: application/json; history=true
-
-    {"=": {"id": "{{ scenarios['create-resource-instance']['response'].json['id'] }}"}}
-
 - name: search-resource-history-partial
   request: |
-    POST /v1/search/resource/instance HTTP/1.1
+    POST /v1/search/resource/instance?history=true HTTP/1.1
     Content-Type: application/json
-    Accept: application/json; history=true
+    Accept: application/json
 
     {"and": [
         {"=": {"host": "compute1"}},
@@ -558,9 +550,9 @@
 - name: search-resource-history-partial-filter
   filter: host = 'compute1' and revision_start >= "{{ scenarios['get-instance']['response'].json['revision_start'] }}" and (revision_end <= "{{ scenarios['get-patched-instance']['response'].json['revision_start'] }}" or revision_end == null)
   request: |
-    POST /v1/search/resource/instance?filter={{ scenarios['search-resource-history-partial-filter']['filter'] | urlencode }} HTTP/1.1
+    POST /v1/search/resource/instance?history=true&filter={{ scenarios['search-resource-history-partial-filter']['filter'] | urlencode }} HTTP/1.1
     Content-Type: application/json
-    Accept: application/json; history=true
+    Accept: application/json
 
     {"and": [
         {"=": {"host": "compute1"}},

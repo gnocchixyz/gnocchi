@@ -1150,8 +1150,8 @@ class ResourceTest(RestTest):
 
         # Check the history
         history = self.app.post_json(
-            "/v1/search/resource/" + self.resource_type,
-            headers={"Accept": "application/json; history=true"},
+            "/v1/search/resource/" + self.resource_type + "?history=true",
+            headers={"Accept": "application/json"},
             params={"=": {"id": result['id']}},
             status=200)
         history = json.loads(history.text)
@@ -1338,8 +1338,8 @@ class ResourceTest(RestTest):
         self.assertEqual(result, resources[0])
 
         resources = self.app.post_json(
-            "/v1/search/resource/" + self.resource_type,
-            headers={"Accept": "application/json; history=true"},
+            "/v1/search/resource/" + self.resource_type + "?history=true",
+            headers={"Accept": "application/json"},
             params={"and": [
                 {"=": {"id": result['id']}},
                 {"or": [{">=": {"revision_end": '2014-01-03T02:02:02'}},
@@ -1492,16 +1492,6 @@ class ResourceTest(RestTest):
             b"Unable to parse `details': invalid truth value",
             result.body)
 
-    def test_list_resources_with_bad_details_in_accept(self):
-        result = self.app.get("/v1/resource/generic",
-                              headers={
-                                  "Accept": "application/json; details=foo",
-                              },
-                              status=400)
-        self.assertIn(
-            b"Unable to parse `Accept header': invalid truth value",
-            result.body)
-
     def _do_test_list_resources_with_detail(self, request):
         # NOTE(jd) So this test is a bit fuzzy right now as we uses the same
         # database for all tests and the tests are running concurrently, but
@@ -1594,21 +1584,9 @@ class ResourceTest(RestTest):
         self._do_test_list_resources_with_detail(
             lambda: self.app.get("/v1/resource/generic?details=true"))
 
-    def test_list_resources_with_details_via_accept(self):
-        self._do_test_list_resources_with_detail(
-            lambda: self.app.get(
-                "/v1/resource/generic",
-                headers={"Accept": "application/json; details=true"}))
-
     def test_search_resources_with_details(self):
         self._do_test_list_resources_with_detail(
             lambda: self.app.post("/v1/search/resource/generic?details=true"))
-
-    def test_search_resources_with_details_via_accept(self):
-        self._do_test_list_resources_with_detail(
-            lambda: self.app.post(
-                "/v1/search/resource/generic",
-                headers={"Accept": "application/json; details=true"}))
 
     def test_get_res_named_metric_measure_aggregated_policies_invalid(self):
         result = self.app.post_json("/v1/metric",
