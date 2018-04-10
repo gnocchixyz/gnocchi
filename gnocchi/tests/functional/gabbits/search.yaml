@@ -232,28 +232,6 @@ tests:
         $[0].`len`: 13
         $[1].`len`: 13
 
-    - name: search all resource with attrs header
-      POST: /v1/search/resource/generic
-      data: {}
-      request_headers:
-        Accept: "application/json; attrs=id+started_at+user_id"
-      response_json_paths:
-        $[0].`len`: 3
-        $[0].id: $RESPONSE['$[0].id']
-        $[0].started_at: $RESPONSE['$[0].started_at']
-        $[0].user_id: $RESPONSE['$[0].user_id']
-        $[1].`len`: 3
-
-    - name: search all resource with invalid attrs header
-      POST: /v1/search/resource/generic
-      data: {}
-      request_headers:
-        Accept: "application/json; attrs=id+foo+bar"
-      response_json_paths:
-        $[0].`len`: 1
-        $[0].id: $RESPONSE['$[0].id']
-        $[1].`len`: 1
-
     - name: search all resource without attrs header
       POST: /v1/search/resource/generic
       data: {}

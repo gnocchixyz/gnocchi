@@ -73,9 +73,7 @@ tests:
           $[0].project_id: fe20a931-1012-4cc6-addc-39556ec60907
 
     - name: list all resources with history
-      GET: $LAST_URL
-      request_headers:
-          accept: application/json; details=True; history=True
+      GET: $LAST_URL?details=true&history=true
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
@@ -97,9 +95,7 @@ tests:
       status: 200
 
     - name: list all resources with history no change after metrics update
-      GET: /v1/resource/generic
-      request_headers:
-          accept: application/json; details=True; history=True
+      GET: /v1/resource/generic?details=true&history=true
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
@@ -123,9 +119,7 @@ tests:
           $[/name][1].resource_id: f93450f2-d8a5-4d67-9985-02511241e7d1
 
     - name: list all resources with history no change after metrics creation
-      GET: /v1/resource/generic
-      request_headers:
-          accept: application/json; details=True; history=True
+      GET: /v1/resource/generic?history=true&details=true
       response_json_paths:
           $.`len`: 3
           $[0].id: f93450f2-d8a5-4d67-9985-02511241e7d1
