@@ -196,7 +196,7 @@ class AggregatesController(rest.RestController):
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
              needed_overlap=None, fill=None, groupby=None, **kwargs):
-        details = api.get_details(kwargs)
+        details = api.get_bool_param('details', kwargs)
 
         if fill is None and needed_overlap is None:
             fill = "dropna"
