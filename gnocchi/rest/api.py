@@ -181,37 +181,8 @@ def Timespan(value):
         raise voluptuous.Invalid(e)
 
 
-def get_header_option(name, params):
-    type, options = werkzeug.http.parse_options_header(
-        pecan.request.headers.get('Accept'))
-    return strtobool('Accept header' if name in options else name,
-                     options.get(name, params.get(name, 'false')))
-
-
-def get_header_option_array(name, params):
-    type, options = werkzeug.http.parse_options_header(
-        pecan.request.headers.get('Accept'))
-    header_option = options.get(name, None)
-    post_option = params.get(name, None)
-
-    if post_option:
-        return arg_to_list(post_option)
-    elif header_option:
-        return header_option.split('+')
-    else:
-        return None
-
-
-def get_history(params):
-    return get_header_option('history', params)
-
-
-def get_details(params):
-    return get_header_option('details', params)
-
-
-def get_json_attrs(params):
-    return get_header_option_array('attrs', params)
+def get_bool_param(name, params, default='false'):
+    return strtobool(name, params.get(name, default))
 
 
 def strtobool(varname, v):
@@ -796,7 +767,7 @@ class ResourceHistoryController(rest.RestController):
 
     @pecan.expose('json')
     def get(self, **kwargs):
-        details = get_details(kwargs)
+        details = get_bool_param('details', kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
@@ -1144,11 +1115,11 @@ class ResourcesController(rest.RestController):
 
     @pecan.expose('json')
     def get_all(self, **kwargs):
-        details = get_details(kwargs)
-        history = get_history(kwargs)
+        details = get_bool_param('details', kwargs)
+        history = get_bool_param('history', kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
-        json_attrs = get_json_attrs(kwargs)
+        json_attrs = arg_to_list(kwargs.get('attrs', None))
         policy_filter = pecan.request.auth_helper.get_resource_policy_filter(
             pecan.request, "list resource", self._resource_type)
 
@@ -1377,8 +1348,8 @@ class SearchResourceTypeController(rest.RestController):
         else:
             attr_filter = None
 
-        details = get_details(kwargs)
-        history = get_history(kwargs)
+        details = get_bool_param('details', kwargs)
+        history = get_bool_param('history', kwargs)
         pagination_opts = get_pagination_options(
             kwargs, RESOURCE_DEFAULT_PAGINATION)
 
@@ -1410,7 +1381,7 @@ class SearchResourceTypeController(rest.RestController):
 
     @pecan.expose('json')
     def post(self, **kwargs):
-        json_attrs = get_json_attrs(kwargs)
+        json_attrs = arg_to_list(kwargs.get('attrs', None))
         try:
             return [r.jsonify(json_attrs) for r in self._search(**kwargs)]
         except indexer.IndexerException as e:
