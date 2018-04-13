@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import
 
+import logging
 import os
 import shutil
 import subprocess
@@ -26,7 +27,6 @@ from unittest import case
 import uuid
 import warnings
 
-import daiquiri
 import fixtures
 from gabbi import fixture
 import numpy
@@ -101,9 +101,9 @@ class ConfigFixture(fixture.GabbiFixture):
         else:
             dcf = []
         conf = service.prepare_service([], conf=utils.prepare_conf(),
-                                       default_config_files=dcf)
-        if not os.getenv("GNOCCHI_TEST_DEBUG"):
-            daiquiri.setup(outputs=[])
+                                       default_config_files=dcf,
+                                       logging_level=logging.DEBUG,
+                                       skip_log_opts=True)
 
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..', '..',))

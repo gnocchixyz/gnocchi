@@ -202,6 +202,16 @@ class CaptureOutput(fixtures.Fixture):
         self.stderr = self.useFixture(self._stderr_fixture).stream
         self.useFixture(fixtures.MonkeyPatch('sys.stderr', self.stderr))
 
+        self._logs_fixture = fixtures.StringStream('logs')
+        self.logs = self.useFixture(self._logs_fixture).stream
+        self.useFixture(fixtures.MonkeyPatch(
+            'daiquiri.output.STDERR', daiquiri.output.Stream(self.logs)))
+
+    @property
+    def output(self):
+        self.logs.seek(0)
+        return self.logs.read()
+
 
 class BaseTestCase(testcase.TestCase):
     def setUp(self):
@@ -268,36 +278,14 @@ class TestCase(BaseTestCase):
         ),
     }
 
-    @classmethod
-    def setUpClass(self):
-        super(TestCase, self).setUpClass()
+    def setUp(self):
+        super(TestCase, self).setUp()
 
         self.conf = service.prepare_service(
             [], conf=utils.prepare_conf(),
             default_config_files=[],
-            logging_level=logging.DEBUG)
-
-        if not os.getenv("GNOCCHI_TEST_DEBUG"):
-            daiquiri.setup(outputs=[])
-
-        py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                               '..',))
-        self.conf.set_override('paste_config',
-                               os.path.join(py_root, 'rest', 'api-paste.ini'),
-                               group="api")
-        self.conf.set_override('policy_file',
-                               os.path.join(py_root, 'rest', 'policy.json'),
-                               group="oslo_policy")
-
-        # NOTE(jd) This allows to test S3 on AWS
-        if not os.getenv("AWS_ACCESS_KEY_ID"):
-            self.conf.set_override('s3_endpoint_url',
-                                   os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
-                                   group="storage")
-            self.conf.set_override('s3_access_key_id', "gnocchi",
-                                   group="storage")
-            self.conf.set_override('s3_secret_access_key', "anythingworks",
-                                   group="storage")
+            logging_level=logging.DEBUG,
+            skip_log_opts=True)
 
         self.index = indexer.get_driver(self.conf)
 
@@ -321,15 +309,28 @@ class TestCase(BaseTestCase):
             except indexer.ArchivePolicyAlreadyExists:
                 pass
 
+        py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                               '..',))
+        self.conf.set_override('paste_config',
+                               os.path.join(py_root, 'rest', 'api-paste.ini'),
+                               group="api")
+        self.conf.set_override('policy_file',
+                               os.path.join(py_root, 'rest', 'policy.json'),
+                               group="oslo_policy")
+
+        # NOTE(jd) This allows to test S3 on AWS
+        if not os.getenv("AWS_ACCESS_KEY_ID"):
+            self.conf.set_override('s3_endpoint_url',
+                                   os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
+                                   group="storage")
+            self.conf.set_override('s3_access_key_id', "gnocchi",
+                                   group="storage")
+            self.conf.set_override('s3_secret_access_key', "anythingworks",
+                                   group="storage")
+
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
         self.conf.set_override('driver', storage_driver, 'storage')
-        if storage_driver == 'ceph':
-            self.conf.set_override('ceph_conffile',
-                                   os.getenv("CEPH_CONF"),
-                                   'storage')
 
-    def setUp(self):
-        super(TestCase, self).setUp()
         if swexc:
             self.useFixture(fixtures.MockPatch(
                 'swiftclient.client.Connection',
@@ -341,6 +342,9 @@ class TestCase(BaseTestCase):
                                    tempdir.path,
                                    'storage')
         elif self.conf.storage.driver == 'ceph':
+            self.conf.set_override('ceph_conffile',
+                                   os.getenv("CEPH_CONF"),
+                                   'storage')
             pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:
                 subprocess.call("rados -c %s mkpool %s" % (
@@ -372,12 +376,8 @@ class TestCase(BaseTestCase):
 
     def tearDown(self):
         self.index.disconnect()
+        self.coord.stop()
         super(TestCase, self).tearDown()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.coord.stop()
-        super(TestCase, cls).tearDownClass()
 
     def _create_metric(self, archive_policy_name="low"):
         """Create a metric and return it"""

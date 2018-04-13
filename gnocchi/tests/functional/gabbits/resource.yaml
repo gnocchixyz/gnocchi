@@ -510,10 +510,7 @@ tests:
         content-length: 0
 
     - name: request cpuutil measures again
-      GET: $LAST_URL
-      poll:
-          count: 50
-          delay: .1
+      GET: $LAST_URL?refresh=true
       response_json_paths:
           $[0][0]: "2015-03-06T14:33:57+00:00"
           $[0][1]: 1.0
