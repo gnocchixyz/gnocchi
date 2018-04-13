@@ -11,6 +11,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import logging
+
 import numpy
 
 from gnocchi import archive_policy
@@ -30,7 +32,9 @@ class TestArchivePolicy(base.BaseTestCase):
 
     def test_aggregation_methods(self):
         conf = service.prepare_service([],
-                                       default_config_files=[])
+                                       default_config_files=[],
+                                       logging_level=logging.DEBUG,
+                                       skip_log_opts=True)
 
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,
