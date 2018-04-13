@@ -15,16 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import hashlib
-import itertools
-import operator
 
 import daiquiri
 import six
 
 from gnocchi import indexer
 
-
-ITEMGETTER_1 = operator.itemgetter(1)
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -60,13 +56,10 @@ class Chef(object):
                      on error
         :type sync: bool
         """
-        # FIXME(jd) The indexer could return them sorted/grouped by directly
-        metrics_to_expunge = sorted(
-            ((m, self.incoming.sack_for_metric(m.id))
-             for m in self.index.list_metrics(status='delete')),
-            key=ITEMGETTER_1)
-        for sack, metrics in itertools.groupby(
-                metrics_to_expunge, key=ITEMGETTER_1):
+        metrics_to_expunge = self.index.list_metrics(status='delete')
+        metrics_by_id = {m.id: m for m in metrics_to_expunge}
+        for sack, metric_ids in self.incoming.group_metrics_by_sack(
+                metrics_by_id.keys()):
             try:
                 lock = self.get_sack_lock(sack)
                 if not lock.acquire(blocking=sync):
@@ -84,7 +77,8 @@ class Chef(object):
                 LOG.error("Unable to lock sack %s for expunging metrics",
                           sack, exc_info=True)
             else:
-                for metric, sack in metrics:
+                for metric_id in metric_ids:
+                    metric = metrics_by_id[metric_id]
                     LOG.debug("Deleting metric %s", metric)
                     try:
                         self.incoming.delete_unprocessed_measures_for_metric(
@@ -112,29 +106,25 @@ class Chef(object):
         # process only active metrics. deleted metrics with unprocessed
         # measures will be skipped until cleaned by janitor.
         metrics_by_id = {m.id: m for m in metrics}
-        metrics_to_refresh = sorted(
-            ((metric, self.incoming.sack_for_metric(metric.id))
-             for metric in metrics),
-            key=ITEMGETTER_1)
-        for sack, metric_and_sack in itertools.groupby(
-                metrics_to_refresh, ITEMGETTER_1):
+        for sack, metric_ids in self.incoming.group_metrics_by_sack(
+                metrics_by_id.keys()):
             lock = self.get_sack_lock(sack)
             # FIXME(jd) timeout should be global for all sack locking
             if not lock.acquire(blocking=timeout):
                 raise SackAlreadyLocked(sack)
-            metrics = [m[0].id for m in metric_and_sack]
             try:
-                LOG.debug("Processing measures for %d metrics", len(metrics))
+                LOG.debug("Processing measures for %d metrics",
+                          len(metric_ids))
                 with self.incoming.process_measure_for_metrics(
-                        metrics) as metrics_and_measures:
+                        metric_ids) as metrics_and_measures:
                     if metrics_and_measures:
                         self.storage.add_measures_to_metrics({
-                            metrics_by_id[metric]: measures
-                            for metric, measures
+                            metrics_by_id[metric_id]: measures
+                            for metric_id, measures
                             in six.iteritems(metrics_and_measures)
                         })
                         LOG.debug("Measures for %d metrics processed",
-                                  len(metrics))
+                                  len(metric_ids))
             except Exception:
                 if sync:
                     raise

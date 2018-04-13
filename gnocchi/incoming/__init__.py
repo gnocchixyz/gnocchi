@@ -16,6 +16,7 @@
 # under the License.
 import collections
 import functools
+import itertools
 import operator
 
 import daiquiri
@@ -30,6 +31,9 @@ LOG = daiquiri.getLogger(__name__)
 
 
 Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
+
+
+ITEMGETTER_1 = operator.itemgetter(1)
 
 
 class ReportGenerationError(Exception):
@@ -155,6 +159,19 @@ class IncomingDriver(object):
     def _encode_measures(self, measures):
         return numpy.array(list(measures),
                            dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
+
+    def group_metrics_by_sack(self, metrics):
+        """Iterate on a list of metrics, grouping them by sack.
+
+        :param metrics: A list of metric uuid.
+        :return: An iterator yield (group, metrics).
+        """
+        metrics_and_sacks = sorted(
+            ((m, self.sack_for_metric(m)) for m in metrics),
+            key=ITEMGETTER_1)
+        for sack, metrics in itertools.groupby(metrics_and_sacks,
+                                               key=ITEMGETTER_1):
+            yield sack, [m[0] for m in metrics]
 
     def add_measures(self, metric_id, measures):
         """Add a measure to a metric.
