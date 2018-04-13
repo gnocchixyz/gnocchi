@@ -46,11 +46,8 @@ tests:
         - Aggregation method 'mean' at granularity '42.0' for metric $RESPONSE['$[0].id'] does not exist
 
     - name: get measurements granularity
-      GET: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[0].id']/measures?granularity=1
+      GET: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[0].id']/measures?granularity=1&refresh=true
       status: 200
-      poll:
-          count: 50
-          delay: .1
       response_json_paths:
           $:
             - ["2015-03-06T14:33:57+00:00", 1.0, 43.1]
