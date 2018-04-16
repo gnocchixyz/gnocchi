@@ -31,7 +31,8 @@ LOG = daiquiri.getLogger(__name__)
 
 def prepare_service(args=None, conf=None,
                     default_config_files=None,
-                    log_to_std=False, logging_level=None):
+                    log_to_std=False, logging_level=None,
+                    skip_log_opts=False):
     if conf is None:
         conf = cfg.ConfigOpts()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
@@ -100,7 +101,8 @@ def prepare_service(args=None, conf=None,
             conf.set_default("coordination_url",
                              urlparse.urlunparse(parsed))
 
-    LOG.info("Gnocchi version %s", gnocchi.__version__)
-    conf.log_opt_values(LOG, logging.DEBUG)
+    if not skip_log_opts:
+        LOG.info("Gnocchi version %s", gnocchi.__version__)
+        conf.log_opt_values(LOG, logging.DEBUG)
 
     return conf
