@@ -100,7 +100,8 @@ class SwiftStorage(_carbonara.CarbonaraBasedStorage):
             tenant_name=conf.swift_project_name,
             timeout=conf.swift_timeout,
             os_options={'endpoint_type': conf.swift_endpoint_type,
-                        'user_domain_name': conf.swift_user_domain_name},
+                        'user_domain_name': conf.swift_user_domain_name,
+                        'project_domain_name': conf.swift_project_domain_name},
             retries=0)
 
     def _container_name(self, metric):
