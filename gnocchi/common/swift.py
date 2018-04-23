@@ -34,6 +34,7 @@ def get_connection(conf):
         'endpoint_type': conf.swift_endpoint_type,
         'service_type':  conf.swift_service_type,
         'user_domain_name': conf.swift_user_domain_name,
+        'project_domain_name': conf.swift_project_domain_name,
     }
     if conf.swift_region:
         os_options['region_name'] = conf.swift_region
