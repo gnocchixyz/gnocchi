@@ -33,6 +33,11 @@ inject_data() {
         gnocchi resource create generic --attribute id:$resource_id -n metric:high > /dev/null
     done
 
+    # Create a resource with an history
+    gnocchi resource-type create ext --attribute someattr:string:false:max_length=32 > /dev/null
+    gnocchi resource create --type ext --attribute someattr:foobar -n metric:high historized_resource > /dev/null
+    gnocchi resource update --type ext --attribute someattr:foobaz historized_resource > /dev/null
+
     {
         measures_sep=""
         MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
