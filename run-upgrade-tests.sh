@@ -40,8 +40,12 @@ inject_data() {
 
     if [ "$have_resource_type_post" ]
     then
-        gnocchi resource-type create ext > /dev/null
-        gnocchi resource create ext --attribute id:$RESOURCE_ID_EXT -n metric:high > /dev/null
+        gnocchi resource create -n metric:high $RESOURCE_ID_EXT > /dev/null
+
+        # Create a resource with an history
+        gnocchi resource-type create ext --attribute someattr:string:false:max_length=32 > /dev/null
+        gnocchi resource create --type ext --attribute someattr:foobar -n metric:high historized_resource > /dev/null
+        gnocchi resource update --type ext --attribute someattr:foobaz historized_resource > /dev/null
     fi
 
     {
@@ -120,7 +124,9 @@ dump_data $GNOCCHI_DATA/new
 
 # NOTE(sileht): change the output of the old gnocchi to compare with the new without '/'
 $GSED -i -e "s,5a301761/dddd/46e2/8900/8b4f6fe6675a,5a301761_dddd_46e2_8900_8b4f6fe6675a,g" \
-      -e "s,19235bb9-35ca-5f55-b7db-165cfb033c86,517920a9-2e50-58b8-88e8-25fd7aae1d8f,g" $GNOCCHI_DATA/old/resources.list
+      -e "s,19235bb9-35ca-5f55-b7db-165cfb033c86,517920a9-2e50-58b8-88e8-25fd7aae1d8f,g" \
+      -e "s,e8bce9ff-5c30-524c-87b8-bfb1dce7855b,bd6eac67-c1e9-5da0-9979-a797d776039e,g" \
+      $GNOCCHI_DATA/old/resources.list
 
 echo "* Checking output difference between Gnocchi $old_version and $new_version"
 diff -uNr $GNOCCHI_DATA/old $GNOCCHI_DATA/new
