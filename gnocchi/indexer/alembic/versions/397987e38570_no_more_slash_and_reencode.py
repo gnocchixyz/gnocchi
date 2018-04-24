@@ -87,6 +87,8 @@ def upgrade():
         if rt.tablename != "generic"
     )
 
+    op.drop_constraint("fk_rh_id_resource_id", "resource_history",
+                       type_="foreignkey")
     op.drop_constraint("fk_metric_resource_id_resource_id", "metric",
                        type_="foreignkey")
     for name, table in resource_type_tablenames.items():
@@ -172,6 +174,9 @@ def upgrade():
                           "metric", "resource",
                           ("resource_id",), ("id",),
                           ondelete="SET NULL")
+    op.create_foreign_key("fk_rh_id_resource_id",
+                          "resource_history", "resource",
+                          ("id",), ("id",), ondelete="CASCADE")
 
     for metric in connection.execute(metric_table.select().where(
             metric_table.c.name.like("%/%"))):
