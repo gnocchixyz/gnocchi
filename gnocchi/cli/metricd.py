@@ -243,7 +243,7 @@ class MetricProcessor(MetricProcessBase):
                           exc_info=True)
         LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
         # Update statistics
-        self.coord.update_capabitilities(self.GROUP_ID, self.statistics)
+        self.coord.update_capabilities(self.GROUP_ID, self.store.statistics)
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
             self._last_full_sack_scan.reset()
