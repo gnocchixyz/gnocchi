@@ -38,6 +38,11 @@ OPTS = [
     cfg.StrOpt('swift_url',
                help='Swift URL. '
                'If unset, it is obtained from the auth service.'),
+    cfg.IntOpt('swift_max_parallel_requests',
+               default=50,
+               # NOTE(sileht): python-requests default in 10, it's far too low
+               # for any workload.
+               help='Maximun of Swift parallel requests.'),
     cfg.StrOpt('swift_authurl',
                default="http://localhost:8080/auth/v1.0",
                help='Swift auth URL.'),

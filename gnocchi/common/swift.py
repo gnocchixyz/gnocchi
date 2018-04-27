@@ -12,46 +12,61 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import daiquiri
+import keystoneauth1.session
 from six.moves.urllib.parse import quote
-
-try:
-    from swiftclient import client as swclient
-    from swiftclient import utils as swift_utils
-except ImportError:
-    swclient = None
-    swift_utils = None
 
 from gnocchi import storage
 
 LOG = daiquiri.getLogger(__name__)
 
 
+try:
+    from swiftclient import client as swclient
+    from swiftclient import utils as swift_utils
+
+    class CustomSwiftConnecion(swclient.Connection):
+        def __init__(self, conf):
+            self.conf = conf
+
+            os_options = {
+                'endpoint_type': conf.swift_endpoint_type,
+                'service_type':  conf.swift_service_type,
+                'user_domain_name': conf.swift_user_domain_name,
+                'project_domain_name': conf.swift_project_domain_name,
+            }
+            if conf.swift_region:
+                os_options['region_name'] = conf.swift_region
+
+            super(CustomSwiftConnecion, self).__init__(
+                preauthurl=conf.swift_url,
+                auth_version=conf.swift_auth_version,
+                authurl=conf.swift_authurl,
+                preauthtoken=conf.swift_preauthtoken,
+                user=conf.swift_user,
+                key=conf.swift_key,
+                tenant_name=conf.swift_project_name,
+                timeout=conf.swift_timeout,
+                insecure=conf.swift_auth_insecure,
+                os_options=os_options,
+                cacert=conf.swift_cacert)
+
+        def http_connection(self, url=None):
+            url, conn = super(CustomSwiftConnecion, self).http_connection(url)
+            adapter = keystoneauth1.session.TCPKeepAliveAdapter(
+                pool_maxsize=self.conf.swift_max_parallel_requests)
+            conn.request_session.mount("http://", adapter)
+            conn.request_session.mount("https://", adapter)
+            return url, conn
+
+except ImportError:
+    swclient = None
+    swift_utils = None
+
+
 def get_connection(conf):
     if swclient is None:
         raise RuntimeError("python-swiftclient unavailable")
-
-    os_options = {
-        'endpoint_type': conf.swift_endpoint_type,
-        'service_type':  conf.swift_service_type,
-        'user_domain_name': conf.swift_user_domain_name,
-        'project_domain_name': conf.swift_project_domain_name,
-    }
-    if conf.swift_region:
-        os_options['region_name'] = conf.swift_region
-
-    return swclient.Connection(
-        preauthurl=conf.swift_url,
-        auth_version=conf.swift_auth_version,
-        authurl=conf.swift_authurl,
-        preauthtoken=conf.swift_preauthtoken,
-        user=conf.swift_user,
-        key=conf.swift_key,
-        tenant_name=conf.swift_project_name,
-        timeout=conf.swift_timeout,
-        insecure=conf.swift_auth_insecure,
-        os_options=os_options,
-        cacert=conf.swift_cacert,
-        retries=0)
+    return CustomSwiftConnecion(conf)
 
 
 POST_HEADERS = {'Accept': 'application/json', 'Content-Type': 'text/plain'}
