@@ -1,0 +1,11 @@
+rules:
+  default:
+    protection:
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+  branches:
+    stable/.*:
+      protection:
+        required_pull_request_reviews:
+          required_approving_review_count: 1
+
