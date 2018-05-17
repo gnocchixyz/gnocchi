@@ -23,11 +23,8 @@ import numpy
 from oslo_config import cfg
 
 from gnocchi import chef
-from gnocchi.cli import metricd
 from gnocchi import incoming
-from gnocchi import indexer
 from gnocchi import service
-from gnocchi import storage
 from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)
@@ -56,24 +53,12 @@ def injector():
                    interval=conf.interval)
 
 
-def _inject_from_conf(conf,
-                      metrics, measures, archive_policy_name="low",
-                      process=False, interval=None):
-    inc = incoming.get_driver(conf)
-    coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
-                                              conf.coordination_url)
-    store = storage.get_driver(conf)
-    idx = indexer.get_driver(conf)
-    return _inject(inc, coord, store, idx,
-                   metrics, measures, archive_policy_name, process, interval)
-
-
 def _inject(inc, coord, store, idx,
             metrics, measures, archive_policy_name="low", process=False,
             interval=None):
     LOG.info("Creating %d metrics", metrics)
     with utils.StopWatch() as sw:
-        metrics = [
+        metric_ids = [
             idx.create_metric(uuid.uuid4(), "admin",
                               archive_policy_name).id
             for _ in range(metrics)
@@ -88,7 +73,7 @@ def _inject(inc, coord, store, idx,
             m_id: [incoming.Measure(
                 now + numpy.timedelta64(seconds=s),
                 random.randint(-999999, 999999)) for s in range(measures)]
-            for m_id in metrics
+            for m_id in metric_ids
         }
     LOG.info("… done in %.2fs", sw.elapsed())
 
