@@ -74,7 +74,7 @@ class SwiftStorage(incoming.IncomingDriver):
                 headers, files = self.swift.get_container(
                     str(sack), delimiter='/', full_listing=True)
                 nb_metrics += len([f for f in files if 'subdir' in f])
-            measures += int(headers.get('x-container-object-count'))
+            measures += int(headers.get('x-container-object-count', 0))
         return (nb_metrics or len(metric_details), measures,
                 metric_details if details else None)
 
