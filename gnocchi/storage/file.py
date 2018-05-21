@@ -47,12 +47,15 @@ class FileStorage(_carbonara.CarbonaraBasedStorage):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
         self.basepath_tmp = conf.file_basepath_tmp
+        self.measure_path = os.path.join(self.basepath, self.MEASURE_PREFIX)
+
+    def upgrade(self, index):
+        super(FileStorage, self).upgrade(index)
         try:
             os.mkdir(self.basepath)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-        self.measure_path = os.path.join(self.basepath, self.MEASURE_PREFIX)
         try:
             os.mkdir(self.measure_path)
         except OSError as e:

@@ -20,6 +20,7 @@ import os
 import uuid
 
 import fixtures
+import mock
 from oslotest import base
 import six
 from six.moves.urllib.parse import unquote
@@ -499,7 +500,10 @@ class TestCase(base.BaseTestCase):
         # (TimeSerieArchive) uses a lot of parallel lock, which makes tooz
         # explodes because MySQL does not support that many connections in real
         # life.
-        # self.storage.upgrade(self.index)
+        # NOTE(jd) Upgrade file only because it needs to create directories
+        if self.conf.storage.driver == "file":
+            with mock.patch.object(self.storage, "_check_for_metric_upgrade"):
+                self.storage.upgrade(self.index)
 
     def tearDown(self):
         self.index.disconnect()
