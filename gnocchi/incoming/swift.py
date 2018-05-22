@@ -22,6 +22,7 @@ import six
 
 from gnocchi.common import swift
 from gnocchi import incoming
+from gnocchi import utils
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -30,6 +31,10 @@ LOG = daiquiri.getLogger(__name__)
 
 
 class SwiftStorage(incoming.IncomingDriver):
+    # NOTE(sileht): Using threads with swiftclient doesn't work
+    # as expected, so disable it
+    MAP_METHOD = staticmethod(utils.sequencial_map)
+
     def __init__(self, conf, greedy=True):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
