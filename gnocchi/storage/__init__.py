@@ -119,6 +119,10 @@ def get_driver(conf, coord):
 
 class StorageDriver(object):
 
+    # NOTE(sileht): By default we use threads, but some driver can disable
+    # threads by setting this to utils.sequencial_map
+    MAP_METHOD = staticmethod(utils.parallel_map)
+
     def __init__(self, conf, coord):
         self.coord = coord
 
@@ -127,7 +131,7 @@ class StorageDriver(object):
         pass
 
     def _get_measures(self, metric, keys, aggregation, version=3):
-        return utils.parallel_map(
+        return self.MAP_METHOD(
             self._get_measures_unbatched,
             ((metric, key, aggregation, version)
              for key in keys))
@@ -217,7 +221,7 @@ class StorageDriver(object):
                 raise AggregationDoesNotExist(metric, aggregation, g)
             aggregations.append(agg)
 
-        agg_timeseries = utils.parallel_map(
+        agg_timeseries = self.MAP_METHOD(
             self._get_measures_timeserie,
             ((metric, ag, from_timestamp, to_timestamp)
              for ag in aggregations))
@@ -568,7 +572,7 @@ class StorageDriver(object):
                     d.granularity, carbonara.round_timestamp(
                         tstamp, d.granularity))
 
-                utils.parallel_map(
+                self.MAP_METHOD(
                     self._add_measures,
                     ((aggregation, d, metric, ts,
                         current_first_block_timestamp,
