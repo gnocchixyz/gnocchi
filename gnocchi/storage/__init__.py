@@ -121,6 +121,10 @@ class Statistics(collections.defaultdict):
 
 class StorageDriver(object):
 
+    # NOTE(sileht): By default we use threads, but some driver can disable
+    # threads by setting this to utils.sequencial_map
+    MAP_METHOD = staticmethod(utils.parallel_map)
+
     def __init__(self, conf):
         self.statistics = Statistics()
 
@@ -131,7 +135,7 @@ class StorageDriver(object):
     def _get_splits(self, metrics_aggregations_keys, version=3):
         results = collections.defaultdict(
             lambda: collections.defaultdict(list))
-        for metric, aggregation, split in utils.parallel_map(
+        for metric, aggregation, split in self.MAP_METHOD(
                 lambda m, k, a, v: (m, a, self._get_splits_unbatched(m, k, a, v)),  # noqa
                 ((metric, key, aggregation, version)
                  for metric, aggregations_and_keys
@@ -168,7 +172,7 @@ class StorageDriver(object):
         return dict(
             six.moves.zip(
                 metrics,
-                utils.parallel_map(
+                self.MAP_METHOD(
                     utils.return_none_on_failure(
                         self._get_or_create_unaggregated_timeseries_unbatched),
                     ((metric, version) for metric in metrics))))
@@ -189,7 +193,7 @@ class StorageDriver(object):
         :param metrics_and_data: A list of (metric, serialized_data) tuples
         :param version: Storage engine data format version
         """
-        utils.parallel_map(
+        self.MAP_METHOD(
             utils.return_none_on_failure(
                 self._store_unaggregated_timeseries_unbatched),
             ((metric, data, version) for metric, data in metrics_and_data))
@@ -221,7 +225,7 @@ class StorageDriver(object):
                                                        data, offset) tuples.
         :param version: Storage engine format version.
         """
-        utils.parallel_map(
+        self.MAP_METHOD(
             self._store_metric_splits_unbatched,
             ((metric, key, aggregation, data, offset, version)
              for metric, keys_aggregations_data_offset
@@ -260,7 +264,7 @@ class StorageDriver(object):
         :param to timestamp: The timestamp to get the measure to.
         """
         keys = self._list_split_keys(metric, aggregations)
-        timeseries = utils.parallel_map(
+        timeseries = self.MAP_METHOD(
             self._get_measures_timeserie,
             ((metric, agg, keys[agg], from_timestamp, to_timestamp)
              for agg in aggregations))
@@ -561,7 +565,7 @@ class StorageDriver(object):
                                          `storage.Metric` and values are lists
                                          of (key, aggregation) tuples.
         """
-        utils.parallel_map(
+        self.MAP_METHOD(
             utils.return_none_on_failure(self._delete_metric_splits_unbatched),
             ((metric, key, aggregation)
              for metric, keys_and_aggregations

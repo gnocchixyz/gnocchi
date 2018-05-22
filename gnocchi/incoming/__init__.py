@@ -106,6 +106,9 @@ class IncomingDriver(object):
     SACK_NAME_FORMAT = "incoming{total}-{number}"
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
+    # NOTE(sileht): By default we use threads, but some driver can disable
+    # threads by setting this to utils.sequencial_map
+    MAP_METHOD = staticmethod(utils.parallel_map)
 
     @property
     def NUM_SACKS(self):
@@ -188,11 +191,10 @@ class IncomingDriver(object):
                                      and values are a list of
                                      :py:class:`gnocchi.incoming.Measure`.
         """
-        utils.parallel_map(
-            self._store_new_measures,
-            ((metric_id, self._encode_measures(measures))
-             for metric_id, measures
-             in six.iteritems(metrics_and_measures)))
+        self.MAP_METHOD(self._store_new_measures,
+                        ((metric_id, self._encode_measures(measures))
+                         for metric_id, measures
+                         in six.iteritems(metrics_and_measures)))
 
     @staticmethod
     def _store_new_measures(metric_id, data):
