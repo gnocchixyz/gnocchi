@@ -299,11 +299,15 @@ def get_driver_class(namespace, conf):
                                 conf.driver).driver
 
 
+def sequencial_map(fn, list_of_args):
+    return list(itertools.starmap(fn, list_of_args))
+
+
 def parallel_map(fn, list_of_args):
     """Run a function in parallel."""
 
     if parallel_map.MAX_WORKERS == 1:
-        return list(itertools.starmap(fn, list_of_args))
+        return sequencial_map(fn, list_of_args)
 
     with futures.ThreadPoolExecutor(
             max_workers=parallel_map.MAX_WORKERS) as executor:

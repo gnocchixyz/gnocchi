@@ -82,6 +82,9 @@ OPTS = [
 class SwiftStorage(storage.StorageDriver):
 
     WRITE_FULL = True
+    # NOTE(sileht): Using threads with swiftclient doesn't work
+    # as expected, so disable it
+    MAP_METHOD = staticmethod(utils.sequencial_map)
 
     def __init__(self, conf, coord=None):
         super(SwiftStorage, self).__init__(conf, coord)
