@@ -23,8 +23,7 @@ The list of variants available is:
 * `postgresql` – provides PostgreSQL indexer support
 * `swift` – provides OpenStack Swift storage support
 * `s3` – provides Amazon S3 storage support
-* `ceph` – provides Ceph (>= 0.80) storage support
-* `ceph_alternative` – provides Ceph (>= 12.2.0) storage support
+* `ceph` – provides Ceph (>= 12.2.0) storage support
 * `redis` – provides Redis storage support
 * `prometheus` – provides Prometheus Remote Write support
 * `doc` – documentation building support
@@ -44,6 +43,9 @@ install extra variants using, for example::
 Ceph requirements
 -----------------
 
+Gnocchi requires python-rados >= 12.2. The package is part of Ceph and is not
+available on Pypi.
+
 The Ceph driver needs to have a Ceph user and a pool already created. They can
 be created for example with:
 
@@ -54,12 +56,7 @@ be created for example with:
 
 
 Gnocchi leverages some _librados_ features (omap, async, operation context)
-available in the Python binding only since python-rados >= 12.2.0. To handle
-this, Gnocchi uses _cradox_ python library which has exactly the same API but
-works with Ceph >= 0.80.0.
-
-If Ceph and python-rados are >= 12.2.0, the cradox Python library becomes
-optional but is still recommended.
+available in the Python binding only since python-rados >= 12.2.0.
 
 
 Configuration

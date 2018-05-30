@@ -20,20 +20,10 @@ import daiquiri
 LOG = daiquiri.getLogger(__name__)
 
 
-for RADOS_MODULE_NAME in ('cradox', 'rados'):
-    try:
-        rados = __import__(RADOS_MODULE_NAME)
-    except ImportError:
-        pass
-    else:
-        break
-else:
-    RADOS_MODULE_NAME = None
+try:
+    rados = __import__('rados')
+except ImportError:
     rados = None
-
-if rados is not None and hasattr(rados, 'run_in_thread'):
-    rados.run_in_thread = lambda target, args, timeout=None: target(*args)
-    LOG.info("rados.run_in_thread is monkeypatched.")
 
 
 def create_rados_connection(conf):
@@ -48,15 +38,9 @@ def create_rados_connection(conf):
         options['client_mount_timeout'] = conf.ceph_timeout
 
     if not rados:
-        raise ImportError("No module named 'rados' nor 'cradox'")
+        raise ImportError("No module named 'rados'")
 
-    if not hasattr(rados, 'OmapIterator'):
-        raise ImportError("Your rados python module does not support "
-                          "omap feature. Install 'cradox' (recommended) "
-                          "or upgrade 'python-rados' >= 9.1.0 ")
-
-    LOG.info("Ceph storage backend use '%s' python library",
-             RADOS_MODULE_NAME)
+    LOG.info("Ceph storage backend use 'rados' python library")
 
     # NOTE(sileht): librados handles reconnection itself,
     # by default if a call timeout (30sec), it raises
