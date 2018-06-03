@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Resampling based on calendar dates are now supported. Using the `resample`
+    parameter, users can specify grouping by: `Y`, `H`, `Q`, `M`, or `W`.
+    Details on each grouping can be found in docs.

@@ -33,6 +33,7 @@ import werkzeug.http
 
 import gnocchi
 from gnocchi import archive_policy
+from gnocchi import calendar
 from gnocchi import chef
 from gnocchi.cli import metricd
 from gnocchi import incoming
@@ -464,7 +465,8 @@ class MetricController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = utils.to_timespan(resample)
+                resample = (resample if calendar.GROUPINGS.get(resample) else
+                            utils.to_timespan(resample))
             except ValueError as e:
                 abort(400, six.text_type(e))
 
@@ -1821,7 +1823,8 @@ class AggregationController(rest.RestController):
             if not granularity:
                 abort(400, 'A granularity must be specified to resample')
             try:
-                resample = utils.to_timespan(resample)
+                resample = (resample if calendar.GROUPINGS.get(resample) else
+                            utils.to_timespan(resample))
             except ValueError as e:
                 abort(400, six.text_type(e))
 

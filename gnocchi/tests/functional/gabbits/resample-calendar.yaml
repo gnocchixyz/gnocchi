@@ -1,0 +1,122 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+
+tests:
+    - name: create archive policy
+      desc: for later use
+      POST: /v1/archive_policy
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+          name: cookies
+          definition:
+              - granularity: 1 day
+      status: 201
+
+    - name: get metric empty
+      GET: /v1/metric
+      status: 200
+      response_strings:
+          - "[]"
+
+    - name: create valid metric
+      POST: /v1/metric
+      data:
+          archive_policy_name: cookies
+      status: 201
+      response_json_paths:
+          $.archive_policy_name: cookies
+
+    - name: get valid metric id
+      GET: /v1/metric/$RESPONSE['$.id']
+      status: 200
+      response_json_paths:
+        $.archive_policy.name: cookies
+
+    - name: list valid metrics
+      GET: /v1/metric
+      response_json_paths:
+          $[0].archive_policy.name: cookies
+
+    - name: push measurements to metric
+      POST: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures
+      data:
+          - timestamp: "2015-03-01T14:34:12"
+            value: 10
+          - timestamp: "2015-03-06T14:34:12"
+            value: 12
+          - timestamp: "2015-04-01T14:34:12"
+            value: 2
+          - timestamp: "2015-04-06T14:34:12"
+            value: 4
+          - timestamp: "2015-10-06T14:34:12"
+            value: 7
+          - timestamp: "2016-01-06T14:34:12"
+            value: 12
+          - timestamp: "2016-02-06T14:34:12"
+            value: 4
+      status: 202
+
+    - name: get measurements from metric
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true
+      response_json_paths:
+        $:
+          - ["2015-03-01T00:00:00+00:00", 86400.0, 10.0]
+          - ["2015-03-06T00:00:00+00:00", 86400.0, 12.0]
+          - ["2015-04-01T00:00:00+00:00", 86400.0, 2.0]
+          - ["2015-04-06T00:00:00+00:00", 86400.0, 4.0]
+          - ["2015-10-06T00:00:00+00:00", 86400.0, 7.0]
+          - ["2016-01-06T00:00:00+00:00", 86400.0, 12.0]
+          - ["2016-02-06T00:00:00+00:00", 86400.0, 4.0]
+
+    - name: get measurements from metric and resample calendar year
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=Y&granularity=86400
+      response_json_paths:
+        $:
+          - ["2015-01-01T00:00:00+00:00", "Y", 7.0]
+          - ["2016-01-01T00:00:00+00:00", "Y", 8.0]
+
+    - name: get measurements from metric and resample calendar year-half
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=H&granularity=86400
+      response_json_paths:
+        $:
+          - ["2015-01-01T00:00:00+00:00", "H", 7.0]
+          - ["2015-07-01T00:00:00+00:00", "H", 7.0]
+          - ["2016-01-01T00:00:00+00:00", "H", 8.0]
+
+    - name: get measurements from metric and resample calendar year-quarter
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=Q&granularity=86400
+      response_json_paths:
+        $:
+          - ["2015-01-01T00:00:00+00:00", "Q", 11.0]
+          - ["2015-04-01T00:00:00+00:00", "Q", 3.0]
+          - ["2015-10-01T00:00:00+00:00", "Q", 7.0]
+          - ["2016-01-01T00:00:00+00:00", "Q", 8.0]
+
+    - name: get measurements from metric and resample calendar year-month
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=M&granularity=86400
+      response_json_paths:
+        $:
+          - ["2015-03-01T00:00:00+00:00", "M", 11.0]
+          - ["2015-04-01T00:00:00+00:00", "M", 3.0]
+          - ["2015-10-01T00:00:00+00:00", "M", 7.0]
+          - ["2016-01-01T00:00:00+00:00", "M", 12.0]
+          - ["2016-02-01T00:00:00+00:00", "M", 4.0]
+
+    - name: get measurements from metric and resample calendar year-week
+      GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?resample=W&granularity=86400
+      response_json_paths:
+        $:
+          - ["2015-03-01T00:00:00+00:00", "W", 11.0]
+          - ["2015-03-29T00:00:00+00:00", "W", 2.0]
+          - ["2015-04-05T00:00:00+00:00", "W", 4.0]
+          - ["2015-10-04T00:00:00+00:00", "W", 7.0]
+          - ["2016-01-03T00:00:00+00:00", "W", 12.0]
+          - ["2016-01-31T00:00:00+00:00", "W", 4.0]
