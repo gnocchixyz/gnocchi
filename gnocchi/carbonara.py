@@ -29,6 +29,8 @@ import lz4.block
 import numpy
 import six
 
+from gnocchi import calendar
+
 
 UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
 ONE_SECOND = numpy.timedelta64(1, 's')
@@ -107,18 +109,23 @@ class GroupedTimeSeries(object):
         # duplicate timestamps, it uses numpy.unique that sorted list, but
         # we always assume the orderd to be the same as the input.
         self.granularity = granularity
+        self.can_derive = isinstance(granularity, numpy.timedelta64)
         self.start = start
         if start is None:
             self._ts = ts
             self._ts_for_derive = ts
         else:
             self._ts = ts[numpy.searchsorted(ts['timestamps'], start):]
-            start_derive = start - granularity
-            self._ts_for_derive = ts[
-                numpy.searchsorted(ts['timestamps'], start_derive):
-            ]
-
-        self.indexes = round_timestamp(self._ts['timestamps'], granularity)
+            if self.can_derive:
+                start_derive = start - granularity
+                self._ts_for_derive = ts[
+                    numpy.searchsorted(ts['timestamps'], start_derive):
+                ]
+        if self.can_derive:
+            self.indexes = round_timestamp(self._ts['timestamps'], granularity)
+        elif calendar.GROUPINGS.get(granularity):
+            self.indexes = calendar.GROUPINGS.get(granularity)(
+                self._ts['timestamps'])
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
@@ -197,6 +204,9 @@ class GroupedTimeSeries(object):
         return make_timeseries(self.tstamps, values)
 
     def derived(self):
+        if not self.can_derive:
+            raise TypeError('Cannot derive aggregates on calendar '
+                            'granularities.')
         timestamps = self._ts_for_derive['timestamps'][1:]
         values = numpy.diff(self._ts_for_derive['values'])
         # FIXME(sileht): create some alternative __init__ to avoid creating

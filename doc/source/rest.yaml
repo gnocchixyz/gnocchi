@@ -311,6 +311,9 @@
 - name: get-measures-resample
   request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?granularity=1&resample=5 HTTP/1.1
 
+- name: get-measures-resample-calendar
+  request: GET /v1/metric/{{ scenarios['create-metric']['response'].json['id'] }}/measures?granularity=1&resample=W HTTP/1.1
+
 - name: create-resource-generic
   request: |
     POST /v1/resource/generic HTTP/1.1
