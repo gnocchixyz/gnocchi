@@ -182,7 +182,7 @@ class FileStorage(storage.StorageDriver):
         except storage.MetricAlreadyExists:
             pass
 
-    def _list_split_keys(self, metric, aggregations, version=3):
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
         keys = collections.defaultdict(set)
         for method, grouped_aggregations in itertools.groupby(
                 sorted(aggregations, key=ATTRGETTER_METHOD),
