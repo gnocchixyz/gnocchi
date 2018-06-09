@@ -17,11 +17,14 @@
 import collections
 import errno
 import itertools
+import json
 import operator
 import os
 import shutil
 import tempfile
+import uuid
 
+import daiquiri
 from oslo_config import cfg
 import six
 
@@ -34,9 +37,15 @@ OPTS = [
     cfg.StrOpt('file_basepath',
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
+    cfg.IntOpt('file_subdir_len',
+               default=2, min=0, max=32,
+               help='if > 0, this create a subdirectory for every N bytes'
+               'of the metric uuid')
 ]
 
 ATTRGETTER_METHOD = operator.attrgetter("method")
+
+LOG = daiquiri.getLogger(__name__)
 
 # Python 2 compatibility
 try:
@@ -47,14 +56,54 @@ except NameError:
 
 class FileStorage(storage.StorageDriver):
     WRITE_FULL = True
+    CFG_PREFIX = 'gnocchi-storage-config'
+    CFG_SUBDIR_LEN = 'subdir_len'
 
     def __init__(self, conf):
         super(FileStorage, self).__init__(conf)
         self.basepath = conf.file_basepath
         self.basepath_tmp = os.path.join(self.basepath, 'tmp')
+        self.conf = conf
+        self._file_subdir_len = None
+
+    @property
+    def SUBDIR_LEN(self):
+        if self._file_subdir_len is None:
+            config_path = os.path.join(self.basepath_tmp, self.CFG_PREFIX)
+            if os.path.exists(config_path):
+                with open(config_path, 'r') as f:
+                    self._file_subdir_len = json.load(f)[self.CFG_SUBDIR_LEN]
+            elif self.is_old_directory_structure():
+                self._file_subdir_len = 0
+            else:
+                # Fresh install
+                self._file_subdir_len = self.conf.file_subdir_len
+
+            if self._file_subdir_len != self.conf.file_subdir_len:
+                LOG.warning("Changing file_subdir_len is not supported, using "
+                            "the stored value: %d", self._file_subdir_len)
+        return self._file_subdir_len
+
+    def set_subdir_len(self, subdir_len):
+        data = {self.CFG_SUBDIR_LEN: subdir_len}
+        with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX), 'w') as f:
+            json.dump(data, f)
 
     def upgrade(self):
         utils.ensure_paths([self.basepath_tmp])
+        self.set_subdir_len(self.SUBDIR_LEN)
+
+    def is_old_directory_structure(self):
+        # NOTE(sileht): We look for at least one metric directory
+        for p in os.listdir(self.basepath):
+            if os.path.isdir(p) and '-' in p:
+                try:
+                    uuid.UUID(p)
+                except ValueError:
+                    pass
+                else:
+                    return True
+        return False
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, str(self.basepath))
@@ -68,7 +117,15 @@ class FileStorage(storage.StorageDriver):
         os.rename(tmpfile.name, dest)
 
     def _build_metric_dir(self, metric):
-        return os.path.join(self.basepath, str(metric.id))
+        path_parts = [self.basepath]
+        if self.SUBDIR_LEN > 0:
+            metric_id = metric.id.hex
+            path_parts.extend(
+                [metric_id[start:start+self.SUBDIR_LEN]
+                 for start in range(0, 32, self.SUBDIR_LEN)
+                 ])
+        path_parts.append(str(metric.id))
+        return os.path.join(*path_parts)
 
     def _build_unaggregated_timeserie_path(self, metric, version=3):
         return os.path.join(
@@ -91,7 +148,7 @@ class FileStorage(storage.StorageDriver):
     def _create_metric(self, metric):
         path = self._build_metric_dir(metric)
         try:
-            os.mkdir(path, 0o750)
+            os.makedirs(path, 0o750)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 raise storage.MetricAlreadyExists(metric)

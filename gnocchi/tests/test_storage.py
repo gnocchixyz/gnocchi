@@ -64,6 +64,29 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
+    def test_file_driver_subdir_len(self):
+        driver = storage.get_driver(self.conf)
+        if not isinstance(driver, file.FileStorage):
+            self.skipTest("not file driver")
+
+        # Check the default
+        self.assertEqual(2, driver.SUBDIR_LEN)
+
+        metric = mock.Mock(id=uuid.UUID("12345678901234567890123456789012"))
+        expected = (driver.basepath + "/12/34/56/78/90/12/34/56/78/90/12/34/56"
+                    "/78/90/12/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
+        driver._file_subdir_len = 16
+        expected = (driver.basepath + "/1234567890123456/7890123456"
+                    "789012/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
+        driver._file_subdir_len = 15
+        expected = (driver.basepath + "/123456789012345/67890123456"
+                    "7890/12/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
     def test_corrupted_split(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
