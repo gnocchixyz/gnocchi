@@ -64,6 +64,29 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
+    def test_file_driver_subdir_len(self):
+        driver = storage.get_driver(self.conf)
+        if not isinstance(driver, file.FileStorage):
+            self.skipTest("not file driver")
+
+        # Check the default
+        self.assertEqual(2, driver.SUBDIR_LEN)
+
+        metric = mock.Mock(id=uuid.UUID("12345678901234567890123456789012"))
+        expected = (driver.basepath + "/12/34/56/78/90/12/34/56/78/90/12/34/56"
+                    "/78/90/12/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
+        driver._file_subdir_len = 16
+        expected = (driver.basepath + "/1234567890123456/7890123456"
+                    "789012/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
+        driver._file_subdir_len = 15
+        expected = (driver.basepath + "/123456789012345/67890123456"
+                    "7890/12/12345678-9012-3456-7890-123456789012")
+        self.assertEqual(expected, driver._build_metric_dir(metric))
+
     def test_corrupted_split(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -334,26 +357,27 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'D'))
         self.assertEqual({
-            agg: {carbonara.SplitKey(numpy.datetime64(1244160000, 's'),
-                                     numpy.timedelta64(1, 'D'))},
-        }, self.storage._list_split_keys(
-            self.metric, [agg]))
+            self.metric: {
+                agg: {carbonara.SplitKey(numpy.datetime64(1244160000, 's'),
+                                         numpy.timedelta64(1, 'D'))},
+            },
+        }, self.storage._list_split_keys({self.metric: [agg]}))
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'h'))
         self.assertEqual({
-            agg: {carbonara.SplitKey(numpy.datetime64(1412640000, 's'),
-                                     numpy.timedelta64(1, 'h'))},
-        }, self.storage._list_split_keys(
-            self.metric, [agg],
-        ))
+            self.metric: {
+                agg: {carbonara.SplitKey(numpy.datetime64(1412640000, 's'),
+                                         numpy.timedelta64(1, 'h'))},
+            },
+        }, self.storage._list_split_keys({self.metric: [agg]}))
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(5, 'm'))
         self.assertEqual({
-            agg: {carbonara.SplitKey(numpy.datetime64(1419120000, 's'),
-                                     numpy.timedelta64(5, 'm'))},
-        }, self.storage._list_split_keys(
-            self.metric, [agg],
-        ))
+            self.metric: {
+                agg: {carbonara.SplitKey(numpy.datetime64(1419120000, 's'),
+                                         numpy.timedelta64(5, 'm'))},
+            }
+        }, self.storage._list_split_keys({self.metric: [agg]}))
 
     def test_get_measures_return(self):
         self.incoming.add_measures(self.metric.id, [
@@ -467,15 +491,17 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-            },
-        }, self.storage._list_split_keys(self.metric, [agg]))
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                },
+            }
+        }, self.storage._list_split_keys({self.metric: [agg]}))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -528,17 +554,19 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64(1452384000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                                   numpy.timedelta64(1, 'm')),
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64(1452384000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                },
             },
-        }, self.storage._list_split_keys(self.metric, [agg]))
+        }, self.storage._list_split_keys({self.metric: [agg]}))
         data = self.storage._get_splits({
             self.metric: {
                 aggregation: [carbonara.SplitKey(
@@ -603,15 +631,17 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                                   numpy.timedelta64(1, 'm')),
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                },
             },
-        }, self.storage._list_split_keys(self.metric, [agg]))
+        }, self.storage._list_split_keys({self.metric: [agg]}))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
@@ -665,17 +695,19 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-            }
-        }, self.storage._list_split_keys(self.metric, [agg]))
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                },
+            },
+        }, self.storage._list_split_keys({self.metric: [agg]}))
         data = self.storage._get_splits({
             self.metric: {
                 agg: [carbonara.SplitKey(
@@ -737,18 +769,17 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
-                                   numpy.timedelta64(1, 'm')),
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64('2016-01-02T12:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64('2016-01-05T00:00:00'),
+                                       numpy.timedelta64(1, 'm')),
+                },
             },
-        }, self.storage._list_split_keys(
-            self.metric,
-            [agg],
-        ))
+        }, self.storage._list_split_keys({self.metric: [agg]}))
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
         else:
@@ -832,15 +863,17 @@ class TestStorageDriver(tests_base.TestCase):
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
-            agg: {
-                carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
-                                   numpy.timedelta64(1, 'm')),
-                carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
-                                   numpy.timedelta64(1, 'm')),
+            self.metric: {
+                agg: {
+                    carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451736000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                    carbonara.SplitKey(numpy.datetime64(1451952000, 's'),
+                                       numpy.timedelta64(1, 'm')),
+                },
             },
-        }, self.storage._list_split_keys(self.metric, [agg]))
+        }, self.storage._list_split_keys({self.metric: [agg]}))
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
