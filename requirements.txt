@@ -16,7 +16,7 @@ voluptuous>=0.8.10
 werkzeug
 trollius; python_version < '3.4'
 tenacity>=4.6.0
-WebOb>=1.4.1,<1.8.0
+WebOb>=1.4.1
 Paste
 PasteDeploy
 monotonic
