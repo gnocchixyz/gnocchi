@@ -205,6 +205,7 @@ to build a Docker image containing Gnocchi latest version (fetched from PyPI).
 
 .. _gnocchi-openshift repository: https://github.com/gnocchixyz/gnocchi-openshift
 
+<<<<<<< HEAD
 Installation Using Devstack
 ===========================
 
@@ -226,6 +227,8 @@ Then, you can start devstack:
 
 .. _devstack: http://devstack.org
 
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 Gnocchi Configuration sample
 ============================

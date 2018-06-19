@@ -16,8 +16,15 @@
 
 from __future__ import absolute_import
 
+<<<<<<< HEAD
 import os
 import shutil
+=======
+import logging
+import os
+import shutil
+import subprocess
+>>>>>>> 11a2520... api: avoid some indexer queries
 import tempfile
 import threading
 import time
@@ -25,7 +32,10 @@ from unittest import case
 import uuid
 import warnings
 
+<<<<<<< HEAD
 import daiquiri
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 import fixtures
 from gabbi import fixture
 import numpy
@@ -34,6 +44,10 @@ from oslo_middleware import cors
 import sqlalchemy_utils
 import yaml
 
+<<<<<<< HEAD
+=======
+from gnocchi import chef
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
@@ -99,9 +113,15 @@ class ConfigFixture(fixture.GabbiFixture):
         else:
             dcf = []
         conf = service.prepare_service([], conf=utils.prepare_conf(),
+<<<<<<< HEAD
                                        default_config_files=dcf)
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
             daiquiri.setup(outputs=[])
+=======
+                                       default_config_files=dcf,
+                                       logging_level=logging.DEBUG,
+                                       skip_log_opts=True)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..', '..',))
@@ -125,8 +145,40 @@ class ConfigFixture(fixture.GabbiFixture):
         if conf.indexer.url is None:
             raise case.SkipTest("No indexer configured")
 
+<<<<<<< HEAD
         conf.set_override('driver', 'file', 'storage')
         conf.set_override('file_basepath', data_tmp_dir, 'storage')
+=======
+        storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
+
+        conf.set_override('driver', storage_driver, 'storage')
+        if conf.storage.driver == 'file':
+            conf.set_override('file_basepath', data_tmp_dir, 'storage')
+        elif conf.storage.driver == 'ceph':
+            conf.set_override('ceph_conffile', os.getenv("CEPH_CONF"),
+                              'storage')
+            pool_name = uuid.uuid4().hex
+            with open(os.devnull, 'w') as f:
+                subprocess.call("rados -c %s mkpool %s" % (
+                    os.getenv("CEPH_CONF"), pool_name), shell=True,
+                    stdout=f, stderr=subprocess.STDOUT)
+            conf.set_override('ceph_pool', pool_name, 'storage')
+        elif conf.storage.driver == "s3":
+            conf.set_override('s3_endpoint_url',
+                              os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
+                              group="storage")
+            conf.set_override('s3_access_key_id', "gnocchi", group="storage")
+            conf.set_override('s3_secret_access_key', "anythingworks",
+                              group="storage")
+            conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
+                              "storage")
+        elif conf.storage.driver == "swift":
+            # NOTE(sileht): This fixture must start before any driver stuff
+            swift_fixture = fixtures.MockPatch(
+                'swiftclient.client.Connection',
+                base.FakeSwiftClient)
+            swift_fixture.setUp()
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
@@ -146,10 +198,24 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
                                                        conf.coordination_url)
+<<<<<<< HEAD
         s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
+=======
+        s = storage.get_driver(conf)
+        i = incoming.get_driver(conf)
+
+        if conf.storage.driver == 'redis':
+            # Create one prefix per test
+            s.STORAGE_PREFIX = str(uuid.uuid4()).encode()
+
+        if conf.incoming.driver == 'redis':
+            i.SACK_NAME_FORMAT = (
+                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         self.fixtures = [
             fixtures.MockPatch("gnocchi.storage.get_driver",
@@ -165,12 +231,26 @@ class ConfigFixture(fixture.GabbiFixture):
         for f in self.fixtures:
             f.setUp()
 
+<<<<<<< HEAD
+=======
+        if conf.storage.driver == 'swift':
+            self.fixtures.append(swift_fixture)
+
+>>>>>>> 11a2520... api: avoid some indexer queries
         LOAD_APP_KWARGS = {
             'conf': conf,
         }
 
+<<<<<<< HEAD
         # start up a thread to async process measures
         self.metricd_thread = MetricdThread(index, s, i)
+=======
+        s.upgrade()
+        i.upgrade(128)
+
+        # start up a thread to async process measures
+        self.metricd_thread = MetricdThread(chef.Chef(self.coord, i, index, s))
+>>>>>>> 11a2520... api: avoid some indexer queries
         self.metricd_thread.start()
 
     def stop_fixture(self):
@@ -208,15 +288,22 @@ class ConfigFixture(fixture.GabbiFixture):
 class MetricdThread(threading.Thread):
     """Run metricd in a naive thread to process measures."""
 
+<<<<<<< HEAD
     def __init__(self, index, storer, incoming, name='metricd'):
         super(MetricdThread, self).__init__(name=name)
         self.index = index
         self.storage = storer
         self.incoming = incoming
+=======
+    def __init__(self, chef, name='metricd'):
+        super(MetricdThread, self).__init__(name=name)
+        self.chef = chef
+>>>>>>> 11a2520... api: avoid some indexer queries
         self.flag = True
 
     def run(self):
         while self.flag:
+<<<<<<< HEAD
             metrics = utils.list_all_incoming_metrics(self.incoming)
             metrics = self.index.list_metrics(
                 attribute_filter={"in": {"id": metrics}})
@@ -225,6 +312,10 @@ class MetricdThread(threading.Thread):
                                             self.incoming,
                                             metric,
                                             timeout=None)
+=======
+            for sack in self.chef.incoming.iter_sacks():
+                self.chef.process_new_measures_for_sack(sack, blocking=True)
+>>>>>>> 11a2520... api: avoid some indexer queries
             time.sleep(0.1)
 
     def stop(self):

@@ -52,11 +52,24 @@ class MetricReference(object):
 
 
 def _get_measures_timeserie(storage, ref, granularity, *args, **kwargs):
+<<<<<<< HEAD
     return (ref, storage._get_measures_timeserie(
         ref.metric,
         ref.metric.archive_policy.get_aggregation(
             ref.aggregation, granularity),
         *args, **kwargs))
+=======
+    agg = ref.metric.archive_policy.get_aggregation(
+        ref.aggregation, granularity)
+    try:
+        data = storage.get_aggregated_measures(
+            {ref.metric: [agg]},
+            *args, **kwargs)[ref.metric][agg]
+    except gnocchi_storage.MetricDoesNotExist:
+        data = carbonara.AggregatedTimeSerie(
+            carbonara.Aggregation(ref.aggregation, granularity, None))
+    return (ref, data)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 
 def get_measures(storage, references, operations,
@@ -136,10 +149,19 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     lookup_keys = collections.defaultdict(list)
     for (ref, timeserie) in refs_and_timeseries:
         from_ = (None if from_timestamp is None else
+<<<<<<< HEAD
                  carbonara.round_timestamp(from_timestamp, timeserie.sampling))
         references[timeserie.sampling].append(ref)
         lookup_keys[timeserie.sampling].append(ref.lookup_key)
         series[timeserie.sampling].append(timeserie[from_:to_timestamp])
+=======
+                 carbonara.round_timestamp(
+                     from_timestamp, timeserie.aggregation.granularity))
+        references[timeserie.aggregation.granularity].append(ref)
+        lookup_keys[timeserie.aggregation.granularity].append(ref.lookup_key)
+        series[timeserie.aggregation.granularity].append(
+            timeserie[from_:to_timestamp])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     result = []
     is_aggregated = False

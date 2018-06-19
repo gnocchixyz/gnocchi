@@ -23,10 +23,20 @@ from oslo_config import cfg
 from oslo_config import types
 import six
 
+<<<<<<< HEAD
 from gnocchi import aggregation
 from gnocchi import utils
 
 
+=======
+from gnocchi import carbonara
+from gnocchi import utils
+
+
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 class ArchivePolicy(object):
 
     DEFAULT_AGGREGATION_METHODS = ()
@@ -91,6 +101,7 @@ class ArchivePolicy(object):
         # Find the timespan
         for d in self.definition:
             if d.granularity == granularity:
+<<<<<<< HEAD
                 return aggregation.Aggregation(
                     method, d.granularity, d.timespan)
 
@@ -99,6 +110,27 @@ class ArchivePolicy(object):
         return [aggregation.Aggregation(method, d.granularity, d.timespan)
                 for method in self.aggregation_methods
                 for d in self.definition]
+=======
+                return carbonara.Aggregation(
+                    method, d.granularity, d.timespan)
+
+    def get_aggregations_for_method(self, method):
+        """Return a list of aggregation for a method.
+
+        List is sorted by granularity, desc.
+
+        :param method: Aggregation method.
+        """
+        return [carbonara.Aggregation(method, d.granularity, d.timespan)
+                for d in sorted(self.definition,
+                                key=ATTRGETTER_GRANULARITY, reverse=True)]
+
+    @property
+    def aggregations(self):
+        return [carbonara.Aggregation(method, d.granularity, d.timespan)
+                for d in sorted(self.definition, key=ATTRGETTER_GRANULARITY)
+                for method in self.aggregation_methods]
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     @property
     def aggregation_methods(self):
