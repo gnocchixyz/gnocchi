@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2016-2017 Red Hat, Inc.
 =======
 # Copyright © 2016-2018 Red Hat, Inc.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2016-2018 Red Hat, Inc.
+>>>>>>> f21ea84... Add automatic backport labels
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -23,9 +27,13 @@ from oslo_config import cfg
 import tenacity
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi import carbonara
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi import carbonara
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi import utils
@@ -77,12 +85,17 @@ class S3Storage(storage.StorageDriver):
     _consistency_wait = tenacity.wait_exponential(multiplier=0.1)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, conf, coord=None):
         super(S3Storage, self).__init__(conf, coord)
 =======
     def __init__(self, conf):
         super(S3Storage, self).__init__(conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, conf):
+        super(S3Storage, self).__init__(conf)
+>>>>>>> f21ea84... Add automatic backport labels
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )
@@ -118,11 +131,14 @@ class S3Storage(storage.StorageDriver):
         return str(metric.id) + '/'
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _create_metric(self, metric):
         pass
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _put_object_safe(self, Bucket, Key, Body):
         put = self.s3.put_object(Bucket=Bucket, Key=Key, Body=Body)
 
@@ -139,6 +155,7 @@ class S3Storage(storage.StorageDriver):
                 stop=self._consistency_stop)(_head)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=0, version=3):
         self._put_object_safe(
@@ -154,6 +171,8 @@ class S3Storage(storage.StorageDriver):
             Key=self._prefix(metric) + self._object_name(
                 key, aggregation, version))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
                                        offset, version):
         self._put_object_safe(
@@ -168,7 +187,10 @@ class S3Storage(storage.StorageDriver):
             Bucket=self._bucket_name,
             Key=self._prefix(metric) + self._object_name(
                 key, aggregation.method, version))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _delete_metric(self, metric):
         bucket = self._bucket_name
@@ -192,14 +214,19 @@ class S3Storage(storage.StorageDriver):
                            [c['Key'] for c in response.get('Contents', ())])
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
 =======
     def _get_splits_unbatched(self, metric, key, aggregation, version=3):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
+>>>>>>> f21ea84... Add automatic backport labels
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
+<<<<<<< HEAD
 <<<<<<< HEAD
                     key, aggregation, version))
         except botocore.exceptions.ClientError as e:
@@ -248,6 +275,8 @@ class S3Storage(storage.StorageDriver):
                     # Might be "none", or any other file. Be resilient.
                     continue
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                     key, aggregation.method, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
@@ -300,7 +329,10 @@ class S3Storage(storage.StorageDriver):
                     except (ValueError, IndexError):
                         # Might be "none", or any other file. Be resilient.
                         continue
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         return keys
 
     @staticmethod
@@ -308,6 +340,7 @@ class S3Storage(storage.StorageDriver):
         return S3Storage._prefix(metric) + 'none' + ("_v%s" % version
                                                      if version else "")
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
         try:
@@ -322,6 +355,8 @@ class S3Storage(storage.StorageDriver):
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):
         key = self._build_unaggregated_timeserie_path(metric, version)
@@ -340,7 +375,10 @@ class S3Storage(storage.StorageDriver):
 
     def _store_unaggregated_timeseries_unbatched(
             self, metric, data, version=3):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self._put_object_safe(
             Bucket=self._bucket_name,
             Key=self._build_unaggregated_timeserie_path(metric, version),

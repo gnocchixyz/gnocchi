@@ -186,12 +186,18 @@ def handle_resample(agg, granularity, timestamps, values, is_aggregated,
     result_timestamps = timestamps
     for ts in values.T:
 <<<<<<< HEAD
+<<<<<<< HEAD
         ts = carbonara.AggregatedTimeSerie.from_data(None, agg, timestamps, ts)
 =======
         ts = carbonara.AggregatedTimeSerie.from_data(
             carbonara.Aggregation(agg, None, None),
             timestamps, ts)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ts = carbonara.AggregatedTimeSerie.from_data(
+            carbonara.Aggregation(agg, None, None),
+            timestamps, ts)
+>>>>>>> f21ea84... Add automatic backport labels
         ts = ts.resample(sampling)
         result_timestamps = ts["timestamps"]
         if new_values is None:

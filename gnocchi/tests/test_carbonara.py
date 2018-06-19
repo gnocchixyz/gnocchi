@@ -17,9 +17,13 @@ import datetime
 import functools
 import math
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import operator
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import operator
+>>>>>>> f21ea84... Add automatic backport labels
 
 import fixtures
 import iso8601
@@ -109,6 +113,7 @@ class TestBoundTimeSerie(base.BaseTestCase):
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
 <<<<<<< HEAD
+<<<<<<< HEAD
     @staticmethod
     def test_base():
         carbonara.AggregatedTimeSerie.from_data(
@@ -126,6 +131,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def test_benchmark(self):
         self.useFixture(fixtures.Timeout(300, gentle=True))
         carbonara.AggregatedTimeSerie.benchmark()
@@ -135,6 +142,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             timestamps=[datetime64(2014, 1, 1, 12, 0, 0),
                         datetime64(2014, 1, 1, 12, 0, 4),
                         datetime64(2014, 1, 1, 12, 0, 9)],
+<<<<<<< HEAD
 <<<<<<< HEAD
             aggregation_method='mean',
             values=[3, 5, 6],
@@ -160,6 +168,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              (datetime64(2014, 1, 1, 12, 0, 9),
               numpy.timedelta64(1000000, 'us'), 6)],
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             values=[3, 5, 6],
             aggregation=carbonara.Aggregation(
                 "mean", numpy.timedelta64(1, 's'), None))
@@ -176,11 +186,15 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(
             [(datetime64(2014, 1, 1, 12, 0, 4), 5),
              (datetime64(2014, 1, 1, 12, 0, 9), 6)],
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             list(ts.fetch(
                 from_timestamp=numpy.datetime64(iso8601.parse_date(
                     "2014-01-01 12:00:04")))))
         self.assertEqual(
+<<<<<<< HEAD
 <<<<<<< HEAD
             [(datetime64(2014, 1, 1, 12, 0, 4),
               numpy.timedelta64(1000000, 'us'), 5),
@@ -190,6 +204,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             [(datetime64(2014, 1, 1, 12, 0, 4), 5),
              (datetime64(2014, 1, 1, 12, 0, 9), 6)],
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            [(datetime64(2014, 1, 1, 12, 0, 4), 5),
+             (datetime64(2014, 1, 1, 12, 0, 9), 6)],
+>>>>>>> f21ea84... Add automatic backport labels
             list(ts.fetch(
                 from_timestamp=numpy.datetime64(iso8601.parse_date(
                     "2014-01-01 13:00:04+01:00")))))
@@ -207,18 +225,26 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
     @staticmethod
     def _resample(ts, sampling, agg, derived=False):
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         aggregation = carbonara.Aggregation(agg, sampling, None)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        aggregation = carbonara.Aggregation(agg, sampling, None)
+>>>>>>> f21ea84... Add automatic backport labels
         grouped = ts.group_serie(sampling)
         if derived:
             grouped = grouped.derived()
         return carbonara.AggregatedTimeSerie.from_grouped_serie(
 <<<<<<< HEAD
+<<<<<<< HEAD
             grouped, sampling, agg)
 =======
             grouped, aggregation)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            grouped, aggregation)
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_derived_mean(self):
         ts = carbonara.TimeSerie.from_data(
@@ -241,6 +267,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5, len(ts))
         self.assertEqual(
 <<<<<<< HEAD
+<<<<<<< HEAD
             [(datetime64(2014, 1, 1, 12, 0, 0),
               numpy.timedelta64(60, 's'), 5),
              (datetime64(2014, 1, 1, 12, 1, 0),
@@ -252,12 +279,17 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              (datetime64(2014, 1, 1, 12, 4, 0),
               numpy.timedelta64(60, 's'), 16)],
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             [(datetime64(2014, 1, 1, 12, 0, 0), 5),
              (datetime64(2014, 1, 1, 12, 1, 0), 5),
              (datetime64(2014, 1, 1, 12, 2, 0), 11),
              (datetime64(2014, 1, 1, 12, 3, 0), -32),
              (datetime64(2014, 1, 1, 12, 4, 0), 16)],
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12))))
 
@@ -279,6 +311,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(4, len(ts))
         self.assertEqual(
 <<<<<<< HEAD
+<<<<<<< HEAD
             [(datetime64(2014, 1, 1, 12, 0, 0),
               numpy.timedelta64(60, 's'), 5),
              (datetime64(2014, 1, 1, 12, 1, 0),
@@ -288,11 +321,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              (datetime64(2014, 1, 1, 12, 4, 0),
               numpy.timedelta64(60, 's'), 2)],
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             [(datetime64(2014, 1, 1, 12, 0, 0), 5),
              (datetime64(2014, 1, 1, 12, 1, 0), 4),
              (datetime64(2014, 1, 1, 12, 3, 0), 92),
              (datetime64(2014, 1, 1, 12, 4, 0), 2)],
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12))))
 
@@ -312,12 +350,18 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         o, s = ts.serialize(key)
         saved_ts = carbonara.AggregatedTimeSerie.unserialize(
 <<<<<<< HEAD
+<<<<<<< HEAD
             s, key, '74pct')
 =======
             s, key, ts.aggregation)
 
         self.assertEqual(ts.aggregation, saved_ts.aggregation)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            s, key, ts.aggregation)
+
+        self.assertEqual(ts.aggregation, saved_ts.aggregation)
+>>>>>>> f21ea84... Add automatic backport labels
 
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
@@ -422,6 +466,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     def test_different_length_in_timestamps_and_data(self):
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertRaises(ValueError,
                           carbonara.AggregatedTimeSerie.from_data,
                           3, 'mean',
@@ -430,6 +475,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            datetime64(2014, 1, 1, 12, 0, 9)],
                           [3, 5])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertRaises(
             ValueError,
             carbonara.AggregatedTimeSerie.from_data,
@@ -438,7 +485,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              datetime64(2014, 1, 1, 12, 0, 4),
              datetime64(2014, 1, 1, 12, 0, 9)],
             [3, 5])
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_truncate(self):
         ts = carbonara.TimeSerie.from_data(
@@ -498,19 +548,25 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
 <<<<<<< HEAD
+<<<<<<< HEAD
         """Helper method that mimics _add_measures workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped, agg_dict['sampling'], agg_dict['agg'])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         """Helper method that mimics _compute_splits_operations workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
             grouped, carbonara.Aggregation(
                 agg_dict['agg'], agg_dict['sampling'], None))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if existing:
             existing.merge(agg_dict['return'])
             agg_dict['return'] = existing
@@ -547,6 +603,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
+<<<<<<< HEAD
 <<<<<<< HEAD
             (numpy.datetime64('2014-01-01T11:46:00.000000000'),
              numpy.timedelta64(60, 's'), 4.0),
@@ -590,6 +647,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 6),
              numpy.timedelta64(60000000000, 'ns'), 4.0)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (numpy.datetime64('2014-01-01T11:46:00.000000000'), 4.0),
             (numpy.datetime64('2014-01-01T11:47:00.000000000'), 8.0),
             (numpy.datetime64('2014-01-01T11:50:00.000000000'), 50.0),
@@ -612,7 +671,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 4), 7.0),
             (datetime64(2014, 1, 1, 12, 5), 8.0),
             (datetime64(2014, 1, 1, 12, 6), 4.0)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_fetch_agg_pct(self):
@@ -632,22 +694,29 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(
                 2014, 1, 1, 12, 0, 0
 <<<<<<< HEAD
+<<<<<<< HEAD
             ), 1.0, 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
             ), 1.0, 4)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             ), 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
             ), 4)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]
 
         self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
+<<<<<<< HEAD
 <<<<<<< HEAD
             self.assertEqual(ref[1], res[1])
             # Rounding \o/
@@ -656,6 +725,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             # Rounding \o/
             self.assertAlmostEqual(ref[1], res[1])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            # Rounding \o/
+            self.assertAlmostEqual(ref[1], res[1])
+>>>>>>> f21ea84... Add automatic backport labels
 
         tsb.set_values(numpy.array([
             (datetime64(2014, 1, 1, 12, 0, 2, 113), 110)],
@@ -668,22 +741,29 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(
                 2014, 1, 1, 12, 0, 0
 <<<<<<< HEAD
+<<<<<<< HEAD
             ), 1.0, 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
             ), 1.0, 99.4)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             ), 3.9),
             (datetime64(
                 2014, 1, 1, 12, 0, 2
             ), 99.4)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]
 
         self.assertEqual(len(reference), len(list(result)))
 
         for ref, res in zip(reference, result):
             self.assertEqual(ref[0], res[0])
+<<<<<<< HEAD
 <<<<<<< HEAD
             self.assertEqual(ref[1], res[1])
             # Rounding \o/
@@ -692,6 +772,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             # Rounding \o/
             self.assertAlmostEqual(ref[1], res[1])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            # Rounding \o/
+            self.assertAlmostEqual(ref[1], res[1])
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_fetch_nano(self):
         ts = {'sampling': numpy.timedelta64(200, 'ms'),
@@ -716,6 +800,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual([
 <<<<<<< HEAD
+<<<<<<< HEAD
             (datetime64(2014, 1, 1, 11, 46, 0, 200000),
              numpy.timedelta64(200000000, 'ns'), 6.0),
             (datetime64(2014, 1, 1, 11, 47, 0, 200000),
@@ -726,6 +811,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              numpy.timedelta64(200000000, 'ns'), 4.5)
         ], list(ts['return'].fetch()))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1, 11, 46, 0, 200000), 6.0),
             (datetime64(2014, 1, 1, 11, 47, 0, 200000), 50.0),
             (datetime64(2014, 1, 1, 11, 48, 0, 400000), 4.0),
@@ -733,7 +820,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ], list(ts['return'].fetch()))
         self.assertEqual(numpy.timedelta64(200000000, 'ns'),
                          ts['return'].aggregation.granularity)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_fetch_agg_std(self):
         # NOTE (gordc): this is a good test to ensure we drop NaN entries
@@ -753,6 +843,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual([
 <<<<<<< HEAD
+<<<<<<< HEAD
             (datetime64(2014, 1, 1, 12, 1, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.1213203435596424),
             (datetime64(2014, 1, 1, 12, 2, 0),
@@ -761,6 +852,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
             (datetime64(2014, 1, 1, 12, 2, 0), 9.8994949366116654),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
+            (datetime64(2014, 1, 1, 12, 2, 0), 9.8994949366116654),
+>>>>>>> f21ea84... Add automatic backport labels
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
@@ -770,6 +865,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual([
 <<<<<<< HEAD
+<<<<<<< HEAD
             (datetime64(2014, 1, 1, 12, 1, 0),
              numpy.timedelta64(60000000000, 'ns'), 2.1213203435596424),
             (datetime64(2014, 1, 1, 12, 2, 0),
@@ -778,6 +874,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
             (datetime64(2014, 1, 1, 12, 2, 0), 59.304300012730948),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            (datetime64(2014, 1, 1, 12, 1, 0), 2.1213203435596424),
+            (datetime64(2014, 1, 1, 12, 2, 0), 59.304300012730948),
+>>>>>>> f21ea84... Add automatic backport labels
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_fetch_agg_max(self):
@@ -796,6 +896,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
         self.assertEqual([
 <<<<<<< HEAD
+<<<<<<< HEAD
             (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(60000000000, 'ns'), 3),
             (datetime64(2014, 1, 1, 12, 1, 0),
@@ -807,6 +908,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 1, 0), 7),
             (datetime64(2014, 1, 1, 12, 2, 0), 15),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            (datetime64(2014, 1, 1, 12, 0, 0), 3),
+            (datetime64(2014, 1, 1, 12, 1, 0), 7),
+            (datetime64(2014, 1, 1, 12, 2, 0), 15),
+>>>>>>> f21ea84... Add automatic backport labels
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
         tsb.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 2, 13), 110)],
@@ -815,6 +921,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                            self._resample_and_merge, agg_dict=ts))
 
         self.assertEqual([
+<<<<<<< HEAD
 <<<<<<< HEAD
             (datetime64(2014, 1, 1, 12, 0, 0),
              numpy.timedelta64(60, 's'), 3),
@@ -827,6 +934,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (datetime64(2014, 1, 1, 12, 1, 0), 7),
             (datetime64(2014, 1, 1, 12, 2, 0), 110),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            (datetime64(2014, 1, 1, 12, 0, 0), 3),
+            (datetime64(2014, 1, 1, 12, 1, 0), 7),
+            (datetime64(2014, 1, 1, 12, 2, 0), 110),
+>>>>>>> f21ea84... Add automatic backport labels
         ], list(ts['return'].fetch(datetime64(2014, 1, 1, 12, 0, 0))))
 
     def test_serialize(self):
@@ -848,10 +960,14 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(ts['return'],
                          carbonara.AggregatedTimeSerie.unserialize(
 <<<<<<< HEAD
+<<<<<<< HEAD
                              s, key, 'mean'))
 =======
                              s, key, ts['return'].aggregation))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                             s, key, ts['return'].aggregation))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_no_truncation(self):
         ts = {'sampling': numpy.timedelta64(60, 's'), 'agg': 'mean'}
@@ -892,6 +1008,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(
             [
 <<<<<<< HEAD
+<<<<<<< HEAD
                 (datetime64(
                     2014, 1, 1, 12, 0, 1
                 ), numpy.timedelta64(1, 's'), 1.5),
@@ -906,6 +1023,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
                 (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
+>>>>>>> f21ea84... Add automatic backport labels
             ],
             list(ts['return'].fetch()))
 
@@ -931,28 +1053,6 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(
             [
 <<<<<<< HEAD
-                (datetime64(2014, 1, 1, 12, 0, 1),
-                 numpy.timedelta64(1, 's'), 1.5),
-                (datetime64(2014, 1, 1, 12, 0, 2),
-                 numpy.timedelta64(1, 's'), 3.5),
-                (datetime64(2014, 1, 1, 12, 0, 3),
-                 numpy.timedelta64(1, 's'), 2.5),
-=======
-                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
-                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
-                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
->>>>>>> 11a2520... api: avoid some indexer queries
-            ],
-            list(ts['return'].fetch()))
-
-        tsb.set_values(numpy.array([
-            (datetime64(2014, 1, 1, 12, 0, 2, 99), 9)],
-            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
-            before_truncate_callback=functools.partial(
-                self._resample_and_merge, agg_dict=ts))
-
-        self.assertEqual(
-            [
 <<<<<<< HEAD
                 (datetime64(2014, 1, 1, 12, 0, 1),
                  numpy.timedelta64(1, 's'), 1.5),
@@ -965,6 +1065,40 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
                 (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
+>>>>>>> f21ea84... Add automatic backport labels
+            ],
+            list(ts['return'].fetch()))
+
+        tsb.set_values(numpy.array([
+            (datetime64(2014, 1, 1, 12, 0, 2, 99), 9)],
+            dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
+            before_truncate_callback=functools.partial(
+                self._resample_and_merge, agg_dict=ts))
+
+        self.assertEqual(
+            [
+<<<<<<< HEAD
+<<<<<<< HEAD
+                (datetime64(2014, 1, 1, 12, 0, 1),
+                 numpy.timedelta64(1, 's'), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2),
+                 numpy.timedelta64(1, 's'), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3),
+                 numpy.timedelta64(1, 's'), 2.5),
+=======
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
+>>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 2.5),
+>>>>>>> f21ea84... Add automatic backport labels
             ],
             list(ts['return'].fetch()))
 
@@ -978,6 +1112,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(
             [
 <<<<<<< HEAD
+<<<<<<< HEAD
                 (datetime64(2014, 1, 1, 12, 0, 1),
                  numpy.timedelta64(1, 's'), 1.5),
                 (datetime64(2014, 1, 1, 12, 0, 2),
@@ -989,6 +1124,11 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
                 (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
                 (datetime64(2014, 1, 1, 12, 0, 3), 3.5),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                (datetime64(2014, 1, 1, 12, 0, 1), 1.5),
+                (datetime64(2014, 1, 1, 12, 0, 2), 3.5),
+                (datetime64(2014, 1, 1, 12, 0, 3), 3.5),
+>>>>>>> f21ea84... Add automatic backport labels
             ],
             list(ts['return'].fetch()))
 
@@ -1018,9 +1158,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         dt2 = numpy.datetime64("2015-01-05T15:03")
         td = numpy.timedelta64(60, 's')
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         td2 = numpy.timedelta64(300, 's')
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        td2 = numpy.timedelta64(300, 's')
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.assertEqual(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
@@ -1032,11 +1176,17 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         self.assertNotEqual(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td2))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.assertNotEqual(
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
+            carbonara.SplitKey.from_timestamp_and_sampling(dt1, td2))
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.assertLess(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
@@ -1058,9 +1208,13 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         dt2 = numpy.datetime64("2015-01-05T15:03")
         td = numpy.timedelta64(60, 's')
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         td2 = numpy.timedelta64(300, 's')
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        td2 = numpy.timedelta64(300, 's')
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) !=
@@ -1072,7 +1226,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td))
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) ==
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
@@ -1096,7 +1253,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             operator.lt,
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td),
             carbonara.SplitKey.from_timestamp_and_sampling(dt2, td2))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.assertFalse(
             carbonara.SplitKey.from_timestamp_and_sampling(dt1, td) >=
@@ -1161,12 +1321,16 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(agg,
                          carbonara.AggregatedTimeSerie.from_timeseries(
 <<<<<<< HEAD
+<<<<<<< HEAD
                              split,
                              sampling=agg.sampling,
                              aggregation_method=agg.aggregation_method))
 =======
                              split, aggregation=agg.aggregation))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                             split, aggregation=agg.aggregation))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_resample(self):
         ts = carbonara.TimeSerie.from_data(
@@ -1184,7 +1348,10 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         self.assertEqual(5, agg_ts[0][1])
         self.assertEqual(3, agg_ts[1][1])
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_iter(self):
         ts = carbonara.TimeSerie.from_data(
@@ -1197,4 +1364,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
             (numpy.datetime64('2014-01-01T12:00:11'), 5.),
             (numpy.datetime64('2014-01-01T12:00:12'), 6.),
         ], list(ts))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

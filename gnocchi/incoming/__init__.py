@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat, Inc.
 =======
 # Copyright © 2017-2018 Red Hat, Inc.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2017-2018 Red Hat, Inc.
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -20,11 +24,17 @@
 # under the License.
 import collections
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import functools
 import itertools
 import operator
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import functools
+import itertools
+import operator
+>>>>>>> f21ea84... Add automatic backport labels
 
 import daiquiri
 import numpy
@@ -41,11 +51,17 @@ Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 ITEMGETTER_1 = operator.itemgetter(1)
 
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+ITEMGETTER_1 = operator.itemgetter(1)
+
+
+>>>>>>> f21ea84... Add automatic backport labels
 class ReportGenerationError(Exception):
     pass
 
@@ -55,10 +71,13 @@ class SackDetectionError(Exception):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class IncomingDriver(object):
     MEASURE_PREFIX = "measure"
     SACK_PREFIX = "incoming"
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 @functools.total_ordering
 class Sack(object):
     """A sack is a recipient that contains measures for a group of metrics.
@@ -119,7 +138,10 @@ class Sack(object):
 class IncomingDriver(object):
     MEASURE_PREFIX = "measure"
     SACK_NAME_FORMAT = "incoming{total}-{number}"
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
     # NOTE(sileht): By default we use threads, but some driver can disable
@@ -136,6 +158,7 @@ class IncomingDriver(object):
         return self._num_sacks
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     @staticmethod
     def __init__(conf, greedy=True):
         pass
@@ -147,6 +170,10 @@ class IncomingDriver(object):
     def __init__(self, conf, greedy=True):
         self._sacks = None
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, conf, greedy=True):
+        self._sacks = None
+>>>>>>> f21ea84... Add automatic backport labels
 
     def upgrade(self, num_sacks):
         try:
@@ -168,6 +195,7 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     @staticmethod
     def get_sack_lock(coord, sack):
         lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
@@ -175,6 +203,8 @@ class IncomingDriver(object):
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _make_measures_array(self):
         return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)
 
@@ -198,7 +228,10 @@ class IncomingDriver(object):
                            dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def group_metrics_by_sack(self, metrics):
         """Iterate on a list of metrics, grouping them by sack.
 
@@ -212,7 +245,10 @@ class IncomingDriver(object):
                                                key=ITEMGETTER_1):
             yield sack, [m[0] for m in metrics]
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def add_measures(self, metric_id, measures):
         """Add a measure to a metric.
 
@@ -257,6 +293,7 @@ class IncomingDriver(object):
 
     @staticmethod
 <<<<<<< HEAD
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(sack):
         raise exceptions.NotImplementedError
 
@@ -267,6 +304,8 @@ class IncomingDriver(object):
     @staticmethod
     def process_measure_for_metric(metric_id):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def delete_unprocessed_measures_for_metric(metric_id):
         raise exceptions.NotImplementedError
 
@@ -276,7 +315,10 @@ class IncomingDriver(object):
 
     @staticmethod
     def process_measures_for_sack(sack):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         raise exceptions.NotImplementedError
 
     @staticmethod
@@ -284,12 +326,15 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def sack_for_metric(self, metric_id):
         return metric_id.int % self.NUM_SACKS
 
     def get_sack_name(self, sack):
         return self.get_sack_prefix() % sack
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_sack_name(self, number):
         return self.SACK_NAME_FORMAT.format(
             total=self.NUM_SACKS, number=number)
@@ -302,7 +347,10 @@ class IncomingDriver(object):
 
     def iter_sacks(self):
         return (self._make_sack(i) for i in six.moves.range(self.NUM_SACKS))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     @staticmethod
     def iter_on_sacks_to_process():

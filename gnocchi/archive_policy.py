@@ -24,11 +24,14 @@ from oslo_config import types
 import six
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from gnocchi import aggregation
 from gnocchi import utils
 
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import carbonara
 from gnocchi import utils
 
@@ -36,7 +39,10 @@ from gnocchi import utils
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 class ArchivePolicy(object):
 
     DEFAULT_AGGREGATION_METHODS = ()
@@ -102,6 +108,7 @@ class ArchivePolicy(object):
         for d in self.definition:
             if d.granularity == granularity:
 <<<<<<< HEAD
+<<<<<<< HEAD
                 return aggregation.Aggregation(
                     method, d.granularity, d.timespan)
 
@@ -111,6 +118,8 @@ class ArchivePolicy(object):
                 for method in self.aggregation_methods
                 for d in self.definition]
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 return carbonara.Aggregation(
                     method, d.granularity, d.timespan)
 
@@ -130,7 +139,10 @@ class ArchivePolicy(object):
         return [carbonara.Aggregation(method, d.granularity, d.timespan)
                 for d in sorted(self.definition, key=ATTRGETTER_GRANULARITY)
                 for method in self.aggregation_methods]
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     @property
     def aggregation_methods(self):

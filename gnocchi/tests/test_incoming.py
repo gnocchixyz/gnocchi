@@ -44,10 +44,14 @@ class TestIncomingDriver(tests_base.TestCase):
         def _iter_on_sacks_to_process():
             for sack in self.incoming.iter_on_sacks_to_process():
 <<<<<<< HEAD
+<<<<<<< HEAD
                 self.assertIsInstance(sack, int)
 =======
                 self.assertIsInstance(sack, incoming.Sack)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                self.assertIsInstance(sack, incoming.Sack)
+>>>>>>> f21ea84... Add automatic backport labels
                 if sack == sack_to_find:
                     found.set()
                     break

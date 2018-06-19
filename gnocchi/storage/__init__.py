@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2016-2017 Red Hat, Inc.
 =======
 # Copyright © 2016-2018 Red Hat, Inc.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2016-2018 Red Hat, Inc.
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -19,10 +23,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 import functools
 =======
 import collections
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import collections
+>>>>>>> f21ea84... Add automatic backport labels
 import itertools
 import operator
 
@@ -33,9 +41,12 @@ import six
 
 from gnocchi import carbonara
 <<<<<<< HEAD
+<<<<<<< HEAD
 from gnocchi import indexer
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import utils
 
 
@@ -50,11 +61,16 @@ LOG = daiquiri.getLogger(__name__)
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ITEMGETTER_1 = operator.itemgetter(1)
 =======
 ATTRGETTER_METHOD = operator.attrgetter("method")
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+ATTRGETTER_METHOD = operator.attrgetter("method")
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 class StorageError(Exception):
@@ -108,6 +124,7 @@ class MetricAlreadyExists(StorageError):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class LockedMetric(StorageError):
     """Error raised when this metric is already being handled by another."""
 
@@ -133,6 +150,8 @@ def get_driver(conf, coord):
     return utils.get_driver_class('gnocchi.storage', conf.storage)(
         conf.storage, coord)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 @utils.retry_on_exception_and_log("Unable to initialize storage driver")
 def get_driver(conf):
     """Return the configured driver."""
@@ -159,7 +178,10 @@ class Statistics(collections.defaultdict):
 
     def time(self, name):
         return self.StatisticsTimeContext(self, name)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 class StorageDriver(object):
@@ -169,17 +191,23 @@ class StorageDriver(object):
     MAP_METHOD = staticmethod(utils.parallel_map)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, conf, coord):
         self.coord = coord
 =======
     def __init__(self, conf):
         self.statistics = Statistics()
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, conf):
+        self.statistics = Statistics()
+>>>>>>> f21ea84... Add automatic backport labels
 
     @staticmethod
     def upgrade():
         pass
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_measures(self, metric, keys, aggregation, version=3):
         return self.MAP_METHOD(
@@ -247,6 +275,8 @@ class StorageDriver(object):
     @staticmethod
     def _version_check(name, v):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_splits(self, metrics_aggregations_keys, version=3):
         results = collections.defaultdict(
             lambda: collections.defaultdict(list))
@@ -385,13 +415,17 @@ class StorageDriver(object):
     @staticmethod
     def _version_check(name, v):
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         """Validate object matches expected version.
 
         Version should be last attribute and start with 'v'
         """
         return name.split("_")[-1] == 'v%s' % v
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def get_measures(self, metric, granularities,
                      from_timestamp=None, to_timestamp=None,
@@ -541,6 +575,8 @@ class StorageDriver(object):
             return
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def get_aggregated_measures(self, metrics_and_aggregations,
                                 from_timestamp=None, to_timestamp=None):
         """Get aggregated measures from a metric.
@@ -742,7 +778,10 @@ class StorageDriver(object):
                  where key is a `carbonara.SplitKey` and aggts a
                  `carbonara.AggregatedTimeSerie` to be serialized.
         """
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         # We only need to check for rewrite if driver is not in WRITE_FULL mode
         # and if we already stored splits once
         need_rewrite = (
@@ -750,6 +789,7 @@ class StorageDriver(object):
             and previous_oldest_mutable_timestamp is not None
         )
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         if ap_def.timespan:
             oldest_point_to_keep = ts.last - ap_def.timespan
@@ -790,6 +830,8 @@ class StorageDriver(object):
                 # point – so this is not the first time we treat this
                 # timeserie.
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations_needing_list_of_keys = set()
 
         for aggregation, ts in six.iteritems(aggregations_and_timeseries):
@@ -853,12 +895,16 @@ class StorageDriver(object):
                 # `previous_oldest_mutable_timestamp' exists, which means
                 # we already wrote some splits at some point – so this is
                 # not the first time we treat this timeserie.
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 if need_rewrite:
                     for key in existing_keys:
                         if previous_oldest_mutable_key <= key:
                             if key >= oldest_mutable_key:
                                 break
+<<<<<<< HEAD
 <<<<<<< HEAD
                             LOG.debug("Compressing previous split %s (%s) for "
                                       "metric %s", key, aggregation, metric)
@@ -878,6 +924,8 @@ class StorageDriver(object):
                     metric, key, split, aggregation, oldest_mutable_timestamp,
                     oldest_point_to_keep)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                             LOG.debug(
                                 "Compressing previous split %s (%s) for "
                                 "metric %s", key, aggregation.method,
@@ -899,13 +947,17 @@ class StorageDriver(object):
                     keys_and_split_to_store[(key, aggregation)] = split
 
         return (deleted_keys, keys_and_split_to_store)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     @staticmethod
     def _delete_metric(metric):
         raise NotImplementedError
 
     @staticmethod
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _delete_metric_measures(metric, timestamp_key,
                                 aggregation, granularity, version=3):
@@ -1084,6 +1136,8 @@ class StorageDriver(object):
 
         self._store_unaggregated_timeserie(metric, ts.serialize())
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _delete_metric_splits_unbatched(metric, keys, aggregation, version=3):
         raise NotImplementedError
 
@@ -1220,7 +1274,10 @@ class StorageDriver(object):
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def find_measure(self, metric, predicate, granularity, aggregation="mean",
                      from_timestamp=None, to_timestamp=None):
@@ -1229,12 +1286,15 @@ class StorageDriver(object):
             raise AggregationDoesNotExist(metric, aggregation, granularity)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         timeserie = self._get_measures_timeserie(
             metric, agg, from_timestamp, to_timestamp)
         values = timeserie.fetch(from_timestamp, to_timestamp)
         return [(timestamp, g, value)
                 for timestamp, g, value in values
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         try:
             ts = self.get_aggregated_measures(
                 {metric: [agg]}, from_timestamp, to_timestamp)[metric][agg]
@@ -1242,7 +1302,10 @@ class StorageDriver(object):
             return []
         return [(timestamp, ts.aggregation.granularity, value)
                 for timestamp, value in ts
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 if predicate(value)]
 
 

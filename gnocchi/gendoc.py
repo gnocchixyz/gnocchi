@@ -201,12 +201,18 @@ def setup(app):
     try:
         for entry in scenarios:
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             if 'filter' in entry:
                 entry['filter'] = jinja2.Template(entry['filter']).render(
                     scenarios=scenarios)
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             template = jinja2.Template(entry['request'])
             fake_file = six.moves.cStringIO()
             content = template.render(scenarios=scenarios)

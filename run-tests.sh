@@ -1,7 +1,10 @@
 #!/bin/bash -x
 set -e
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 # NOTE(sileht): Enable bash process tracking and send sigterm to the whole
 # process group
@@ -14,7 +17,10 @@ cleanup(){
 }
 trap cleanup EXIT
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 PIDS=""
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}

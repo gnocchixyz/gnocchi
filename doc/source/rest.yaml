@@ -388,14 +388,20 @@
     {"like": {"host": "compute%"}}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: search-resource-for-host-like-filter
   filter: host like "compute%"
   request: |
     POST /v1/search/resource/instance?filter={{ scenarios['search-resource-for-host-like-filter']['filter'] | urlencode }} HTTP/1.1
     Content-Type: application/json
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: search-resource-for-user-details
   request: |
     POST /v1/search/resource/generic?details=true HTTP/1.1
@@ -421,14 +427,20 @@
     ]}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: search-resource-for-user-after-timestamp-filter
   filter: user_id = "{{ scenarios['create-resource-instance']['response'].json['user_id'] }}" and started_at >= "2010-01-01"
   request: |
     POST /v1/search/resource/instance?filter={{ scenarios['search-resource-for-user-after-timestamp-filter']['filter'] | urlencode }} HTTP/1.1
     Content-Type: application/json
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: search-resource-lifespan
   request: |
     POST /v1/search/resource/instance HTTP/1.1
@@ -554,7 +566,10 @@
     ]}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: search-resource-history-partial-filter
   filter: host = 'compute1' and revision_start >= "{{ scenarios['get-instance']['response'].json['revision_start'] }}" and (revision_end <= "{{ scenarios['get-patched-instance']['response'].json['revision_start'] }}" or revision_end == null)
   request: |
@@ -569,7 +584,10 @@
             {"=": {"revision_end": null}}]}
     ]}
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: create-resource-instance-with-metrics
   request: |
     POST /v1/resource/instance HTTP/1.1
@@ -789,14 +807,20 @@
     {"=": {"server_group": "my_autoscaling_group"}}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: get-across-metrics-measures-by-attributes-lookup-filter
   filter: server_group = "my_autoscaling_group"
   request: |
     POST /v1/aggregation/resource/instance/metric/cpu.util?start=2014-10-06T14:34&aggregation=mean&filter={{ scenarios['get-across-metrics-measures-by-attributes-lookup-filter']['filter'] | urlencode }} HTTP/1.1
     Content-Type: application/json
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 - name: get-across-metrics-measures-by-attributes-lookup-groupby
   request: |
     POST /v1/aggregation/resource/instance/metric/cpu.util?groupby=host&groupby=flavor_id HTTP/1.1
