@@ -1,0 +1,23 @@
+rules:
+  default:
+    protection:
+      required_status_checks:
+        strict: True
+        contexts:
+          - continuous-integration/travis-ci
+      required_pull_request_reviews:
+        required_approving_review_count: 2
+    merge_strategy:
+      method: rebase
+    automated_backport_labels:
+      backport-to-4.2: stable/4.2
+      backport-to-4.1: stable/4.1
+      backport-to-4.0: stable/4.0
+      backport-to-3.1: stable/3.1
+      backport-to-3.0: stable/3.0
+  branches:
+    stable/.*:
+      protection:
+        required_pull_request_reviews:
+          required_approving_review_count: 1
+

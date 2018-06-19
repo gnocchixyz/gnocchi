@@ -141,10 +141,14 @@ tests:
       status: 202
 
     - name: list two measures by external resource id
+<<<<<<< HEAD
       GET: $LAST_URL
       poll:
           count: 10
           delay: 1
+=======
+      GET: $LAST_URL?refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
           $[0][2]: 43.1
           $[1][2]: 12

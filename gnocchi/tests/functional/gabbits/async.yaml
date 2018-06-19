@@ -48,6 +48,7 @@ tests:
             value: 12
       status: 202
 
+<<<<<<< HEAD
 # This requires a poll as the measures are not immediately
 # aggregated.
 
@@ -56,6 +57,10 @@ tests:
       poll:
           count: 50
           delay: .1
+=======
+    - name: get some measures
+      GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures?refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_strings:
           - "2015"
       response_json_paths:

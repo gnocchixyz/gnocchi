@@ -1,6 +1,10 @@
 # -*- encoding: utf-8 -*-
 #
+<<<<<<< HEAD
 # Copyright © 2016-2017 Red Hat, Inc.
+=======
+# Copyright © 2016-2018 Red Hat, Inc.
+>>>>>>> 11a2520... api: avoid some indexer queries
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,6 +22,10 @@ import os
 from oslo_config import cfg
 import tenacity
 
+<<<<<<< HEAD
+=======
+from gnocchi import carbonara
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi import utils
@@ -68,8 +76,13 @@ class S3Storage(storage.StorageDriver):
 
     _consistency_wait = tenacity.wait_exponential(multiplier=0.1)
 
+<<<<<<< HEAD
     def __init__(self, conf, coord=None):
         super(S3Storage, self).__init__(conf, coord)
+=======
+    def __init__(self, conf):
+        super(S3Storage, self).__init__(conf)
+>>>>>>> 11a2520... api: avoid some indexer queries
         self.s3, self._region_name, self._bucket_prefix = (
             s3.get_connection(conf)
         )
@@ -104,9 +117,12 @@ class S3Storage(storage.StorageDriver):
     def _prefix(metric):
         return str(metric.id) + '/'
 
+<<<<<<< HEAD
     def _create_metric(self, metric):
         pass
 
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
     def _put_object_safe(self, Bucket, Key, Body):
         put = self.s3.put_object(Bucket=Bucket, Key=Key, Body=Body)
 
@@ -122,6 +138,7 @@ class S3Storage(storage.StorageDriver):
                 wait=self._consistency_wait,
                 stop=self._consistency_stop)(_head)
 
+<<<<<<< HEAD
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=0, version=3):
         self._put_object_safe(
@@ -136,6 +153,22 @@ class S3Storage(storage.StorageDriver):
             Bucket=self._bucket_name,
             Key=self._prefix(metric) + self._object_name(
                 key, aggregation, version))
+=======
+    def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
+                                       offset, version):
+        self._put_object_safe(
+            Bucket=self._bucket_name,
+            Key=self._prefix(metric) + self._object_name(
+                key, aggregation.method, version),
+            Body=data)
+
+    def _delete_metric_splits_unbatched(self, metric, key, aggregation,
+                                        version=3):
+        self.s3.delete_object(
+            Bucket=self._bucket_name,
+            Key=self._prefix(metric) + self._object_name(
+                key, aggregation.method, version))
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def _delete_metric(self, metric):
         bucket = self._bucket_name
@@ -158,11 +191,16 @@ class S3Storage(storage.StorageDriver):
             s3.bulk_delete(self.s3, bucket,
                            [c['Key'] for c in response.get('Contents', ())])
 
+<<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
+=======
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
+>>>>>>> 11a2520... api: avoid some indexer queries
         try:
             response = self.s3.get_object(
                 Bucket=self._bucket_name,
                 Key=self._prefix(metric) + self._object_name(
+<<<<<<< HEAD
                     key, aggregation, version))
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') == 'NoSuchKey':
@@ -209,6 +247,60 @@ class S3Storage(storage.StorageDriver):
                 except (ValueError, IndexError):
                     # Might be "none", or any other file. Be resilient.
                     continue
+=======
+                    key, aggregation.method, version))
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error'].get('Code') == 'NoSuchKey':
+                return
+            raise
+        return response['Body'].read()
+
+    def _metric_exists_p(self, metric, version):
+        unaggkey = self._build_unaggregated_timeserie_path(metric, version)
+        try:
+            self.s3.head_object(Bucket=self._bucket_name, Key=unaggkey)
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error'].get('Code') == "404":
+                return False
+            raise
+        return True
+
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
+        bucket = self._bucket_name
+        keys = {}
+        for aggregation in aggregations:
+            keys[aggregation] = set()
+            response = {}
+            while response.get('IsTruncated', True):
+                if 'NextContinuationToken' in response:
+                    kwargs = {
+                        'ContinuationToken': response['NextContinuationToken']
+                    }
+                else:
+                    kwargs = {}
+                response = self.s3.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=self._prefix(metric) + '%s_%s' % (
+                        aggregation.method,
+                        utils.timespan_total_seconds(
+                            aggregation.granularity),
+                    ),
+                    **kwargs)
+                # If response is empty then check that the metric exists
+                contents = response.get('Contents', ())
+                if not contents and not self._metric_exists_p(metric, version):
+                    raise storage.MetricDoesNotExist(metric)
+                for f in contents:
+                    try:
+                        if (self._version_check(f['Key'], version)):
+                            meta = f['Key'].split('_')
+                            keys[aggregation].add(carbonara.SplitKey(
+                                utils.to_timestamp(meta[2]),
+                                sampling=aggregation.granularity))
+                    except (ValueError, IndexError):
+                        # Might be "none", or any other file. Be resilient.
+                        continue
+>>>>>>> 11a2520... api: avoid some indexer queries
         return keys
 
     @staticmethod
@@ -216,6 +308,7 @@ class S3Storage(storage.StorageDriver):
         return S3Storage._prefix(metric) + 'none' + ("_v%s" % version
                                                      if version else "")
 
+<<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
         try:
             response = self.s3.get_object(
@@ -228,6 +321,26 @@ class S3Storage(storage.StorageDriver):
         return response['Body'].read()
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
+=======
+    def _get_or_create_unaggregated_timeseries_unbatched(
+            self, metric, version=3):
+        key = self._build_unaggregated_timeserie_path(metric, version)
+        try:
+            response = self.s3.get_object(
+                Bucket=self._bucket_name, Key=key)
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error'].get('Code') == "NoSuchKey":
+                # Create the metric with empty data
+                self._put_object_safe(
+                    Bucket=self._bucket_name, Key=key, Body="")
+            else:
+                raise
+        else:
+            return response['Body'].read() or None
+
+    def _store_unaggregated_timeseries_unbatched(
+            self, metric, data, version=3):
+>>>>>>> 11a2520... api: avoid some indexer queries
         self._put_object_safe(
             Bucket=self._bucket_name,
             Key=self._build_unaggregated_timeserie_path(metric, version),

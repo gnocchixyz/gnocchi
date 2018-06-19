@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    /v1/aggregation/resources endpoint can now take the STRING format in
+    `filter` parameter instead of the JSON format into the request payload.

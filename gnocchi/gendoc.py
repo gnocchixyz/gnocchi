@@ -200,6 +200,13 @@ def setup(app):
 
     try:
         for entry in scenarios:
+<<<<<<< HEAD
+=======
+            if 'filter' in entry:
+                entry['filter'] = jinja2.Template(entry['filter']).render(
+                    scenarios=scenarios)
+
+>>>>>>> 11a2520... api: avoid some indexer queries
             template = jinja2.Template(entry['request'])
             fake_file = six.moves.cStringIO()
             content = template.render(scenarios=scenarios)

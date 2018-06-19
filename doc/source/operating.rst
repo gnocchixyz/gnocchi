@@ -227,6 +227,7 @@ metricd daemon on any number of servers.
 How to scale measure processing
 -------------------------------
 
+<<<<<<< HEAD
 Measurement data pushed to Gnocchi is divided into sacks for better
 distribution. The number of partitions is controlled by the `sacks` option
 under the `[incoming]` section. This value should be set based on the
@@ -241,19 +242,38 @@ How many sacks do we need to create
 This number of sacks enabled should be set based on the number of active
 |metrics| the system will capture. Additionally, the number of sacks, should
 be higher than the total number of active `gnocchi-metricd` workers.
+=======
+Measurement data pushed to Gnocchi is divided into "sacks" for better
+distribution.  Incoming |metrics| are pushed to specific sacks and
+each sack is assigned to one or more `gnocchi-metricd` daemons for
+processing.
+
+The number of sacks should be set based on the number of active
+|metrics| the system will capture. Additionally, the number of sacks
+should be higher than the total number of active `gnocchi-metricd`
+workers.
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 In general, use the following equation to determine the appropriate `sacks`
 value to set::
 
    sacks value = number of **active** metrics / 300
 
+<<<<<<< HEAD
 If the estimated number of |metrics| is the absolute maximum, divide the value
 by 500 instead. If the estimated number of active |metrics| is conservative and
 expected to grow, divide the value by 100 instead to accommodate growth.
+=======
+If the estimated number of |metrics| is the absolute maximum, divide
+the value by 500 instead. If the estimated number of active |metrics|
+is conservative and expected to grow, divide the value by 100 instead
+to accommodate growth.
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 How do we change sack size
 --------------------------
 
+<<<<<<< HEAD
 In the event your system grows to capture signficantly more |metrics| than
 originally anticipated, the number of sacks can be changed to maintain good
 distribution. To avoid any loss of data when modifying `sacks` option. The
@@ -283,6 +303,42 @@ Alternatively, to minimise API downtime::
   5. When done clearing backlog from original incoming storage, switch all
      metricd datemons to target new incoming storage but maintain original
      |aggregate| storage.
+=======
+In the event your system grows to capture significantly more |metrics|
+than originally anticipated, the number of sacks can be changed to
+maintain good distribution. To avoid any loss of data when modifying
+the number of `sacks`, the value should be changed in the following
+order:
+
+1. Stop all input services (api, statsd).
+
+2. Stop all metricd services once backlog is cleared.
+
+3. Run ``gnocchi-change-sack-size <number of sacks>`` to set new sack
+   size. Note that the sack value can only be changed if the backlog
+   is empty.
+
+4. Restart all gnocchi services (api, statsd, metricd) with the new
+   configuration.
+
+Alternatively, to minimize API downtime:
+
+1. Run gnocchi-upgrade but use a new incoming storage target such as a new
+   ceph pool, file path, etc. Additionally, set |aggregate| storage to a
+   new target as well.
+
+2. Run ``gnocchi-change-sack-size <number of sacks>`` against the new
+   target.
+
+3. Stop all input services (api, statsd).
+
+4. Restart all input services but target the newly created incoming
+   storage.
+
+5. When done clearing backlog from original incoming storage, switch
+   all metricd daemons to target the new incoming storage but maintain
+   original |aggregate| storage.
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 How to monitor Gnocchi
 ======================
