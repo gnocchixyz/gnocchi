@@ -17,14 +17,20 @@
 from __future__ import absolute_import
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import os
 import shutil
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import logging
 import os
 import shutil
 import subprocess
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import tempfile
 import threading
 import time
@@ -33,9 +39,12 @@ import uuid
 import warnings
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import daiquiri
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import fixtures
 from gabbi import fixture
 import numpy
@@ -45,9 +54,13 @@ import sqlalchemy_utils
 import yaml
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi import chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi import chef
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
@@ -114,6 +127,7 @@ class ConfigFixture(fixture.GabbiFixture):
             dcf = []
         conf = service.prepare_service([], conf=utils.prepare_conf(),
 <<<<<<< HEAD
+<<<<<<< HEAD
                                        default_config_files=dcf)
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
             daiquiri.setup(outputs=[])
@@ -122,6 +136,11 @@ class ConfigFixture(fixture.GabbiFixture):
                                        logging_level=logging.DEBUG,
                                        skip_log_opts=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                                       default_config_files=dcf,
+                                       logging_level=logging.DEBUG,
+                                       skip_log_opts=True)
+>>>>>>> f21ea84... Add automatic backport labels
 
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..', '..',))
@@ -146,9 +165,12 @@ class ConfigFixture(fixture.GabbiFixture):
             raise case.SkipTest("No indexer configured")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         conf.set_override('driver', 'file', 'storage')
         conf.set_override('file_basepath', data_tmp_dir, 'storage')
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
 
         conf.set_override('driver', storage_driver, 'storage')
@@ -178,7 +200,10 @@ class ConfigFixture(fixture.GabbiFixture):
                 'swiftclient.client.Connection',
                 base.FakeSwiftClient)
             swift_fixture.setUp()
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         # NOTE(jd) All of that is still very SQL centric but we only support
         # SQL for now so let's say it's good enough.
@@ -199,11 +224,14 @@ class ConfigFixture(fixture.GabbiFixture):
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),
                                                        conf.coordination_url)
 <<<<<<< HEAD
+<<<<<<< HEAD
         s = storage.get_driver(conf, self.coord)
         s.upgrade()
         i = incoming.get_driver(conf)
         i.upgrade(128)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         s = storage.get_driver(conf)
         i = incoming.get_driver(conf)
 
@@ -215,7 +243,10 @@ class ConfigFixture(fixture.GabbiFixture):
             i.SACK_NAME_FORMAT = (
                 str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
             )
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.fixtures = [
             fixtures.MockPatch("gnocchi.storage.get_driver",
@@ -232,25 +263,37 @@ class ConfigFixture(fixture.GabbiFixture):
             f.setUp()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         if conf.storage.driver == 'swift':
             self.fixtures.append(swift_fixture)
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        if conf.storage.driver == 'swift':
+            self.fixtures.append(swift_fixture)
+
+>>>>>>> f21ea84... Add automatic backport labels
         LOAD_APP_KWARGS = {
             'conf': conf,
         }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         # start up a thread to async process measures
         self.metricd_thread = MetricdThread(index, s, i)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         s.upgrade()
         i.upgrade(128)
 
         # start up a thread to async process measures
         self.metricd_thread = MetricdThread(chef.Chef(self.coord, i, index, s))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.metricd_thread.start()
 
     def stop_fixture(self):
@@ -289,6 +332,7 @@ class MetricdThread(threading.Thread):
     """Run metricd in a naive thread to process measures."""
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, index, storer, incoming, name='metricd'):
         super(MetricdThread, self).__init__(name=name)
         self.index = index
@@ -299,10 +343,16 @@ class MetricdThread(threading.Thread):
         super(MetricdThread, self).__init__(name=name)
         self.chef = chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, chef, name='metricd'):
+        super(MetricdThread, self).__init__(name=name)
+        self.chef = chef
+>>>>>>> f21ea84... Add automatic backport labels
         self.flag = True
 
     def run(self):
         while self.flag:
+<<<<<<< HEAD
 <<<<<<< HEAD
             metrics = utils.list_all_incoming_metrics(self.incoming)
             metrics = self.index.list_metrics(
@@ -316,6 +366,10 @@ class MetricdThread(threading.Thread):
             for sack in self.chef.incoming.iter_sacks():
                 self.chef.process_new_measures_for_sack(sack, blocking=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            for sack in self.chef.incoming.iter_sacks():
+                self.chef.process_new_measures_for_sack(sack, blocking=True)
+>>>>>>> f21ea84... Add automatic backport labels
             time.sleep(0.1)
 
     def stop(self):

@@ -6,9 +6,13 @@ AUTHORS
 ChangeLog
 etc/gnocchi/gnocchi.conf
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 gnocchi/rest/gnocchi-api
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+gnocchi/rest/gnocchi-api
+>>>>>>> f21ea84... Add automatic backport labels
 doc/build
 doc/source/rest.rst
 doc/source/gnocchi.conf.sample

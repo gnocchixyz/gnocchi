@@ -34,9 +34,13 @@ from testtools import testcase
 
 from gnocchi import archive_policy
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi import chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi import chef
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
@@ -206,7 +210,10 @@ class CaptureOutput(fixtures.Fixture):
         self.useFixture(fixtures.MonkeyPatch('sys.stderr', self.stderr))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self._logs_fixture = fixtures.StringStream('logs')
         self.logs = self.useFixture(self._logs_fixture).stream
         self.useFixture(fixtures.MonkeyPatch(
@@ -217,7 +224,10 @@ class CaptureOutput(fixtures.Fixture):
         self.logs.seek(0)
         return self.logs.read()
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 class BaseTestCase(testcase.TestCase):
     def setUp(self):
@@ -285,6 +295,7 @@ class TestCase(BaseTestCase):
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
@@ -292,10 +303,15 @@ class TestCase(BaseTestCase):
     def setUp(self):
         super(TestCase, self).setUp()
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def setUp(self):
+        super(TestCase, self).setUp()
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.conf = service.prepare_service(
             [], conf=utils.prepare_conf(),
             default_config_files=[],
+<<<<<<< HEAD
 <<<<<<< HEAD
             logging_level=logging.DEBUG)
 
@@ -324,6 +340,10 @@ class TestCase(BaseTestCase):
             logging_level=logging.DEBUG,
             skip_log_opts=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            logging_level=logging.DEBUG,
+            skip_log_opts=True)
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.index = indexer.get_driver(self.conf)
 
@@ -348,6 +368,7 @@ class TestCase(BaseTestCase):
                 pass
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
         self.conf.set_override('driver', storage_driver, 'storage')
         if storage_driver == 'ceph':
@@ -358,6 +379,8 @@ class TestCase(BaseTestCase):
     def setUp(self):
         super(TestCase, self).setUp()
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                '..',))
         self.conf.set_override('paste_config',
@@ -380,7 +403,10 @@ class TestCase(BaseTestCase):
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
         self.conf.set_override('driver', storage_driver, 'storage')
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if swexc:
             self.useFixture(fixtures.MockPatch(
                 'swiftclient.client.Connection',
@@ -393,11 +419,17 @@ class TestCase(BaseTestCase):
                                    'storage')
         elif self.conf.storage.driver == 'ceph':
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
             self.conf.set_override('ceph_conffile',
                                    os.getenv("CEPH_CONF"),
                                    'storage')
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            self.conf.set_override('ceph_conffile',
+                                   os.getenv("CEPH_CONF"),
+                                   'storage')
+>>>>>>> f21ea84... Add automatic backport labels
             pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:
                 subprocess.call("rados -c %s mkpool %s" % (
@@ -411,10 +443,14 @@ class TestCase(BaseTestCase):
                                "storage")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage = storage.get_driver(self.conf, self.coord)
 =======
         self.storage = storage.get_driver(self.conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.storage = storage.get_driver(self.conf)
+>>>>>>> f21ea84... Add automatic backport labels
         self.incoming = incoming.get_driver(self.conf)
 
         if self.conf.storage.driver == 'redis':
@@ -422,6 +458,7 @@ class TestCase(BaseTestCase):
             self.storage.STORAGE_PREFIX = str(uuid.uuid4()).encode()
 
         if self.conf.incoming.driver == 'redis':
+<<<<<<< HEAD
 <<<<<<< HEAD
             self.incoming.SACK_PREFIX = str(uuid.uuid4())
 
@@ -438,6 +475,8 @@ class TestCase(BaseTestCase):
         super(TestCase, cls).tearDownClass()
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             self.incoming.SACK_NAME_FORMAT = (
                 str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
             )
@@ -452,7 +491,10 @@ class TestCase(BaseTestCase):
         self.coord.stop()
         super(TestCase, self).tearDown()
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _create_metric(self, archive_policy_name="low"):
         """Create a metric and return it"""
         m = indexer.Metric(uuid.uuid4(),
@@ -464,13 +506,19 @@ class TestCase(BaseTestCase):
     def trigger_processing(self, metrics=None):
         if metrics is None:
 <<<<<<< HEAD
+<<<<<<< HEAD
             metrics = [str(self.metric.id)]
         self.storage.process_new_measures(
             self.index, self.incoming, metrics, sync=True)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             self.chef.process_new_measures_for_sack(
                 self.incoming.sack_for_metric(self.metric.id),
                 blocking=True, sync=True)
         else:
             self.chef.refresh_metrics(metrics, timeout=True, sync=True)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

@@ -139,7 +139,10 @@ class ParallelMap(tests_base.TestCase):
                                                 [[1], [2], [3]]))
             sm.assert_not_called()
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 class ReturnNoneOnFailureTest(tests_base.TestCase):
@@ -150,4 +153,7 @@ class ReturnNoneOnFailureTest(tests_base.TestCase):
             raise Exception("boom")
 
         self.assertIsNone(foobar())
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

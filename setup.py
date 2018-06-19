@@ -17,10 +17,13 @@
 import setuptools
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 setuptools.setup(
     setup_requires=['pbr<4'],
     pbr=True)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import gnocchi.setuptools
 
 cmdclass = {
@@ -52,4 +55,7 @@ setuptools.setup(
     use_scm_version={'version_scheme': pbr_compat},
     cmdclass=cmdclass,
 )
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
