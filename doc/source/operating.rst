@@ -228,6 +228,7 @@ How to scale measure processing
 -------------------------------
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Measurement data pushed to Gnocchi is divided into sacks for better
 distribution. The number of partitions is controlled by the `sacks` option
 under the `[incoming]` section. This value should be set based on the
@@ -243,6 +244,8 @@ This number of sacks enabled should be set based on the number of active
 |metrics| the system will capture. Additionally, the number of sacks, should
 be higher than the total number of active `gnocchi-metricd` workers.
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 Measurement data pushed to Gnocchi is divided into "sacks" for better
 distribution.  Incoming |metrics| are pushed to specific sacks and
 each sack is assigned to one or more `gnocchi-metricd` daemons for
@@ -252,7 +255,10 @@ The number of sacks should be set based on the number of active
 |metrics| the system will capture. Additionally, the number of sacks
 should be higher than the total number of active `gnocchi-metricd`
 workers.
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 In general, use the following equation to determine the appropriate `sacks`
 value to set::
@@ -260,19 +266,26 @@ value to set::
    sacks value = number of **active** metrics / 300
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 If the estimated number of |metrics| is the absolute maximum, divide the value
 by 500 instead. If the estimated number of active |metrics| is conservative and
 expected to grow, divide the value by 100 instead to accommodate growth.
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 If the estimated number of |metrics| is the absolute maximum, divide
 the value by 500 instead. If the estimated number of active |metrics|
 is conservative and expected to grow, divide the value by 100 instead
 to accommodate growth.
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 How do we change sack size
 --------------------------
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 In the event your system grows to capture signficantly more |metrics| than
 originally anticipated, the number of sacks can be changed to maintain good
@@ -304,6 +317,8 @@ Alternatively, to minimise API downtime::
      metricd datemons to target new incoming storage but maintain original
      |aggregate| storage.
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 In the event your system grows to capture significantly more |metrics|
 than originally anticipated, the number of sacks can be changed to
 maintain good distribution. To avoid any loss of data when modifying
@@ -338,7 +353,10 @@ Alternatively, to minimize API downtime:
 5. When done clearing backlog from original incoming storage, switch
    all metricd daemons to target the new incoming storage but maintain
    original |aggregate| storage.
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 How to monitor Gnocchi
 ======================

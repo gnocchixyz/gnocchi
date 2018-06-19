@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat
 =======
 # Copyright © 2017-2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2017-2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -19,12 +23,18 @@
 # under the License.
 import contextlib
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 import uuid
 
 import daiquiri
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import uuid
+
+import daiquiri
+>>>>>>> f21ea84... Add automatic backport labels
 import six
 
 from gnocchi.common import redis
@@ -32,12 +42,15 @@ from gnocchi import incoming
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 class RedisStorage(incoming.IncomingDriver):
 
     def __init__(self, conf, greedy=True):
         super(RedisStorage, self).__init__(conf)
         self._client = redis.get_client(conf)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 LOG = daiquiri.getLogger(__name__)
 
 
@@ -72,7 +85,10 @@ return results
     def __init__(self, conf, greedy=True):
         super(RedisStorage, self).__init__(conf)
         self._client, self._scripts = redis.get_client(conf, self._SCRIPTS)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.greedy = greedy
 
     def __str__(self):
@@ -86,10 +102,14 @@ return results
 
     @staticmethod
 <<<<<<< HEAD
+<<<<<<< HEAD
     def remove_sack_group(num_sacks):
 =======
     def remove_sacks():
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def remove_sacks():
+>>>>>>> f21ea84... Add automatic backport labels
         # NOTE(gordc): redis doesn't maintain keys with empty values
         pass
 
@@ -99,20 +119,28 @@ return results
     def _build_measure_path(self, metric_id):
         return self._build_measure_path_with_sack(
 <<<<<<< HEAD
+<<<<<<< HEAD
             metric_id, self.get_sack_name(self.sack_for_metric(metric_id)))
 =======
             metric_id, str(self.sack_for_metric(metric_id)))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            metric_id, str(self.sack_for_metric(metric_id)))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def add_measures_batch(self, metrics_and_measures):
         notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
         for metric_id, measures in six.iteritems(metrics_and_measures):
 <<<<<<< HEAD
+<<<<<<< HEAD
             sack_name = self.get_sack_name(self.sack_for_metric(metric_id))
 =======
             sack_name = str(self.sack_for_metric(metric_id))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            sack_name = str(self.sack_for_metric(metric_id))
+>>>>>>> f21ea84... Add automatic backport labels
             path = self._build_measure_path_with_sack(metric_id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
             if self.greedy and sack_name not in notified_sacks:
@@ -131,10 +159,14 @@ return results
                     dict(six.moves.zip(m_list, results)))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         match = redis.SEP.join([self.get_sack_name("*").encode(), b"*"])
 =======
         match = redis.SEP.join([self._get_sack_name("*").encode(), b"*"])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        match = redis.SEP.join([self._get_sack_name("*").encode(), b"*"])
+>>>>>>> f21ea84... Add automatic backport labels
         metrics = 0
         m_list = []
         pipe = self._client.pipeline()
@@ -156,6 +188,7 @@ return results
                 report_vars['metric_details'] if details else None)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(self, sack):
         match = redis.SEP.join([self.get_sack_name(sack).encode(), b"*"])
         keys = self._client.scan_iter(match=match, count=1000)
@@ -163,6 +196,8 @@ return results
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def delete_unprocessed_measures_for_metric(self, metric_id):
         self._client.delete(self._build_measure_path(metric_id))
 
@@ -170,6 +205,7 @@ return results
         return bool(self._client.exists(self._build_measure_path(metric_id)))
 
     @contextlib.contextmanager
+<<<<<<< HEAD
 <<<<<<< HEAD
     def process_measure_for_metric(self, metric_id):
         key = self._build_measure_path(metric_id)
@@ -183,6 +219,8 @@ return results
         # ltrim is inclusive, bump 1 to remove up to and including nth item
         self._client.ltrim(key, item_len + 1, -1)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
         pipe = self._client.pipeline(transaction=False)
@@ -228,7 +266,10 @@ return results
             # ltrim is inclusive, bump 1 to remove up to and including nth item
             pipe.ltrim(key, item_len + 1, -1)
         pipe.execute()
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
@@ -236,14 +277,19 @@ return results
         db = self._client.connection_pool.connection_kwargs['db']
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
 <<<<<<< HEAD
+<<<<<<< HEAD
         pattern = keyspace + self.SACK_PREFIX.encode() + b"*"
 =======
         pattern = keyspace + self._get_sack_name("*").encode()
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        pattern = keyspace + self._get_sack_name("*").encode()
+>>>>>>> f21ea84... Add automatic backport labels
         p.psubscribe(pattern)
         for message in p.listen():
             if message['type'] == 'pmessage' and message['pattern'] == pattern:
                 # FIXME(jd) This is awful, we need a better way to extract this
+<<<<<<< HEAD
 <<<<<<< HEAD
                 # Format is defined by get_sack_prefix: incoming128-17
                 yield int(message['channel'].split(b"-")[-1])
@@ -251,12 +297,20 @@ return results
                 # Format is defined by _get_sack_name: incoming128-17
                 yield self._make_sack(int(message['channel'].split(b"-")[-1]))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                # Format is defined by _get_sack_name: incoming128-17
+                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
         # notification in iter_on_sacks_to_process
 <<<<<<< HEAD
+<<<<<<< HEAD
         self._client.delete(self.get_sack_name(sack))
 =======
         self._client.delete(str(sack))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self._client.delete(str(sack))
+>>>>>>> f21ea84... Add automatic backport labels

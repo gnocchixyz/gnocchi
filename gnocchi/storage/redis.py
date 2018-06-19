@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat
 =======
 # Copyright © 2017-2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2017-2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,16 +22,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 import six
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import collections
 
 import six
 
 from gnocchi import carbonara
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
@@ -39,11 +49,14 @@ class RedisStorage(storage.StorageDriver):
     STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     def __init__(self, conf, coord=None):
         super(RedisStorage, self).__init__(conf, coord)
         self._client = redis.get_client(conf)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     FIELD_SEP_B = b'_'
 
     _SCRIPTS = {
@@ -70,7 +83,10 @@ return ids
     def __init__(self, conf):
         super(RedisStorage, self).__init__(conf)
         self._client, self._scripts = redis.get_client(conf, self._SCRIPTS)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)
@@ -90,6 +106,7 @@ return ids
             str(utils.timespan_total_seconds(granularity or key.sampling))])
         return path + '_v%s' % version if version else path
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _create_metric(self, metric):
         key = self._metric_key(metric)
@@ -131,6 +148,8 @@ return ids
             aggregation, key, version)
         self._client.hset(self._metric_key(metric), field, data)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
         pipe = self._client.pipeline(transaction=False)
         unagg_key = self._unaggregated_field(version)
@@ -218,11 +237,15 @@ return ids
                     aggregation.method, key, version)
                 pipe.hset(metric_key, key, data)
         pipe.execute()
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_measures(self, metric, keys, aggregation, version=3):
         if not keys:
@@ -240,6 +263,8 @@ return ids
                 raise storage.AggregationDoesNotExist(
                     metric, aggregation, key.sampling)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_splits(self, metrics_aggregations_keys, version=3):
         # Use a list of metric and aggregations with a constant sorting
         metrics_aggregations = [
@@ -266,5 +291,8 @@ return ids
                 metrics_aggregations, pipe.execute()):
             results[metric][aggregation] = result
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         return results

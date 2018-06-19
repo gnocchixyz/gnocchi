@@ -1,9 +1,13 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # Copyright © 2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2016 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -33,9 +37,13 @@ from stevedore import driver
 import webob.exc
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi import chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi import chef
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
@@ -67,14 +75,20 @@ class GnocchiHook(pecan.hooks.PecanHook):
         state.request.indexer = self._lazy_load('indexer')
         state.request.incoming = self._lazy_load('incoming')
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         state.request.chef = chef.Chef(
             state.request.coordinator,
             state.request.incoming,
             state.request.indexer,
             state.request.storage,
         )
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         state.request.conf = self.conf
         state.request.policy_enforcer = self.policy_enforcer
         state.request.auth_helper = self.auth_helper
@@ -115,6 +129,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
                         )
                     elif name == "storage":
 <<<<<<< HEAD
+<<<<<<< HEAD
                         coord = self._lazy_load("coordinator")
                         self.backends[name] = (
                             gnocchi_storage.get_driver(self.conf, coord)
@@ -122,6 +137,10 @@ class GnocchiHook(pecan.hooks.PecanHook):
                         self.backends[name] = (
                             gnocchi_storage.get_driver(self.conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                        self.backends[name] = (
+                            gnocchi_storage.get_driver(self.conf)
+>>>>>>> f21ea84... Add automatic backport labels
                         )
                     elif name == "incoming":
                         self.backends[name] = (

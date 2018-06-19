@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat
 =======
 # Copyright © 2017-2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2017-2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -22,9 +26,13 @@ from __future__ import absolute_import
 
 from oslo_config import cfg
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import six
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import six
+>>>>>>> f21ea84... Add automatic backport labels
 from six.moves.urllib import parse
 
 try:
@@ -38,9 +46,13 @@ from gnocchi import utils
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 SEP_S = ':'
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+SEP_S = ':'
+>>>>>>> f21ea84... Add automatic backport labels
 SEP = b':'
 
 CLIENT_ARGS = frozenset([
@@ -115,18 +127,24 @@ OPTS = [
   - http://redis.io/topics/cluster-spec
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 """ % "`, `".join(CLIENT_ARGS)),
 ]
 
 
 def get_client(conf):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 """ % "`, `".join(sorted(CLIENT_ARGS))),
 ]
 
 
 def get_client(conf, scripts=None):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     if redis is None:
         raise RuntimeError("Redis Python module is unavailable")
     parsed_url = parse.urlparse(conf.redis_url)
@@ -177,8 +195,11 @@ def get_client(conf, scripts=None):
         # Sentinel managed connection pool.
         return master_client
 <<<<<<< HEAD
+<<<<<<< HEAD
     return redis.StrictRedis(**kwargs)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     client = redis.StrictRedis(**kwargs)
 
@@ -189,4 +210,7 @@ def get_client(conf, scripts=None):
         }
 
     return client, scripts
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

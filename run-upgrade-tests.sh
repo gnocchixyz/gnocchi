@@ -83,10 +83,14 @@ pifpaf_stop
 new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
 <<<<<<< HEAD
+<<<<<<< HEAD
 pip install -q -U .[${GNOCCHI_VARIANT}]
 =======
 pip install -v -U .[${GNOCCHI_VARIANT}]
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+pip install -v -U .[${GNOCCHI_VARIANT}]
+>>>>>>> f21ea84... Add automatic backport labels
 
 eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default

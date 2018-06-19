@@ -6,9 +6,13 @@ Release Notes
 
    unreleased
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
    4.2
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+   4.2
+>>>>>>> f21ea84... Add automatic backport labels
    4.1
    4.0
    3.1

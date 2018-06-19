@@ -44,10 +44,14 @@ tests:
     - name: get aggregation with no data
       desc: https://github.com/gnocchixyz/gnocchi/issues/69
 <<<<<<< HEAD
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/cpu.util?stop=2012-03-06T00:00:00&fill=0&granularity=300&resample=3600
 =======
       POST: /v1/aggregation/resource/generic/metric/cpu.util?stop=2012-03-06T00:00:00&fill=0&granularity=300&resample=3600&refresh=true
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?stop=2012-03-06T00:00:00&fill=0&granularity=300&resample=3600&refresh=true
+>>>>>>> f21ea84... Add automatic backport labels
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -56,11 +60,14 @@ tests:
         =:
           id: 4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
 <<<<<<< HEAD
+<<<<<<< HEAD
       poll:
         count: 10
         delay: 1
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       response_json_paths:
         $: []
 
@@ -88,10 +95,14 @@ tests:
       POST: /v1/resource/generic
       data:
 <<<<<<< HEAD
+<<<<<<< HEAD
         id: 33333BC5-5948-4F29-B7DF-7DE607660452
 =======
         id: 0FB0B7CD-9A41-4A76-8B2E-BFC02843506A
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        id: 0FB0B7CD-9A41-4A76-8B2E-BFC02843506A
+>>>>>>> f21ea84... Add automatic backport labels
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
@@ -101,10 +112,14 @@ tests:
 
     - name: post cpuutil measures 3
 <<<<<<< HEAD
+<<<<<<< HEAD
       POST: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
 =======
       POST: /v1/resource/generic/0FB0B7CD-9A41-4A76-8B2E-BFC02843506A/metric/cpu.util/measures
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+      POST: /v1/resource/generic/0FB0B7CD-9A41-4A76-8B2E-BFC02843506A/metric/cpu.util/measures
+>>>>>>> f21ea84... Add automatic backport labels
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 230
@@ -112,6 +127,7 @@ tests:
           value: 45.41
       status: 202
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     - name: aggregate metric with groupby on project_id
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
@@ -122,6 +138,8 @@ tests:
         count: 10
         delay: 1
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     - name: aggregate metric with groupby on project_id with filter
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&filter=user_id%3D%276c865dd0-7945-4e08-8b27-d0d7f1c2b667%27&refresh=true
       response_json_paths:
@@ -144,7 +162,10 @@ tests:
       data:
         =:
           user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       response_json_paths:
         $:
           - measures:
@@ -171,6 +192,7 @@ tests:
 
     - name: aggregate metric with groupby on project_id and user_id
 <<<<<<< HEAD
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id
       data:
         =:
@@ -179,11 +201,16 @@ tests:
         count: 10
         delay: 1
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id&refresh=true
       data:
         =:
           user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       response_json_paths:
         $:
           - measures:

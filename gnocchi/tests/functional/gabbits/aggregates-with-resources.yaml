@@ -38,10 +38,14 @@ tests:
       data:
         id: 1ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
 <<<<<<< HEAD
+<<<<<<< HEAD
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
 =======
         user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+>>>>>>> f21ea84... Add automatic backport labels
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
           cpu.util:
@@ -66,10 +70,14 @@ tests:
       data:
         id: 2447CD7E-48A6-4C50-A991-6677CC0D00E6
 <<<<<<< HEAD
+<<<<<<< HEAD
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
 =======
         user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+>>>>>>> f21ea84... Add automatic backport labels
         project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         metrics:
           cpu.util:
@@ -90,10 +98,14 @@ tests:
       data:
         id: 33333BC5-5948-4F29-B7DF-7DE607660452
 <<<<<<< HEAD
+<<<<<<< HEAD
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
 =======
         user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+>>>>>>> f21ea84... Add automatic backport labels
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
           cpu.util:
@@ -137,10 +149,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(aggregate mean (metric cpu.util mean))"
       poll:
         count: 10
@@ -160,10 +176,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(metric (cpu.util mean) (cpu.idle mean))"
       poll:
         count: 10
@@ -192,10 +212,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(metric cpu.util mean)"
       poll:
         count: 10
@@ -223,10 +247,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(metric (cpu.* mean) (*way mean))"
       poll:
         count: 10
@@ -256,10 +284,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(metric cpu.* mean)"
       poll:
         count: 10
@@ -305,10 +337,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(aggregate mean (metric cpu.util mean))"
       response_json_paths:
         $.`len`: 2
@@ -321,10 +357,14 @@ tests:
               - ['2015-03-06T14:34:12+00:00', 1.0, 10.0]
         $[0].group:
 <<<<<<< HEAD
+<<<<<<< HEAD
               user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
 =======
               user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+>>>>>>> f21ea84... Add automatic backport labels
               project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
         $[1].measures.references.`len`: 1
         $[1].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[2]']
@@ -334,10 +374,14 @@ tests:
               - ['2015-03-06T14:34:12+00:00', 1.0, 45.41]
         $[1].group:
 <<<<<<< HEAD
+<<<<<<< HEAD
               user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
 =======
               user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+>>>>>>> f21ea84... Add automatic backport labels
               project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
 
 # Negative tests
@@ -367,10 +411,14 @@ tests:
       data:
         resource_type: generic
 <<<<<<< HEAD
+<<<<<<< HEAD
         search: "user_id = '6c865dd0-7945-4e08-8b27-d0d7f1c2b667'"
 =======
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+>>>>>>> f21ea84... Add automatic backport labels
         operations: "(aggregate mean (metric (notexists mean) (foobar mean)))"
       status: 400
       response_json_paths:

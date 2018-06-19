@@ -319,7 +319,10 @@ def parallel_map(fn, list_of_args):
 parallel_map.MAX_WORKERS = get_default_workers()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 def return_none_on_failure(f):
     try:
@@ -339,7 +342,10 @@ def return_none_on_failure(f):
     return _return_none_on_failure
 
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 # Retry with exponential backoff for up to 1 minute
 wait_exponential = tenacity.wait_exponential(multiplier=0.5, max=60)
 

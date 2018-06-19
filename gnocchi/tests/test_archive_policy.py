@@ -12,10 +12,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import logging
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import logging
+
+>>>>>>> f21ea84... Add automatic backport labels
 import numpy
 
 from gnocchi import archive_policy
@@ -36,12 +41,18 @@ class TestArchivePolicy(base.BaseTestCase):
     def test_aggregation_methods(self):
         conf = service.prepare_service([],
 <<<<<<< HEAD
+<<<<<<< HEAD
                                        default_config_files=[])
 =======
                                        default_config_files=[],
                                        logging_level=logging.DEBUG,
                                        skip_log_opts=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                                       default_config_files=[],
+                                       logging_level=logging.DEBUG,
+                                       skip_log_opts=True)
+>>>>>>> f21ea84... Add automatic backport labels
 
         ap = archive_policy.ArchivePolicy("foobar",
                                           0,

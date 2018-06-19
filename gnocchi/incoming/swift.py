@@ -14,9 +14,13 @@
 from collections import defaultdict
 import contextlib
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import daiquiri
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import daiquiri
+>>>>>>> f21ea84... Add automatic backport labels
 import datetime
 import json
 import uuid
@@ -31,10 +35,15 @@ swclient = swift.swclient
 swift_utils = swift.swift_utils
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 LOG = daiquiri.getLogger(__name__)
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+LOG = daiquiri.getLogger(__name__)
+
+>>>>>>> f21ea84... Add automatic backport labels
 
 class SwiftStorage(incoming.IncomingDriver):
     # NOTE(sileht): Using threads with swiftclient doesn't work
@@ -57,6 +66,7 @@ class SwiftStorage(incoming.IncomingDriver):
         self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
 <<<<<<< HEAD
+<<<<<<< HEAD
         for i in six.moves.range(num_sacks):
             self.swift.put_container(self.get_sack_name(i))
 
@@ -65,17 +75,23 @@ class SwiftStorage(incoming.IncomingDriver):
         for i in six.moves.xrange(num_sacks):
             self.swift.delete_container(prefix % i)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         for sack in self.iter_sacks():
             self.swift.put_container(str(sack))
 
     def remove_sacks(self):
         for sack in self.iter_sacks():
             self.swift.delete_container(str(sack))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
+<<<<<<< HEAD
 <<<<<<< HEAD
             self.get_sack_name(self.sack_for_metric(metric_id)),
             six.text_type(metric_id) + "/" + six.text_type(uuid.uuid4()) + now,
@@ -83,6 +99,10 @@ class SwiftStorage(incoming.IncomingDriver):
             str(self.sack_for_metric(metric_id)),
             str(metric_id) + "/" + str(uuid.uuid4()) + now,
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            str(self.sack_for_metric(metric_id)),
+            str(metric_id) + "/" + str(uuid.uuid4()) + now,
+>>>>>>> f21ea84... Add automatic backport labels
             data)
 
     def _build_report(self, details):
@@ -90,31 +110,42 @@ class SwiftStorage(incoming.IncomingDriver):
         nb_metrics = 0
         measures = 0
 <<<<<<< HEAD
+<<<<<<< HEAD
         for i in six.moves.range(self.NUM_SACKS):
             if details:
                 headers, files = self.swift.get_container(
                     self.get_sack_name(i), full_listing=True)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         for sack in self.iter_sacks():
             if details:
                 headers, files = self.swift.get_container(
                     str(sack), full_listing=True)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 for f in files:
                     metric, __ = f['name'].split("/", 1)
                     metric_details[metric] += 1
             else:
                 headers, files = self.swift.get_container(
 <<<<<<< HEAD
+<<<<<<< HEAD
                     self.get_sack_name(i), delimiter='/', full_listing=True)
 =======
                     str(sack), delimiter='/', full_listing=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                    str(sack), delimiter='/', full_listing=True)
+>>>>>>> f21ea84... Add automatic backport labels
                 nb_metrics += len([f for f in files if 'subdir' in f])
             measures += int(headers.get('x-container-object-count'))
         return (nb_metrics or len(metric_details), measures,
                 metric_details if details else None)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def list_metric_with_measures_to_process(self, sack):
         headers, files = self.swift.get_container(
@@ -129,6 +160,11 @@ class SwiftStorage(incoming.IncomingDriver):
         headers, files = self.swift.get_container(
             str(sack), path=six.text_type(metric_id),
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _list_measure_files_for_metric(self, sack, metric_id):
+        headers, files = self.swift.get_container(
+            str(sack), path=six.text_type(metric_id),
+>>>>>>> f21ea84... Add automatic backport labels
             full_listing=True)
         return files
 
@@ -136,16 +172,21 @@ class SwiftStorage(incoming.IncomingDriver):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
 <<<<<<< HEAD
+<<<<<<< HEAD
         swift.bulk_delete(self.swift, self.get_sack_name(sack), files)
 =======
         swift.bulk_delete(self.swift, str(sack), files)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        swift.bulk_delete(self.swift, str(sack), files)
+>>>>>>> f21ea84... Add automatic backport labels
 
     def has_unprocessed(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
+<<<<<<< HEAD
 <<<<<<< HEAD
     def process_measure_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
@@ -162,6 +203,8 @@ class SwiftStorage(incoming.IncomingDriver):
 
         # Now clean objects
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
         all_files = defaultdict(list)
@@ -206,5 +249,8 @@ class SwiftStorage(incoming.IncomingDriver):
 
         yield measures
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         swift.bulk_delete(self.swift, sack_name, files)

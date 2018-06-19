@@ -32,9 +32,12 @@ from gnocchi.storage import s3
 from gnocchi.storage import swift
 from gnocchi.tests import base as tests_base
 <<<<<<< HEAD
+<<<<<<< HEAD
 from gnocchi.tests import utils as tests_utils
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 def datetime64(*args):
@@ -49,10 +52,14 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_driver_str(self):
 <<<<<<< HEAD
+<<<<<<< HEAD
         driver = storage.get_driver(self.conf, None)
 =======
         driver = storage.get_driver(self.conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        driver = storage.get_driver(self.conf)
+>>>>>>> f21ea84... Add automatic backport labels
 
         if isinstance(driver, file.FileStorage):
             s = driver.basepath
@@ -70,10 +77,13 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_get_driver(self):
 <<<<<<< HEAD
+<<<<<<< HEAD
         driver = storage.get_driver(self.conf, None)
         self.assertIsInstance(driver, storage.StorageDriver)
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
@@ -150,7 +160,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertGreater(len(results[0]), 0)
         self.assertEqual(results[0].aggregation, aggregation)
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def test_corrupted_data(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -168,6 +181,7 @@ class TestStorageDriver(tests_base.TestCase):
                 self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
             numpy.timedelta64(1, 'h'),
@@ -176,11 +190,16 @@ class TestStorageDriver(tests_base.TestCase):
 
         m = self.storage.get_measures(self.metric, granularities)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         m = self.storage.get_measures(
             self.metric,
             self.metric.archive_policy.get_aggregations_for_method('mean'),
         )['mean']
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertIn((datetime64(2014, 1, 1),
                        numpy.timedelta64(1, 'D'), 1), m)
         self.assertIn((datetime64(2014, 1, 1, 13),
@@ -193,10 +212,14 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 5),
         ])
 <<<<<<< HEAD
+<<<<<<< HEAD
         with mock.patch.object(self.storage, '_store_unaggregated_timeserie',
 =======
         with mock.patch.object(self.storage, '_store_unaggregated_timeseries',
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        with mock.patch.object(self.storage, '_store_unaggregated_timeseries',
+>>>>>>> f21ea84... Add automatic backport labels
                                side_effect=Exception):
             try:
                 self.trigger_processing()
@@ -208,6 +231,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertFalse(LOG.error.called)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
             numpy.timedelta64(1, 'h'),
@@ -216,12 +240,17 @@ class TestStorageDriver(tests_base.TestCase):
 
         m = self.storage.get_measures(self.metric, granularities)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
         m = self.storage.get_measures(self.metric, aggregations)['mean']
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertIn((datetime64(2014, 1, 1),
                        numpy.timedelta64(1, 'D'), 5.0), m)
         self.assertIn((datetime64(2014, 1, 1, 12),
@@ -229,6 +258,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((datetime64(2014, 1, 1, 12),
                        numpy.timedelta64(5, 'm'), 5.0), m)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def test_list_metric_with_measures_to_process(self):
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
@@ -244,6 +274,8 @@ class TestStorageDriver(tests_base.TestCase):
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def test_delete_nonempty_metric(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
@@ -251,6 +283,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
         self.storage._delete_metric(self.metric)
         self.trigger_processing()
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.assertEqual([], self.storage.get_measures(self.metric, [
             numpy.timedelta64(1, 'D'),
@@ -283,6 +316,8 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertRaises(indexer.NoSuchMetric, self.index.delete_metric,
                           self.metric.id)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("mean")
@@ -294,7 +329,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(
             {self.metric: None},
             self.storage._get_or_create_unaggregated_timeseries([self.metric]))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_measures_reporting_format(self):
         report = self.incoming.measures_report(True)
@@ -332,7 +370,10 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual(120, report['summary']['measures'])
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def test_get_aggregated_measures(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
@@ -351,12 +392,16 @@ class TestStorageDriver(tests_base.TestCase):
         for agg in aggregations:
             self.assertEqual(agg, measures[agg].aggregation)
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
             for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.trigger_processing([str(m.id)])
 
@@ -366,6 +411,8 @@ class TestStorageDriver(tests_base.TestCase):
             numpy.timedelta64(1, 's'),
         ])))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([m])
 
         aggregations = (
@@ -374,7 +421,10 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual(3661, len(
             self.storage.get_measures(m, aggregations)['mean']))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
@@ -384,15 +434,20 @@ class TestStorageDriver(tests_base.TestCase):
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.trigger_processing([str(m.id)])
 =======
         self.trigger_processing([m])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.trigger_processing([m])
+>>>>>>> f21ea84... Add automatic backport labels
 
         # add measure to end, in same aggregate time as last point.
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 6, 1, 58, 1), 100)])
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         with mock.patch.object(self.storage, '_store_metric_measures') as c:
             # should only resample last aggregate
@@ -402,23 +457,34 @@ class TestStorageDriver(tests_base.TestCase):
             # should only resample last aggregate
             self.trigger_processing([m])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        with mock.patch.object(self.storage, '_store_metric_splits') as c:
+            # should only resample last aggregate
+            self.trigger_processing([m])
+>>>>>>> f21ea84... Add automatic backport labels
         count = 0
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
+<<<<<<< HEAD
 <<<<<<< HEAD
             if (args[0] == m_sql
                and args[2] == 'mean'
                and args[1].sampling == numpy.timedelta64(1, 'm')):
                 count += 1
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             for metric, key_agg_data_offset in six.iteritems(args[0]):
                 if metric.id == m_sql.id:
                     for key, aggregation, data, offset in key_agg_data_offset:
                         if (key.sampling == numpy.timedelta64(1, 'm')
                            and aggregation.method == "mean"):
                             count += 1
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertEqual(1, count)
 
     def test_add_measures_update_subset(self):
@@ -428,10 +494,14 @@ class TestStorageDriver(tests_base.TestCase):
             for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.trigger_processing([str(m.id)])
 =======
         self.trigger_processing([m])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.trigger_processing([m])
+>>>>>>> f21ea84... Add automatic backport labels
 
         # add measure to end, in same aggregate time as last point.
         new_point = datetime64(2014, 1, 6, 1, 58, 1)
@@ -439,10 +509,14 @@ class TestStorageDriver(tests_base.TestCase):
 
         with mock.patch.object(self.incoming, 'add_measures') as c:
 <<<<<<< HEAD
+<<<<<<< HEAD
             self.trigger_processing([str(m.id)])
 =======
             self.trigger_processing([m])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            self.trigger_processing([m])
+>>>>>>> f21ea84... Add automatic backport labels
         for __, args, __ in c.mock_calls:
             self.assertEqual(
                 list(args[3])[0][0], carbonara.round_timestamp(
@@ -458,6 +532,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
             numpy.timedelta64(1, 'h'),
@@ -466,22 +541,31 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], self.storage.get_measures(self.metric, granularities))
 =======
         ]}, self.storage.get_measures(self.metric, aggregations))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, aggregations))
+>>>>>>> f21ea84... Add automatic backport labels
 
         # One year later…
         self.incoming.add_measures(self.metric.id, [
@@ -489,6 +573,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.assertEqual([
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
@@ -512,6 +597,8 @@ class TestStorageDriver(tests_base.TestCase):
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(5, 'm')))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.assertEqual({"mean": [
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(1, 'h'), 69),
@@ -632,7 +719,10 @@ class TestStorageDriver(tests_base.TestCase):
                     )
                 ]}})
         self.assertEqual({m2: {aggregation: [None, None]}}, data)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_rewrite_measures(self):
         # Create an archive policy that spans on several splits. Each split
@@ -654,6 +744,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
                                numpy.timedelta64(1, 'm')),
@@ -664,6 +755,8 @@ class TestStorageDriver(tests_base.TestCase):
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -678,13 +771,17 @@ class TestStorageDriver(tests_base.TestCase):
                 },
             }
         }, self.storage._list_split_keys({self.metric: [agg]}))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
         else:
             assertCompressedIfWriteFull = self.assertFalse
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
@@ -708,6 +805,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
 
@@ -735,11 +834,15 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12), numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -747,6 +850,9 @@ class TestStorageDriver(tests_base.TestCase):
 =======
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, [aggregation]))
+>>>>>>> f21ea84... Add automatic backport labels
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -758,6 +864,7 @@ class TestStorageDriver(tests_base.TestCase):
         ])
         self.trigger_processing()
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1452384000, 's'),
@@ -799,6 +906,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -848,7 +957,10 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12), numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
@@ -856,12 +968,16 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 10, 16, 18), numpy.timedelta64(1, 'm'), 45),
             (datetime64(2016, 1, 10, 17, 12), numpy.timedelta64(1, 'm'), 46),
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
             granularities=[numpy.timedelta64(1, 'm')]))
 =======
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, [aggregation]))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
         """See LP#1655422"""
@@ -884,6 +1000,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
                                numpy.timedelta64(1, 'm')),
@@ -894,6 +1011,8 @@ class TestStorageDriver(tests_base.TestCase):
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -908,13 +1027,17 @@ class TestStorageDriver(tests_base.TestCase):
                 },
             },
         }, self.storage._list_split_keys({self.metric: [agg]}))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
         else:
             assertCompressedIfWriteFull = self.assertFalse
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
@@ -938,6 +1061,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
 
@@ -964,11 +1089,15 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12), numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -977,25 +1106,35 @@ class TestStorageDriver(tests_base.TestCase):
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size is one hour here). We move
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         # the BoundTimeSerie processing timeserie far away from its current
         # range.
 
         # Here we test a special case where the oldest_mutable_timestamp will
 <<<<<<< HEAD
+<<<<<<< HEAD
         # be 2016-01-10TOO:OO:OO = 1452384000.0, our new split key.
 =======
         # be 2016-01-10T00:00:00 = 1452384000.0, our new split key.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        # be 2016-01-10T00:00:00 = 1452384000.0, our new split key.
+>>>>>>> f21ea84... Add automatic backport labels
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2016, 1, 10, 0, 12), 45),
         ])
         self.trigger_processing()
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64('2016-01-10T00:00:00'),
@@ -1037,6 +1176,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -1085,12 +1226,16 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12), numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 0, 12), numpy.timedelta64(1, 'm'), 45),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -1098,6 +1243,9 @@ class TestStorageDriver(tests_base.TestCase):
 =======
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, [aggregation]))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_rewrite_measures_corruption_missing_file(self):
         # Create an archive policy that spans on several splits. Each split
@@ -1119,6 +1267,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64('2015-12-31T00:00:00'),
                                numpy.timedelta64(1, 'm')),
@@ -1130,6 +1279,8 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -1144,12 +1295,16 @@ class TestStorageDriver(tests_base.TestCase):
                 },
             },
         }, self.storage._list_split_keys({self.metric: [agg]}))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
         else:
             assertCompressedIfWriteFull = self.assertFalse
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         data = self.storage._get_measures(
             self.metric,
@@ -1174,6 +1329,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
 
@@ -1202,7 +1359,10 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12),
              numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7),
@@ -1211,6 +1371,7 @@ class TestStorageDriver(tests_base.TestCase):
              numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12),
              numpy.timedelta64(1, 'm'), 44),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -1224,6 +1385,8 @@ class TestStorageDriver(tests_base.TestCase):
                 numpy.timedelta64(1, 'm'),
             ), 'mean')
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Test what happens if we delete the latest split and then need to
@@ -1233,7 +1396,10 @@ class TestStorageDriver(tests_base.TestCase):
                 numpy.datetime64(1451952000, 's'),
                 numpy.timedelta64(1, 'm'),
             ), aggregation)]})
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -1265,6 +1431,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertEqual({
             carbonara.SplitKey(numpy.datetime64(1451520000, 's'),
                                numpy.timedelta64(1, 'm')),
@@ -1275,6 +1442,8 @@ class TestStorageDriver(tests_base.TestCase):
         }, self.storage._list_split_keys_for_metric(
             self.metric, "mean", numpy.timedelta64(1, 'm')))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
         self.assertEqual({
@@ -1289,13 +1458,17 @@ class TestStorageDriver(tests_base.TestCase):
                 },
             },
         }, self.storage._list_split_keys({self.metric: [agg]}))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         if self.storage.WRITE_FULL:
             assertCompressedIfWriteFull = self.assertTrue
         else:
             assertCompressedIfWriteFull = self.assertFalse
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         data = self.storage._get_measures(
             self.metric, [carbonara.SplitKey(
@@ -1319,6 +1492,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'm'))
 
@@ -1346,11 +1521,15 @@ class TestStorageDriver(tests_base.TestCase):
             carbonara.AggregatedTimeSerie.is_compressed(data))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2016, 1, 1, 12), numpy.timedelta64(1, 'm'), 69),
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -1364,6 +1543,8 @@ class TestStorageDriver(tests_base.TestCase):
             ), "mean",
             b"oh really?")
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, [aggregation]))
 
         # Test what happens if we write garbage
@@ -1374,7 +1555,10 @@ class TestStorageDriver(tests_base.TestCase):
                     numpy.timedelta64(1, 'm')),
                  aggregation, b"oh really?", None),
             ]})
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -1394,6 +1578,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
             numpy.timedelta64(1, 'h'),
@@ -1402,21 +1587,30 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 55.5),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 55.5),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], self.storage.get_measures(self.metric, granularities))
 =======
         ]}, self.storage.get_measures(self.metric, aggregations))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, aggregations))
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -1425,20 +1619,27 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.assertEqual([
 =======
         self.assertEqual({"mean": [
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.assertEqual({"mean": [
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], self.storage.get_measures(self.metric, granularities))
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, aggregations))
 
         aggregations = (
@@ -1446,18 +1647,24 @@ class TestStorageDriver(tests_base.TestCase):
         )
 
         self.assertEqual({"max": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 69.0),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], self.storage.get_measures(self.metric,
                                      granularities, aggregation='max'))
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, aggregations))
 
         aggregations = (
@@ -1465,12 +1672,16 @@ class TestStorageDriver(tests_base.TestCase):
         )
 
         self.assertEqual({"min": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 4),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 4),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 4.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(self.metric,
                                      granularities, aggregation='min'))
@@ -1481,6 +1692,11 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_add_and_get_splits(self):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, self.storage.get_measures(self.metric, aggregations))
+
+    def test_add_and_get_splits(self):
+>>>>>>> f21ea84... Add automatic backport labels
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
             incoming.Measure(datetime64(2014, 1, 1, 12, 7, 31), 42),
@@ -1490,6 +1706,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
             numpy.timedelta64(1, 'h'),
@@ -1498,17 +1715,23 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(self.metric, granularities))
 
@@ -1523,6 +1746,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(self.metric, aggregations))
 
         self.assertEqual({"mean": [
@@ -1534,11 +1759,15 @@ class TestStorageDriver(tests_base.TestCase):
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 0)))
 
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
+<<<<<<< HEAD
 <<<<<<< HEAD
         ], self.storage.get_measures(
             self.metric,
@@ -1596,6 +1825,8 @@ class TestStorageDriver(tests_base.TestCase):
                           self.metric,
                           granularities=[numpy.timedelta64(42, 's')])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         ]}, self.storage.get_measures(
             self.metric, aggregations,
             to_timestamp=datetime64(2014, 1, 1, 12, 6, 0)))
@@ -1656,7 +1887,10 @@ class TestStorageDriver(tests_base.TestCase):
                              self.metric,
                              [carbonara.Aggregation(
                                  "mean", numpy.timedelta64(42, 's'), None)]))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_get_measure_unknown_aggregation(self):
         self.incoming.add_measures(self.metric.id, [
@@ -1665,6 +1899,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 12, 45), 44),
         ])
+<<<<<<< HEAD
 <<<<<<< HEAD
         granularities = [
             numpy.timedelta64(1, 'D'),
@@ -1675,6 +1910,8 @@ class TestStorageDriver(tests_base.TestCase):
             [], self.storage.get_measures(
                 self.metric, granularities, aggregation='last'))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("last")
@@ -1684,7 +1921,10 @@ class TestStorageDriver(tests_base.TestCase):
             storage.MetricDoesNotExist,
             self.storage.get_measures,
             self.metric, aggregations)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_find_measures(self):
         metric2, __ = self._create_metric()
@@ -1703,10 +1943,14 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
         ])
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
 =======
         self.trigger_processing([self.metric, metric2])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.assertEqual(
             [
@@ -1762,6 +2006,7 @@ class TestStorageDriver(tests_base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 10), 1),
         ])
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.trigger_processing([str(m.id)])
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 0), numpy.timedelta64(5, 's'), 1),
@@ -1769,6 +2014,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
         ], self.storage.get_measures(m, [numpy.timedelta64(5, 's')]))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([m])
 
         aggregation = m.archive_policy.get_aggregation(
@@ -1779,7 +2026,10 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
         ]}, self.storage.get_measures(m, [aggregation]))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         # expand to more points
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
@@ -1787,6 +2037,7 @@ class TestStorageDriver(tests_base.TestCase):
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 15), 1),
         ])
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.trigger_processing([str(m.id)])
         self.assertEqual([
@@ -1796,17 +2047,23 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
         ], self.storage.get_measures(m, [numpy.timedelta64(5, 's')]))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([m])
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
         ]}, self.storage.get_measures(m, [aggregation]))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
         m = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})[0]
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.assertEqual([
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
@@ -1823,6 +2080,8 @@ class TestStorageDriver(tests_base.TestCase):
                              datetime64(2015, 1, 1),
                              resample=numpy.timedelta64(1, 'h')))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregation = m.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(5, 's'))
         self.assertEqual({"mean": [
@@ -1841,7 +2100,10 @@ class TestStorageDriver(tests_base.TestCase):
                           datetime64(2014, 1, 1),
                           datetime64(2015, 1, 1),
                           resample=numpy.timedelta64(1, 'h'))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 class TestMeasureQuery(tests_base.TestCase):

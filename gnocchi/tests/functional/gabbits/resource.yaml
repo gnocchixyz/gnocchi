@@ -511,6 +511,7 @@ tests:
 
     - name: request cpuutil measures again
 <<<<<<< HEAD
+<<<<<<< HEAD
       GET: $LAST_URL
       poll:
           count: 50
@@ -518,6 +519,9 @@ tests:
 =======
       GET: $LAST_URL?refresh=true
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+      GET: $LAST_URL?refresh=true
+>>>>>>> f21ea84... Add automatic backport labels
       response_json_paths:
           $[0][0]: "2015-03-06T14:33:57+00:00"
           $[0][1]: 1.0

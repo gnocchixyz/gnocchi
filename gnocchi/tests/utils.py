@@ -14,13 +14,17 @@
 from oslo_config import cfg
 from oslo_policy import opts as policy_opts
 <<<<<<< HEAD
+<<<<<<< HEAD
 import six
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 from gnocchi import opts
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 def list_all_incoming_metrics(incoming):
     return set.union(*[incoming.list_metric_with_measures_to_process(i)
@@ -29,6 +33,8 @@ def list_all_incoming_metrics(incoming):
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 def prepare_conf():
     conf = cfg.ConfigOpts()
 
