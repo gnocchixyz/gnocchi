@@ -13,6 +13,10 @@
 # under the License.
 from collections import defaultdict
 import contextlib
+<<<<<<< HEAD
+=======
+import daiquiri
+>>>>>>> 11a2520... api: avoid some indexer queries
 import datetime
 import json
 import uuid
@@ -26,6 +30,11 @@ from gnocchi import utils
 swclient = swift.swclient
 swift_utils = swift.swift_utils
 
+<<<<<<< HEAD
+=======
+LOG = daiquiri.getLogger(__name__)
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 class SwiftStorage(incoming.IncomingDriver):
     # NOTE(sileht): Using threads with swiftclient doesn't work
@@ -47,6 +56,7 @@ class SwiftStorage(incoming.IncomingDriver):
         self.swift.put_container(self.CFG_PREFIX)
         self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
+<<<<<<< HEAD
         for i in six.moves.range(num_sacks):
             self.swift.put_container(self.get_sack_name(i))
 
@@ -54,33 +64,58 @@ class SwiftStorage(incoming.IncomingDriver):
         prefix = self.get_sack_prefix(num_sacks)
         for i in six.moves.xrange(num_sacks):
             self.swift.delete_container(prefix % i)
+=======
+        for sack in self.iter_sacks():
+            self.swift.put_container(str(sack))
+
+    def remove_sacks(self):
+        for sack in self.iter_sacks():
+            self.swift.delete_container(str(sack))
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
+<<<<<<< HEAD
             self.get_sack_name(self.sack_for_metric(metric_id)),
             six.text_type(metric_id) + "/" + six.text_type(uuid.uuid4()) + now,
+=======
+            str(self.sack_for_metric(metric_id)),
+            str(metric_id) + "/" + str(uuid.uuid4()) + now,
+>>>>>>> 11a2520... api: avoid some indexer queries
             data)
 
     def _build_report(self, details):
         metric_details = defaultdict(int)
         nb_metrics = 0
         measures = 0
+<<<<<<< HEAD
         for i in six.moves.range(self.NUM_SACKS):
             if details:
                 headers, files = self.swift.get_container(
                     self.get_sack_name(i), full_listing=True)
+=======
+        for sack in self.iter_sacks():
+            if details:
+                headers, files = self.swift.get_container(
+                    str(sack), full_listing=True)
+>>>>>>> 11a2520... api: avoid some indexer queries
                 for f in files:
                     metric, __ = f['name'].split("/", 1)
                     metric_details[metric] += 1
             else:
                 headers, files = self.swift.get_container(
+<<<<<<< HEAD
                     self.get_sack_name(i), delimiter='/', full_listing=True)
+=======
+                    str(sack), delimiter='/', full_listing=True)
+>>>>>>> 11a2520... api: avoid some indexer queries
                 nb_metrics += len([f for f in files if 'subdir' in f])
             measures += int(headers.get('x-container-object-count'))
         return (nb_metrics or len(metric_details), measures,
                 metric_details if details else None)
 
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(self, sack):
         headers, files = self.swift.get_container(
             self.get_sack_name(sack), delimiter='/', full_listing=True)
@@ -89,19 +124,29 @@ class SwiftStorage(incoming.IncomingDriver):
     def _list_measure_files_for_metric(self, sack, metric_id):
         headers, files = self.swift.get_container(
             self.get_sack_name(sack), path=six.text_type(metric_id),
+=======
+    def _list_measure_files_for_metric(self, sack, metric_id):
+        headers, files = self.swift.get_container(
+            str(sack), path=six.text_type(metric_id),
+>>>>>>> 11a2520... api: avoid some indexer queries
             full_listing=True)
         return files
 
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
+<<<<<<< HEAD
         swift.bulk_delete(self.swift, self.get_sack_name(sack), files)
+=======
+        swift.bulk_delete(self.swift, str(sack), files)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def has_unprocessed(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
+<<<<<<< HEAD
     def process_measure_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         sack_name = self.get_sack_name(sack)
@@ -116,4 +161,50 @@ class SwiftStorage(incoming.IncomingDriver):
         ])
 
         # Now clean objects
+=======
+    def process_measure_for_metrics(self, metric_ids):
+        measures = {}
+        all_files = defaultdict(list)
+        for metric_id in metric_ids:
+            sack = self.sack_for_metric(metric_id)
+            sack_name = str(sack)
+            files = self._list_measure_files_for_metric(sack, metric_id)
+            all_files[sack_name].extend(files)
+            measures[metric_id] = self._array_concatenate([
+                self._unserialize_measures(
+                    f['name'],
+                    self.swift.get_object(sack_name, f['name'])[1],
+                )
+                for f in files
+            ])
+
+        yield measures
+
+        # Now clean objects
+        for sack_name, files in six.iteritems(all_files):
+            swift.bulk_delete(self.swift, sack_name, files)
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        measures = defaultdict(self._make_measures_array)
+        sack_name = str(sack)
+        headers, files = self.swift.get_container(sack_name, full_listing=True)
+        for f in files:
+            try:
+                metric_id, random_id = f['name'].split("/")
+                metric_id = uuid.UUID(metric_id)
+            except ValueError:
+                LOG.warning("Unable to parse measure file name %s", f)
+                continue
+            measures[metric_id] = self._array_concatenate([
+                measures[metric_id],
+                self._unserialize_measures(
+                    metric_id,
+                    self.swift.get_object(sack_name, f['name'])[1],
+                )
+            ])
+
+        yield measures
+
+>>>>>>> 11a2520... api: avoid some indexer queries
         swift.bulk_delete(self.swift, sack_name, files)

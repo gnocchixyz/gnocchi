@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    By default, the file driver creates a subdirectory every two bytes of the metric
+    uuid. This avoid to reach limitation of certain filesystems and improve
+    performance in certain case. This is configurable with the option ``file_subdir_len``.
+    If the backend already have data coming from a previous version of Gnocchi, it
+    kept unchanged, ``file_subdir_len`` is set to 0.

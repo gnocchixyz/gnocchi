@@ -1,1 +1,8 @@
+<<<<<<< HEAD
 include etc/gnocchi/gnocchi.conf
+=======
+include ChangeLog
+include AUTHORS
+exclude .gitignore
+exclude .github
+>>>>>>> 11a2520... api: avoid some indexer queries

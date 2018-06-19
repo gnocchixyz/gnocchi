@@ -14,14 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
+<<<<<<< HEAD
+=======
+import os
+>>>>>>> 11a2520... api: avoid some indexer queries
 import sys
 
 import daiquiri
 from oslo_config import cfg
+<<<<<<< HEAD
 import six
 
 from gnocchi import archive_policy
 from gnocchi import genconfig
+=======
+from oslo_config import generator
+import six
+
+from gnocchi import archive_policy
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
@@ -32,7 +43,17 @@ LOG = daiquiri.getLogger(__name__)
 
 
 def config_generator():
+<<<<<<< HEAD
     return genconfig.prehook(None, sys.argv[1:])
+=======
+    args = sys.argv[1:]
+    if args is None:
+        args = ['--output-file', 'etc/gnocchi/gnocchi.conf']
+    return generator.main(['--config-file',
+                           '%s/../gnocchi-config-generator.conf' %
+                           os.path.dirname(__file__)]
+                          + args)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 
 _SACK_NUMBER_OPT = cfg.IntOpt(
@@ -61,10 +82,14 @@ def upgrade():
         LOG.info("Upgrading indexer %s", index)
         index.upgrade()
     if not conf.skip_storage:
+<<<<<<< HEAD
         # FIXME(jd) Pass None as coordinator because it's not needed in this
         # case. This will be removed when the storage will stop requiring a
         # coordinator object.
         s = storage.get_driver(conf, None)
+=======
+        s = storage.get_driver(conf)
+>>>>>>> 11a2520... api: avoid some indexer queries
         LOG.info("Upgrading storage %s", s)
         s.upgrade()
     if not conf.skip_incoming:
@@ -98,7 +123,14 @@ def change_sack_size():
         LOG.error('Cannot change sack when non-empty backlog. Process '
                   'remaining %s measures and try again', remainder)
         return
+<<<<<<< HEAD
     LOG.info("Changing sack size to: %s", conf.sacks_number)
     old_num_sacks = s.NUM_SACKS
     s.set_storage_settings(conf.sacks_number)
     s.remove_sack_group(old_num_sacks)
+=======
+    LOG.info("Removing current %d sacks", s.NUM_SACKS)
+    s.remove_sacks()
+    LOG.info("Creating new %d sacks", conf.sacks_number)
+    s.upgrade(conf.sacks_number)
+>>>>>>> 11a2520... api: avoid some indexer queries

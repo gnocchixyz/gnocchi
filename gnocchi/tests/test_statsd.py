@@ -46,7 +46,11 @@ class TestStatsd(tests_base.TestCase):
         self.conf.set_override("archive_policy_name",
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
         ap = self.ARCHIVE_POLICIES["medium"]
+<<<<<<< HEAD
         self.granularities = [d.granularity for d in ap.definition]
+=======
+        self.aggregations = ap.get_aggregations_for_method("mean")
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         self.stats = statsd.Stats(self.conf)
         # Replace storage/indexer with correct ones that have been upgraded
@@ -73,6 +77,7 @@ class TestStatsd(tests_base.TestCase):
 
         metric = r.get_metric(metric_key)
 
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -83,6 +88,16 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ], measures)
+=======
+        self.trigger_processing([metric])
+
+        measures = self.storage.get_measures(metric, self.aggregations)
+        self.assertEqual({"mean": [
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
+        ]}, measures)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         # This one is going to be ignored
@@ -94,17 +109,28 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
         measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
+=======
+        self.trigger_processing([metric])
+
+        measures = self.storage.get_measures(metric, self.aggregations)
+        self.assertEqual({"mean": [
+>>>>>>> 11a2520... api: avoid some indexer queries
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.5),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.5),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
             (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 2.0)
+<<<<<<< HEAD
         ], measures)
+=======
+        ]}, measures)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def test_gauge(self):
         self._test_gauge_or_ms("g")
@@ -128,6 +154,7 @@ class TestStatsd(tests_base.TestCase):
         metric = r.get_metric(metric_key)
         self.assertIsNotNone(metric)
 
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -138,6 +165,16 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ], measures)
+=======
+        self.trigger_processing([metric])
+
+        measures = self.storage.get_measures(metric, self.aggregations)
+        self.assertEqual({"mean": [
+            (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
+            (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
+            (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
+        ]}, measures)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         self.server.datagram_received(
@@ -148,17 +185,28 @@ class TestStatsd(tests_base.TestCase):
             ("127.0.0.1", 12345))
         self.stats.flush()
 
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
 
         measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
+=======
+        self.trigger_processing([metric])
+
+        measures = self.storage.get_measures(metric, self.aggregations)
+        self.assertEqual({"mean": [
+>>>>>>> 11a2520... api: avoid some indexer queries
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 28),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 28),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
             (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 55.0)
+<<<<<<< HEAD
         ], measures)
+=======
+        ]}, measures)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 
 class TestStatsdArchivePolicyRule(TestStatsd):

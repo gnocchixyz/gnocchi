@@ -24,6 +24,10 @@ from oslo_config import cfg
 from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
+<<<<<<< HEAD
+=======
+from gnocchi.rest import app
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi import service
 from gnocchi import utils
 
@@ -48,6 +52,13 @@ def prepare_service(conf=None):
     return conf
 
 
+<<<<<<< HEAD
+=======
+def wsgi():
+    return app.load_app(prepare_service())
+
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 def api():
     # Compat with previous pbr script
     try:

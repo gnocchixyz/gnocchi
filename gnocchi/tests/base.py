@@ -33,6 +33,10 @@ except ImportError:
 from testtools import testcase
 
 from gnocchi import archive_policy
+<<<<<<< HEAD
+=======
+from gnocchi import chef
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
@@ -201,6 +205,19 @@ class CaptureOutput(fixtures.Fixture):
         self.stderr = self.useFixture(self._stderr_fixture).stream
         self.useFixture(fixtures.MonkeyPatch('sys.stderr', self.stderr))
 
+<<<<<<< HEAD
+=======
+        self._logs_fixture = fixtures.StringStream('logs')
+        self.logs = self.useFixture(self._logs_fixture).stream
+        self.useFixture(fixtures.MonkeyPatch(
+            'daiquiri.output.STDERR', daiquiri.output.Stream(self.logs)))
+
+    @property
+    def output(self):
+        self.logs.seek(0)
+        return self.logs.read()
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 class BaseTestCase(testcase.TestCase):
     def setUp(self):
@@ -267,13 +284,19 @@ class TestCase(BaseTestCase):
         ),
     }
 
+<<<<<<< HEAD
     @classmethod
     def setUpClass(self):
         super(TestCase, self).setUpClass()
+=======
+    def setUp(self):
+        super(TestCase, self).setUp()
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         self.conf = service.prepare_service(
             [], conf=utils.prepare_conf(),
             default_config_files=[],
+<<<<<<< HEAD
             logging_level=logging.DEBUG)
 
         if not os.getenv("GNOCCHI_TEST_DEBUG"):
@@ -297,6 +320,10 @@ class TestCase(BaseTestCase):
                                    group="storage")
             self.conf.set_override('s3_secret_access_key', "anythingworks",
                                    group="storage")
+=======
+            logging_level=logging.DEBUG,
+            skip_log_opts=True)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         self.index = indexer.get_driver(self.conf)
 
@@ -320,6 +347,7 @@ class TestCase(BaseTestCase):
             except indexer.ArchivePolicyAlreadyExists:
                 pass
 
+<<<<<<< HEAD
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
         self.conf.set_override('driver', storage_driver, 'storage')
         if storage_driver == 'ceph':
@@ -329,6 +357,30 @@ class TestCase(BaseTestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
+=======
+        py_root = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                               '..',))
+        self.conf.set_override('paste_config',
+                               os.path.join(py_root, 'rest', 'api-paste.ini'),
+                               group="api")
+        self.conf.set_override('policy_file',
+                               os.path.join(py_root, 'rest', 'policy.json'),
+                               group="oslo_policy")
+
+        # NOTE(jd) This allows to test S3 on AWS
+        if not os.getenv("AWS_ACCESS_KEY_ID"):
+            self.conf.set_override('s3_endpoint_url',
+                                   os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
+                                   group="storage")
+            self.conf.set_override('s3_access_key_id', "gnocchi",
+                                   group="storage")
+            self.conf.set_override('s3_secret_access_key', "anythingworks",
+                                   group="storage")
+
+        storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
+        self.conf.set_override('driver', storage_driver, 'storage')
+
+>>>>>>> 11a2520... api: avoid some indexer queries
         if swexc:
             self.useFixture(fixtures.MockPatch(
                 'swiftclient.client.Connection',
@@ -340,6 +392,12 @@ class TestCase(BaseTestCase):
                                    tempdir.path,
                                    'storage')
         elif self.conf.storage.driver == 'ceph':
+<<<<<<< HEAD
+=======
+            self.conf.set_override('ceph_conffile',
+                                   os.getenv("CEPH_CONF"),
+                                   'storage')
+>>>>>>> 11a2520... api: avoid some indexer queries
             pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:
                 subprocess.call("rados -c %s mkpool %s" % (
@@ -352,7 +410,11 @@ class TestCase(BaseTestCase):
         self.conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
                                "storage")
 
+<<<<<<< HEAD
         self.storage = storage.get_driver(self.conf, self.coord)
+=======
+        self.storage = storage.get_driver(self.conf)
+>>>>>>> 11a2520... api: avoid some indexer queries
         self.incoming = incoming.get_driver(self.conf)
 
         if self.conf.storage.driver == 'redis':
@@ -360,6 +422,7 @@ class TestCase(BaseTestCase):
             self.storage.STORAGE_PREFIX = str(uuid.uuid4()).encode()
 
         if self.conf.incoming.driver == 'redis':
+<<<<<<< HEAD
             self.incoming.SACK_PREFIX = str(uuid.uuid4())
 
         self.storage.upgrade()
@@ -374,6 +437,22 @@ class TestCase(BaseTestCase):
         cls.coord.stop()
         super(TestCase, cls).tearDownClass()
 
+=======
+            self.incoming.SACK_NAME_FORMAT = (
+                str(uuid.uuid4()) + incoming.IncomingDriver.SACK_NAME_FORMAT
+            )
+
+        self.storage.upgrade()
+        self.incoming.upgrade(3)
+        self.chef = chef.Chef(
+            self.coord, self.incoming, self.index, self.storage)
+
+    def tearDown(self):
+        self.index.disconnect()
+        self.coord.stop()
+        super(TestCase, self).tearDown()
+
+>>>>>>> 11a2520... api: avoid some indexer queries
     def _create_metric(self, archive_policy_name="low"):
         """Create a metric and return it"""
         m = indexer.Metric(uuid.uuid4(),
@@ -384,6 +463,14 @@ class TestCase(BaseTestCase):
 
     def trigger_processing(self, metrics=None):
         if metrics is None:
+<<<<<<< HEAD
             metrics = [str(self.metric.id)]
         self.storage.process_new_measures(
             self.index, self.incoming, metrics, sync=True)
+=======
+            self.chef.process_new_measures_for_sack(
+                self.incoming.sack_for_metric(self.metric.id),
+                blocking=True, sync=True)
+        else:
+            self.chef.refresh_metrics(metrics, timeout=True, sync=True)
+>>>>>>> 11a2520... api: avoid some indexer queries

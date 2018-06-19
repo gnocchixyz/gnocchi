@@ -17,10 +17,17 @@
 import collections
 import functools
 import itertools
+<<<<<<< HEAD
 import uuid
 
 import jsonpatch
 import pbr.version
+=======
+import operator
+import uuid
+
+import jsonpatch
+>>>>>>> 11a2520... api: avoid some indexer queries
 import pecan
 from pecan import rest
 import pyparsing
@@ -31,7 +38,13 @@ import tooz
 import voluptuous
 import werkzeug.http
 
+<<<<<<< HEAD
 from gnocchi import archive_policy
+=======
+import gnocchi
+from gnocchi import archive_policy
+from gnocchi import chef
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
@@ -50,6 +63,12 @@ except ImportError:
     PROMETHEUS_SUPPORTED = False
 
 
+<<<<<<< HEAD
+=======
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 def arg_to_list(value):
     if isinstance(value, list):
         return value
@@ -290,7 +309,11 @@ class ArchivePoliciesController(rest.RestController):
         enforce("create archive policy", {})
         # NOTE(jd): Initialize this one at run-time because we rely on conf
         conf = pecan.request.conf
+<<<<<<< HEAD
         valid_agg_methods = (
+=======
+        valid_agg_methods = list(
+>>>>>>> 11a2520... api: avoid some indexer queries
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
         )
         ArchivePolicySchema = voluptuous.Schema({
@@ -302,7 +325,11 @@ class ArchivePoliciesController(rest.RestController):
             voluptuous.Required(
                 "aggregation_methods",
                 default=list(conf.archive_policy.default_aggregation_methods)):
+<<<<<<< HEAD
             voluptuous.All(list(valid_agg_methods)),
+=======
+            valid_agg_methods,
+>>>>>>> 11a2520... api: avoid some indexer queries
             voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
         })
 
@@ -454,6 +481,7 @@ class MetricController(rest.RestController):
                      granularity=None, resample=None, refresh=False,
                      **param):
         self.enforce_metric("get measures")
+<<<<<<< HEAD
         if (aggregation not in
            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             msg = "Invalid aggregation value %(agg)s, must be one of %(std)s"
@@ -472,6 +500,8 @@ class MetricController(rest.RestController):
                 stop = utils.to_timestamp(stop)
             except Exception:
                 abort(400, "Invalid value for stop")
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         if resample:
             if not granularity:
@@ -484,6 +514,7 @@ class MetricController(rest.RestController):
         if granularity is None:
             granularity = [d.granularity
                            for d in self.metric.archive_policy.definition]
+<<<<<<< HEAD
         else:
             try:
                 granularity = [utils.to_timespan(granularity)]
@@ -491,6 +522,13 @@ class MetricController(rest.RestController):
                 abort(400, {"cause": "Attribute value error",
                             "detail": "granularity",
                             "reason": "Invalid granularity"})
+=======
+            start, stop, _, _, _ = validate_qs(
+                start=start, stop=stop)
+        else:
+            start, stop, granularity, _, _ = validate_qs(
+                start=start, stop=stop, granularity=granularity)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         if aggregation not in self.metric.archive_policy.aggregation_methods:
             abort(404, {
@@ -501,6 +539,7 @@ class MetricController(rest.RestController):
                 },
             })
 
+<<<<<<< HEAD
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
             try:
@@ -516,6 +555,35 @@ class MetricController(rest.RestController):
         except (storage.MetricDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
+=======
+        aggregations = []
+        for g in sorted(granularity, reverse=True):
+            agg = self.metric.archive_policy.get_aggregation(
+                aggregation, g)
+            if agg is None:
+                abort(404, six.text_type(
+                    storage.AggregationDoesNotExist(
+                        self.metric, aggregation, g)
+                ))
+            aggregations.append(agg)
+
+        if (strtobool("refresh", refresh) and
+                pecan.request.incoming.has_unprocessed(self.metric.id)):
+            try:
+                pecan.request.chef.refresh_metrics(
+                    [self.metric],
+                    pecan.request.conf.api.operation_timeout)
+            except chef.SackAlreadyLocked:
+                abort(503, 'Unable to refresh metric: %s. Metric is locked. '
+                      'Please try again.' % self.metric.id)
+        try:
+            return pecan.request.storage.get_measures(
+                self.metric, aggregations, start, stop, resample)[aggregation]
+        except storage.AggregationDoesNotExist as e:
+            abort(404, six.text_type(e))
+        except storage.MetricDoesNotExist:
+            return []
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     @pecan.expose()
     def delete(self):
@@ -1271,7 +1339,11 @@ class QueryStringSearchAttrFilter(object):
         try:
             parsed_query = cls.expr.parseString(query, parseAll=True)[0]
         except pyparsing.ParseException as e:
+<<<<<<< HEAD
             raise abort(400, "Invalid filter: %s" % six.text_type(e))
+=======
+            raise abort(400, "Invalid filter: %s" % str(e))
+>>>>>>> 11a2520... api: avoid some indexer queries
         return cls._parsed_query2dict(parsed_query)
 
     @classmethod
@@ -1552,9 +1624,20 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         attribute_filter = {"or": []}
         for original_resource_id, resource_id in body:
             names = list(body[(original_resource_id, resource_id)].keys())
+<<<<<<< HEAD
             attribute_filter["or"].append({"and": [
                 {"=": {"resource_id": resource_id}},
                 {"in": {"name": names}}]})
+=======
+            if names:
+                attribute_filter["or"].append({"and": [
+                    {"=": {"resource_id": resource_id}},
+                    {"in": {"name": names}}]})
+
+        if not attribute_filter["or"]:
+            pecan.response.status = 202
+            return
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         all_metrics = collections.defaultdict(list)
         for metric in pecan.request.indexer.list_metrics(
@@ -1681,7 +1764,12 @@ class AggregationResourceController(rest.RestController):
     @pecan.expose('json')
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
+<<<<<<< HEAD
              groupby=None, fill=None, refresh=False, resample=None):
+=======
+             groupby=None, fill=None, refresh=False, resample=None,
+             **kwargs):
+>>>>>>> 11a2520... api: avoid some indexer queries
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1690,7 +1778,12 @@ class AggregationResourceController(rest.RestController):
         # groups when using itertools.groupby later.
         try:
             resources = SearchResourceTypeController(
+<<<<<<< HEAD
                 self.resource_type)._search(sort=groupby)
+=======
+                self.resource_type)._search(sort=groupby,
+                                            filter=kwargs.get("filter"))
+>>>>>>> 11a2520... api: avoid some indexer queries
         except indexer.InvalidPagination:
             abort(400, "Invalid groupby attribute")
         except indexer.IndexerException as e:
@@ -1724,15 +1817,23 @@ class AggregationResourceController(rest.RestController):
 
         return results
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 FillSchema = voluptuous.Schema(
     voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
                    msg="Must be a float, 'dropna' or 'null'"))
 
 
+<<<<<<< HEAD
 # FIXME(sileht): should be in aggregates.api but we need to split all
 # controllers to do this
 def validate_qs(start, stop, granularity, needed_overlap, fill):
+=======
+def validate_qs(start=None, stop=None, granularity=None,
+                needed_overlap=None, fill=None):
+>>>>>>> 11a2520... api: avoid some indexer queries
     if needed_overlap is not None:
         try:
             needed_overlap = float(needed_overlap)
@@ -1805,6 +1906,7 @@ class AggregationController(rest.RestController):
         start, stop, granularity, needed_overlap, fill = validate_qs(
             start, stop, granularity, needed_overlap, fill)
 
+<<<<<<< HEAD
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             abort(
@@ -1813,6 +1915,8 @@ class AggregationController(rest.RestController):
                 % (aggregation,
                    archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS))
 
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
         if reaggregation is None:
             reaggregation = aggregation
 
@@ -1851,6 +1955,22 @@ class AggregationController(rest.RestController):
                          for metric in metrics),
                     'No granularity match'))
 
+<<<<<<< HEAD
+=======
+        aggregations = set()
+        for metric in metrics:
+            for g in granularity:
+                agg = metric.archive_policy.get_aggregation(
+                    aggregation, g)
+                if agg is None:
+                    abort(404, six.text_type(
+                        storage.AggregationDoesNotExist(metric, aggregation, g)
+                    ))
+                aggregations.add(agg)
+        aggregations = sorted(aggregations, key=ATTRGETTER_GRANULARITY,
+                              reverse=True)
+
+>>>>>>> 11a2520... api: avoid some indexer queries
         operations = ["aggregate", reaggregation, []]
         if resample:
             operations[2].extend(
@@ -1871,11 +1991,20 @@ class AggregationController(rest.RestController):
                     if pecan.request.incoming.has_unprocessed(m.id)]
                 for m in metrics_to_update:
                     try:
+<<<<<<< HEAD
                         pecan.request.storage.refresh_metric(
                             pecan.request.indexer, pecan.request.incoming, m,
                             pecan.request.conf.api.operation_timeout)
                     except storage.SackLockTimeoutError as e:
                         abort(503, six.text_type(e))
+=======
+                        pecan.request.chef.refresh_metrics(
+                            [m], pecan.request.conf.api.operation_timeout)
+                    except chef.SackAlreadyLocked:
+                        abort(503, 'Unable to refresh metric: %s. '
+                              'Metric is locked. '
+                              'Please try again.' % m.id)
+>>>>>>> 11a2520... api: avoid some indexer queries
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
@@ -1890,9 +2019,18 @@ class AggregationController(rest.RestController):
                             "aggregation_method": aggregation,
                         },
                     })
+<<<<<<< HEAD
                 return pecan.request.storage.get_measures(
                     metric, granularity, start, stop, aggregation,
                     resample)
+=======
+                try:
+                    return pecan.request.storage.get_measures(
+                        metric, aggregations, start, stop, resample
+                    )[aggregation]
+                except storage.MetricDoesNotExist:
+                    return []
+>>>>>>> 11a2520... api: avoid some indexer queries
             return processor.get_measures(
                 pecan.request.storage,
                 [processor.MetricReference(m, aggregation) for m in metrics],
@@ -1900,8 +2038,12 @@ class AggregationController(rest.RestController):
                 granularity, needed_overlap, fill)["aggregated"]
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
+<<<<<<< HEAD
         except (storage.MetricDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
+=======
+        except storage.AggregationDoesNotExist as e:
+>>>>>>> 11a2520... api: avoid some indexer queries
             abort(404, six.text_type(e))
 
     MetricIDsSchema = [utils.UUID]
@@ -1971,9 +2113,26 @@ class StatusController(rest.RestController):
             report_dict["storage"]["measures_to_process"] = report['details']
         report_dict['metricd'] = {}
         if members_req:
+<<<<<<< HEAD
             report_dict['metricd']['processors'] = members_req.get()
         else:
             report_dict['metricd']['processors'] = None
+=======
+            members = members_req.get()
+            caps = [
+                pecan.request.coordinator.get_member_capabilities(
+                    metricd.MetricProcessor.GROUP_ID, member)
+                for member in members
+            ]
+            report_dict['metricd']['processors'] = members
+            report_dict['metricd']['statistics'] = {
+                member: cap.get()
+                for member, cap in six.moves.zip(members, caps)
+            }
+        else:
+            report_dict['metricd']['processors'] = None
+            report_dict['metricd']['statistics'] = {}
+>>>>>>> 11a2520... api: avoid some indexer queries
         return report_dict
 
 
@@ -2178,7 +2337,11 @@ class VersionsController(object):
     @pecan.expose('json')
     def index():
         return {
+<<<<<<< HEAD
             "build": pbr.version.VersionInfo('gnocchi').version_string(),
+=======
+            "build": gnocchi.__version__,
+>>>>>>> 11a2520... api: avoid some indexer queries
             "versions": [
                 {
                     "status": "CURRENT",
