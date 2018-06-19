@@ -133,10 +133,14 @@ tests:
   response_json_paths:
     $.storage.`len`: 2
 <<<<<<< HEAD
+<<<<<<< HEAD
     $.metricd.`len`: 1
 =======
     $.metricd.`len`: 2
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    $.metricd.`len`: 2
+>>>>>>> f21ea84... Add automatic backport labels
 
 - name: get status, no details
   GET: /v1/status?details=False
@@ -146,7 +150,11 @@ tests:
   response_json_paths:
     $.storage.`len`: 1
 <<<<<<< HEAD
+<<<<<<< HEAD
     $.metricd.`len`: 1
 =======
     $.metricd.`len`: 2
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    $.metricd.`len`: 2
+>>>>>>> f21ea84... Add automatic backport labels

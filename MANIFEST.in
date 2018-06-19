@@ -1,8 +1,14 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 include etc/gnocchi/gnocchi.conf
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 include ChangeLog
 include AUTHORS
 exclude .gitignore
 exclude .github
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

@@ -2,10 +2,14 @@
 #
 # Copyright © 2014 Objectif Libre
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2015 Red Hat
 =======
 # Copyright © 2015-2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2015-2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -19,6 +23,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 import errno
 import os
 import shutil
@@ -27,6 +32,8 @@ import tempfile
 from oslo_config import cfg
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import collections
 import errno
 import itertools
@@ -42,7 +49,10 @@ from oslo_config import cfg
 import six
 
 from gnocchi import carbonara
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import storage
 from gnocchi import utils
 
@@ -51,6 +61,7 @@ OPTS = [
     cfg.StrOpt('file_basepath',
                default='/var/lib/gnocchi',
                help='Path used to store gnocchi data files.'),
+<<<<<<< HEAD
 <<<<<<< HEAD
 ]
 
@@ -66,6 +77,8 @@ class FileStorage(storage.StorageDriver):
     def upgrade(self):
         utils.ensure_paths([self.basepath_tmp])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     cfg.IntOpt('file_subdir_len',
                default=2, min=0, max=32,
                help='if > 0, this create a subdirectory for every N bytes'
@@ -133,7 +146,10 @@ class FileStorage(storage.StorageDriver):
                 else:
                     return True
         return False
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, str(self.basepath))
@@ -148,8 +164,11 @@ class FileStorage(storage.StorageDriver):
 
     def _build_metric_dir(self, metric):
 <<<<<<< HEAD
+<<<<<<< HEAD
         return os.path.join(self.basepath, str(metric.id))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         path_parts = [self.basepath]
         if self.SUBDIR_LEN > 0:
             metric_id = metric.id.hex
@@ -159,7 +178,10 @@ class FileStorage(storage.StorageDriver):
                  ])
         path_parts.append(str(metric.id))
         return os.path.join(*path_parts)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _build_unaggregated_timeserie_path(self, metric, version=3):
         return os.path.join(
@@ -183,10 +205,14 @@ class FileStorage(storage.StorageDriver):
         path = self._build_metric_dir(metric)
         try:
 <<<<<<< HEAD
+<<<<<<< HEAD
             os.mkdir(path, 0o750)
 =======
             os.makedirs(path, 0o750)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            os.makedirs(path, 0o750)
+>>>>>>> f21ea84... Add automatic backport labels
         except OSError as e:
             if e.errno == errno.EEXIST:
                 raise storage.MetricAlreadyExists(metric)
@@ -199,25 +225,36 @@ class FileStorage(storage.StorageDriver):
                     raise
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _store_unaggregated_timeserie(self, metric, data, version=3):
 =======
     def _store_unaggregated_timeseries_unbatched(
             self, metric, data, version=3):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _store_unaggregated_timeseries_unbatched(
+            self, metric, data, version=3):
+>>>>>>> f21ea84... Add automatic backport labels
         dest = self._build_unaggregated_timeserie_path(metric, version)
         with open(dest, "wb") as f:
             f.write(data)
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
 =======
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _get_or_create_unaggregated_timeseries_unbatched(
+            self, metric, version=3):
+>>>>>>> f21ea84... Add automatic backport labels
         path = self._build_unaggregated_timeserie_path(metric, version)
         try:
             with open(path, 'rb') as f:
                 return f.read()
+<<<<<<< HEAD
 <<<<<<< HEAD
         except IOError as e:
             if e.errno == errno.ENOENT:
@@ -249,6 +286,8 @@ class FileStorage(storage.StorageDriver):
             self._build_metric_path_for_split(
                 metric, aggregation, key, version),
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         except FileNotFoundError:
             pass
         except IOError as e:
@@ -302,7 +341,10 @@ class FileStorage(storage.StorageDriver):
         self._atomic_file_store(
             self._build_metric_path_for_split(
                 metric, aggregation.method, key, version),
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             data)
 
     def _delete_metric(self, metric):
@@ -316,6 +358,7 @@ class FileStorage(storage.StorageDriver):
                 raise
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         path = self._build_metric_path_for_split(
             metric, aggregation, key, version)
@@ -324,11 +367,17 @@ class FileStorage(storage.StorageDriver):
         path = self._build_metric_path_for_split(
             metric, aggregation.method, key, version)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
+        path = self._build_metric_path_for_split(
+            metric, aggregation.method, key, version)
+>>>>>>> f21ea84... Add automatic backport labels
         try:
             with open(path, 'rb') as aggregation_file:
                 return aggregation_file.read()
         except IOError as e:
             if e.errno == errno.ENOENT:
+<<<<<<< HEAD
 <<<<<<< HEAD
                 if os.path.exists(self._build_metric_dir(metric)):
                     raise storage.AggregationDoesNotExist(
@@ -337,4 +386,7 @@ class FileStorage(storage.StorageDriver):
 =======
                 return
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                return
+>>>>>>> f21ea84... Add automatic backport labels
             raise

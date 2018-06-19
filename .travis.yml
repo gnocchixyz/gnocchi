@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 language: python
 =======
 language: generic
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+language: generic
+>>>>>>> f21ea84... Add automatic backport labels
 sudo: required
 
 services:
@@ -15,6 +19,7 @@ env:
   - TARGET: pep8
   - TARGET: docs
 <<<<<<< HEAD
+<<<<<<< HEAD
 
   - TARGET: py27-mysql-ceph-upgrade-from-3.1
   - TARGET: py35-postgresql-file-upgrade-from-3.1
@@ -22,15 +27,24 @@ env:
   - TARGET: docs-gnocchi.xyz
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+  - TARGET: docs-gnocchi.xyz
+
+>>>>>>> f21ea84... Add automatic backport labels
   - TARGET: py27-mysql-ceph-upgrade-from-4.0
   - TARGET: py35-postgresql-file-upgrade-from-4.0
   - TARGET: py27-mysql-ceph-upgrade-from-4.1
   - TARGET: py35-postgresql-file-upgrade-from-4.1
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   - TARGET: py27-mysql-ceph-upgrade-from-4.2
   - TARGET: py35-postgresql-file-upgrade-from-4.2
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+  - TARGET: py27-mysql-ceph-upgrade-from-4.2
+  - TARGET: py35-postgresql-file-upgrade-from-4.2
+>>>>>>> f21ea84... Add automatic backport labels
 
   - TARGET: py27-mysql
   - TARGET: py35-mysql
@@ -39,9 +53,12 @@ env:
 
 before_script:
 <<<<<<< HEAD
+<<<<<<< HEAD
   # Travis We need to fetch all tags/branches for documentation target
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
   # NOTE(sileht): We need to fetch all tags/branches for documentation.
   # For the multiversioning, we change all remotes refs to point to
   # the pull request checkout. So the "master" branch will be the PR sha and not
@@ -49,7 +66,10 @@ before_script:
   # doc setup.
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
       set -x;
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       case $TARGET in
         docs*)
           git config --get-all remote.origin.fetch;
@@ -60,7 +80,10 @@ before_script:
           ;;
       esac ;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       case $TARGET in
         docs-gnocchi.xyz)
           git branch -a | sed -n "/\/HEAD /d; /\/master$/d; s,remotes/origin/,,p;" | xargs -i git branch {} origin/{} ;
@@ -71,7 +94,10 @@ before_script:
           ;;
       esac ;
       set +x;
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     fi
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then

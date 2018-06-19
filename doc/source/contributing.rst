@@ -34,8 +34,11 @@ When opening a pull-request, make sure that:
 * We recommend using `git pull-request`_ to send your pull-requests.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 .. _`git pull-request`: https://github.com/jd/git-pull-request
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 All sent pull-requests are checked using `Travis-CI`_, which is in charge of
 running the tests suites. There are different scenarios being run: `PEP 8`_
 compliance tests, upgrade tests, unit and functional tests.
@@ -59,7 +62,10 @@ make sure that no pull-request can break another one.
 .. _`members of the Gnocchi project`: https://github.com/orgs/gnocchixyz/people
 .. _`Mergify`: https://mergify.io
 .. _`Gnocchi's Mergify dashboard`: https://gh.mergify.io/gnocchixyz
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 Running the Tests

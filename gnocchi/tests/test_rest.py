@@ -28,26 +28,36 @@ import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import mock
 <<<<<<< HEAD
+<<<<<<< HEAD
 import pbr.version
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import six
 import testscenarios
 from testtools import testcase
 import webtest
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import gnocchi
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import gnocchi
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import archive_policy
 from gnocchi.rest import api
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
 <<<<<<< HEAD
+<<<<<<< HEAD
 from gnocchi.tests import utils as tests_utils
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import utils
 
 
@@ -72,12 +82,16 @@ class TestingApp(webtest.TestApp):
     def __init__(self, *args, **kwargs):
         self.auth_mode = kwargs.pop('auth_mode')
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage = kwargs.pop('storage')
         self.indexer = kwargs.pop('indexer')
         self.incoming = kwargs.pop('incoming')
 =======
         self.chef = kwargs.pop('chef')
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.chef = kwargs.pop('chef')
+>>>>>>> f21ea84... Add automatic backport labels
         super(TestingApp, self).__init__(*args, **kwargs)
         # Setup Keystone auth_token fake cache
         self.token = self.VALID_TOKEN
@@ -144,6 +158,7 @@ class TestingApp(webtest.TestApp):
             req.remote_user = self.user
         response = super(TestingApp, self).do_request(req, *args, **kwargs)
 <<<<<<< HEAD
+<<<<<<< HEAD
         metrics = tests_utils.list_all_incoming_metrics(self.incoming)
         self.storage.process_new_measures(
             self.indexer, self.incoming, metrics, sync=True)
@@ -152,6 +167,11 @@ class TestingApp(webtest.TestApp):
             self.chef.process_new_measures_for_sack(
                 sack, blocking=True, sync=True)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        for sack in self.chef.incoming.iter_sacks():
+            self.chef.process_new_measures_for_sack(
+                sack, blocking=True, sync=True)
+>>>>>>> f21ea84... Add automatic backport labels
         return response
 
 
@@ -199,12 +219,16 @@ class RestTest(tests_base.TestCase, testscenarios.TestWithScenarios):
         self.app = TestingApp(app.load_app(conf=self.conf,
                                            not_implemented_middleware=False),
 <<<<<<< HEAD
+<<<<<<< HEAD
                               storage=self.storage,
                               indexer=self.index,
                               incoming=self.incoming,
 =======
                               chef=self.chef,
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                              chef=self.chef,
+>>>>>>> f21ea84... Add automatic backport labels
                               auth_mode=self.auth_mode)
 
     def _fake_lazy_load(self, name):
@@ -247,10 +271,14 @@ class RootTest(RestTest):
         self.assertEqual(
             json.loads(r.text)['build'],
 <<<<<<< HEAD
+<<<<<<< HEAD
             pbr.version.VersionInfo('gnocchi').version_string())
 =======
             gnocchi.__version__)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            gnocchi.__version__)
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_status(self):
         with self.app.use_admin_user():

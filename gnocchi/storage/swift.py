@@ -1,9 +1,13 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # Copyright © 2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,17 +22,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 from oslo_config import cfg
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import collections
 
 from oslo_config import cfg
 import six
 
 from gnocchi import carbonara
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi import utils
@@ -100,12 +110,17 @@ class SwiftStorage(storage.StorageDriver):
     MAP_METHOD = staticmethod(utils.sequencial_map)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, conf, coord=None):
         super(SwiftStorage, self).__init__(conf, coord)
 =======
     def __init__(self, conf):
         super(SwiftStorage, self).__init__(conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, conf):
+        super(SwiftStorage, self).__init__(conf)
+>>>>>>> f21ea84... Add automatic backport labels
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 
@@ -134,6 +149,7 @@ class SwiftStorage(storage.StorageDriver):
             raise storage.MetricAlreadyExists(metric)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=None, version=3):
         self.swift.put_object(
@@ -146,6 +162,8 @@ class SwiftStorage(storage.StorageDriver):
             self._container_name(metric),
             self._object_name(key, aggregation, version))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
                                        offset, version):
         self.swift.put_object(
@@ -158,7 +176,10 @@ class SwiftStorage(storage.StorageDriver):
         self.swift.delete_object(
             self._container_name(metric),
             self._object_name(key, aggregation.method, version))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)
@@ -178,6 +199,7 @@ class SwiftStorage(storage.StorageDriver):
                     # Deleted in the meantime? Whatever.
                     raise
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         try:
@@ -199,6 +221,8 @@ class SwiftStorage(storage.StorageDriver):
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
@@ -211,7 +235,10 @@ class SwiftStorage(storage.StorageDriver):
         return contents
 
     def _list_split_keys_unbatched(self, metric, aggregations, version=3):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -220,6 +247,7 @@ class SwiftStorage(storage.StorageDriver):
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
+<<<<<<< HEAD
 <<<<<<< HEAD
         keys = set()
         granularity = str(utils.timespan_total_seconds(granularity))
@@ -233,6 +261,8 @@ class SwiftStorage(storage.StorageDriver):
                 # Might be "none", or any other file. Be resilient.
                 continue
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         raw_keys = list(map(
             lambda k: k.split("_"),
@@ -256,7 +286,10 @@ class SwiftStorage(storage.StorageDriver):
                         timestamp,
                         sampling=granularity))
                     break
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         return keys
 
     @staticmethod
@@ -264,16 +297,22 @@ class SwiftStorage(storage.StorageDriver):
         return 'none' + ("_v%s" % version if version else "")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
 =======
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def _get_or_create_unaggregated_timeseries_unbatched(
+            self, metric, version=3):
+>>>>>>> f21ea84... Add automatic backport labels
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric),
                 self._build_unaggregated_timeserie_path(version))
         except swclient.ClientException as e:
+<<<<<<< HEAD
 <<<<<<< HEAD
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
@@ -285,6 +324,8 @@ class SwiftStorage(storage.StorageDriver):
                               self._build_unaggregated_timeserie_path(version),
                               data)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             if e.http_status != 404:
                 raise
             try:
@@ -300,4 +341,7 @@ class SwiftStorage(storage.StorageDriver):
             self._container_name(metric),
             self._build_unaggregated_timeserie_path(version),
             data)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

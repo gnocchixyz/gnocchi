@@ -47,10 +47,14 @@ class TestStatsd(tests_base.TestCase):
                                self.STATSD_ARCHIVE_POLICY_NAME, "statsd")
         ap = self.ARCHIVE_POLICIES["medium"]
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.granularities = [d.granularity for d in ap.definition]
 =======
         self.aggregations = ap.get_aggregations_for_method("mean")
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.aggregations = ap.get_aggregations_for_method("mean")
+>>>>>>> f21ea84... Add automatic backport labels
 
         self.stats = statsd.Stats(self.conf)
         # Replace storage/indexer with correct ones that have been upgraded
@@ -78,6 +82,7 @@ class TestStatsd(tests_base.TestCase):
         metric = r.get_metric(metric_key)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -89,6 +94,8 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ], measures)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([metric])
 
         measures = self.storage.get_measures(metric, self.aggregations)
@@ -97,7 +104,10 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ]}, measures)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         # This one is going to be ignored
@@ -110,6 +120,7 @@ class TestStatsd(tests_base.TestCase):
         self.stats.flush()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -117,20 +128,29 @@ class TestStatsd(tests_base.TestCase):
         measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([metric])
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.5),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.5),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
             (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 2.0)
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], measures)
 =======
         ]}, measures)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, measures)
+>>>>>>> f21ea84... Add automatic backport labels
 
     def test_gauge(self):
         self._test_gauge_or_ms("g")
@@ -155,6 +175,7 @@ class TestStatsd(tests_base.TestCase):
         self.assertIsNotNone(metric)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -166,6 +187,8 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ], measures)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([metric])
 
         measures = self.storage.get_measures(metric, self.aggregations)
@@ -174,7 +197,10 @@ class TestStatsd(tests_base.TestCase):
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0)
         ]}, measures)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         utcnow.return_value = utils.datetime_utc(2015, 1, 7, 13, 59, 37)
         self.server.datagram_received(
@@ -186,6 +212,7 @@ class TestStatsd(tests_base.TestCase):
         self.stats.flush()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.storage.process_new_measures(
             self.stats.indexer, self.stats.incoming,
             [str(metric.id)], sync=True)
@@ -193,20 +220,29 @@ class TestStatsd(tests_base.TestCase):
         measures = self.storage.get_measures(metric, self.granularities)
         self.assertEqual([
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.trigger_processing([metric])
 
         measures = self.storage.get_measures(metric, self.aggregations)
         self.assertEqual({"mean": [
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 28),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 28),
             (datetime64(2015, 1, 7, 13, 58), numpy.timedelta64(1, 'm'), 1.0),
             (datetime64(2015, 1, 7, 13, 59), numpy.timedelta64(1, 'm'), 55.0)
 <<<<<<< HEAD
+<<<<<<< HEAD
         ], measures)
 =======
         ]}, measures)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        ]}, measures)
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 class TestStatsdArchivePolicyRule(TestStatsd):
