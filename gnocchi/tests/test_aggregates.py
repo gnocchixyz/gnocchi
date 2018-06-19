@@ -44,7 +44,11 @@ def datetime64(*args):
 class TestAggregatedTimeseries(base.BaseTestCase):
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
+<<<<<<< HEAD
         """Helper method that mimics _add_measures workflow."""
+=======
+        """Helper method that mimics _compute_splits_operations workflow."""
+>>>>>>> 11a2520... api: avoid some indexer queries
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         name = agg_dict.get("name")
@@ -53,7 +57,14 @@ class TestAggregatedTimeseries(base.BaseTestCase):
         agg_dict['return'] = (
             processor.MetricReference(metric, "mean", resource),
             carbonara.AggregatedTimeSerie.from_grouped_serie(
+<<<<<<< HEAD
                 grouped, agg_dict['sampling'], agg_dict['agg']))
+=======
+                grouped,
+                carbonara.Aggregation(agg_dict['agg'],
+                                      agg_dict['sampling'],
+                                      None)))
+>>>>>>> 11a2520... api: avoid some indexer queries
         if existing:
             existing[2].merge(agg_dict['return'][2])
             agg_dict['return'] = existing
@@ -88,8 +99,12 @@ class TestAggregatedTimeseries(base.BaseTestCase):
                 'size': 50, 'agg': 'mean'}
         tsb1 = carbonara.BoundTimeSerie(block_size=tsc1['sampling'])
         tsc2 = carbonara.AggregatedTimeSerie(
+<<<<<<< HEAD
             sampling=numpy.timedelta64(60, 's'),
             aggregation_method='mean')
+=======
+            carbonara.Aggregation('mean', numpy.timedelta64(60, 's'), None))
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         tsb1.set_values(numpy.array([(datetime64(2014, 1, 1, 12, 3, 0), 4)],
                                     dtype=carbonara.TIMESERIES_ARRAY_DTYPE),
@@ -1029,7 +1044,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1188,7 +1207,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 6),
             incoming.Measure(datetime64(2014, 1, 1, 12, 13, 10), 2),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1226,7 +1249,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1263,7 +1290,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1300,7 +1331,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1339,7 +1374,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 12, 10, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 12, 15, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1383,7 +1422,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1412,7 +1455,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id)])
+=======
+        self.trigger_processing()
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
@@ -1439,7 +1486,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id)])
+=======
+        self.trigger_processing()
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage, [processor.MetricReference(self.metric, "mean")],
@@ -1471,7 +1522,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1509,7 +1564,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), 4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,
@@ -1555,7 +1614,11 @@ class CrossMetricAggregated(base.TestCase):
             incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
             incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), -4),
         ])
+<<<<<<< HEAD
         self.trigger_processing([str(self.metric.id), str(metric2.id)])
+=======
+        self.trigger_processing([self.metric, metric2])
+>>>>>>> 11a2520... api: avoid some indexer queries
 
         values = processor.get_measures(
             self.storage,

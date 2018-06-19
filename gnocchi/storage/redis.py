@@ -1,6 +1,10 @@
 # -*- encoding: utf-8 -*-
 #
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat
+=======
+# Copyright © 2017-2018 Red Hat
+>>>>>>> 11a2520... api: avoid some indexer queries
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -13,9 +17,17 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+<<<<<<< HEAD
 
 import six
 
+=======
+import collections
+
+import six
+
+from gnocchi import carbonara
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
@@ -26,10 +38,39 @@ class RedisStorage(storage.StorageDriver):
 
     STORAGE_PREFIX = b"timeseries"
     FIELD_SEP = '_'
+<<<<<<< HEAD
 
     def __init__(self, conf, coord=None):
         super(RedisStorage, self).__init__(conf, coord)
         self._client = redis.get_client(conf)
+=======
+    FIELD_SEP_B = b'_'
+
+    _SCRIPTS = {
+        "list_split_keys": """
+local metric_key = KEYS[1]
+local ids = {}
+local cursor = 0
+local substring = "([^%s]*)%s([^%s]*)%s([^%s]*)"
+repeat
+    local result = redis.call("HSCAN", metric_key, cursor, "MATCH", ARGV[1])
+    cursor = tonumber(result[1])
+    for i, v in ipairs(result[2]) do
+        -- Only return keys, not values
+        if i %% 2 ~= 0 then
+            local timestamp, method, granularity = v:gmatch(substring)()
+            ids[#ids + 1] = {timestamp, method, granularity}
+        end
+    end
+until cursor == 0
+return ids
+""" % (FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP, FIELD_SEP),
+    }
+
+    def __init__(self, conf):
+        super(RedisStorage, self).__init__(conf)
+        self._client, self._scripts = redis.get_client(conf, self._SCRIPTS)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._client)
@@ -49,6 +90,7 @@ class RedisStorage(storage.StorageDriver):
             str(utils.timespan_total_seconds(granularity or key.sampling))])
         return path + '_v%s' % version if version else path
 
+<<<<<<< HEAD
     def _create_metric(self, metric):
         key = self._metric_key(metric)
         if self._client.exists(key):
@@ -88,10 +130,100 @@ class RedisStorage(storage.StorageDriver):
         field = self._aggregated_field_for_split(
             aggregation, key, version)
         self._client.hset(self._metric_key(metric), field, data)
+=======
+    def _store_unaggregated_timeseries(self, metrics_and_data, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        unagg_key = self._unaggregated_field(version)
+        for metric, data in metrics_and_data:
+            pipe.hset(self._metric_key(metric), unagg_key, data)
+        pipe.execute()
+
+    def _get_or_create_unaggregated_timeseries(self, metrics, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        for metric in metrics:
+            metric_key = self._metric_key(metric)
+            unagg_key = self._unaggregated_field(version)
+            # Create the metric if it was not created
+            pipe.hsetnx(metric_key, unagg_key, "")
+            # Get the data
+            pipe.hget(metric_key, unagg_key)
+        ts = {
+            # Replace "" by None
+            metric: data or None
+            for metric, (created, data)
+            in six.moves.zip(metrics, utils.grouper(pipe.execute(), 2))
+        }
+        return ts
+
+    def _list_split_keys(self, metrics_and_aggregations, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        # Keep an ordered list of metrics
+        metrics = list(metrics_and_aggregations.keys())
+        for metric in metrics:
+            key = self._metric_key(metric)
+            pipe.exists(key)
+            aggregations = metrics_and_aggregations[metric]
+            for aggregation in aggregations:
+                self._scripts["list_split_keys"](
+                    keys=[key], args=[self._aggregated_field_for_split(
+                        aggregation.method, "*",
+                        version, aggregation.granularity)],
+                    client=pipe,
+                )
+        results = pipe.execute()
+        keys = collections.defaultdict(dict)
+        start = 0
+        for metric in metrics:
+            metric_exists_p = results.pop(0)
+            if not metric_exists_p:
+                raise storage.MetricDoesNotExist(metric)
+            aggregations = metrics_and_aggregations[metric]
+            number_of_aggregations = len(aggregations)
+            keys_for_aggregations = results[start:number_of_aggregations]
+            start += number_of_aggregations
+            for aggregation, k in six.moves.zip(
+                    aggregations, keys_for_aggregations):
+                if not k:
+                    keys[metric][aggregation] = set()
+                    continue
+                timestamps, methods, granularities = list(zip(*k))
+                timestamps = utils.to_timestamps(timestamps)
+                granularities = map(utils.to_timespan, granularities)
+                keys[metric][aggregation] = {
+                    carbonara.SplitKey(timestamp,
+                                       sampling=granularity)
+                    for timestamp, granularity
+                    in six.moves.zip(timestamps, granularities)
+                }
+        return keys
+
+    def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
+        pipe = self._client.pipeline(transaction=False)
+        for metric, keys_and_aggregations in six.iteritems(
+                metrics_keys_aggregations):
+            metric_key = self._metric_key(metric)
+            for key, aggregation in keys_and_aggregations:
+                pipe.hdel(metric_key, self._aggregated_field_for_split(
+                    aggregation.method, key, version))
+        pipe.execute()
+
+    def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
+                             version=3):
+        pipe = self._client.pipeline(transaction=False)
+        for metric, keys_aggs_data_offset in six.iteritems(
+                metrics_keys_aggregations_data_offset):
+            metric_key = self._metric_key(metric)
+            for key, aggregation, data, offset in keys_aggs_data_offset:
+                key = self._aggregated_field_for_split(
+                    aggregation.method, key, version)
+                pipe.hset(metric_key, key, data)
+        pipe.execute()
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def _delete_metric(self, metric):
         self._client.delete(self._metric_key(metric))
 
+<<<<<<< HEAD
     def _get_measures(self, metric, keys, aggregation, version=3):
         if not keys:
             return []
@@ -107,4 +239,32 @@ class RedisStorage(storage.StorageDriver):
                     raise storage.MetricDoesNotExist(metric)
                 raise storage.AggregationDoesNotExist(
                     metric, aggregation, key.sampling)
+=======
+    def _get_splits(self, metrics_aggregations_keys, version=3):
+        # Use a list of metric and aggregations with a constant sorting
+        metrics_aggregations = [
+            (metric, aggregation)
+            for metric, aggregation_and_keys in six.iteritems(
+                metrics_aggregations_keys)
+            for aggregation, keys in six.iteritems(aggregation_and_keys)
+            # Do not send any fetch request if keys is empty
+            if keys
+        ]
+
+        pipe = self._client.pipeline(transaction=False)
+        for metric, aggregation in metrics_aggregations:
+            pipe.hmget(
+                self._metric_key(metric),
+                [self._aggregated_field_for_split(aggregation.method,
+                                                  key, version)
+                 for key in metrics_aggregations_keys[metric][aggregation]])
+
+        results = collections.defaultdict(
+            lambda: collections.defaultdict(list))
+
+        for (metric, aggregation), result in six.moves.zip(
+                metrics_aggregations, pipe.execute()):
+            results[metric][aggregation] = result
+
+>>>>>>> 11a2520... api: avoid some indexer queries
         return results

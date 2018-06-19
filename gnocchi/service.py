@@ -19,9 +19,15 @@ import logging
 import daiquiri
 from oslo_config import cfg
 from oslo_db import options as db_options
+<<<<<<< HEAD
 import pbr.version
 from six.moves.urllib import parse as urlparse
 
+=======
+from six.moves.urllib import parse as urlparse
+
+import gnocchi
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi import archive_policy
 from gnocchi import opts
 from gnocchi import utils
@@ -31,7 +37,12 @@ LOG = daiquiri.getLogger(__name__)
 
 def prepare_service(args=None, conf=None,
                     default_config_files=None,
+<<<<<<< HEAD
                     log_to_std=False, logging_level=None):
+=======
+                    log_to_std=False, logging_level=None,
+                    skip_log_opts=False):
+>>>>>>> 11a2520... api: avoid some indexer queries
     if conf is None:
         conf = cfg.ConfigOpts()
     # FIXME(jd) Use the pkg_entry info to register the options of these libs
@@ -48,10 +59,16 @@ def prepare_service(args=None, conf=None,
     conf.set_default("workers", workers, group="metricd")
     conf.set_default("parallel_operations", workers)
 
+<<<<<<< HEAD
     version = pbr.version.VersionInfo('gnocchi').version_string()
     conf(args, project='gnocchi', validate_default_values=True,
          default_config_files=default_config_files,
          version=version)
+=======
+    conf(args, project='gnocchi', validate_default_values=True,
+         default_config_files=default_config_files,
+         version=gnocchi.__version__)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     utils.parallel_map.MAX_WORKERS = conf.parallel_operations
 
@@ -101,7 +118,13 @@ def prepare_service(args=None, conf=None,
             conf.set_default("coordination_url",
                              urlparse.urlunparse(parsed))
 
+<<<<<<< HEAD
     LOG.info("Gnocchi version %s", version)
     conf.log_opt_values(LOG, logging.DEBUG)
+=======
+    if not skip_log_opts:
+        LOG.info("Gnocchi version %s", gnocchi.__version__)
+        conf.log_opt_values(LOG, logging.DEBUG)
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     return conf

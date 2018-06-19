@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The `gnocchi-injector` tool has been added. It allows to inject random
+    measures to a configured number of metrics in order to generate load for
+    `metricd`.

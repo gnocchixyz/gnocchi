@@ -94,30 +94,51 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
     - name: get measure aggregates by granularity
+<<<<<<< HEAD
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1
       poll:
           count: 10
           delay: 1
+=======
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
     - name: get measure aggregates by granularity with timestamps
+<<<<<<< HEAD
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
       poll:
           count: 10
           delay: 1
+=======
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
+<<<<<<< HEAD
     - name: get measure aggregates and reaggregate
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&reaggregation=min
       poll:
           count: 10
           delay: 1
+=======
+    - name: get measure aggregates with invalid aggregation method
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&aggregation=wtf
+      request_headers:
+        accept: application/json
+      status: 404
+      response_json_paths:
+        $.description: Aggregation method 'wtf' at granularity '1.0' for metric $HISTORY['get metric list'].$RESPONSE['$[0].id'] does not exist
+
+    - name: get measure aggregates and reaggregate
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&reaggregation=min&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:30:00+00:00', 300.0, 2.55]
@@ -226,10 +247,14 @@ tests:
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
     - name: get measure aggregates by granularity from resources
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1
       poll:
           count: 10
           delay: 1
+=======
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
@@ -289,10 +314,14 @@ tests:
         - A granularity must be specified to resample
 
     - name: get measure aggregates by granularity with timestamps from resources
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/agg_meter?start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00
       poll:
           count: 10
           delay: 1
+=======
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?start=2015-03-06T15:33:57%2B01:00&stop=2015-03-06T15:34:00%2B01:00&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:30:00+00:00', 300.0, 15.05]
@@ -313,10 +342,14 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
 
     - name: get measure aggregates by granularity from resources and reaggregate
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&reaggregation=min
       poll:
           count: 10
           delay: 1
+=======
+      POST: /v1/aggregation/resource/generic/metric/agg_meter?granularity=1&reaggregation=min&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 3.1]

@@ -43,7 +43,11 @@ tests:
 
     - name: get aggregation with no data
       desc: https://github.com/gnocchixyz/gnocchi/issues/69
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/cpu.util?stop=2012-03-06T00:00:00&fill=0&granularity=300&resample=3600
+=======
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?stop=2012-03-06T00:00:00&fill=0&granularity=300&resample=3600&refresh=true
+>>>>>>> 11a2520... api: avoid some indexer queries
       request_headers:
         x-user-id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         x-project-id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
@@ -51,9 +55,12 @@ tests:
       data:
         =:
           id: 4ed9c196-4c9f-4ba8-a5be-c9a71a82aac4
+<<<<<<< HEAD
       poll:
         count: 10
         delay: 1
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $: []
 
@@ -80,7 +87,11 @@ tests:
     - name: create resource 3
       POST: /v1/resource/generic
       data:
+<<<<<<< HEAD
         id: 33333BC5-5948-4F29-B7DF-7DE607660452
+=======
+        id: 0FB0B7CD-9A41-4A76-8B2E-BFC02843506A
+>>>>>>> 11a2520... api: avoid some indexer queries
         user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
         project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
         metrics:
@@ -89,7 +100,11 @@ tests:
       status: 201
 
     - name: post cpuutil measures 3
+<<<<<<< HEAD
       POST: /v1/resource/generic/33333BC5-5948-4F29-B7DF-7DE607660452/metric/cpu.util/measures
+=======
+      POST: /v1/resource/generic/0FB0B7CD-9A41-4A76-8B2E-BFC02843506A/metric/cpu.util/measures
+>>>>>>> 11a2520... api: avoid some indexer queries
       data:
         - timestamp: "2015-03-06T14:33:57"
           value: 230
@@ -97,6 +112,7 @@ tests:
           value: 45.41
       status: 202
 
+<<<<<<< HEAD
     - name: aggregate metric with groupby on project_id
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id
       data:
@@ -105,6 +121,30 @@ tests:
       poll:
         count: 10
         delay: 1
+=======
+    - name: aggregate metric with groupby on project_id with filter
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&filter=user_id%3D%276c865dd0-7945-4e08-8b27-d0d7f1c2b667%27&refresh=true
+      response_json_paths:
+        $:
+          - measures:
+            - ["2015-03-06T14:30:00+00:00", 300.0, 21.525]
+            - ["2015-03-06T14:33:57+00:00", 1.0, 33.05]
+            - ["2015-03-06T14:34:12+00:00", 1.0, 10.0]
+            group:
+              project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
+          - measures:
+            - ["2015-03-06T14:30:00+00:00", 300.0, 137.70499999999998]
+            - ["2015-03-06T14:33:57+00:00", 1.0, 230.0]
+            - ["2015-03-06T14:34:12+00:00", 1.0, 45.41]
+            group:
+              project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
+
+    - name: aggregate metric with groupby on project_id
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&refresh=true
+      data:
+        =:
+          user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - measures:
@@ -130,6 +170,7 @@ tests:
         - Invalid groupby attribute
 
     - name: aggregate metric with groupby on project_id and user_id
+<<<<<<< HEAD
       POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id
       data:
         =:
@@ -137,6 +178,12 @@ tests:
       poll:
         count: 10
         delay: 1
+=======
+      POST: /v1/aggregation/resource/generic/metric/cpu.util?groupby=project_id&groupby=user_id&refresh=true
+      data:
+        =:
+          user_id: 6c865dd0-7945-4e08-8b27-d0d7f1c2b667
+>>>>>>> 11a2520... api: avoid some indexer queries
       response_json_paths:
         $:
           - measures:
