@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 language: python
+=======
+language: generic
+>>>>>>> 11a2520... api: avoid some indexer queries
 sudo: required
 
 services:
@@ -10,13 +14,23 @@ cache:
 env:
   - TARGET: pep8
   - TARGET: docs
+<<<<<<< HEAD
 
   - TARGET: py27-mysql-ceph-upgrade-from-3.1
   - TARGET: py35-postgresql-file-upgrade-from-3.1
+=======
+  - TARGET: docs-gnocchi.xyz
+
+>>>>>>> 11a2520... api: avoid some indexer queries
   - TARGET: py27-mysql-ceph-upgrade-from-4.0
   - TARGET: py35-postgresql-file-upgrade-from-4.0
   - TARGET: py27-mysql-ceph-upgrade-from-4.1
   - TARGET: py35-postgresql-file-upgrade-from-4.1
+<<<<<<< HEAD
+=======
+  - TARGET: py27-mysql-ceph-upgrade-from-4.2
+  - TARGET: py35-postgresql-file-upgrade-from-4.2
+>>>>>>> 11a2520... api: avoid some indexer queries
 
   - TARGET: py27-mysql
   - TARGET: py35-mysql
@@ -24,8 +38,18 @@ env:
   - TARGET: py35-postgresql
 
 before_script:
+<<<<<<< HEAD
   # Travis We need to fetch all tags/branches for documentation target
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+=======
+  # NOTE(sileht): We need to fetch all tags/branches for documentation.
+  # For the multiversioning, we change all remotes refs to point to
+  # the pull request checkout. So the "master" branch will be the PR sha and not
+  # real "master" branch. This ensures the doc build use the PR code for initial
+  # doc setup.
+  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
+      set -x;
+>>>>>>> 11a2520... api: avoid some indexer queries
       case $TARGET in
         docs*)
           git config --get-all remote.origin.fetch;
@@ -35,6 +59,19 @@ before_script:
           git fetch --unshallow --tags;
           ;;
       esac ;
+<<<<<<< HEAD
+=======
+      case $TARGET in
+        docs-gnocchi.xyz)
+          git branch -a | sed -n "/\/HEAD /d; /\/master$/d; s,remotes/origin/,,p;" | xargs -i git branch {} origin/{} ;
+          git branch -D master;
+          git checkout -b master;
+          git remote set-url origin file:///home/tester/src;
+          git ls-remote --heads --tags | grep heads;
+          ;;
+      esac ;
+      set +x;
+>>>>>>> 11a2520... api: avoid some indexer queries
     fi
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then

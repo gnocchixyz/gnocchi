@@ -1,5 +1,9 @@
 # -*- encoding: utf-8 -*-
 #
+<<<<<<< HEAD
+=======
+# Copyright © 2018 Red Hat
+>>>>>>> 11a2520... api: avoid some indexer queries
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,9 +17,18 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+<<<<<<< HEAD
 
 from oslo_config import cfg
 
+=======
+import collections
+
+from oslo_config import cfg
+import six
+
+from gnocchi import carbonara
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi import utils
@@ -86,8 +99,13 @@ class SwiftStorage(storage.StorageDriver):
     # as expected, so disable it
     MAP_METHOD = staticmethod(utils.sequencial_map)
 
+<<<<<<< HEAD
     def __init__(self, conf, coord=None):
         super(SwiftStorage, self).__init__(conf, coord)
+=======
+    def __init__(self, conf):
+        super(SwiftStorage, self).__init__(conf)
+>>>>>>> 11a2520... api: avoid some indexer queries
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
 
@@ -115,6 +133,7 @@ class SwiftStorage(storage.StorageDriver):
         if resp['status'] == 204:
             raise storage.MetricAlreadyExists(metric)
 
+<<<<<<< HEAD
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=None, version=3):
         self.swift.put_object(
@@ -126,6 +145,20 @@ class SwiftStorage(storage.StorageDriver):
         self.swift.delete_object(
             self._container_name(metric),
             self._object_name(key, aggregation, version))
+=======
+    def _store_metric_splits_unbatched(self, metric, key, aggregation, data,
+                                       offset, version):
+        self.swift.put_object(
+            self._container_name(metric),
+            self._object_name(key, aggregation.method, version),
+            data)
+
+    def _delete_metric_splits_unbatched(
+            self, metric, key, aggregation, version=3):
+        self.swift.delete_object(
+            self._container_name(metric),
+            self._object_name(key, aggregation.method, version))
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def _delete_metric(self, metric):
         container = self._container_name(metric)
@@ -145,6 +178,7 @@ class SwiftStorage(storage.StorageDriver):
                     # Deleted in the meantime? Whatever.
                     raise
 
+<<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         try:
             headers, contents = self.swift.get_object(
@@ -164,6 +198,20 @@ class SwiftStorage(storage.StorageDriver):
         return contents
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
+=======
+    def _get_splits_unbatched(self, metric, key, aggregation, version=3):
+        try:
+            headers, contents = self.swift.get_object(
+                self._container_name(metric), self._object_name(
+                    key, aggregation.method, version))
+        except swclient.ClientException as e:
+            if e.http_status == 404:
+                return
+            raise
+        return contents
+
+    def _list_split_keys_unbatched(self, metric, aggregations, version=3):
+>>>>>>> 11a2520... api: avoid some indexer queries
         container = self._container_name(metric)
         try:
             headers, files = self.swift.get_container(
@@ -172,6 +220,7 @@ class SwiftStorage(storage.StorageDriver):
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
+<<<<<<< HEAD
         keys = set()
         granularity = str(utils.timespan_total_seconds(granularity))
         for f in files:
@@ -183,18 +232,49 @@ class SwiftStorage(storage.StorageDriver):
             except (ValueError, IndexError):
                 # Might be "none", or any other file. Be resilient.
                 continue
+=======
+
+        raw_keys = list(map(
+            lambda k: k.split("_"),
+            (f['name'] for f in files
+             if self._version_check(f['name'], version)
+             and not f['name'].startswith('none'))))
+        keys = collections.defaultdict(set)
+        if not raw_keys:
+            return keys
+        zipped = list(zip(*raw_keys))
+        k_timestamps = utils.to_timestamps(zipped[0])
+        k_methods = zipped[1]
+        k_granularities = list(map(utils.to_timespan, zipped[2]))
+
+        for timestamp, method, granularity in six.moves.zip(
+                k_timestamps, k_methods, k_granularities):
+            for aggregation in aggregations:
+                if (aggregation.method == method
+                   and aggregation.granularity == granularity):
+                    keys[aggregation].add(carbonara.SplitKey(
+                        timestamp,
+                        sampling=granularity))
+                    break
+>>>>>>> 11a2520... api: avoid some indexer queries
         return keys
 
     @staticmethod
     def _build_unaggregated_timeserie_path(version):
         return 'none' + ("_v%s" % version if version else "")
 
+<<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
+=======
+    def _get_or_create_unaggregated_timeseries_unbatched(
+            self, metric, version=3):
+>>>>>>> 11a2520... api: avoid some indexer queries
         try:
             headers, contents = self.swift.get_object(
                 self._container_name(metric),
                 self._build_unaggregated_timeserie_path(version))
         except swclient.ClientException as e:
+<<<<<<< HEAD
             if e.http_status == 404:
                 raise storage.MetricDoesNotExist(metric)
             raise
@@ -204,3 +284,20 @@ class SwiftStorage(storage.StorageDriver):
         self.swift.put_object(self._container_name(metric),
                               self._build_unaggregated_timeserie_path(version),
                               data)
+=======
+            if e.http_status != 404:
+                raise
+            try:
+                self._create_metric(metric)
+            except storage.MetricAlreadyExists:
+                pass
+        else:
+            return contents
+
+    def _store_unaggregated_timeseries_unbatched(
+            self, metric, data, version=3):
+        self.swift.put_object(
+            self._container_name(metric),
+            self._build_unaggregated_timeserie_path(version),
+            data)
+>>>>>>> 11a2520... api: avoid some indexer queries

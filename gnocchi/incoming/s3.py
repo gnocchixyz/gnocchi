@@ -1,6 +1,10 @@
 # -*- encoding: utf-8 -*-
 #
+<<<<<<< HEAD
 # Copyright © 2016 Red Hat, Inc.
+=======
+# Copyright © 2016-2018 Red Hat, Inc.
+>>>>>>> 11a2520... api: avoid some indexer queries
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,12 +19,19 @@
 # under the License.
 from collections import defaultdict
 import contextlib
+<<<<<<< HEAD
+=======
+import daiquiri
+>>>>>>> 11a2520... api: avoid some indexer queries
 import datetime
 import json
 import uuid
 
 import numpy
+<<<<<<< HEAD
 import six
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 from gnocchi.common import s3
 from gnocchi import incoming
@@ -28,9 +39,20 @@ from gnocchi import incoming
 boto3 = s3.boto3
 botocore = s3.botocore
 
+<<<<<<< HEAD
 
 class S3Storage(incoming.IncomingDriver):
 
+=======
+LOG = daiquiri.getLogger(__name__)
+
+
+class S3Storage(incoming.IncomingDriver):
+
+    # NOTE(gordc): override to follow s3 partitioning logic
+    SACK_NAME_FORMAT = "{number}-{total}"
+
+>>>>>>> 11a2520... api: avoid some indexer queries
     def __init__(self, conf, greedy=True):
         super(S3Storage, self).__init__(conf)
         self.s3, self._region_name, self._bucket_prefix = (
@@ -55,12 +77,17 @@ class S3Storage(incoming.IncomingDriver):
                            Key=self.CFG_PREFIX,
                            Body=json.dumps(data).encode())
 
+<<<<<<< HEAD
     def get_sack_prefix(self, num_sacks=None):
         # NOTE(gordc): override to follow s3 partitioning logic
         return '%s-' + ('%s/' % (num_sacks if num_sacks else self.NUM_SACKS))
 
     @staticmethod
     def remove_sack_group(num_sacks):
+=======
+    @staticmethod
+    def remove_sacks(num_sacks):
+>>>>>>> 11a2520... api: avoid some indexer queries
         # nothing to cleanup since sacks are part of path
         pass
 
@@ -80,9 +107,15 @@ class S3Storage(incoming.IncomingDriver):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.s3.put_object(
             Bucket=self._bucket_name_measures,
+<<<<<<< HEAD
             Key=(self.get_sack_name(self.sack_for_metric(metric_id))
                  + six.text_type(metric_id) + "/"
                  + six.text_type(uuid.uuid4()) + now),
+=======
+            Key="/".join((str(self.sack_for_metric(metric_id)),
+                          str(metric_id),
+                          str(uuid.uuid4()) + now)),
+>>>>>>> 11a2520... api: avoid some indexer queries
             Body=data)
 
     def _build_report(self, details):
@@ -105,13 +138,18 @@ class S3Storage(incoming.IncomingDriver):
         return (len(metric_details), sum(metric_details.values()),
                 metric_details if details else None)
 
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(self, sack):
         limit = 1000        # 1000 is the default anyway
         metrics = set()
+=======
+    def _list_files(self, path_items, **kwargs):
+>>>>>>> 11a2520... api: avoid some indexer queries
         response = {}
         # Handle pagination
         while response.get('IsTruncated', True):
             if 'NextContinuationToken' in response:
+<<<<<<< HEAD
                 kwargs = {
                     'ContinuationToken': response['NextContinuationToken']
                 }
@@ -148,6 +186,30 @@ class S3Storage(incoming.IncomingDriver):
 
         return files
 
+=======
+                kwargs['ContinuationToken'] = response['NextContinuationToken']
+            else:
+                try:
+                    del kwargs['ContinuationToken']
+                except KeyError:
+                    pass
+            response = self.s3.list_objects_v2(
+                Bucket=self._bucket_name_measures,
+                Prefix="/".join(path_items) + "/",
+                **kwargs)
+            yield response
+
+    def _list_measure_files(self, path_items):
+        files = set()
+        for response in self._list_files(path_items):
+            for c in response.get('Contents', ()):
+                files.add(c['Key'])
+        return files
+
+    def _list_measure_files_for_metric(self, sack, metric_id):
+        return self._list_measure_files((str(sack), str(metric_id)))
+
+>>>>>>> 11a2520... api: avoid some indexer queries
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
@@ -158,6 +220,7 @@ class S3Storage(incoming.IncomingDriver):
         return bool(self._list_measure_files_for_metric(sack, metric_id))
 
     @contextlib.contextmanager
+<<<<<<< HEAD
     def process_measure_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
@@ -169,6 +232,46 @@ class S3Storage(incoming.IncomingDriver):
                 Key=f)
             measures = numpy.concatenate((
                 measures,
+=======
+    def process_measure_for_metrics(self, metric_ids):
+        measures = defaultdict(self._make_measures_array)
+        all_files = []
+        for metric_id in metric_ids:
+            sack = self.sack_for_metric(metric_id)
+            files = self._list_measure_files_for_metric(sack, metric_id)
+            all_files.extend(files)
+            for f in files:
+                response = self.s3.get_object(
+                    Bucket=self._bucket_name_measures,
+                    Key=f)
+                measures[metric_id] = numpy.concatenate((
+                    measures[metric_id],
+                    self._unserialize_measures(f, response['Body'].read())
+                ))
+
+        yield measures
+
+        # Now clean objects
+        s3.bulk_delete(self.s3, self._bucket_name_measures, all_files)
+
+    @contextlib.contextmanager
+    def process_measures_for_sack(self, sack):
+        measures = defaultdict(self._make_measures_array)
+        files = self._list_measure_files((str(sack),))
+        for f in files:
+            try:
+                sack, metric_id, measure_id = f.split("/")
+                metric_id = uuid.UUID(metric_id)
+            except ValueError:
+                LOG.warning("Unable to parse measure file name %s", f)
+                continue
+
+            response = self.s3.get_object(
+                Bucket=self._bucket_name_measures,
+                Key=f)
+            measures[metric_id] = numpy.concatenate((
+                measures[metric_id],
+>>>>>>> 11a2520... api: avoid some indexer queries
                 self._unserialize_measures(f, response['Body'].read())
             ))
 

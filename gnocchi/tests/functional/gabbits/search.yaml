@@ -139,6 +139,15 @@ tests:
       response_json_paths:
         $.`len`: 2
 
+<<<<<<< HEAD
+=======
+    - name: search invalid query string
+      POST: /v1/search/resource/generic?filter=id%20%3D%3D%20foobar
+      status: 400
+      response_strings:
+        - "Invalid filter: Expected"
+
+>>>>>>> 11a2520... api: avoid some indexer queries
     - name: search in_ query string
       POST: /v1/search/resource/generic?filter=id%20in%20%5Bfaef212f-0bf4-4030-a461-2186fef79be0%2C%20df7e5e75-6a1d-4ff7-85cb-38eb9d75da7e%5D
       response_json_paths:

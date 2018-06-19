@@ -16,6 +16,10 @@
 import collections
 import time
 
+<<<<<<< HEAD
+=======
+import gnocchi
+>>>>>>> 11a2520... api: avoid some indexer queries
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.rest import api
@@ -23,7 +27,10 @@ from gnocchi import utils
 
 import daiquiri
 import numpy
+<<<<<<< HEAD
 import pbr.version
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
 import pecan
 from pecan import rest
 import pyparsing
@@ -116,7 +123,11 @@ class InfluxDBController(rest.RestController):
     @pecan.expose()
     def ping(self):
         pecan.response.headers['X-Influxdb-Version'] = (
+<<<<<<< HEAD
             "Gnocchi " + pbr.version.VersionInfo('gnocchi').version_string()
+=======
+            "Gnocchi " + gnocchi.__version__
+>>>>>>> 11a2520... api: avoid some indexer queries
         )
 
     @pecan.expose('json')

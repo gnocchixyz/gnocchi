@@ -1,6 +1,10 @@
 # -*- encoding: utf-8 -*-
 #
+<<<<<<< HEAD
 # Copyright © 2017 Red Hat, Inc.
+=======
+# Copyright © 2017-2018 Red Hat, Inc.
+>>>>>>> 11a2520... api: avoid some indexer queries
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -15,6 +19,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import collections
+<<<<<<< HEAD
+=======
+import functools
+import itertools
+import operator
+>>>>>>> 11a2520... api: avoid some indexer queries
 
 import daiquiri
 import numpy
@@ -30,6 +40,12 @@ LOG = daiquiri.getLogger(__name__)
 Measure = collections.namedtuple("Measure", ['timestamp', 'value'])
 
 
+<<<<<<< HEAD
+=======
+ITEMGETTER_1 = operator.itemgetter(1)
+
+
+>>>>>>> 11a2520... api: avoid some indexer queries
 class ReportGenerationError(Exception):
     pass
 
@@ -38,9 +54,72 @@ class SackDetectionError(Exception):
     pass
 
 
+<<<<<<< HEAD
 class IncomingDriver(object):
     MEASURE_PREFIX = "measure"
     SACK_PREFIX = "incoming"
+=======
+@functools.total_ordering
+class Sack(object):
+    """A sack is a recipient that contains measures for a group of metrics.
+
+    It is identified by a positive integer called `number`.
+    """
+
+    # Use slots to make them as small as possible since we can create a ton of
+    # those.
+    __slots__ = [
+        "number",
+        "total",
+        "name",
+    ]
+
+    def __init__(self, number, total, name):
+        """Create a new sack.
+
+        :param number: The sack number, identifying it.
+        :param total: The total number of sacks.
+        :param name: The sack name.
+        """
+        self.number = number
+        self.total = total
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return "<%s(%d/%d) %s>" % (
+            self.__class__.__name__, self.number, self.total, str(self),
+        )
+
+    def _compare(self, op, other):
+        if isinstance(other, Sack):
+            if self.total != other.total:
+                raise TypeError(
+                    "Cannot compare %s with different total number" %
+                    self.__class__.__name__)
+            return op(self.number, other.number)
+        raise TypeError("Cannot compare %r with %r" % (self, other))
+
+    def __lt__(self, other):
+        return self._compare(operator.lt, other)
+
+    def __eq__(self, other):
+        return self._compare(operator.eq, other)
+
+    def __ne__(self, other):
+        # neither total_ordering nor py2 sets ne as the opposite of eq
+        return self._compare(operator.ne, other)
+
+    def __hash__(self):
+        return hash(self.name)
+
+
+class IncomingDriver(object):
+    MEASURE_PREFIX = "measure"
+    SACK_NAME_FORMAT = "incoming{total}-{number}"
+>>>>>>> 11a2520... api: avoid some indexer queries
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
     # NOTE(sileht): By default we use threads, but some driver can disable
@@ -56,6 +135,7 @@ class IncomingDriver(object):
                 raise SackDetectionError(e)
         return self._num_sacks
 
+<<<<<<< HEAD
     @staticmethod
     def __init__(conf, greedy=True):
         pass
@@ -63,6 +143,10 @@ class IncomingDriver(object):
     def get_sack_prefix(self, num_sacks=None):
         sacks = num_sacks if num_sacks else self.NUM_SACKS
         return self.SACK_PREFIX + str(sacks) + '-%s'
+=======
+    def __init__(self, conf, greedy=True):
+        self._sacks = None
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     def upgrade(self, num_sacks):
         try:
@@ -83,11 +167,14 @@ class IncomingDriver(object):
         """Return the number of sacks in storage. None if not set."""
         raise exceptions.NotImplementedError
 
+<<<<<<< HEAD
     @staticmethod
     def get_sack_lock(coord, sack):
         lock_name = b'gnocchi-sack-%s-lock' % str(sack).encode('ascii')
         return coord.get_lock(lock_name)
 
+=======
+>>>>>>> 11a2520... api: avoid some indexer queries
     def _make_measures_array(self):
         return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)
 
@@ -110,6 +197,22 @@ class IncomingDriver(object):
         return numpy.array(list(measures),
                            dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
+<<<<<<< HEAD
+=======
+    def group_metrics_by_sack(self, metrics):
+        """Iterate on a list of metrics, grouping them by sack.
+
+        :param metrics: A list of metric uuid.
+        :return: An iterator yield (group, metrics).
+        """
+        metrics_and_sacks = sorted(
+            ((m, self.sack_for_metric(m)) for m in metrics),
+            key=ITEMGETTER_1)
+        for sack, metrics in itertools.groupby(metrics_and_sacks,
+                                               key=ITEMGETTER_1):
+            yield sack, [m[0] for m in metrics]
+
+>>>>>>> 11a2520... api: avoid some indexer queries
     def add_measures(self, metric_id, measures):
         """Add a measure to a metric.
 
@@ -153,6 +256,7 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(sack):
         raise exceptions.NotImplementedError
 
@@ -162,17 +266,43 @@ class IncomingDriver(object):
 
     @staticmethod
     def process_measure_for_metric(metric_id):
+=======
+    def delete_unprocessed_measures_for_metric(metric_id):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def process_measure_for_metrics(metric_id):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def process_measures_for_sack(sack):
+>>>>>>> 11a2520... api: avoid some indexer queries
         raise exceptions.NotImplementedError
 
     @staticmethod
     def has_unprocessed(metric_id):
         raise exceptions.NotImplementedError
 
+<<<<<<< HEAD
     def sack_for_metric(self, metric_id):
         return metric_id.int % self.NUM_SACKS
 
     def get_sack_name(self, sack):
         return self.get_sack_prefix() % sack
+=======
+    def _get_sack_name(self, number):
+        return self.SACK_NAME_FORMAT.format(
+            total=self.NUM_SACKS, number=number)
+
+    def _make_sack(self, i):
+        return Sack(i, self.NUM_SACKS, self._get_sack_name(i))
+
+    def sack_for_metric(self, metric_id):
+        return self._make_sack(metric_id.int % self.NUM_SACKS)
+
+    def iter_sacks(self):
+        return (self._make_sack(i) for i in six.moves.range(self.NUM_SACKS))
+>>>>>>> 11a2520... api: avoid some indexer queries
 
     @staticmethod
     def iter_on_sacks_to_process():
