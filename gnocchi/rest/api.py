@@ -1552,9 +1552,14 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         attribute_filter = {"or": []}
         for original_resource_id, resource_id in body:
             names = list(body[(original_resource_id, resource_id)].keys())
-            attribute_filter["or"].append({"and": [
-                {"=": {"resource_id": resource_id}},
-                {"in": {"name": names}}]})
+            if names:
+                attribute_filter["or"].append({"and": [
+                    {"=": {"resource_id": resource_id}},
+                    {"in": {"name": names}}]})
+
+        if not attribute_filter["or"]:
+            pecan.response.status = 202
+            return
 
         all_metrics = collections.defaultdict(list)
         for metric in pecan.request.indexer.list_metrics(
