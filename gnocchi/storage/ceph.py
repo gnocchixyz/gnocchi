@@ -1,9 +1,13 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 # Copyright © 2018 Red Hat
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2018 Red Hat
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,17 +22,23 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 from oslo_config import cfg
 
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import collections
 
 from oslo_config import cfg
 import six
 
 from gnocchi import carbonara
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi import utils
@@ -57,12 +67,17 @@ class CephStorage(storage.StorageDriver):
     WRITE_FULL = False
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, conf, coord=None):
         super(CephStorage, self).__init__(conf, coord)
 =======
     def __init__(self, conf):
         super(CephStorage, self).__init__(conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, conf):
+        super(CephStorage, self).__init__(conf)
+>>>>>>> f21ea84... Add automatic backport labels
         self.rados, self.ioctx = ceph.create_rados_connection(conf)
 
     def __str__(self):
@@ -96,6 +111,7 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.write_full(name, b"")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _store_metric_measures(self, metric, key, aggregation,
                                data, offset=None, version=3):
         name = self._get_object_name(metric, key, aggregation, version)
@@ -124,6 +140,8 @@ class CephStorage(storage.StorageDriver):
             self.ioctx.operate_write_op(
                 op, self._build_unaggregated_timeserie_path(metric, 3))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
                              version=3):
         with rados.WriteOpCtx() as op:
@@ -160,7 +178,10 @@ class CephStorage(storage.StorageDriver):
                 self.ioctx.remove_omap_keys(op, names)
                 self.ioctx.operate_write_op(
                     op, self._build_unaggregated_timeserie_path(metric, 3))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _delete_metric(self, metric):
         with rados.ReadOpCtx() as op:
@@ -195,6 +216,7 @@ class CephStorage(storage.StorageDriver):
             pass
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def _get_measures_unbatched(self, metric, key, aggregation, version=3):
         try:
             name = self._get_object_name(metric, key, aggregation, version)
@@ -209,6 +231,8 @@ class CephStorage(storage.StorageDriver):
 
     def _list_split_keys(self, metric, aggregation, granularity, version=3):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_splits_unbatched(self, metric, key, aggregation, version=3):
         try:
             name = self._get_object_name(
@@ -218,7 +242,10 @@ class CephStorage(storage.StorageDriver):
             return
 
     def _list_split_keys_unbatched(self, metric, aggregations, version=3):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         with rados.ReadOpCtx() as op:
             omaps, ret = self.ioctx.get_omap_vals(op, "", "", -1)
             try:
@@ -239,6 +266,7 @@ class CephStorage(storage.StorageDriver):
                 raise storage.MetricDoesNotExist(metric)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             keys = set()
             granularity = str(utils.timespan_total_seconds(granularity))
             for name, value in omaps:
@@ -247,6 +275,8 @@ class CephStorage(storage.StorageDriver):
                         and self._version_check(name, version)):
                     keys.add(meta[2])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             raw_keys = [name.split("_")
                         for name, value in omaps
                         if self._version_check(name, version)]
@@ -267,7 +297,10 @@ class CephStorage(storage.StorageDriver):
                             timestamp,
                             sampling=granularity))
                         break
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             return keys
 
     @staticmethod
@@ -275,6 +308,7 @@ class CephStorage(storage.StorageDriver):
         return (('gnocchi_%s_none' % metric.id)
                 + ("_v%s" % version if version else ""))
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     def _get_unaggregated_timeserie(self, metric, version=3):
         try:
@@ -285,6 +319,8 @@ class CephStorage(storage.StorageDriver):
 
     def _store_unaggregated_timeserie(self, metric, data, version=3):
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):
         try:
@@ -299,7 +335,10 @@ class CephStorage(storage.StorageDriver):
 
     def _store_unaggregated_timeseries_unbatched(
             self, metric, data, version=3):
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.ioctx.write_full(
             self._build_unaggregated_timeserie_path(metric, version), data)
 

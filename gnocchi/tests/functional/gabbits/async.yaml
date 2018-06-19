@@ -49,6 +49,7 @@ tests:
       status: 202
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # This requires a poll as the measures are not immediately
 # aggregated.
 
@@ -61,6 +62,10 @@ tests:
     - name: get some measures
       GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures?refresh=true
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    - name: get some measures
+      GET: /v1/resource/generic/41937416-1644-497d-a0ed-b43d55a2b0ea/metric/some.counter/measures?refresh=true
+>>>>>>> f21ea84... Add automatic backport labels
       response_strings:
           - "2015"
       response_json_paths:

@@ -1,10 +1,14 @@
 # -*- encoding: utf-8 -*-
 #
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Copyright © 2016-2017 Red Hat, Inc.
 =======
 # Copyright © 2016-2018 Red Hat, Inc.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+# Copyright © 2016-2018 Red Hat, Inc.
+>>>>>>> f21ea84... Add automatic backport labels
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -21,12 +25,17 @@
 """Time series data manipulation, better with pancetta."""
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import functools
 import itertools
 =======
 import collections
 import functools
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import collections
+import functools
+>>>>>>> f21ea84... Add automatic backport labels
 import math
 import operator
 import random
@@ -227,11 +236,17 @@ class TimeSerie(object):
         self.ts = ts
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     def __iter__(self):
         return six.moves.zip(self.ts['timestamps'], self.ts['values'])
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __iter__(self):
+        return six.moves.zip(self.ts['timestamps'], self.ts['values'])
+
+>>>>>>> f21ea84... Add automatic backport labels
     @classmethod
     def from_data(cls, timestamps=None, values=None):
         return cls(make_timeseries(timestamps, values))
@@ -239,10 +254,14 @@ class TimeSerie(object):
     def __eq__(self, other):
         return (isinstance(other, TimeSerie) and
 <<<<<<< HEAD
+<<<<<<< HEAD
                 numpy.all(self.ts == other.ts))
 =======
                 numpy.array_equal(self.ts,  other.ts))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                numpy.array_equal(self.ts,  other.ts))
+>>>>>>> f21ea84... Add automatic backport labels
 
     def __getitem__(self, key):
         if isinstance(key, numpy.datetime64):
@@ -354,8 +373,11 @@ class BoundTimeSerie(TimeSerie):
 
     def set_values(self, values, before_truncate_callback=None):
 <<<<<<< HEAD
+<<<<<<< HEAD
         # NOTE: values must be sorted when passed in.
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         """Set the timestamps and values in this timeseries.
 
         :param values: A sorted timeseries array.
@@ -364,7 +386,10 @@ class BoundTimeSerie(TimeSerie):
                                          maximum size.
         :return: None of the return value of before_truncate_callback
         """
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if self.block_size is not None and len(self.ts) != 0:
             index = numpy.searchsorted(values['timestamps'],
                                        self.first_block_timestamp())
@@ -372,15 +397,21 @@ class BoundTimeSerie(TimeSerie):
         super(BoundTimeSerie, self).set_values(values)
         if before_truncate_callback:
 <<<<<<< HEAD
+<<<<<<< HEAD
             before_truncate_callback(self)
         self._truncate()
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             return_value = before_truncate_callback(self)
         else:
             return_value = None
         self._truncate()
         return return_value
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     _SERIALIZATION_TIMESTAMP_VALUE_LEN = struct.calcsize("<Qd")
     _SERIALIZATION_TIMESTAMP_LEN = struct.calcsize("<Q")
@@ -491,13 +522,19 @@ class SplitKey(object):
     """
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     __slots__ = (
         'key',
         'sampling',
     )
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     POINTS_PER_SPLIT = 3600
 
     def __init__(self, value, sampling):
@@ -538,12 +575,18 @@ class SplitKey(object):
         if isinstance(other, SplitKey):
             if self.sampling != other.sampling:
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 if op == operator.eq:
                     return False
                 if op == operator.ne:
                     return True
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 raise TypeError(
                     "Cannot compare %s with different sampling" %
                     self.__class__.__name__)
@@ -575,14 +618,20 @@ class SplitKey(object):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 Aggregation = collections.namedtuple(
     "Aggregation",
     ["method", "granularity", "timespan"],
 )
 
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 class AggregatedTimeSerie(TimeSerie):
 
     _AGG_METHOD_PCT_RE = re.compile(r"([1-9][0-9]?)pct")
@@ -592,10 +641,14 @@ class AggregatedTimeSerie(TimeSerie):
     COMPRESSED_TIMESPAMP_LEN = struct.calcsize("<H")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def __init__(self, sampling, aggregation_method, ts=None):
 =======
     def __init__(self, aggregation, ts=None):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def __init__(self, aggregation, ts=None):
+>>>>>>> f21ea84... Add automatic backport labels
         """A time serie that is downsampled.
 
         Used to represent the downsampled timeserie for a single
@@ -603,6 +656,7 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
         super(AggregatedTimeSerie, self).__init__(ts)
+<<<<<<< HEAD
 <<<<<<< HEAD
         self.sampling = sampling
         self.aggregation_method = aggregation_method
@@ -617,6 +671,8 @@ class AggregatedTimeSerie(TimeSerie):
         return cls(sampling=sampling,
                    aggregation_method=aggregation_method,
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.aggregation = aggregation
 
     def resample(self, sampling):
@@ -628,7 +684,10 @@ class AggregatedTimeSerie(TimeSerie):
     @classmethod
     def from_data(cls, aggregation, timestamps, values):
         return cls(aggregation=aggregation,
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                    ts=make_timeseries(timestamps, values))
 
     @staticmethod
@@ -645,6 +704,7 @@ class AggregatedTimeSerie(TimeSerie):
         return aggregation_method_func_name, q
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def truncate(self, oldest_point):
         """Truncate the time series up to oldest_point excluded.
 
@@ -656,6 +716,8 @@ class AggregatedTimeSerie(TimeSerie):
             # There's nothing to truncate
             return
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def truncate(self, oldest_point=None):
         """Truncate the time series up to oldest_point excluded.
 
@@ -671,16 +733,23 @@ class AggregatedTimeSerie(TimeSerie):
             oldest_point = self.aggregation.timespan
             if oldest_point is None:
                 return
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if isinstance(oldest_point, numpy.timedelta64):
             oldest_point = last - oldest_point
         index = numpy.searchsorted(self.ts['timestamps'], oldest_point,
                                    side='right')
         self.ts = self.ts[index:]
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         return oldest_point
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        return oldest_point
+>>>>>>> f21ea84... Add automatic backport labels
 
     def split(self):
         # NOTE(sileht): We previously use groupby with
@@ -689,16 +758,21 @@ class AggregatedTimeSerie(TimeSerie):
         # but we have ordered timestamps, so don't need
         # to iter the whole series.
 <<<<<<< HEAD
+<<<<<<< HEAD
         freq = self.sampling * SplitKey.POINTS_PER_SPLIT
 =======
         freq = self.aggregation.granularity * SplitKey.POINTS_PER_SPLIT
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        freq = self.aggregation.granularity * SplitKey.POINTS_PER_SPLIT
+>>>>>>> f21ea84... Add automatic backport labels
         keys, counts = numpy.unique(
             round_timestamp(self.timestamps, freq),
             return_counts=True)
         start = 0
         for key, count in six.moves.zip(keys, counts):
             end = start + count
+<<<<<<< HEAD
 <<<<<<< HEAD
             yield (SplitKey(key, self.sampling),
                    AggregatedTimeSerie(self.sampling, self.aggregation_method,
@@ -722,6 +796,8 @@ class AggregatedTimeSerie(TimeSerie):
                    ts=cls._resample_grouped(grouped_serie, agg_name,
                                             q))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             yield (SplitKey(key, self.aggregation.granularity),
                    AggregatedTimeSerie(self.aggregation, self[start:end]))
             start = end
@@ -746,11 +822,15 @@ class AggregatedTimeSerie(TimeSerie):
         agg_name, q = cls._get_agg_method(aggregation_method_name)
         return cls(aggregation,
                    ts=cls._resample_grouped(grouped_serie, agg_name, q))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def __eq__(self, other):
         return (isinstance(other, AggregatedTimeSerie)
                 and super(AggregatedTimeSerie, self).__eq__(other)
+<<<<<<< HEAD
 <<<<<<< HEAD
                 and self.sampling == other.sampling
                 and self.aggregation_method == other.aggregation_method)
@@ -762,6 +842,8 @@ class AggregatedTimeSerie(TimeSerie):
             self.sampling,
             self.aggregation_method,
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 and self.aggregation == other.aggregation)
 
     def __repr__(self):
@@ -770,7 +852,10 @@ class AggregatedTimeSerie(TimeSerie):
             id(self),
             self.aggregation.granularity,
             self.aggregation.method,
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         )
 
     @staticmethod
@@ -780,19 +865,27 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
 <<<<<<< HEAD
+<<<<<<< HEAD
     def unserialize(cls, data, key, agg_method):
 =======
     def unserialize(cls, data, key, aggregation):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+    def unserialize(cls, data, key, aggregation):
+>>>>>>> f21ea84... Add automatic backport labels
         """Unserialize an aggregated timeserie.
 
         :param data: Raw data buffer.
         :param key: A :class:`SplitKey` key.
 <<<<<<< HEAD
+<<<<<<< HEAD
         :param agg_method: The aggregation method of this timeseries.
 =======
         :param aggregation: The Aggregation object of this timeseries.
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        :param aggregation: The Aggregation object of this timeseries.
+>>>>>>> f21ea84... Add automatic backport labels
         """
         x, y = [], []
 
@@ -824,14 +917,19 @@ class AggregatedTimeSerie(TimeSerie):
                 x = everything['v'][index]
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         return cls.from_data(key.sampling, agg_method, y, x)
 =======
         return cls.from_data(aggregation, y, x)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        return cls.from_data(aggregation, y, x)
+>>>>>>> f21ea84... Add automatic backport labels
 
     def get_split_key(self, timestamp=None):
         """Return the split key for a particular timestamp.
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         :param timestamp: If None, the first timestamp of the timeserie
                           is used.
@@ -842,6 +940,8 @@ class AggregatedTimeSerie(TimeSerie):
         return SplitKey.from_timestamp_and_sampling(
             timestamp, self.sampling)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         :param timestamp: If None, the first timestamp of the timeseries
                           is used.
         :return: A SplitKey object or None if the timeseries is empty.
@@ -852,7 +952,10 @@ class AggregatedTimeSerie(TimeSerie):
                 return
         return SplitKey.from_timestamp_and_sampling(
             timestamp, self.aggregation.granularity)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def serialize(self, start, compressed=True):
         """Serialize an aggregated timeserie.
@@ -870,10 +973,14 @@ class AggregatedTimeSerie(TimeSerie):
 
         """
 <<<<<<< HEAD
+<<<<<<< HEAD
         offset_div = self.sampling
 =======
         offset_div = self.aggregation.granularity
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        offset_div = self.aggregation.granularity
+>>>>>>> f21ea84... Add automatic backport labels
         # calculate how many seconds from start the series runs until and
         # initialize list to store alternating delimiter, float entries
         if compressed:
@@ -923,6 +1030,7 @@ class AggregatedTimeSerie(TimeSerie):
             from_ = None
         else:
 <<<<<<< HEAD
+<<<<<<< HEAD
             from_ = round_timestamp(from_timestamp, self.sampling)
         points = self[from_:to_timestamp]
         return six.moves.zip(points['timestamps'],
@@ -933,6 +1041,11 @@ class AggregatedTimeSerie(TimeSerie):
                                     self.aggregation.granularity)
         return self.__class__(self.aggregation, ts=self[from_:to_timestamp])
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            from_ = round_timestamp(from_timestamp,
+                                    self.aggregation.granularity)
+        return self.__class__(self.aggregation, ts=self[from_:to_timestamp])
+>>>>>>> f21ea84... Add automatic backport labels
 
     @classmethod
     def benchmark(cls):
@@ -971,11 +1084,16 @@ class AggregatedTimeSerie(TimeSerie):
             print(title)
             serialize_times = 50
 <<<<<<< HEAD
+<<<<<<< HEAD
             ts = cls.from_data(sampling, 'mean', timestamps, values)
 =======
             aggregation = Aggregation("mean", sampling, None)
             ts = cls.from_data(aggregation, timestamps, values)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            aggregation = Aggregation("mean", sampling, None)
+            ts = cls.from_data(aggregation, timestamps, values)
+>>>>>>> f21ea84... Add automatic backport labels
             t0 = time.time()
             key = ts.get_split_key()
             for i in six.moves.range(serialize_times):
@@ -1023,10 +1141,14 @@ class AggregatedTimeSerie(TimeSerie):
             # NOTE(sileht): propose a new series with half overload timestamps
             pts = ts.ts.copy()
 <<<<<<< HEAD
+<<<<<<< HEAD
             tsbis = cls(ts=pts, sampling=sampling, aggregation_method='mean')
 =======
             tsbis = cls(ts=pts, aggregation=aggregation)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            tsbis = cls(ts=pts, aggregation=aggregation)
+>>>>>>> f21ea84... Add automatic backport labels
             tsbis.ts['timestamps'] = (
                 tsbis.timestamps - numpy.timedelta64(
                     sampling * points / 2, 's')
@@ -1042,11 +1164,15 @@ class AggregatedTimeSerie(TimeSerie):
                         'last', 'count', '5pct', '90pct']:
                 serialize_times = 3 if agg.endswith('pct') else 10
 <<<<<<< HEAD
+<<<<<<< HEAD
                 ts = cls(ts=pts, sampling=sampling,
                          aggregation_method=agg)
 =======
                 ts = cls(ts=pts, aggregation=aggregation)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                ts = cls(ts=pts, aggregation=aggregation)
+>>>>>>> f21ea84... Add automatic backport labels
                 t0 = time.time()
                 for i in six.moves.range(serialize_times):
                     ts.resample(resample)

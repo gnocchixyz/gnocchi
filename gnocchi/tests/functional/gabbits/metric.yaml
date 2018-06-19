@@ -179,10 +179,13 @@ tests:
     - name: get measurements invalid agg method
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?aggregation=wtf
 <<<<<<< HEAD
+<<<<<<< HEAD
       status: 400
       response_strings:
         - Invalid aggregation value
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
       request_headers:
         accept: application/json
       status: 404
@@ -190,7 +193,10 @@ tests:
         $.description.cause: Aggregation method does not exist for this metric
         $.description.detail.metric: $HISTORY['list valid metrics'].$RESPONSE['$[0].id']
         $.description.detail.aggregation_method: wtf
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     - name: get measurements by start
       GET: /v1/metric/$HISTORY['list valid metrics'].$RESPONSE['$[0].id']/measures?refresh=true&start=2015-03-06T14:34
@@ -218,12 +224,17 @@ tests:
       status: 400
       response_json_paths:
 <<<<<<< HEAD
+<<<<<<< HEAD
         $.description.cause: Attribute value error
         $.description.reason: Invalid granularity
 =======
         $.description.cause: Argument value error
         $.description.reason: Unable to parse timespan
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        $.description.cause: Argument value error
+        $.description.reason: Unable to parse timespan
+>>>>>>> f21ea84... Add automatic backport labels
         $.description.detail: granularity
 
     - name: push measurements to metric again

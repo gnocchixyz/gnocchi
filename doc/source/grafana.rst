@@ -53,9 +53,13 @@ steps:
 
 .. _`Grafana`: http://grafana.org
 <<<<<<< HEAD
+<<<<<<< HEAD
 .. _`Documentation`: https://grafana.net/plugins/sileht-gnocchi-datasource
 =======
 .. _`Documentation`: https://grafana.net/plugins/gnocchixyz-gnocchi-datasource
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+.. _`Documentation`: https://grafana.net/plugins/gnocchixyz-gnocchi-datasource
+>>>>>>> f21ea84... Add automatic backport labels
 .. _`Source`: https://github.com/gnocchixyz/grafana-gnocchi-datasource
 .. _`CORS`: https://en.wikipedia.org/wiki/Cross-origin_resource_sharing

@@ -21,9 +21,13 @@ import tempfile
 import uuid
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import daiquiri
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import daiquiri
+>>>>>>> f21ea84... Add automatic backport labels
 import numpy
 import six
 
@@ -31,10 +35,15 @@ from gnocchi import incoming
 from gnocchi import utils
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 LOG = daiquiri.getLogger(__name__)
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+LOG = daiquiri.getLogger(__name__)
+
+>>>>>>> f21ea84... Add automatic backport labels
 
 class FileStorage(incoming.IncomingDriver):
     def __init__(self, conf, greedy=True):
@@ -59,6 +68,7 @@ class FileStorage(incoming.IncomingDriver):
         with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX), 'w') as f:
             json.dump(data, f)
 <<<<<<< HEAD
+<<<<<<< HEAD
         utils.ensure_paths([self._sack_path(i)
                             for i in six.moves.range(self.NUM_SACKS)])
 
@@ -70,6 +80,8 @@ class FileStorage(incoming.IncomingDriver):
     def _sack_path(self, sack):
         return os.path.join(self.basepath, self.get_sack_name(sack))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         utils.ensure_paths((self._sack_path(s) for s in self.iter_sacks()))
 
     def remove_sacks(self):
@@ -78,7 +90,10 @@ class FileStorage(incoming.IncomingDriver):
 
     def _sack_path(self, sack):
         return os.path.join(self.basepath, str(sack))
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def _measure_path(self, sack, metric_id):
         return os.path.join(self._sack_path(sack), six.text_type(metric_id))
@@ -129,6 +144,7 @@ class FileStorage(incoming.IncomingDriver):
                     self._list_measures_container_for_metric_str(sack, metric))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         for i in six.moves.range(self.NUM_SACKS):
             for metric in self.list_metric_with_measures_to_process(i):
                 build_metric_report(metric, i)
@@ -137,6 +153,11 @@ class FileStorage(incoming.IncomingDriver):
             for metric in set(self._list_target(self._sack_path(sack))):
                 build_metric_report(metric, sack)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        for sack in self.iter_sacks():
+            for metric in set(self._list_target(self._sack_path(sack))):
+                build_metric_report(metric, sack)
+>>>>>>> f21ea84... Add automatic backport labels
         return (report_vars['metrics'] or
                 len(report_vars['metric_details'].keys()),
                 report_vars['measures'] or
@@ -144,11 +165,14 @@ class FileStorage(incoming.IncomingDriver):
                 report_vars['metric_details'] if details else None)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def list_metric_with_measures_to_process(self, sack):
         return set(self._list_target(self._sack_path(sack)))
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def _list_measures_container_for_metric_str(self, sack, metric_id):
         return self._list_target(self._measure_path(sack, metric_id))
 
@@ -193,6 +217,7 @@ class FileStorage(incoming.IncomingDriver):
 
     @contextlib.contextmanager
 <<<<<<< HEAD
+<<<<<<< HEAD
     def process_measure_for_metric(self, metric_id):
         files = self._list_measures_container_for_metric(metric_id)
         measures = self._make_measures_array()
@@ -206,6 +231,8 @@ class FileStorage(incoming.IncomingDriver):
 
         self._delete_measures_files_for_metric(metric_id, files)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
         processed_files = {}
@@ -251,4 +278,7 @@ class FileStorage(incoming.IncomingDriver):
 
         for metric_id, files in six.iteritems(processed_files):
             self._delete_measures_files_for_metric(metric_id, files)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels

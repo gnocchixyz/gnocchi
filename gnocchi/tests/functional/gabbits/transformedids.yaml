@@ -142,6 +142,7 @@ tests:
 
     - name: list two measures by external resource id
 <<<<<<< HEAD
+<<<<<<< HEAD
       GET: $LAST_URL
       poll:
           count: 10
@@ -149,6 +150,9 @@ tests:
 =======
       GET: $LAST_URL?refresh=true
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+      GET: $LAST_URL?refresh=true
+>>>>>>> f21ea84... Add automatic backport labels
       response_json_paths:
           $[0][2]: 43.1
           $[1][2]: 12

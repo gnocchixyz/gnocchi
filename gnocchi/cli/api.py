@@ -25,9 +25,13 @@ from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi.rest import app
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi.rest import app
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import service
 from gnocchi import utils
 
@@ -53,12 +57,18 @@ def prepare_service(conf=None):
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 def wsgi():
     return app.load_app(prepare_service())
 
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 def api():
     # Compat with previous pbr script
     try:

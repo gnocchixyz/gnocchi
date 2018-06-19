@@ -24,17 +24,24 @@ from cotyledon import oslo_config_glue
 import daiquiri
 from oslo_config import cfg
 <<<<<<< HEAD
+<<<<<<< HEAD
 import six
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import tenacity
 import tooz
 from tooz import coordination
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 from gnocchi import chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+from gnocchi import chef
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import exceptions
 from gnocchi import incoming
 from gnocchi import indexer
@@ -76,16 +83,22 @@ class MetricProcessBase(cotyledon.Service):
         self.coord = get_coordinator_and_start(member_id,
                                                self.conf.coordination_url)
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.store = storage.get_driver(self.conf, self.coord)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         self.store = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
         self.index = indexer.get_driver(self.conf)
         self.chef = chef.Chef(self.coord, self.incoming,
                               self.index, self.store)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     def run(self):
         self._configure()
@@ -173,11 +186,15 @@ class MetricProcessor(MetricProcessBase):
 
         # create fallback in case paritioning fails or assigned no tasks
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.fallback_tasks = list(
             six.moves.range(self.incoming.NUM_SACKS))
 =======
         self.fallback_tasks = list(self.incoming.iter_sacks())
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.fallback_tasks = list(self.incoming.iter_sacks())
+>>>>>>> f21ea84... Add automatic backport labels
         try:
             self.partitioner = self.coord.join_partitioned_group(
                 self.GROUP_ID, partitions=200)
@@ -223,6 +240,7 @@ class MetricProcessor(MetricProcessBase):
                 self.group_state = self.partitioner.ring.nodes.copy()
                 self._tasks = [
 <<<<<<< HEAD
+<<<<<<< HEAD
                     i for i in six.moves.range(self.incoming.NUM_SACKS)
                     if self.partitioner.belongs_to_self(
                         i, replicas=self.conf.metricd.processing_replicas)]
@@ -231,6 +249,11 @@ class MetricProcessor(MetricProcessBase):
                     if self.partitioner.belongs_to_self(
                         sack, replicas=self.conf.metricd.processing_replicas)]
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                    sack for sack in self.incoming.iter_sacks()
+                    if self.partitioner.belongs_to_self(
+                        sack, replicas=self.conf.metricd.processing_replicas)]
+>>>>>>> f21ea84... Add automatic backport labels
         except tooz.NotImplemented:
             # Do not log anything. If `run_watchers` is not implemented, it's
             # likely that partitioning is not implemented either, so it already
@@ -255,6 +278,7 @@ class MetricProcessor(MetricProcessBase):
                      or self._get_sacks_to_process())
         for s in sacks:
 <<<<<<< HEAD
+<<<<<<< HEAD
             # TODO(gordc): support delay release lock so we don't
             # process a sack right after another process
             lock = self.incoming.get_sack_lock(self.coord, s)
@@ -267,18 +291,24 @@ class MetricProcessor(MetricProcessBase):
                 self.store.process_new_measures(
                     self.index, self.incoming, metrics)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             try:
                 try:
                     m_count += self.chef.process_new_measures_for_sack(s)
                 except chef.SackAlreadyLocked:
                     continue
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
+<<<<<<< HEAD
 <<<<<<< HEAD
             finally:
                 lock.release()
@@ -288,6 +318,11 @@ class MetricProcessor(MetricProcessBase):
         # Update statistics
         self.coord.update_capabilities(self.GROUP_ID, self.store.statistics)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        LOG.debug("%d metrics processed from %d sacks", m_count, s_count)
+        # Update statistics
+        self.coord.update_capabilities(self.GROUP_ID, self.store.statistics)
+>>>>>>> f21ea84... Add automatic backport labels
         if sacks == self._get_sacks_to_process():
             # We just did a full scan of all sacks, reset the timer
             self._last_full_sack_scan.reset()
@@ -306,10 +341,14 @@ class MetricJanitor(MetricProcessBase):
 
     def _run_job(self):
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.store.expunge_metrics(self.incoming, self.index)
 =======
         self.chef.expunge_metrics()
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        self.chef.expunge_metrics()
+>>>>>>> f21ea84... Add automatic backport labels
         LOG.debug("Metrics marked for deletion removed from backend")
 
 
@@ -346,6 +385,7 @@ def metricd_tester(conf):
     s = storage.get_driver(conf)
     inc = incoming.get_driver(conf)
 <<<<<<< HEAD
+<<<<<<< HEAD
     metrics = set()
     for i in six.moves.range(inc.NUM_SACKS):
         metrics.update(inc.list_metric_with_measures_to_process(i))
@@ -355,6 +395,8 @@ def metricd_tester(conf):
         index, inc,
         list(metrics)[:conf.stop_after_processing_metrics], True)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     c = chef.Chef(None, inc, index, s)
     metrics_count = 0
     for sack in inc.iter_sacks():
@@ -364,7 +406,10 @@ def metricd_tester(conf):
             continue
         if metrics_count >= conf.stop_after_processing_metrics:
             break
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 def metricd():

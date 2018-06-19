@@ -18,16 +18,22 @@ import collections
 import functools
 import itertools
 <<<<<<< HEAD
+<<<<<<< HEAD
 import uuid
 
 import jsonpatch
 import pbr.version
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import operator
 import uuid
 
 import jsonpatch
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 import pecan
 from pecan import rest
 import pyparsing
@@ -39,12 +45,18 @@ import voluptuous
 import werkzeug.http
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from gnocchi import archive_policy
 =======
 import gnocchi
 from gnocchi import archive_policy
 from gnocchi import chef
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import gnocchi
+from gnocchi import archive_policy
+from gnocchi import chef
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
@@ -64,11 +76,17 @@ except ImportError:
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 
 
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+
+
+>>>>>>> f21ea84... Add automatic backport labels
 def arg_to_list(value):
     if isinstance(value, list):
         return value
@@ -310,10 +328,14 @@ class ArchivePoliciesController(rest.RestController):
         # NOTE(jd): Initialize this one at run-time because we rely on conf
         conf = pecan.request.conf
 <<<<<<< HEAD
+<<<<<<< HEAD
         valid_agg_methods = (
 =======
         valid_agg_methods = list(
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        valid_agg_methods = list(
+>>>>>>> f21ea84... Add automatic backport labels
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
         )
         ArchivePolicySchema = voluptuous.Schema({
@@ -326,10 +348,14 @@ class ArchivePoliciesController(rest.RestController):
                 "aggregation_methods",
                 default=list(conf.archive_policy.default_aggregation_methods)):
 <<<<<<< HEAD
+<<<<<<< HEAD
             voluptuous.All(list(valid_agg_methods)),
 =======
             valid_agg_methods,
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            valid_agg_methods,
+>>>>>>> f21ea84... Add automatic backport labels
             voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
         })
 
@@ -482,6 +508,7 @@ class MetricController(rest.RestController):
                      **param):
         self.enforce_metric("get measures")
 <<<<<<< HEAD
+<<<<<<< HEAD
         if (aggregation not in
            archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             msg = "Invalid aggregation value %(agg)s, must be one of %(std)s"
@@ -502,6 +529,8 @@ class MetricController(rest.RestController):
                 abort(400, "Invalid value for stop")
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         if resample:
             if not granularity:
@@ -515,6 +544,7 @@ class MetricController(rest.RestController):
             granularity = [d.granularity
                            for d in self.metric.archive_policy.definition]
 <<<<<<< HEAD
+<<<<<<< HEAD
         else:
             try:
                 granularity = [utils.to_timespan(granularity)]
@@ -523,12 +553,17 @@ class MetricController(rest.RestController):
                             "detail": "granularity",
                             "reason": "Invalid granularity"})
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             start, stop, _, _, _ = validate_qs(
                 start=start, stop=stop)
         else:
             start, stop, granularity, _, _ = validate_qs(
                 start=start, stop=stop, granularity=granularity)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
         if aggregation not in self.metric.archive_policy.aggregation_methods:
             abort(404, {
@@ -539,6 +574,7 @@ class MetricController(rest.RestController):
                 },
             })
 
+<<<<<<< HEAD
 <<<<<<< HEAD
         if (strtobool("refresh", refresh) and
                 pecan.request.incoming.has_unprocessed(self.metric.id)):
@@ -556,6 +592,8 @@ class MetricController(rest.RestController):
                 storage.AggregationDoesNotExist) as e:
             abort(404, six.text_type(e))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = []
         for g in sorted(granularity, reverse=True):
             agg = self.metric.archive_policy.get_aggregation(
@@ -583,7 +621,10 @@ class MetricController(rest.RestController):
             abort(404, six.text_type(e))
         except storage.MetricDoesNotExist:
             return []
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
     @pecan.expose()
     def delete(self):
@@ -1340,10 +1381,14 @@ class QueryStringSearchAttrFilter(object):
             parsed_query = cls.expr.parseString(query, parseAll=True)[0]
         except pyparsing.ParseException as e:
 <<<<<<< HEAD
+<<<<<<< HEAD
             raise abort(400, "Invalid filter: %s" % six.text_type(e))
 =======
             raise abort(400, "Invalid filter: %s" % str(e))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            raise abort(400, "Invalid filter: %s" % str(e))
+>>>>>>> f21ea84... Add automatic backport labels
         return cls._parsed_query2dict(parsed_query)
 
     @classmethod
@@ -1625,6 +1670,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         for original_resource_id, resource_id in body:
             names = list(body[(original_resource_id, resource_id)].keys())
 <<<<<<< HEAD
+<<<<<<< HEAD
             attribute_filter["or"].append({"and": [
                 {"=": {"resource_id": resource_id}},
                 {"in": {"name": names}}]})
@@ -1638,6 +1684,11 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             pecan.response.status = 202
             return
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            attribute_filter["or"].append({"and": [
+                {"=": {"resource_id": resource_id}},
+                {"in": {"name": names}}]})
+>>>>>>> f21ea84... Add automatic backport labels
 
         all_metrics = collections.defaultdict(list)
         for metric in pecan.request.indexer.list_metrics(
@@ -1765,11 +1816,16 @@ class AggregationResourceController(rest.RestController):
     def post(self, start=None, stop=None, aggregation='mean',
              reaggregation=None, granularity=None, needed_overlap=100.0,
 <<<<<<< HEAD
+<<<<<<< HEAD
              groupby=None, fill=None, refresh=False, resample=None):
 =======
              groupby=None, fill=None, refresh=False, resample=None,
              **kwargs):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+             groupby=None, fill=None, refresh=False, resample=None,
+             **kwargs):
+>>>>>>> f21ea84... Add automatic backport labels
         # First, set groupby in the right format: a sorted list of unique
         # strings.
         groupby = sorted(set(arg_to_list(groupby)))
@@ -1779,11 +1835,16 @@ class AggregationResourceController(rest.RestController):
         try:
             resources = SearchResourceTypeController(
 <<<<<<< HEAD
+<<<<<<< HEAD
                 self.resource_type)._search(sort=groupby)
 =======
                 self.resource_type)._search(sort=groupby,
                                             filter=kwargs.get("filter"))
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+                self.resource_type)._search(sort=groupby,
+                                            filter=kwargs.get("filter"))
+>>>>>>> f21ea84... Add automatic backport labels
         except indexer.InvalidPagination:
             abort(400, "Invalid groupby attribute")
         except indexer.IndexerException as e:
@@ -1818,14 +1879,18 @@ class AggregationResourceController(rest.RestController):
         return results
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 FillSchema = voluptuous.Schema(
     voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
                    msg="Must be a float, 'dropna' or 'null'"))
 
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 # FIXME(sileht): should be in aggregates.api but we need to split all
 # controllers to do this
@@ -1834,6 +1899,10 @@ def validate_qs(start, stop, granularity, needed_overlap, fill):
 def validate_qs(start=None, stop=None, granularity=None,
                 needed_overlap=None, fill=None):
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+def validate_qs(start=None, stop=None, granularity=None,
+                needed_overlap=None, fill=None):
+>>>>>>> f21ea84... Add automatic backport labels
     if needed_overlap is not None:
         try:
             needed_overlap = float(needed_overlap)
@@ -1907,6 +1976,7 @@ class AggregationController(rest.RestController):
             start, stop, granularity, needed_overlap, fill)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         if (aggregation
            not in archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS):
             abort(
@@ -1917,6 +1987,8 @@ class AggregationController(rest.RestController):
 
 =======
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         if reaggregation is None:
             reaggregation = aggregation
 
@@ -1956,7 +2028,10 @@ class AggregationController(rest.RestController):
                     'No granularity match'))
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         aggregations = set()
         for metric in metrics:
             for g in granularity:
@@ -1970,7 +2045,10 @@ class AggregationController(rest.RestController):
         aggregations = sorted(aggregations, key=ATTRGETTER_GRANULARITY,
                               reverse=True)
 
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         operations = ["aggregate", reaggregation, []]
         if resample:
             operations[2].extend(
@@ -1992,19 +2070,25 @@ class AggregationController(rest.RestController):
                 for m in metrics_to_update:
                     try:
 <<<<<<< HEAD
+<<<<<<< HEAD
                         pecan.request.storage.refresh_metric(
                             pecan.request.indexer, pecan.request.incoming, m,
                             pecan.request.conf.api.operation_timeout)
                     except storage.SackLockTimeoutError as e:
                         abort(503, six.text_type(e))
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                         pecan.request.chef.refresh_metrics(
                             [m], pecan.request.conf.api.operation_timeout)
                     except chef.SackAlreadyLocked:
                         abort(503, 'Unable to refresh metric: %s. '
                               'Metric is locked. '
                               'Please try again.' % m.id)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             if number_of_metrics == 1:
                 # NOTE(sileht): don't do the aggregation if we only have one
                 # metric
@@ -2020,17 +2104,23 @@ class AggregationController(rest.RestController):
                         },
                     })
 <<<<<<< HEAD
+<<<<<<< HEAD
                 return pecan.request.storage.get_measures(
                     metric, granularity, start, stop, aggregation,
                     resample)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
                 try:
                     return pecan.request.storage.get_measures(
                         metric, aggregations, start, stop, resample
                     )[aggregation]
                 except storage.MetricDoesNotExist:
                     return []
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             return processor.get_measures(
                 pecan.request.storage,
                 [processor.MetricReference(m, aggregation) for m in metrics],
@@ -2039,11 +2129,15 @@ class AggregationController(rest.RestController):
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
 <<<<<<< HEAD
+<<<<<<< HEAD
         except (storage.MetricDoesNotExist,
                 storage.AggregationDoesNotExist) as e:
 =======
         except storage.AggregationDoesNotExist as e:
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        except storage.AggregationDoesNotExist as e:
+>>>>>>> f21ea84... Add automatic backport labels
             abort(404, six.text_type(e))
 
     MetricIDsSchema = [utils.UUID]
@@ -2114,10 +2208,13 @@ class StatusController(rest.RestController):
         report_dict['metricd'] = {}
         if members_req:
 <<<<<<< HEAD
+<<<<<<< HEAD
             report_dict['metricd']['processors'] = members_req.get()
         else:
             report_dict['metricd']['processors'] = None
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
             members = members_req.get()
             caps = [
                 pecan.request.coordinator.get_member_capabilities(
@@ -2132,7 +2229,10 @@ class StatusController(rest.RestController):
         else:
             report_dict['metricd']['processors'] = None
             report_dict['metricd']['statistics'] = {}
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
         return report_dict
 
 
@@ -2338,10 +2438,14 @@ class VersionsController(object):
     def index():
         return {
 <<<<<<< HEAD
+<<<<<<< HEAD
             "build": pbr.version.VersionInfo('gnocchi').version_string(),
 =======
             "build": gnocchi.__version__,
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+            "build": gnocchi.__version__,
+>>>>>>> f21ea84... Add automatic backport labels
             "versions": [
                 {
                     "status": "CURRENT",

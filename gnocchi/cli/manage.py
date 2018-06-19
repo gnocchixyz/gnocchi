@@ -15,24 +15,34 @@
 # limitations under the License.
 import copy
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import os
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+import os
+>>>>>>> f21ea84... Add automatic backport labels
 import sys
 
 import daiquiri
 from oslo_config import cfg
+<<<<<<< HEAD
 <<<<<<< HEAD
 import six
 
 from gnocchi import archive_policy
 from gnocchi import genconfig
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from oslo_config import generator
 import six
 
 from gnocchi import archive_policy
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
@@ -44,8 +54,11 @@ LOG = daiquiri.getLogger(__name__)
 
 def config_generator():
 <<<<<<< HEAD
+<<<<<<< HEAD
     return genconfig.prehook(None, sys.argv[1:])
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     args = sys.argv[1:]
     if args is None:
         args = ['--output-file', 'etc/gnocchi/gnocchi.conf']
@@ -53,7 +66,10 @@ def config_generator():
                            '%s/../gnocchi-config-generator.conf' %
                            os.path.dirname(__file__)]
                           + args)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
 
 
 _SACK_NUMBER_OPT = cfg.IntOpt(
@@ -83,6 +99,7 @@ def upgrade():
         index.upgrade()
     if not conf.skip_storage:
 <<<<<<< HEAD
+<<<<<<< HEAD
         # FIXME(jd) Pass None as coordinator because it's not needed in this
         # case. This will be removed when the storage will stop requiring a
         # coordinator object.
@@ -90,6 +107,9 @@ def upgrade():
 =======
         s = storage.get_driver(conf)
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+        s = storage.get_driver(conf)
+>>>>>>> f21ea84... Add automatic backport labels
         LOG.info("Upgrading storage %s", s)
         s.upgrade()
     if not conf.skip_incoming:
@@ -124,13 +144,19 @@ def change_sack_size():
                   'remaining %s measures and try again', remainder)
         return
 <<<<<<< HEAD
+<<<<<<< HEAD
     LOG.info("Changing sack size to: %s", conf.sacks_number)
     old_num_sacks = s.NUM_SACKS
     s.set_storage_settings(conf.sacks_number)
     s.remove_sack_group(old_num_sacks)
 =======
+=======
+>>>>>>> f21ea84... Add automatic backport labels
     LOG.info("Removing current %d sacks", s.NUM_SACKS)
     s.remove_sacks()
     LOG.info("Creating new %d sacks", conf.sacks_number)
     s.upgrade(conf.sacks_number)
+<<<<<<< HEAD
 >>>>>>> 11a2520... api: avoid some indexer queries
+=======
+>>>>>>> f21ea84... Add automatic backport labels
