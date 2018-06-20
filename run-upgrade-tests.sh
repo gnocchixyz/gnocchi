@@ -82,7 +82,7 @@ pifpaf_stop
 
 new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
-pip install -v -U .[${GNOCCHI_VARIANT}]
+pip install -v -U --upgrade-strategy eager .[${GNOCCHI_VARIANT}]
 
 eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
