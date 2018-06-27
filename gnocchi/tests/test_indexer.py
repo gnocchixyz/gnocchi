@@ -146,6 +146,17 @@ class TestIndexerDriver(tests_base.TestCase):
                           "low")
         self.index.delete_metric(metric_id)
 
+    def test_delete_archive_policy_after_metric_delete(self):
+        name = str(uuid.uuid4())
+        self.index.create_archive_policy(
+            archive_policy.ArchivePolicy(name, 0, {}))
+        metric_id = uuid.uuid4()
+        self.index.create_metric(metric_id, str(uuid.uuid4()), name)
+        self.index.delete_metric(metric_id)
+        self.index.delete_archive_policy(name)
+        self.assertRaises(indexer.NoSuchMetric, self.index.expunge_metric,
+                          metric_id)
+
     def test_list_ap_rules_ordered(self):
         name = str(uuid.uuid4())
         self.index.create_archive_policy(
