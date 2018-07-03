@@ -160,8 +160,8 @@ class IncomingDriver(object):
             raise
 
     def _encode_measures(self, measures):
-        return numpy.array(list(measures),
-                           dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
+        return numpy.fromiter(measures,
+                              dtype=TIMESERIES_ARRAY_DTYPE).tobytes()
 
     def group_metrics_by_sack(self, metrics):
         """Iterate on a list of metrics, grouping them by sack.
