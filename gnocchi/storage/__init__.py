@@ -57,6 +57,14 @@ class MetricDoesNotExist(StorageError):
         super(MetricDoesNotExist, self).__init__(
             "Metric %s does not exist" % metric)
 
+    def jsonify(self):
+        return {
+            "cause": "Metric does not exist",
+            "detail": {
+                "metric": self.metric,
+            },
+        }
+
 
 class AggregationDoesNotExist(StorageError):
     """Error raised when the aggregation method doesn't exists for a metric."""
@@ -716,20 +724,18 @@ class StorageDriver(object):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
 
-    def find_measure(self, metric, predicate, granularity, aggregation="mean",
+    def find_measure(self, metrics_and_aggregations, predicate,
                      from_timestamp=None, to_timestamp=None):
-        agg = metric.archive_policy.get_aggregation(aggregation, granularity)
-        if agg is None:
-            raise AggregationDoesNotExist(metric, aggregation, granularity)
-
-        try:
-            ts = self.get_aggregated_measures(
-                {metric: [agg]}, from_timestamp, to_timestamp)[metric][agg]
-        except MetricDoesNotExist:
-            return []
-        return [(timestamp, ts.aggregation.granularity, value)
-                for timestamp, value in ts
-                if predicate(value)]
+        ts = self.get_aggregated_measures(
+            metrics_and_aggregations,
+            from_timestamp, to_timestamp)
+        return {
+            metric: [(timestamp, aggregation.granularity, value)
+                     for aggregation, ts in six.iteritems(aggregations_and_ts)
+                     for timestamp, value in ts
+                     if predicate(value)]
+            for metric, aggregations_and_ts in six.iteritems(ts)
+        }
 
 
 class MeasureQuery(object):

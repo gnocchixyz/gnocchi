@@ -78,12 +78,18 @@ tests:
       data:
           "=": 12
       status: 200
+      poll:
+        count: 10
+        delay: 1
 
     - name: search with multiple correct granularities
       POST: /v1/search/metric?metric_id=$HISTORY['get metric id'].$RESPONSE['$[0].id']&granularity=1second&granularity=2s
       data:
           "=": 12
       status: 200
+      poll:
+        count: 10
+        delay: 1
 
     - name: search with correct and incorrect granularities
       POST: /v1/search/metric?metric_id=$HISTORY['get metric id'].$RESPONSE['$[0].id']&granularity=1s&granularity=300
