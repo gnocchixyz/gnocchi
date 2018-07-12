@@ -1493,26 +1493,34 @@ class SearchMetricController(rest.RestController):
                 map(utils.to_timespan, arg_to_list(granularity)),
                 reverse=True)
 
-        results = {}
+        metrics_and_aggregations = collections.defaultdict(list)
+
+        for metric in metrics:
+            if granularity is None:
+                granularity = sorted((
+                    d.granularity
+                    for d in metric.archive_policy.definition),
+                    reverse=True)
+            for gr in granularity:
+                agg = metric.archive_policy.get_aggregation(
+                    aggregation, gr)
+                if agg is None:
+                    abort(400,
+                          storage.AggregationDoesNotExist(
+                              metric, aggregation, gr))
+                metrics_and_aggregations[metric].append(agg)
 
         try:
-            for metric in metrics:
-                if granularity is None:
-                    granularity = sorted((
-                        d.granularity
-                        for d in metric.archive_policy.definition),
-                        reverse=True)
-                results[str(metric.id)] = []
-                for r in utils.parallel_map(
-                        pecan.request.storage.find_measure,
-                        ((metric, predicate, g, aggregation,
-                          start, stop)
-                         for g in granularity)):
-                    results[str(metric.id)].extend(r)
-        except storage.AggregationDoesNotExist as e:
+            return {
+                str(metric.id): results
+                for metric, results in six.iteritems(
+                    pecan.request.storage.find_measure(
+                        metrics_and_aggregations, predicate, start, stop))
+            }
+        except storage.MetricDoesNotExist as e:
+            # This can happen if all the metrics have been created but one
+            # doesn't have any measures yet.
             abort(400, e)
-
-        return results
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):

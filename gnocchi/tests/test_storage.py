@@ -1150,46 +1150,51 @@ class TestStorageDriver(tests_base.TestCase):
         self.trigger_processing([self.metric, metric2])
 
         self.assertEqual(
-            [
+            {self.metric: [
                 (datetime64(2014, 1, 1),
                  numpy.timedelta64(1, 'D'), 33),
-            ],
-            self.storage.find_measure(
-                self.metric, storage.MeasureQuery({u"≥": 30}),
-                numpy.timedelta64(1, 'D')))
+            ]},
+            self.storage.find_measure({
+                self.metric: [self.metric.archive_policy.get_aggregation(
+                    'mean', numpy.timedelta64(1, 'D'))]
+            }, storage.MeasureQuery({u"≥": 30})))
 
         self.assertEqual(
-            [
+            {self.metric: [
                 (datetime64(2014, 1, 1, 12),
                  numpy.timedelta64(5, 'm'), 69),
                 (datetime64(2014, 1, 1, 12, 10),
                  numpy.timedelta64(5, 'm'), 42)
-            ],
-            self.storage.find_measure(
-                self.metric, storage.MeasureQuery({u"≥": 30}),
-                numpy.timedelta64(5, 'm')))
+            ]},
+            self.storage.find_measure({
+                self.metric: [self.metric.archive_policy.get_aggregation(
+                    'mean', numpy.timedelta64(5, 'm'))]
+                }, storage.MeasureQuery({u"≥": 30})))
 
         self.assertEqual(
-            [],
-            self.storage.find_measure(
-                metric2, storage.MeasureQuery({u"≥": 30}),
-                numpy.timedelta64(5, 'm')))
+            {metric2: []},
+            self.storage.find_measure({
+                metric2: [metric2.archive_policy.get_aggregation(
+                    'mean', numpy.timedelta64(5, 'm'))]
+            }, storage.MeasureQuery({u"≥": 30})))
 
         self.assertEqual(
-            [],
-            self.storage.find_measure(
-                self.metric, storage.MeasureQuery({u"∧": [
-                    {u"eq": 100},
-                    {u"≠": 50}]}),
-                numpy.timedelta64(5, 'm')))
+            {self.metric: []},
+            self.storage.find_measure({
+                self.metric: [self.metric.archive_policy.get_aggregation(
+                    'mean', numpy.timedelta64(5, 'm'))]
+            }, storage.MeasureQuery({u"∧": [
+                {u"eq": 100},
+                {u"≠": 50}]})))
 
         self.assertEqual(
-            [],
-            self.storage.find_measure(
-                metric2, storage.MeasureQuery({u"∧": [
-                    {u"eq": 100},
-                    {u"≠": 50}]}),
-                numpy.timedelta64(5, 'm')))
+            {metric2: []},
+            self.storage.find_measure({
+                metric2: [metric2.archive_policy.get_aggregation(
+                    'mean', numpy.timedelta64(5, 'm'))]
+            }, storage.MeasureQuery({u"∧": [
+                {u"eq": 100},
+                {u"≠": 50}]})))
 
     def test_resize_policy(self):
         name = str(uuid.uuid4())
