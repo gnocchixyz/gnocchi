@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -1511,16 +1511,22 @@ class SearchMetricController(rest.RestController):
                 metrics_and_aggregations[metric].append(agg)
 
         try:
-            return {
-                str(metric.id): results
-                for metric, results in six.iteritems(
-                    pecan.request.storage.find_measure(
-                        metrics_and_aggregations, predicate, start, stop))
-            }
+            timeseries = pecan.request.storage.get_aggregated_measures(
+                metrics_and_aggregations, start, stop)
         except storage.MetricDoesNotExist as e:
             # This can happen if all the metrics have been created but one
             # doesn't have any measures yet.
             abort(400, e)
+
+        return {
+            str(metric.id): [
+                (timestamp, aggregation.granularity, value)
+                for aggregation, ts in six.iteritems(aggregations_and_ts)
+                for timestamp, value in ts
+                if predicate(value)
+            ]
+            for metric, aggregations_and_ts in six.iteritems(timeseries)
+        }
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
