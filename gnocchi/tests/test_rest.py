@@ -1939,3 +1939,66 @@ class QueryStringSearchAttrFilterTest(tests_base.TestCase):
                           ]},
                           {"=": {"foo": "quote"}},
                       ]})
+
+
+class TestMeasureQuery(tests_base.TestCase):
+    def test_equal(self):
+        q = api.SearchMetricController.MeasureQuery({"=": 4})
+        self.assertTrue(q(4))
+        self.assertFalse(q(40))
+
+    def test_gt(self):
+        q = api.SearchMetricController.MeasureQuery({">": 4})
+        self.assertTrue(q(40))
+        self.assertFalse(q(4))
+
+    def test_and(self):
+        q = api.SearchMetricController.MeasureQuery(
+            {"and": [{">": 4}, {"<": 10}]})
+        self.assertTrue(q(5))
+        self.assertFalse(q(40))
+        self.assertFalse(q(1))
+
+    def test_or(self):
+        q = api.SearchMetricController.MeasureQuery(
+            {"or": [{"=": 4}, {"=": 10}]})
+        self.assertTrue(q(4))
+        self.assertTrue(q(10))
+        self.assertFalse(q(-1))
+
+    def test_modulo(self):
+        q = api.SearchMetricController.MeasureQuery(
+            {"=": [{"%": 5}, 0]})
+        self.assertTrue(q(5))
+        self.assertTrue(q(10))
+        self.assertFalse(q(-1))
+        self.assertFalse(q(6))
+
+    def test_math(self):
+        q = api.SearchMetricController.MeasureQuery(
+            {
+                u"and": [
+                    # v+5 is bigger 0
+                    {u"≥": [{u"+": 5}, 0]},
+                    # v-6 is not 5
+                    {u"≠": [5, {u"-": 6}]},
+                ],
+            }
+        )
+        self.assertTrue(q(5))
+        self.assertTrue(q(10))
+        self.assertFalse(q(11))
+
+    def test_empty(self):
+        q = api.SearchMetricController.MeasureQuery({})
+        self.assertFalse(q(5))
+        self.assertFalse(q(10))
+
+    def test_bad_format(self):
+        self.assertRaises(api.SearchMetricController.MeasureQuery.InvalidQuery,
+                          api.SearchMetricController.MeasureQuery,
+                          {"foo": [{"=": 4}, {"=": 10}]})
+
+        self.assertRaises(api.SearchMetricController.MeasureQuery.InvalidQuery,
+                          api.SearchMetricController.MeasureQuery,
+                          {"=": [1, 2, 3]})
