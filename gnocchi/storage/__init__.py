@@ -724,19 +724,6 @@ class StorageDriver(object):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
 
-    def find_measure(self, metrics_and_aggregations, predicate,
-                     from_timestamp=None, to_timestamp=None):
-        ts = self.get_aggregated_measures(
-            metrics_and_aggregations,
-            from_timestamp, to_timestamp)
-        return {
-            metric: [(timestamp, aggregation.granularity, value)
-                     for aggregation, ts in six.iteritems(aggregations_and_ts)
-                     for timestamp, value in ts
-                     if predicate(value)]
-            for metric, aggregations_and_ts in six.iteritems(ts)
-        }
-
 
 class MeasureQuery(object):
     binary_operators = {
