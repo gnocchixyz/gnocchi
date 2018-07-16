@@ -116,13 +116,15 @@ return ids
         keys = collections.defaultdict(dict)
         start = 0
         for metric in metrics:
-            metric_exists_p = results.pop(0)
+            metric_exists_p = results[start]
             if not metric_exists_p:
                 raise storage.MetricDoesNotExist(metric)
             aggregations = metrics_and_aggregations[metric]
             number_of_aggregations = len(aggregations)
-            keys_for_aggregations = results[start:number_of_aggregations]
-            start += number_of_aggregations
+            keys_for_aggregations = results[
+                start + 1:start + 1 + number_of_aggregations
+            ]
+            start += 1 + number_of_aggregations  # 1 for metric_exists_p
             for aggregation, k in six.moves.zip(
                     aggregations, keys_for_aggregations):
                 if not k:

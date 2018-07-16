@@ -263,6 +263,34 @@ class TestStorageDriver(tests_base.TestCase):
         for agg in aggregations:
             self.assertEqual(agg, measures[agg].aggregation)
 
+    def test_get_aggregated_measures_multiple(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
+            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+        m2, __ = self._create_metric('medium')
+        self.incoming.add_measures(m2.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
+            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+        self.trigger_processing([self.metric, m2])
+
+        aggregations = self.metric.archive_policy.aggregations
+
+        measures = self.storage.get_aggregated_measures(
+            {self.metric: aggregations,
+             m2: m2.archive_policy.aggregations})
+
+        self.assertEqual({self.metric, m2}, set(measures.keys()))
+        self.assertEqual(len(aggregations), len(measures[self.metric]))
+        self.assertGreater(len(measures[self.metric][aggregations[0]]), 0)
+        for agg in aggregations:
+            self.assertEqual(agg, measures[self.metric][agg].aggregation)
+        self.assertEqual(len(m2.archive_policy.aggregations),
+                         len(measures[m2]))
+        self.assertGreater(
+            len(measures[m2][m2.archive_policy.aggregations[0]]), 0)
+        for agg in m2.archive_policy.aggregations:
+            self.assertEqual(agg, measures[m2][agg].aggregation)
+
     def test_add_measures_big(self):
         m, __ = self._create_metric('high')
         self.incoming.add_measures(m.id, [
