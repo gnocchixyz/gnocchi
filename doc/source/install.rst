@@ -53,9 +53,9 @@ be created for example with:
     ceph auth get-or-create client.gnocchi mon "allow r" osd "allow rwx pool=metrics"
 
 
-Gnocchi leverages some _librados_ features (omap, async, operation context)
-available in the Python binding only since python-rados >= 12.2.0. To handle
-this, Gnocchi uses _cradox_ python library which has exactly the same API but
+Gnocchi leverages some *librados* features (omap, async, operation context)
+available in the Python binding only since *python-rados* >= 12.2.0. To handle
+this, Gnocchi uses *cradox* python library which has exactly the same API but
 works with Ceph >= 0.80.0.
 
 If Ceph and python-rados are >= 12.2.0, the cradox Python library becomes
