@@ -16,7 +16,7 @@ rules:
       backport-to-3.1: stable/3.1
       backport-to-3.0: stable/3.0
   branches:
-    stable/.*:
+    '^stable/.*':
       protection:
         required_pull_request_reviews:
           required_approving_review_count: 1
