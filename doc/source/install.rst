@@ -27,6 +27,7 @@ The list of variants available is:
 * `ceph_alternative` – provides Ceph (>= 12.2.0) storage support
 * `redis` – provides Redis storage support
 * `prometheus` – provides Prometheus Remote Write support
+* `amqp1` – provides AMQP 1.0 support
 * `doc` – documentation building support
 * `test` – unit and functional tests support
 

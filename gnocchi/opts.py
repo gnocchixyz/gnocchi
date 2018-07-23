@@ -218,6 +218,22 @@ def list_opts():
                 default=10,
                 help='Delay between flushes'),
         )),
+        ("amqp1d", (
+            cfg.StrOpt('url',
+                       default='localhost:5672/u/collectd/telemetry',
+                       help='AMQP 1.0 URL to listen to'),
+            cfg.StrOpt('data_source',
+                       default='collectd',
+                       choices=['collectd'],
+                       help='Data source for amqp1d'),
+            cfg.StrOpt('resource_type',
+                       default='collectd_amqp1d',
+                       help='Resource type name to use to identify metrics'),
+            cfg.StrOpt('creator', help='Creator value to use to amqpd1'),
+            cfg.FloatOpt('flush_delay',
+                         default=10,
+                         help='Delay between flushes in seconds'),
+        )),
         ("archive_policy", gnocchi.archive_policy.OPTS),
     ]
 
