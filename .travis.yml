@@ -8,21 +8,8 @@ cache:
   directories:
     - ~/.cache/pip
 env:
-  - TARGET: pep8
-  - TARGET: docs
-  - TARGET: docs-gnocchi.xyz
-
   - TARGET: py27-mysql-ceph-upgrade-from-4.0
   - TARGET: py37-postgresql-file-upgrade-from-4.0
-  - TARGET: py27-mysql-ceph-upgrade-from-4.1
-  - TARGET: py37-postgresql-file-upgrade-from-4.1
-  - TARGET: py27-mysql-ceph-upgrade-from-4.2
-  - TARGET: py37-postgresql-file-upgrade-from-4.2
-
-  - TARGET: py27-mysql
-  - TARGET: py37-mysql
-  - TARGET: py27-postgresql
-  - TARGET: py37-postgresql
 
 before_script:
   # NOTE(sileht): We need to fetch all tags/branches for documentation.
@@ -58,7 +45,7 @@ install:
     fi
 script:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
+      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -v -e ${TARGET} ;
     fi
 
 notifications:

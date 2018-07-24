@@ -72,7 +72,7 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
