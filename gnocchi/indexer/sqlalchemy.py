@@ -595,6 +595,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             "fk_apr_ap_name_ap_name"]
         with self.facade.writer() as session:
             try:
+                # cleanup deleted metrics before deleting archive policies to
+                # prevent policy-in-use errors
+                session.query(Metric).filter(
+                    Metric.archive_policy_name == name,
+                    Metric.status == 'delete').delete()
                 if session.query(ArchivePolicy).filter(
                         ArchivePolicy.name == name).delete() == 0:
                     raise indexer.NoSuchArchivePolicy(name)
