@@ -12,7 +12,9 @@ env:
   - TARGET: docs
   - TARGET: docs-gnocchi.xyz
 
-  - TARGET: py27-mysql-ceph-upgrade-from-4.0
+  # Temporary disabled because Pandas wheel is wrong
+  # and emits warnings
+  # - TARGET: py27-mysql-ceph-upgrade-from-4.0
   - TARGET: py37-postgresql-file-upgrade-from-4.0
   - TARGET: py27-mysql-ceph-upgrade-from-4.1
   - TARGET: py37-postgresql-file-upgrade-from-4.1
