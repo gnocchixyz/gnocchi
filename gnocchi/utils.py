@@ -15,7 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
-import distutils.util
 import errno
 import itertools
 import multiprocessing
@@ -203,10 +202,17 @@ def ensure_paths(paths):
                 raise
 
 
-def strtobool(v):
-    if isinstance(v, bool):
-        return v
-    return bool(distutils.util.strtobool(v))
+def strtobool(val):
+    if isinstance(val, bool):
+        return val
+    # copied from distutils.util ...
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
 
 
 class StopWatch(object):
