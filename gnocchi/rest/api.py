@@ -509,8 +509,9 @@ class MetricController(rest.RestController):
                 abort(503, 'Unable to refresh metric: %s. Metric is locked. '
                       'Please try again.' % self.metric.id)
         try:
-            return pecan.request.storage.get_measures(
-                self.metric, aggregations, start, stop, resample)[aggregation]
+            return pecan.request.storage.get_aggregated_measures(
+                {self.metric: aggregations}, start, stop,
+                resample)[self.metric][aggregation]
         except storage.AggregationDoesNotExist as e:
             abort(404, six.text_type(e))
         except storage.MetricDoesNotExist:
