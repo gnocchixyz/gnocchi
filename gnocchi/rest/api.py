@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 #
-# Copyright © 2016-2017 Red Hat, Inc.
+# Copyright © 2016-2018 Red Hat, Inc.
 # Copyright © 2014-2015 eNovance
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -1457,6 +1457,101 @@ class SearchMetricController(rest.RestController):
         )
     )
 
+    class MeasureQuery(object):
+        binary_operators = {
+            u"=": operator.eq,
+            u"==": operator.eq,
+            u"eq": operator.eq,
+
+            u"<": operator.lt,
+            u"lt": operator.lt,
+
+            u">": operator.gt,
+            u"gt": operator.gt,
+
+            u"<=": operator.le,
+            u"≤": operator.le,
+            u"le": operator.le,
+
+            u">=": operator.ge,
+            u"≥": operator.ge,
+            u"ge": operator.ge,
+
+            u"!=": operator.ne,
+            u"≠": operator.ne,
+            u"ne": operator.ne,
+
+            u"%": operator.mod,
+            u"mod": operator.mod,
+
+            u"+": operator.add,
+            u"add": operator.add,
+
+            u"-": operator.sub,
+            u"sub": operator.sub,
+
+            u"*": operator.mul,
+            u"×": operator.mul,
+            u"mul": operator.mul,
+
+            u"/": operator.truediv,
+            u"÷": operator.truediv,
+            u"div": operator.truediv,
+
+            u"**": operator.pow,
+            u"^": operator.pow,
+            u"pow": operator.pow,
+        }
+
+        multiple_operators = {
+            u"or": any,
+            u"∨": any,
+            u"and": all,
+            u"∧": all,
+        }
+
+        def __init__(self, tree):
+            self._eval = self.build_evaluator(tree)
+
+        def __call__(self, value):
+            return self._eval(value)
+
+        def build_evaluator(self, tree):
+            try:
+                operator, nodes = list(tree.items())[0]
+            except Exception:
+                return lambda value: tree
+            try:
+                op = self.multiple_operators[operator]
+            except KeyError:
+                try:
+                    op = self.binary_operators[operator]
+                except KeyError:
+                    raise self.InvalidQuery("Unknown operator %s" % operator)
+                return self._handle_binary_op(op, nodes)
+            return self._handle_multiple_op(op, nodes)
+
+        def _handle_multiple_op(self, op, nodes):
+            elements = [self.build_evaluator(node) for node in nodes]
+            return lambda value: op((e(value) for e in elements))
+
+        def _handle_binary_op(self, op, node):
+            try:
+                iterator = iter(node)
+            except Exception:
+                return lambda value: op(value, node)
+            nodes = list(iterator)
+            if len(nodes) != 2:
+                raise self.InvalidQuery(
+                    "Binary operator %s needs 2 arguments, %d given" %
+                    (op, len(nodes)))
+            node0 = self.build_evaluator(node[0])
+            node1 = self.build_evaluator(node[1])
+            return lambda value: op(node0(value), node1(value))
+
+        class InvalidQuery(Exception):
+            pass
+
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
              granularity=None):
@@ -1484,8 +1579,8 @@ class SearchMetricController(rest.RestController):
                 abort(400, "Invalid value for stop")
 
         try:
-            predicate = storage.MeasureQuery(query)
-        except storage.InvalidQuery as e:
+            predicate = self.MeasureQuery(query)
+        except self.MeasureQuery.InvalidQuery as e:
             abort(400, six.text_type(e))
 
         if granularity is not None:
@@ -1493,26 +1588,40 @@ class SearchMetricController(rest.RestController):
                 map(utils.to_timespan, arg_to_list(granularity)),
                 reverse=True)
 
-        results = {}
+        metrics_and_aggregations = collections.defaultdict(list)
+
+        for metric in metrics:
+            if granularity is None:
+                granularity = sorted((
+                    d.granularity
+                    for d in metric.archive_policy.definition),
+                    reverse=True)
+            for gr in granularity:
+                agg = metric.archive_policy.get_aggregation(
+                    aggregation, gr)
+                if agg is None:
+                    abort(400,
+                          storage.AggregationDoesNotExist(
+                              metric, aggregation, gr))
+                metrics_and_aggregations[metric].append(agg)
 
         try:
-            for metric in metrics:
-                if granularity is None:
-                    granularity = sorted((
-                        d.granularity
-                        for d in metric.archive_policy.definition),
-                        reverse=True)
-                results[str(metric.id)] = []
-                for r in utils.parallel_map(
-                        pecan.request.storage.find_measure,
-                        ((metric, predicate, g, aggregation,
-                          start, stop)
-                         for g in granularity)):
-                    results[str(metric.id)].extend(r)
-        except storage.AggregationDoesNotExist as e:
+            timeseries = pecan.request.storage.get_aggregated_measures(
+                metrics_and_aggregations, start, stop)
+        except storage.MetricDoesNotExist as e:
+            # This can happen if all the metrics have been created but one
+            # doesn't have any measures yet.
             abort(400, e)
 
-        return results
+        return {
+            str(metric.id): [
+                (timestamp, aggregation.granularity, value)
+                for aggregation, ts in six.iteritems(aggregations_and_ts)
+                for timestamp, value in ts
+                if predicate(value)
+            ]
+            for metric, aggregations_and_ts in six.iteritems(timeseries)
+        }
 
 
 class ResourcesMetricsMeasuresBatchController(rest.RestController):
