@@ -10,6 +10,7 @@ rules:
     merge_strategy:
       method: rebase
     automated_backport_labels:
+      backport-to-4.3: stable/4.3
       backport-to-4.2: stable/4.2
       backport-to-4.1: stable/4.1
       backport-to-4.0: stable/4.0
