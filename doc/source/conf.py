@@ -176,7 +176,7 @@ html_theme_options = {
 # Multiversion docs
 scv_sort = ('semver',)
 scv_show_banner = True
-scv_banner_main_ref = 'stable/4.2'
+scv_banner_main_ref = 'stable/4.3'
 scv_priority = 'branches'
 scv_whitelist_branches = ('master', '^stable/([3-9]\.)')
 scv_whitelist_tags = ("^$",)
