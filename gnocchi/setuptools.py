@@ -17,6 +17,7 @@ from __future__ import absolute_import
 
 import os
 import subprocess
+import sys
 
 from distutils import version
 from setuptools.command import develop
@@ -106,17 +107,31 @@ class local_egg_info(egg_info.egg_info):
                 f.write(b"* %s\n" % msg.encode("utf8"))
 
 
+# Can't use six in this file it's too early in the bootstrap process
+PY3 = sys.version_info >= (3,)
+
+
 class local_install_scripts(install_scripts.install_scripts):
     def run(self):
         install_scripts.install_scripts.run(self)
-        header = easy_install.get_script_header(
-            "", easy_install.sys_executable, False)
-        self.write_script("gnocchi-api", header + SCRIPT_TMPL)
+        # NOTE(sileht): Build wheel embed custom script as data, and put sheban
+        # in script of the building machine. To workaround that build_scripts
+        # on bdist_whell return '#!python' and then during whl install it's
+        # replaced by the correct interpreter. We do the same here.
+        bs_cmd = self.get_finalized_command('build_scripts')
+        executable = getattr(bs_cmd, 'executable', easy_install.sys_executable)
+        script = easy_install.get_script_header("", executable) + SCRIPT_TMPL
+        if PY3:
+            script = script.encode('ascii')
+        self.write_script("gnocchi-api", script, 'b')
 
 
 class local_develop(develop.develop):
     def install_wrapper_scripts(self, dist):
         develop.develop.install_wrapper_scripts(self, dist)
-        header = easy_install.get_script_header(
-            "", easy_install.sys_executable, False)
-        self.write_script("gnocchi-api", header + SCRIPT_TMPL)
+        if self.exclude_scripts:
+            return
+        script = easy_install.get_script_header("") + SCRIPT_TMPL
+        if PY3:
+            script = script.encode('ascii')
+        self.write_script("gnocchi-api", script, 'b')
