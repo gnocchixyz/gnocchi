@@ -26,6 +26,7 @@ Gnocchi's main features are:
 - Statsd protocol support
 - Collectd plugin support
 - InfluxDB line protocol ingestion support
+- AMQP 1.0 protocol support
 
 Community
 ---------
@@ -47,6 +48,7 @@ Documentation
    client
    rest
    statsd
+   amqp1d
    grafana
    prometheus
    influxdb

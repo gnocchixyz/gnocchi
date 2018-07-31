@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Gnocchi provides a new service to receive metrics and measures from an AMQP 1.0.
+    The expected payload format is the one from Collectd write AMQP 1.0. The daemon is
+    called ``gnocchi-amqp1d``.
