@@ -153,7 +153,7 @@ class TestStorageDriver(tests_base.TestCase):
                             side_effect=carbonara.InvalidData()):
                 self.trigger_processing()
 
-        m = self.storage.get_measures(
+        m = self.storage.get_aggregated_measures(
             self.metric,
             self.metric.archive_policy.get_aggregations_for_method('mean'),
         )['mean']
@@ -183,7 +183,8 @@ class TestStorageDriver(tests_base.TestCase):
             self.metric.archive_policy.get_aggregations_for_method("mean")
         )
 
-        m = self.storage.get_measures(self.metric, aggregations)['mean']
+        m = self.storage.get_aggregated_measures
+        ({self.metric: aggregations})['mean']
         self.assertIn((datetime64(2014, 1, 1),
                        numpy.timedelta64(1, 'D'), 5.0), m)
         self.assertIn((datetime64(2014, 1, 1, 12),
@@ -204,8 +205,8 @@ class TestStorageDriver(tests_base.TestCase):
         )
 
         self.assertRaises(storage.MetricDoesNotExist,
-                          self.storage.get_measures,
-                          self.metric, aggregations)
+                          self.storage.get_aggregated_measures,
+                          {self.metric: aggregations})
         self.assertEqual(
             {self.metric: None},
             self.storage._get_or_create_unaggregated_timeseries([self.metric]))
@@ -303,7 +304,7 @@ class TestStorageDriver(tests_base.TestCase):
         )
 
         self.assertEqual(3661, len(
-            self.storage.get_measures(m, aggregations)['mean']))
+            self.storage.get_aggregated_measures(m, aggregations)['mean']))
 
     @mock.patch('gnocchi.carbonara.SplitKey.POINTS_PER_SPLIT', 48)
     def test_add_measures_update_subset_split(self):
@@ -371,7 +372,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         # One year later…
         self.incoming.add_measures(self.metric.id, [
@@ -383,7 +384,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2015, 1, 1), numpy.timedelta64(1, 'D'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(1, 'h'), 69),
             (datetime64(2015, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         agg = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(1, 'D'))
@@ -570,7 +571,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size in one hour here). We move
@@ -637,7 +638,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 16, 18), numpy.timedelta64(1, 'm'), 45),
             (datetime64(2016, 1, 10, 17, 12), numpy.timedelta64(1, 'm'), 46),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
         """See LP#1655422"""
@@ -709,7 +710,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
         # Now store brand new points that should force a rewrite of one of the
         # split (keep in mind the back window size is one hour here). We move
@@ -776,7 +777,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 0, 12), numpy.timedelta64(1, 'm'), 45),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
     def test_rewrite_measures_corruption_missing_file(self):
         # Create an archive policy that spans on several splits. Each split
@@ -852,7 +853,7 @@ class TestStorageDriver(tests_base.TestCase):
              numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12),
              numpy.timedelta64(1, 'm'), 44),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
         # Test what happens if we delete the latest split and then need to
         # compress it!
@@ -942,7 +943,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 2, 13, 7), numpy.timedelta64(1, 'm'), 42),
             (datetime64(2016, 1, 4, 14, 9), numpy.timedelta64(1, 'm'), 4),
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
-        ]}, self.storage.get_measures(self.metric, [aggregation]))
+        ]}, self.storage.get_aggregated_measures({self.metric: [aggregation]}))
 
         # Test what happens if we write garbage
         self.storage._store_metric_splits({
@@ -979,7 +980,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 55.5),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 9, 31), 4),
@@ -993,7 +994,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("max")
@@ -1005,7 +1006,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 42.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         aggregations = (
             self.metric.archive_policy.get_aggregations_for_method("min")
@@ -1017,7 +1018,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 4.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
     def test_add_and_get_splits(self):
         self.incoming.add_measures(self.metric.id, [
@@ -1038,14 +1039,14 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(self.metric, aggregations))
+        ]}, self.storage.get_aggregated_measures({self.metric: aggregations}))
 
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(
-            self.metric, aggregations,
+        ]}, self.storage.get_aggregated_measures(
+            {self.metric: aggregations},
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 0)))
 
         self.assertEqual({"mean": [
@@ -1053,16 +1054,16 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
             (datetime64(2014, 1, 1, 12, 5), numpy.timedelta64(5, 'm'), 23.0),
-        ]}, self.storage.get_measures(
-            self.metric, aggregations,
+        ]}, self.storage.get_aggregated_measures(
+            {self.metric: aggregations},
             to_timestamp=datetime64(2014, 1, 1, 12, 6, 0)))
 
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12, 10), numpy.timedelta64(5, 'm'), 44.0),
-        ]}, self.storage.get_measures(
-            self.metric, aggregations,
+        ]}, self.storage.get_aggregated_measures(
+            {self.metric: aggregations},
             to_timestamp=datetime64(2014, 1, 1, 12, 10, 10),
             from_timestamp=datetime64(2014, 1, 1, 12, 10, 10)))
 
@@ -1070,8 +1071,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
-        ]}, self.storage.get_measures(
-            self.metric, aggregations,
+        ]}, self.storage.get_aggregated_measures(
+            {self.metric: aggregations},
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
@@ -1079,8 +1080,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1), numpy.timedelta64(1, 'D'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
-        ]}, self.storage.get_measures(
-            self.metric, aggregations,
+        ]}, self.storage.get_aggregated_measures(
+            {self.metric: aggregations},
             from_timestamp=datetime64(2014, 1, 1, 12),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
@@ -1091,7 +1092,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(1, 'h'), 39.75),
-        ]}, self.storage.get_measures(
+        ]}, self.storage.get_aggregated_measures(
             self.metric, [aggregation_1h],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
@@ -1103,13 +1104,13 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1, 12), numpy.timedelta64(5, 'm'), 69.0),
-        ]}, self.storage.get_measures(
+        ]}, self.storage.get_aggregated_measures(
             self.metric, [aggregation_5m],
             from_timestamp=datetime64(2014, 1, 1, 12, 0, 0),
             to_timestamp=datetime64(2014, 1, 1, 12, 0, 2)))
 
         self.assertEqual({"mean": []},
-                         self.storage.get_measures(
+                         self.storage.get_aggregated_measures(
                              self.metric,
                              [carbonara.Aggregation(
                                  "mean", numpy.timedelta64(42, 's'), None)]))
@@ -1128,8 +1129,8 @@ class TestStorageDriver(tests_base.TestCase):
 
         self.assertRaises(
             storage.MetricDoesNotExist,
-            self.storage.get_measures,
-            self.metric, aggregations)
+            self.storage.get_aggregated_measures,
+            {self.metric: aggregations})
 
     def test_resize_policy(self):
         name = str(uuid.uuid4())
@@ -1151,7 +1152,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 0), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
-        ]}, self.storage.get_measures(m, [aggregation]))
+        ]}, self.storage.get_aggregated_measures(m, [aggregation]))
         # expand to more points
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=6)])
@@ -1164,7 +1165,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2014, 1, 1, 12, 0, 5), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
-        ]}, self.storage.get_measures(m, [aggregation]))
+        ]}, self.storage.get_aggregated_measures(m, [aggregation]))
         # shrink timespan
         self.index.update_archive_policy(
             name, [archive_policy.ArchivePolicyItem(granularity=5, points=2)])
@@ -1174,14 +1175,14 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertEqual({"mean": [
             (datetime64(2014, 1, 1, 12, 0, 10), numpy.timedelta64(5, 's'), 1),
             (datetime64(2014, 1, 1, 12, 0, 15), numpy.timedelta64(5, 's'), 1),
-        ]}, self.storage.get_measures(m, [aggregation]))
+        ]}, self.storage.get_aggregated_measures(m, [aggregation]))
 
     def test_resample_no_metric(self):
         """https://github.com/gnocchixyz/gnocchi/issues/69"""
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(300, 's'))
         self.assertRaises(storage.MetricDoesNotExist,
-                          self.storage.get_measures,
+                          self.storage.get_aggregated_measures,
                           self.metric,
                           [aggregation],
                           datetime64(2014, 1, 1),
