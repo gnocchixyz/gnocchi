@@ -358,8 +358,7 @@ class StorageDriver(object):
         return {
             aggmethod: list(itertools.chain(
                 *[[(timestamp, timeseries[agg].aggregation.granularity, value)
-                   for timestamp, value
-                   in timeseries[agg].fetch(from_timestamp, to_timestamp)]
+                   for timestamp, value in timeseries[agg]]
                   for agg in sorted(aggs,
                                     key=ATTRGETTER_GRANULARITY,
                                     reverse=True)]))
