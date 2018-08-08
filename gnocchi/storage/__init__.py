@@ -281,7 +281,8 @@ class StorageDriver(object):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_aggregated_measures(self, metrics_and_aggregations,
-                                from_timestamp=None, to_timestamp=None):
+                                from_timestamp=None, to_timestamp=None,
+                                resample=None):
         """Get aggregated measures from a metric.
 
         :param metrics_and_aggregations: The metrics and aggregations to
@@ -332,6 +333,8 @@ class StorageDriver(object):
                     ts.truncate(aggregation.timespan)
                 results[metric][aggregation] = ts.fetch(
                     from_timestamp, to_timestamp)
+                if resample:
+                    results[metric][aggregation] = ts.resample(resample)
 
         return results
 

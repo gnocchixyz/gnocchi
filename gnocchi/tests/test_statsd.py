@@ -15,6 +15,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import itertools
 import uuid
 
 import mock
@@ -22,12 +23,26 @@ import numpy
 
 from gnocchi import indexer
 from gnocchi import statsd
+from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
 
 def datetime64(*args):
     return numpy.datetime64(datetime.datetime(*args))
+
+
+def get_measures_list(measures_agg):
+    return {
+        aggmethod: list(itertools.chain(
+            *[[(timestamp, measures_agg[agg].aggregation.granularity, value)
+               for timestamp, value in measures_agg[agg]]
+              for agg in sorted(aggs,
+                                key=storage.ATTRGETTER_GRANULARITY,
+                                reverse=True)]))
+        for aggmethod, aggs in itertools.groupby(measures_agg.keys(),
+                                                 storage.ATTRGETTER_METHOD)
+    }
 
 
 class TestStatsd(tests_base.TestCase):
@@ -75,7 +90,9 @@ class TestStatsd(tests_base.TestCase):
 
         self.trigger_processing([metric])
 
-        measures = self.storage.get_measures(metric, self.aggregations)
+        measures = self.storage.get_aggregated_measures(
+            {metric: self.aggregations})[metric]
+        measures = get_measures_list(measures)
         self.assertEqual({"mean": [
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
@@ -94,7 +111,9 @@ class TestStatsd(tests_base.TestCase):
 
         self.trigger_processing([metric])
 
-        measures = self.storage.get_measures(metric, self.aggregations)
+        measures = self.storage.get_aggregated_measures(
+            {metric: self.aggregations})[metric]
+        measures = get_measures_list(measures)
         self.assertEqual({"mean": [
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.5),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.5),
@@ -126,7 +145,9 @@ class TestStatsd(tests_base.TestCase):
 
         self.trigger_processing([metric])
 
-        measures = self.storage.get_measures(metric, self.aggregations)
+        measures = self.storage.get_aggregated_measures(
+            {metric: self.aggregations})[metric]
+        measures = get_measures_list(measures)
         self.assertEqual({"mean": [
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 1.0),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 1.0),
@@ -144,7 +165,9 @@ class TestStatsd(tests_base.TestCase):
 
         self.trigger_processing([metric])
 
-        measures = self.storage.get_measures(metric, self.aggregations)
+        measures = self.storage.get_aggregated_measures(
+            {metric: self.aggregations})[metric]
+        measures = get_measures_list(measures)
         self.assertEqual({"mean": [
             (datetime64(2015, 1, 7), numpy.timedelta64(1, 'D'), 28),
             (datetime64(2015, 1, 7, 13), numpy.timedelta64(1, 'h'), 28),
