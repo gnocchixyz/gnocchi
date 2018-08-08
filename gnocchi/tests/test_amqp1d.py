@@ -11,6 +11,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
+import itertools
 import json
 import uuid
 
@@ -18,12 +19,26 @@ import mock
 import numpy
 
 from gnocchi import amqp1d
+from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
 
 def datetime64(*args):
     return numpy.datetime64(datetime.datetime(*args))
+
+
+def get_measures_list(measures_agg):
+    return {
+        aggmethod: list(itertools.chain(
+            *[[(timestamp, measures_agg[agg].aggregation.granularity, value)
+               for timestamp, value in measures_agg[agg]]
+              for agg in sorted(aggs,
+                                key=storage.ATTRGETTER_GRANULARITY,
+                                reverse=True)]))
+        for aggmethod, aggs in itertools.groupby(measures_agg.keys(),
+                                                 storage.ATTRGETTER_METHOD)
+    }
 
 
 class TestAmqp1d(tests_base.TestCase):
@@ -92,6 +107,8 @@ class TestAmqp1d(tests_base.TestCase):
         for metric in metrics:
             aggregation = metric.archive_policy.get_aggregation(
                 "mean", numpy.timedelta64(1, 'm'))
-            measures = self.storage.get_measures(metric, [aggregation])
+            results = self.storage.get_aggregated_measures(
+                {metric: [aggregation]})[metric]
+            measures = get_measures_list(results)
             self.assertEqual(expected_measures[metric.name],
                              measures["mean"])
