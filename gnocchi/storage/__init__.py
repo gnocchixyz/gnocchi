@@ -459,16 +459,17 @@ class StorageDriver(object):
         )
 
         aggregations_needing_list_of_keys = set()
+        oldest_values = {}
 
         for aggregation, ts in six.iteritems(aggregations_and_timeseries):
             # Don't do anything if the timeseries is empty
             if not ts:
                 continue
 
-            if aggregation.timespan:
-                oldest_point_to_keep = ts.truncate(aggregation.timespan)
-            else:
-                oldest_point_to_keep = None
+            agg_oldest_values = {
+                'oldest_point_to_keep': ts.truncate(aggregation.timespan)
+                if aggregation.timespan else None,
+                'prev_oldest_mutable_key': None, 'oldest_mutable_key': None}
 
             if previous_oldest_mutable_timestamp and (aggregation.timespan or
                                                       need_rewrite):
@@ -480,6 +481,12 @@ class StorageDriver(object):
                 # object for an old object to be cleanup
                 if previous_oldest_mutable_key != oldest_mutable_key:
                     aggregations_needing_list_of_keys.add(aggregation)
+                    agg_oldest_values['prev_oldest_mutable_key'] = (
+                        previous_oldest_mutable_key)
+                    agg_oldest_values['oldest_mutable_key'] = (
+                        oldest_mutable_key)
+
+            oldest_values[aggregation.granularity] = agg_oldest_values
 
         all_existing_keys = self._list_split_keys(
             {metric: aggregations_needing_list_of_keys})[metric]
@@ -495,7 +502,10 @@ class StorageDriver(object):
             if not ts:
                 continue
 
-            oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
+            agg_oldest_values = oldest_values[aggregation.granularity]
+
+            oldest_key_to_keep = ts.get_split_key(
+                agg_oldest_values['oldest_point_to_keep'])
 
             # If we listed the keys for the aggregation, that's because we need
             # to check for cleanup and/or rewrite
@@ -523,8 +533,8 @@ class StorageDriver(object):
                 # not the first time we treat this timeserie.
                 if need_rewrite:
                     for key in existing_keys:
-                        if previous_oldest_mutable_key <= key:
-                            if key >= oldest_mutable_key:
+                        if agg_oldest_values['prev_oldest_mutable_key'] <= key:
+                            if key >= agg_oldest_values['oldest_mutable_key']:
                                 break
                             LOG.debug(
                                 "Compressing previous split %s (%s) for "

@@ -649,6 +649,34 @@ class TestStorageDriver(tests_base.TestCase):
             ]}, get_measures_list(self.storage.get_aggregated_measures(
                 {self.metric: [aggregation]})[self.metric]))
 
+    def test_rewrite_measures_multiple_granularities(self):
+        apname = str(uuid.uuid4())
+        # Create an archive policy with two different granularities
+        ap = archive_policy.ArchivePolicy(apname, 0, [(36000, 60), (36000, 1)])
+        self.index.create_archive_policy(ap)
+        self.metric = indexer.Metric(uuid.uuid4(), ap)
+        self.index.create_metric(self.metric.id, str(uuid.uuid4()),
+                                 apname)
+
+        # First store some points
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2016, 1, 6, 18, 15, 46), 43),
+            incoming.Measure(datetime64(2016, 1, 6, 18, 15, 47), 43),
+            incoming.Measure(datetime64(2016, 1, 6, 18, 15, 48), 43),
+        ])
+        self.trigger_processing()
+
+        # Add some more points, mocking out WRITE_FULL attribute of the current
+        # driver, so that rewrite happens
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2016, 1, 7, 18, 15, 49), 43),
+            incoming.Measure(datetime64(2016, 1, 7, 18, 15, 50), 43),
+            incoming.Measure(datetime64(2016, 1, 7, 18, 18, 46), 43),
+        ])
+        driver = storage.get_driver(self.conf)
+        with mock.patch.object(driver.__class__, 'WRITE_FULL', False):
+            self.trigger_processing()
+
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
         """See LP#1655422"""
         # Create an archive policy that spans on several splits. Each split
