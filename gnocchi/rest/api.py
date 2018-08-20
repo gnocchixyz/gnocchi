@@ -194,19 +194,6 @@ def strtobool(varname, v):
         abort(400, "Unable to parse `%s': %s" % (varname, six.text_type(e)))
 
 
-def get_measures_list(measures_agg):
-    return {
-        aggmethod: list(itertools.chain(
-            *[[(timestamp, measures_agg[agg].aggregation.granularity, value)
-               for timestamp, value in measures_agg[agg]]
-              for agg in sorted(aggs,
-                                key=storage.ATTRGETTER_GRANULARITY,
-                                reverse=True)]))
-        for aggmethod, aggs in itertools.groupby(measures_agg.keys(),
-                                                 storage.ATTRGETTER_METHOD)
-    }
-
-
 RESOURCE_DEFAULT_PAGINATION = [u'revision_start:asc',
                                u'started_at:asc']
 
@@ -525,7 +512,10 @@ class MetricController(rest.RestController):
             results = pecan.request.storage.get_aggregated_measures(
                 {self.metric: aggregations},
                 start, stop, resample)[self.metric]
-            return get_measures_list(results)[aggregation]
+            return [(timestamp, results[key].aggregation.granularity, value)
+                    for key in sorted(results.keys(),
+                                      reverse=True)
+                    for timestamp, value in results[key]]
         except storage.AggregationDoesNotExist as e:
             abort(404, six.text_type(e))
         except storage.MetricDoesNotExist:
@@ -2028,7 +2018,11 @@ class AggregationController(rest.RestController):
                 try:
                     results = pecan.request.storage.get_aggregated_measures(
                         {metric: aggregations}, start, stop, resample)[metric]
-                    return get_measures_list(results)[aggregation]
+                    return [(timestamp, results[key].aggregation.granularity,
+                             value)
+                            for key in sorted(results.keys(),
+                                              reverse=True)
+                            for timestamp, value in results[key]]
                 except storage.MetricDoesNotExist:
                     return []
             return processor.get_measures(
