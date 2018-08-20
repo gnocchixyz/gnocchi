@@ -19,6 +19,7 @@ import uuid
 import iso8601
 import mock
 
+from gnocchi import storage
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
@@ -148,3 +149,16 @@ class ReturnNoneOnFailureTest(tests_base.TestCase):
             raise Exception("boom")
 
         self.assertIsNone(foobar())
+
+
+def get_measures_list(measures_agg):
+    return {
+        aggmethod: list(itertools.chain(
+            *[[(timestamp, measures_agg[agg].aggregation.granularity, value)
+               for timestamp, value in measures_agg[agg]]
+              for agg in sorted(aggs,
+                                key=storage.ATTRGETTER_GRANULARITY,
+                                reverse=True)]))
+        for aggmethod, aggs in itertools.groupby(measures_agg.keys(),
+                                                 storage.ATTRGETTER_METHOD)
+    }

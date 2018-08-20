@@ -15,7 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
-import itertools
 import uuid
 
 import mock
@@ -23,26 +22,13 @@ import numpy
 
 from gnocchi import indexer
 from gnocchi import statsd
-from gnocchi import storage
 from gnocchi.tests import base as tests_base
+from gnocchi.tests.test_utils import get_measures_list
 from gnocchi import utils
 
 
 def datetime64(*args):
     return numpy.datetime64(datetime.datetime(*args))
-
-
-def get_measures_list(measures_agg):
-    return {
-        aggmethod: list(itertools.chain(
-            *[[(timestamp, measures_agg[agg].aggregation.granularity, value)
-               for timestamp, value in measures_agg[agg]]
-              for agg in sorted(aggs,
-                                key=storage.ATTRGETTER_GRANULARITY,
-                                reverse=True)]))
-        for aggmethod, aggs in itertools.groupby(measures_agg.keys(),
-                                                 storage.ATTRGETTER_METHOD)
-    }
 
 
 class TestStatsd(tests_base.TestCase):
