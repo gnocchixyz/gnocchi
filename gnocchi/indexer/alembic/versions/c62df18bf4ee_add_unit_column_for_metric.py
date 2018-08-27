@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""add unit column for metric
+"""Add unit column for metric.
 
 Revision ID: c62df18bf4ee
 Revises: 2e0b912062d1
@@ -22,6 +22,7 @@ Create Date: 2016-05-04 12:31:25.350190
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

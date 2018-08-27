@@ -1,4 +1,3 @@
-#
 # Copyright 2015 OpenStack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -13,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""alter flavorid from int to string
+"""Alter flavorid from int to string.
 
 Revision ID: 42ee7f3e25f8
 Revises: f7d44b47928
@@ -21,14 +20,15 @@ Create Date: 2015-05-10 21:20:24.941263
 
 """
 
+from alembic import op
+
+import sqlalchemy as sa
+
 # revision identifiers, used by Alembic.
 revision = '42ee7f3e25f8'
 down_revision = 'f7d44b47928'
 branch_labels = None
 depends_on = None
-
-from alembic import op
-import sqlalchemy as sa
 
 
 def upgrade():

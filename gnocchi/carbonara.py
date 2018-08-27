@@ -26,7 +26,9 @@ import struct
 import time
 
 import lz4.block
+
 import numpy
+
 import six
 
 from gnocchi import calendar
@@ -47,6 +49,7 @@ class BeforeEpochError(Exception):
 
 class UnknownAggregationMethod(Exception):
     """Error raised when the aggregation method is unknown."""
+
     def __init__(self, agg):
         self.aggregation_method = agg
         super(UnknownAggregationMethod, self).__init__(
@@ -55,6 +58,7 @@ class UnknownAggregationMethod(Exception):
 
 class InvalidData(ValueError):
     """Error raised when data are corrupted."""
+
     def __init__(self):
         super(InvalidData, self).__init__("Unable to unpack, invalid data")
 
@@ -78,10 +82,10 @@ def make_timeseries(timestamps, values):
     This array specifies correctly the data types, which is important for
     Numpy to operate fastly.
     """
-    l = len(timestamps)
-    if l != len(values):
+    timestamps_len = len(timestamps)
+    if timestamps_len != len(values):
         raise ValueError("Timestamps and values must have the same length")
-    arr = numpy.zeros(l, dtype=TIMESERIES_ARRAY_DTYPE)
+    arr = numpy.zeros(timestamps_len, dtype=TIMESERIES_ARRAY_DTYPE)
     arr['timestamps'] = timestamps
     arr['values'] = values
     return arr
@@ -134,19 +138,19 @@ class GroupedTimeSeries(object):
         series['values'] /= self.counts
         return series
 
-    def sum(self):
+    def sum(self):  # noqa
         return make_timeseries(self.tstamps, numpy.bincount(
             numpy.repeat(numpy.arange(self.counts.size), self.counts),
             weights=self._ts['values']))
 
-    def min(self):
+    def min(self):  # noqa
         ordered = self._ts['values'].argsort()
         uniq_inv = numpy.repeat(numpy.arange(self.counts.size), self.counts)
         values = numpy.zeros(self.tstamps.size)
         values[uniq_inv[ordered][::-1]] = self._ts['values'][ordered][::-1]
         return make_timeseries(self.tstamps, values)
 
-    def max(self):
+    def max(self):  # noqa
         ordered = self._ts['values'].argsort()
         uniq_inv = numpy.repeat(numpy.arange(self.counts.size), self.counts)
         values = numpy.zeros(self.tstamps.size)
@@ -236,7 +240,7 @@ class TimeSerie(object):
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerie) and
-                numpy.array_equal(self.ts,  other.ts))
+                numpy.array_equal(self.ts, other.ts))
 
     def __getitem__(self, key):
         if isinstance(key, numpy.datetime64):
@@ -315,7 +319,7 @@ class TimeSerie(object):
 
 class BoundTimeSerie(TimeSerie):
     def __init__(self, ts=None, block_size=None, back_window=0):
-        """A time serie that is limited in size.
+        """Create a time series limited in size.
 
         Used to represent the full-resolution buffer of incoming raw
         datapoints associated with a metric.
@@ -341,10 +345,10 @@ class BoundTimeSerie(TimeSerie):
                    block_size=block_size, back_window=back_window)
 
     def __eq__(self, other):
-        return (isinstance(other, BoundTimeSerie)
-                and super(BoundTimeSerie, self).__eq__(other)
-                and self.block_size == other.block_size
-                and self.back_window == other.back_window)
+        return (isinstance(other, BoundTimeSerie) and
+                super(BoundTimeSerie, self).__eq__(other) and
+                self.block_size == other.block_size and
+                self.back_window == other.back_window)
 
     def set_values(self, values, before_truncate_callback=None):
         """Set the timestamps and values in this timeseries.
@@ -401,7 +405,7 @@ class BoundTimeSerie(TimeSerie):
 
     @classmethod
     def benchmark(cls):
-        """Run a speed benchmark!"""
+        """Run a speed benchmark."""
         points = SplitKey.POINTS_PER_SPLIT
         serialize_times = 50
 
@@ -439,8 +443,8 @@ class BoundTimeSerie(TimeSerie):
                 s = ts.serialize()
             t1 = time.time()
             print("  Serialization speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
@@ -448,8 +452,8 @@ class BoundTimeSerie(TimeSerie):
                 cls.unserialize(s, ONE_SECOND, 1)
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
     def first_block_timestamp(self):
         """Return the timestamp of the first block."""
@@ -507,7 +511,7 @@ class SplitKey(object):
             self.key + self.sampling * self.POINTS_PER_SPLIT,
             self.sampling)
 
-    next = __next__
+    next = __next__  # noqa
 
     def __iter__(self):
         return self
@@ -568,7 +572,7 @@ class AggregatedTimeSerie(TimeSerie):
     COMPRESSED_TIMESPAMP_LEN = struct.calcsize("<H")
 
     def __init__(self, aggregation, ts=None):
-        """A time serie that is downsampled.
+        """Create a down sampled time series.
 
         Used to represent the downsampled timeserie for a single
         granularity/aggregation-function pair stored for a metric.
@@ -662,9 +666,9 @@ class AggregatedTimeSerie(TimeSerie):
                    ts=cls._resample_grouped(grouped_serie, agg_name, q))
 
     def __eq__(self, other):
-        return (isinstance(other, AggregatedTimeSerie)
-                and super(AggregatedTimeSerie, self).__eq__(other)
-                and self.aggregation == other.aggregation)
+        return (isinstance(other, AggregatedTimeSerie) and
+                super(AggregatedTimeSerie, self).__eq__(other) and
+                self.aggregation == other.aggregation)
 
     def __repr__(self):
         return "<%s 0x%x granularity=%s agg_method=%s>" % (
@@ -684,7 +688,7 @@ class AggregatedTimeSerie(TimeSerie):
         """Unserialize an aggregated timeserie.
 
         :param data: Raw data buffer.
-        :param key: A :class:`SplitKey` key.
+        :param key: A py:class:`SplitKey` key.
         :param aggregation: The Aggregation object of this timeseries.
         """
         x, y = [], []
@@ -701,7 +705,7 @@ class AggregatedTimeSerie(TimeSerie):
                                          count=nb_points)
                     x = numpy.frombuffer(
                         uncompressed, dtype='<d',
-                        offset=nb_points*cls.COMPRESSED_TIMESPAMP_LEN)
+                        offset=nb_points * cls.COMPRESSED_TIMESPAMP_LEN)
                 except ValueError:
                     raise InvalidData()
                 y = numpy.cumsum(y * key.sampling) + key.key
@@ -733,7 +737,7 @@ class AggregatedTimeSerie(TimeSerie):
             timestamp, self.aggregation.granularity)
 
     def serialize(self, start, compressed=True):
-        """Serialize an aggregated timeserie.
+        r"""Serialize an aggregated timeserie.
 
         The serialization starts with a byte that indicate the serialization
         format: 'c' for compressed format, '\x00' or '\x01' for uncompressed
@@ -802,7 +806,7 @@ class AggregatedTimeSerie(TimeSerie):
 
     @classmethod
     def benchmark(cls):
-        """Run a speed benchmark!"""
+        """Run a speed benchmark."""
         points = SplitKey.POINTS_PER_SPLIT
         sampling = numpy.timedelta64(5, 's')
         resample = numpy.timedelta64(35, 's')
@@ -844,8 +848,8 @@ class AggregatedTimeSerie(TimeSerie):
                 e, s = ts.serialize(key, compressed=False)
             t1 = time.time()
             print("  Uncompressed serialization speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
@@ -853,16 +857,16 @@ class AggregatedTimeSerie(TimeSerie):
                 cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
             t0 = time.time()
             for i in six.moves.range(serialize_times):
                 o, s = ts.serialize(key, compressed=True)
             t1 = time.time()
             print("  Compressed serialization speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
@@ -870,8 +874,8 @@ class AggregatedTimeSerie(TimeSerie):
                 cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Uncompression speed: %.2f MB/s"
-                  % (((points * 2 * 8)
-                      / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
+                  % (((points * 2 * 8) /
+                      ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
             def per_sec(t1, t0):
                 return 1 / ((t1 - t0) / serialize_times)

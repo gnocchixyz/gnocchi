@@ -42,6 +42,7 @@ import random
 import time
 
 from keystoneclient.v2_0 import client as keystone_client
+
 import requests
 
 
@@ -189,6 +190,7 @@ def main():
                         default=100,
                         type=int)
     PerfTools(parser.parse_args()).run()
+
 
 if __name__ == '__main__':
     main()

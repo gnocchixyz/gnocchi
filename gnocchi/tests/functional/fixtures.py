@@ -23,26 +23,32 @@ import subprocess
 import tempfile
 import threading
 import time
-from unittest import case
 import uuid
 import warnings
+from unittest import case
 
 import fixtures
+
 from gabbi import fixture
+
 import numpy
+
 from oslo_config import cfg
+
 from oslo_middleware import cors
+
 import sqlalchemy_utils
+
 import yaml
 
 from gnocchi import chef
-from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
-from gnocchi.indexer import sqlalchemy
-from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import storage
+from gnocchi.cli import metricd
+from gnocchi.indexer import sqlalchemy
+from gnocchi.rest import app
 from gnocchi.tests import base
 from gnocchi.tests import utils
 
@@ -217,7 +223,6 @@ class ConfigFixture(fixture.GabbiFixture):
 
     def stop_fixture(self):
         """Clean up the config fixture and storage artifacts."""
-
         if hasattr(self, 'metricd_thread'):
             self.metricd_thread.stop()
             self.metricd_thread.join()

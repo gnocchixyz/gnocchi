@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""allow volume display name to be null
+"""Allow volume display name to be null.
 
 Revision ID: 1f21cbdd6bc2
 Revises: 469b308577a9
@@ -22,6 +22,7 @@ Create Date: 2015-12-08 02:12:20.273880
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

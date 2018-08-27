@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""fix_host_foreign_key
+"""Fix host foreign key.
 
 Revision ID: ed9c6ddc5c35
 Revises: ffc7bbeec0b0
@@ -22,6 +22,7 @@ Create Date: 2016-04-15 06:25:34.649934
 """
 
 from alembic import op
+
 from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.

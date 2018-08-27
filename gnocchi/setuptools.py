@@ -18,8 +18,8 @@ from __future__ import absolute_import
 import os
 import subprocess
 import sys
-
 from distutils import version
+
 from setuptools.command import develop
 from setuptools.command import easy_install
 from setuptools.command import egg_info

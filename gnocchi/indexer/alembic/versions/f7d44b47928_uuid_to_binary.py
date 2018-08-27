@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""uuid_to_binary
+"""Convert uuid from string to binary.
 
 Revision ID: f7d44b47928
 Revises: 40c6aae14c3f
@@ -21,14 +21,15 @@ Create Date: 2015-04-30 13:29:29.074794
 
 """
 
+from alembic import op
+
+import sqlalchemy_utils.types.uuid
+
 # revision identifiers, used by Alembic.
 revision = 'f7d44b47928'
 down_revision = '40c6aae14c3f'
 branch_labels = None
 depends_on = None
-
-from alembic import op
-import sqlalchemy_utils.types.uuid
 
 
 def upgrade():

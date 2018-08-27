@@ -17,14 +17,16 @@ import datetime
 import uuid
 
 import numpy
+
 import six
+
 import ujson
 
 
 def to_primitive(obj):
-    if isinstance(obj, ((six.text_type,)
-                        + six.integer_types
-                        + (type(None), bool, float))):
+    if isinstance(obj, ((six.text_type,) +
+                        six.integer_types +
+                        (type(None), bool, float))):
         return obj
     if isinstance(obj, uuid.UUID):
         return six.text_type(obj)

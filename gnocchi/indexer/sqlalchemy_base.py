@@ -17,16 +17,19 @@
 from __future__ import absolute_import
 
 from oslo_db.sqlalchemy import models
+
 import six
+
 import sqlalchemy
 from sqlalchemy.ext import declarative
+
 import sqlalchemy_utils
 
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
+from gnocchi.indexer import sqlalchemy_types as types
 
 Base = declarative.declarative_base()
 
@@ -134,14 +137,14 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         # archive_policy_name, and we don't compare archive_policy that might
         # not be loaded. Otherwise we fallback to the original comparison for
         # indexer.Metric.
-        return ((isinstance(other, Metric)
-                 and self.id == other.id
-                 and self.archive_policy_name == other.archive_policy_name
-                 and self.creator == other.creator
-                 and self.name == other.name
-                 and self.unit == other.unit
-                 and self.resource_id == other.resource_id)
-                or (indexer.Metric.__eq__(self, other)))
+        return ((isinstance(other, Metric) and
+                 self.id == other.id and
+                 self.archive_policy_name == other.archive_policy_name and
+                 self.creator == other.creator and
+                 self.name == other.name and
+                 self.unit == other.unit and
+                 self.resource_id == other.resource_id) or
+                indexer.Metric.__eq__(self, other))
 
     __hash__ = indexer.Metric.__hash__
 
@@ -288,7 +291,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
 
 
 class ResourceExt(object):
-    """Default extension class for plugin
+    """Default extension class for plugin.
 
     Used for plugin that doesn't need additional columns
     """

@@ -19,8 +19,11 @@ try:
     import asyncio
 except ImportError:
     import trollius as asyncio
+
 import daiquiri
+
 from oslo_config import cfg
+
 import six
 
 from gnocchi import incoming

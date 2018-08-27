@@ -57,8 +57,8 @@ class TestArchivePolicy(base.BaseTestCase):
                                           [],
                                           ["*", "-mean"])
         self.assertEqual(
-            (archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS
-             - set(["mean"])),
+            (archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS -
+             set(["mean"])),
             ap.aggregation_methods)
 
         ap = archive_policy.ArchivePolicy("foobar",
@@ -66,8 +66,8 @@ class TestArchivePolicy(base.BaseTestCase):
                                           [],
                                           ["-mean", "-last"])
         self.assertEqual(
-            (set(conf.archive_policy.default_aggregation_methods)
-             - set(["mean", "last"])),
+            (set(conf.archive_policy.default_aggregation_methods) -
+             set(["mean", "last"])),
             ap.aggregation_methods)
 
         ap = archive_policy.ArchivePolicy("foobar",

@@ -18,6 +18,7 @@
 import os
 
 from gabbi import driver
+
 import six.moves.urllib.parse as urlparse
 
 

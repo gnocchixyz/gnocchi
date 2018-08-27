@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""allow image_ref to be null
+"""Allow image_ref to be null.
 
 Revision ID: 469b308577a9
 Revises: 39b7d449d46a
@@ -22,6 +22,7 @@ Create Date: 2015-11-29 00:23:39.998256
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

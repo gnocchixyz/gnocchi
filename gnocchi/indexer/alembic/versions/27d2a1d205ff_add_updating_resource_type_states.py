@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Add updating resource type states
+"""Add updating resource type states.
 
 Revision ID: 27d2a1d205ff
 Revises: 7e6f9d542f8b
@@ -22,10 +22,11 @@ Create Date: 2016-08-31 14:05:34.316496
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
-from gnocchi.indexer import sqlalchemy_types
 from gnocchi import utils
+from gnocchi.indexer import sqlalchemy_types
 
 # revision identifiers, used by Alembic.
 revision = '27d2a1d205ff'

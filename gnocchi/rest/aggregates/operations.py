@@ -265,9 +265,11 @@ def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
                                      references)
     elif nodes[0] == "metric":
         if isinstance(nodes[1], list):
-            predicat = lambda r: r in nodes[1:]
+            def predicat(r):
+                return r in nodes[1:]
         else:
-            predicat = lambda r: r == nodes[1:]
+            def predicat(r):
+                return r == nodes[1:]
         indexes = [i for i, r in enumerate(references) if predicat(r)]
         return (granularity, timestamps, initial_values.T[indexes].T,
                 is_aggregated)

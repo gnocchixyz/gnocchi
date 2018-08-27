@@ -13,7 +13,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-"""Initial base for Gnocchi 1.0.0
+"""Initial base for Gnocchi 1.0.0.
 
 Revision ID: 1c98ac614015
 Revises: 

@@ -17,8 +17,11 @@
 import logging
 
 import daiquiri
+
 from oslo_config import cfg
+
 from oslo_db import options as db_options
+
 from six.moves.urllib import parse as urlparse
 
 import gnocchi

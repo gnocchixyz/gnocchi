@@ -19,17 +19,20 @@ import itertools
 
 import pecan
 from pecan import rest
+
 import pyparsing
+
 import six
+
 import voluptuous
 
 from gnocchi import indexer
+from gnocchi import storage
+from gnocchi import utils
+from gnocchi.rest import api
 from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi.rest.aggregates import processor
-from gnocchi.rest import api
-from gnocchi import storage
-from gnocchi import utils
 
 
 def _OperationsSubNodeSchema(v):
@@ -37,7 +40,7 @@ def _OperationsSubNodeSchema(v):
 
 
 def MetricSchema(v):
-    """metric keyword schema
+    """Metric keyword schema.
 
     It could be:
 
@@ -126,7 +129,7 @@ def OperationsSchema(v):
 
 
 class ReferencesList(list):
-    "A very simplified OrderedSet with list interface"
+    """A very simplified OrderedSet with list interface."""
 
     def append(self, ref):
         if ref not in self:
@@ -263,8 +266,8 @@ class AggregatesController(rest.RestController):
 
             metrics = pecan.request.indexer.list_metrics(
                 attribute_filter={"in": {"id": metric_ids}})
-            missing_metric_ids = (set(metric_ids)
-                                  - set(six.text_type(m.id) for m in metrics))
+            missing_metric_ids = (set(metric_ids) -
+                                  set(six.text_type(m.id) for m in metrics))
             if missing_metric_ids:
                 api.abort(404, {"cause": "Unknown metrics",
                                 "reason": "Provided metrics don't exists",

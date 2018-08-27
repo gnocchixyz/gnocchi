@@ -17,12 +17,13 @@
 import collections
 
 from oslo_config import cfg
+
 import six
 
 from gnocchi import carbonara
-from gnocchi.common import swift
 from gnocchi import storage
 from gnocchi import utils
+from gnocchi.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils
@@ -174,8 +175,8 @@ class SwiftStorage(storage.StorageDriver):
         raw_keys = list(map(
             lambda k: k.split("_"),
             (f['name'] for f in files
-             if self._version_check(f['name'], version)
-             and not f['name'].startswith('none'))))
+             if self._version_check(f['name'], version) and
+             not f['name'].startswith('none'))))
         keys = collections.defaultdict(set)
         if not raw_keys:
             return keys
@@ -187,8 +188,8 @@ class SwiftStorage(storage.StorageDriver):
         for timestamp, method, granularity in six.moves.zip(
                 k_timestamps, k_methods, k_granularities):
             for aggregation in aggregations:
-                if (aggregation.method == method
-                   and aggregation.granularity == granularity):
+                if (aggregation.method == method and
+                   aggregation.granularity == granularity):
                     keys[aggregation].add(carbonara.SplitKey(
                         timestamp,
                         sampling=granularity))

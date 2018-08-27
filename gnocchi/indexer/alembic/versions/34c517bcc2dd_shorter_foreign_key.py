@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""shorter_foreign_key
+"""Shorten foreign keys.
 
 Revision ID: 34c517bcc2dd
 Revises: ed9c6ddc5c35
@@ -22,6 +22,7 @@ Create Date: 2016-04-13 16:58:42.536431
 """
 
 from alembic import op
+
 import sqlalchemy
 
 # revision identifiers, used by Alembic.

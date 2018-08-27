@@ -21,7 +21,9 @@ import tempfile
 import uuid
 
 import daiquiri
+
 import numpy
+
 import six
 
 from gnocchi import incoming

@@ -19,11 +19,16 @@ import time
 import uuid
 
 import cachetools.func
+
 import cotyledon
 from cotyledon import oslo_config_glue
+
 import daiquiri
+
 from oslo_config import cfg
+
 import tenacity
+
 import tooz
 from tooz import coordination
 
@@ -227,8 +232,8 @@ class MetricProcessor(MetricProcessBase):
         if self._last_full_sack_scan.elapsed() >= self.interval_delay:
             sacks = self._get_sacks_to_process()
         else:
-            sacks = (self.sacks_with_measures_to_process.copy()
-                     or self._get_sacks_to_process())
+            sacks = (self.sacks_with_measures_to_process.copy() or
+                     self._get_sacks_to_process())
         for s in sacks:
             try:
                 try:
@@ -256,7 +261,7 @@ class MetricProcessor(MetricProcessBase):
 class MetricJanitor(MetricProcessBase):
     name = "janitor"
 
-    def __init__(self,  worker_id, conf):
+    def __init__(self, worker_id, conf):
         super(MetricJanitor, self).__init__(
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 

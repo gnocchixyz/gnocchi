@@ -30,8 +30,8 @@ LOG = daiquiri.getLogger(__name__)
 
 
 def retry_if_operationaborted(exception):
-    return (isinstance(exception, botocore.exceptions.ClientError)
-            and exception.response['Error'].get('Code') == "OperationAborted")
+    return (isinstance(exception, botocore.exceptions.ClientError) and
+            exception.response['Error'].get('Code') == "OperationAborted")
 
 
 def get_connection(conf):

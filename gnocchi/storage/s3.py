@@ -16,12 +16,13 @@
 import os
 
 from oslo_config import cfg
+
 import tenacity
 
 from gnocchi import carbonara
-from gnocchi.common import s3
 from gnocchi import storage
 from gnocchi import utils
+from gnocchi.common import s3
 
 boto3 = s3.boto3
 botocore = s3.botocore
@@ -59,8 +60,8 @@ OPTS = [
 
 
 def retry_if_operationaborted(exception):
-    return (isinstance(exception, botocore.exceptions.ClientError)
-            and exception.response['Error'].get('Code') == "OperationAborted")
+    return (isinstance(exception, botocore.exceptions.ClientError) and
+            exception.response['Error'].get('Code') == "OperationAborted")
 
 
 class S3Storage(storage.StorageDriver):

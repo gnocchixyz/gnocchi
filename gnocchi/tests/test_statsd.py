@@ -18,13 +18,14 @@ import datetime
 import uuid
 
 import mock
+
 import numpy
 
 from gnocchi import indexer
 from gnocchi import statsd
+from gnocchi import utils
 from gnocchi.tests import base as tests_base
 from gnocchi.tests.test_utils import get_measures_list
-from gnocchi import utils
 
 
 def datetime64(*args):

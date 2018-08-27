@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+
 import datetime
 import itertools
 import operator
@@ -23,11 +24,14 @@ import uuid
 
 from alembic import migration
 from alembic import operations
+
 import daiquiri
+
 import oslo_db.api
 from oslo_db import exception
 from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils as oslo_db_utils
+
 try:
     import psycopg2
 except ImportError:
@@ -37,20 +41,23 @@ try:
     import pymysql.err
 except ImportError:
     pymysql = None
+
 import six
 from six.moves.urllib import parse as urlparse
+
 import sqlalchemy
-from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
 from sqlalchemy import types as sa_types
+from sqlalchemy.engine import url as sqlalchemy_url
+
 import sqlalchemy_utils
 
 from gnocchi import exceptions
 from gnocchi import indexer
-from gnocchi.indexer import sqlalchemy_base as base
-from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
+from gnocchi.indexer import sqlalchemy_base as base
+from gnocchi.indexer import sqlalchemy_types as types
 
 Base = base.Base
 Metric = base.Metric
@@ -83,10 +90,10 @@ def _retry_on_exceptions(exc):
         # Base.metadata.create_all(), sqlalchemy itself gets an error it does
         # not catch or something. So this is why this function exists. To
         # paperover I guess.
-        psycopg2
-        and isinstance(inn_e.orig, psycopg2.InternalError)
+        psycopg2 and
+        isinstance(inn_e.orig, psycopg2.InternalError) and
         # current transaction is aborted
-        and inn_e.orig.pgcode == '25P02'
+        inn_e.orig.pgcode == '25P02'
     ))
 
 
@@ -171,8 +178,8 @@ class ResourceClassMapper(object):
         try:
             mappers = self._cache[resource_type.tablename]
             # Cache is outdated
-            if (resource_type.name != "generic"
-                    and resource_type.updated_at > mappers['updated_at']):
+            if (resource_type.name != "generic" and
+                    resource_type.updated_at > mappers['updated_at']):
                 for table_purpose in ['resource', 'history']:
                     Base.metadata.remove(Base.metadata.tables[
                         mappers[table_purpose].__tablename__])
@@ -262,7 +269,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @classmethod
     def _create_new_database(cls, url):
-        """Used by testing to create a new database."""
+        """Create a new database (used by testing)."""
         purl = sqlalchemy_url.make_url(
             cls.dress_url(
                 url))
@@ -781,9 +788,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         started_at=None, ended_at=None, metrics=None,
                         original_resource_id=None,
                         **kwargs):
-        if (started_at is not None
-           and ended_at is not None
-           and started_at > ended_at):
+        if (started_at is not None and
+           ended_at is not None and
+           started_at > ended_at):
             raise ValueError(
                 "Start timestamp cannot be after end timestamp")
         if original_resource_id is None:
@@ -1100,7 +1107,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 grouped_by_type = itertools.groupby(
                     all_resources, lambda r: (r.revision != -1, r.type))
                 all_resources = []
-                for (is_history, type), resources in grouped_by_type:
+                for (is_history, type), resources in grouped_by_type:  # noqa
                     if type == 'generic':
                         # No need for a second query
                         all_resources.extend(resources)
@@ -1133,13 +1140,13 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                             #    (pymysql.err.ProgrammingError)
                             #    (1146, "Table \'test.rt_f00\' doesn\'t exist")
                             # In that case, just ignore those resources.
-                            if (not pymysql
-                               or not isinstance(
-                                   e, sqlalchemy.exc.ProgrammingError)
-                               or not isinstance(
-                                   e.orig, pymysql.err.ProgrammingError)
-                               or (e.orig.args[0]
-                                   != pymysql.constants.ER.NO_SUCH_TABLE)):
+                            if (not pymysql or
+                               not isinstance(
+                                   e, sqlalchemy.exc.ProgrammingError) or
+                               not isinstance(
+                                   e.orig, pymysql.err.ProgrammingError) or
+                               (e.orig.args[0] !=
+                                   pymysql.constants.ER.NO_SUCH_TABLE)):
                                 raise
 
             return all_resources

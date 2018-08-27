@@ -19,7 +19,9 @@ import time
 import uuid
 
 import daiquiri
+
 import numpy
+
 from oslo_config import cfg
 
 from gnocchi import chef

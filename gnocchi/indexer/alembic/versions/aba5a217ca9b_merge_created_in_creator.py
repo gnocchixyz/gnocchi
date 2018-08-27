@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""merge_created_in_creator
+"""Merge created in creator.
 
 Revision ID: aba5a217ca9b
 Revises: 5c4f93e5bb4
@@ -22,6 +22,7 @@ Create Date: 2016-12-06 17:40:25.344578
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 
@@ -47,7 +48,7 @@ def upgrade():
             t.update().values(
                 creator=(
                     created_by_user_id_col + ":" + created_by_project_id_col
-                )).where((created_by_user_id_col is not None)
-                         | (created_by_project_id_col is not None)))
+                )).where((created_by_user_id_col is not None) |
+                         (created_by_project_id_col is not None)))
         op.drop_column(table_name, "created_by_user_id")
         op.drop_column(table_name, "created_by_project_id")

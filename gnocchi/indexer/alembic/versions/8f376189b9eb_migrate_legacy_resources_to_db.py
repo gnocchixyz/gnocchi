@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Migrate legacy resources to DB
+"""Migrate legacy resources to DB.
 
 Revision ID: 8f376189b9eb
 Revises: d24877c22ab0
@@ -23,6 +23,7 @@ Create Date: 2016-01-20 15:03:28.115656
 import json
 
 from alembic import op
+
 import sqlalchemy as sa
 
 from gnocchi.indexer import sqlalchemy_legacy_resources as legacy

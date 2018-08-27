@@ -18,26 +18,33 @@ import base64
 import calendar
 import contextlib
 import datetime
-from email import utils as email_utils
 import hashlib
 import json
 import uuid
+from email import utils as email_utils
 
 import fixtures
+
 import iso8601
+
 from keystonemiddleware import fixture as ksm_fixture
+
 import mock
+
 import six
+
 import testscenarios
+
 from testtools import testcase
+
 import webtest
 
 import gnocchi
 from gnocchi import archive_policy
+from gnocchi import utils
 from gnocchi.rest import api
 from gnocchi.rest import app
 from gnocchi.tests import base as tests_base
-from gnocchi import utils
 
 
 load_tests = testscenarios.load_tests_apply_scenarios
@@ -271,8 +278,8 @@ class ArchivePolicyTest(RestTest):
         self.assertEqual("application/json", result.content_type)
         ap = json.loads(result.text)
         self.assertEqual(
-            (set(self.conf.archive_policy.default_aggregation_methods)
-             - set(['mean'])),
+            (set(self.conf.archive_policy.default_aggregation_methods) -
+             set(['mean'])),
             set(ap['aggregation_methods']))
 
     def test_get_archive_policy(self):
@@ -526,13 +533,13 @@ class MetricTest(RestTest):
         now = utils.datetime_utc(2014, 1, 1, 10, 23)
         self.assertEqual([
             ['2014-01-01T10:00:00+00:00', 3600.0, 1234.2],
-            [(now
-              - datetime.timedelta(
+            [(now -
+              datetime.timedelta(
                   seconds=now.second,
                   microseconds=now.microsecond)).isoformat(),
              60.0, 1234.2],
-            [(now
-              - datetime.timedelta(
+            [(now -
+              datetime.timedelta(
                   microseconds=now.microsecond)).isoformat(),
              1.0, 1234.2]], result)
 
@@ -712,8 +719,8 @@ class ResourceTest(RestTest):
             params=self.attributes,
             status=201)
         resource = json.loads(result.text)
-        self.assertEqual("http://localhost/v1/resource/"
-                         + self.resource_type + "/" + self.attributes['id'],
+        self.assertEqual("http://localhost/v1/resource/" +
+                         self.resource_type + "/" + self.attributes['id'],
                          result.headers['Location'])
         self.assertIsNone(resource['revision_end'])
         self.assertEqual(resource['revision_start'],
@@ -786,10 +793,10 @@ class ResourceTest(RestTest):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type
-                              + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type +
+                              "/" +
+                              self.attributes['id'])
         resource = json.loads(result.text)
         self.assertIsNone(resource['revision_end'])
         self.assertEqual(resource['revision_start'],
@@ -803,10 +810,10 @@ class ResourceTest(RestTest):
         result = self.app.post_json("/v1/resource/" + self.resource_type,
                                     params=self.attributes,
                                     status=201)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type
-                              + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type +
+                              "/" +
+                              self.attributes['id'])
         resource = json.loads(result.text)
         etag = hashlib.sha1()
         etag.update(resource['id'].encode('utf-8'))
@@ -816,116 +823,116 @@ class ResourceTest(RestTest):
         oldlastmodified = self._strtime_to_httpdate("2000-01-01 00:00:00")
 
         # if-match and if-unmodified-since
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': 'fake'},
                      status=412)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': etag},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-unmodified-since': lastmodified},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-unmodified-since': oldlastmodified},
                      status=412)
         # Some case with '*'
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-none-match': '*'},
                      status=304)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/wrongid",
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/wrongid",
                      headers={'if-none-match': '*'},
                      status=404)
         # always prefers if-match if both provided
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': etag,
                               'if-unmodified-since': lastmodified},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': etag,
                               'if-unmodified-since': oldlastmodified},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': '*',
                               'if-unmodified-since': oldlastmodified},
                      status=200)
 
         # if-none-match and if-modified-since
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-none-match': etag},
                      status=304)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-none-match': 'fake'},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-modified-since': lastmodified},
                      status=304)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-modified-since': oldlastmodified},
                      status=200)
         # always prefers if-none-match if both provided
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-modified-since': oldlastmodified,
                               'if-none-match': etag},
                      status=304)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-modified-since': oldlastmodified,
                               'if-none-match': '*'},
                      status=304)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-modified-since': lastmodified,
                               'if-none-match': '*'},
                      status=304)
         # Some case with '*'
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-match': '*'},
                      status=200)
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/wrongid",
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/wrongid",
                      headers={'if-match': '*'},
                      status=404)
 
         # if-none-match and if-match
-        self.app.get("/v1/resource/" + self.resource_type
-                     + "/" + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type +
+                     "/" + self.attributes['id'],
                      headers={'if-none-match': etag,
                               'if-match': etag},
                      status=304)
 
         # if-none-match returns 412 instead 304 for PUT/PATCH/DELETE
-        self.app.patch_json("/v1/resource/" + self.resource_type
-                            + "/" + self.attributes['id'],
+        self.app.patch_json("/v1/resource/" + self.resource_type +
+                            "/" + self.attributes['id'],
                             headers={'if-none-match': '*'},
                             status=412)
-        self.app.delete("/v1/resource/" + self.resource_type
-                        + "/" + self.attributes['id'],
+        self.app.delete("/v1/resource/" + self.resource_type +
+                        "/" + self.attributes['id'],
                         headers={'if-none-match': '*'},
                         status=412)
 
         # if-modified-since is ignored with PATCH/PUT/DELETE
-        self.app.patch_json("/v1/resource/" + self.resource_type
-                            + "/" + self.attributes['id'],
+        self.app.patch_json("/v1/resource/" + self.resource_type +
+                            "/" + self.attributes['id'],
                             params=self.patchable_attributes,
                             headers={'if-modified-since': lastmodified},
                             status=200)
-        self.app.delete("/v1/resource/" + self.resource_type
-                        + "/" + self.attributes['id'],
+        self.app.delete("/v1/resource/" + self.resource_type +
+                        "/" + self.attributes['id'],
                         headers={'if-modified-since': lastmodified},
                         status=204)
 
@@ -934,10 +941,10 @@ class ResourceTest(RestTest):
             self.app.post_json("/v1/resource/" + self.resource_type,
                                params=self.attributes,
                                status=201)
-            self.app.get("/v1/resource/"
-                         + self.resource_type
-                         + "/"
-                         + self.attributes['id'],
+            self.app.get("/v1/resource/" +
+                         self.resource_type +
+                         "/" +
+                         self.attributes['id'],
                          status=200)
 
     def test_get_resource_unauthorized(self):
@@ -945,21 +952,21 @@ class ResourceTest(RestTest):
                            params=self.attributes,
                            status=201)
         with self.app.use_another_user():
-            self.app.get("/v1/resource/"
-                         + self.resource_type
-                         + "/"
-                         + self.attributes['id'],
+            self.app.get("/v1/resource/" +
+                         self.resource_type +
+                         "/" +
+                         self.attributes['id'],
                          status=403)
 
     def test_get_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.get("/v1/resource/"
-                     + self.resource_type
-                     + "/"
-                     + self.attributes['id']
-                     + "/metric/foo/measures",
+        self.app.get("/v1/resource/" +
+                     self.resource_type +
+                     "/" +
+                     self.attributes['id'] +
+                     "/metric/foo/measures",
                      status=200)
 
     def test_list_resource_metrics_unauthorized(self):
@@ -968,35 +975,35 @@ class ResourceTest(RestTest):
                            params=self.attributes)
         with self.app.use_another_user():
             self.app.get(
-                "/v1/resource/" + self.resource_type
-                + "/" + self.attributes['id'] + "/metric",
+                "/v1/resource/" + self.resource_type +
+                "/" + self.attributes['id'] + "/metric",
                 status=403)
 
     def test_delete_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.delete("/v1/resource/"
-                        + self.resource_type
-                        + "/"
-                        + self.attributes['id']
-                        + "/metric/foo",
+        self.app.delete("/v1/resource/" +
+                        self.resource_type +
+                        "/" +
+                        self.attributes['id'] +
+                        "/metric/foo",
                         status=204)
-        self.app.delete("/v1/resource/"
-                        + self.resource_type
-                        + "/"
-                        + self.attributes['id']
-                        + "/metric/foo/measures",
+        self.app.delete("/v1/resource/" +
+                        self.resource_type +
+                        "/" +
+                        self.attributes['id'] +
+                        "/metric/foo/measures",
                         status=404)
 
     def test_get_resource_unknown_named_metric(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.get("/v1/resource/"
-                     + self.resource_type
-                     + "/"
-                     + self.attributes['id']
-                     + "/metric/foo",
+        self.app.get("/v1/resource/" +
+                     self.resource_type +
+                     "/" +
+                     self.attributes['id'] +
+                     "/metric/foo",
                      status=404)
 
     def test_post_append_metrics_already_exists(self):
@@ -1004,19 +1011,19 @@ class ResourceTest(RestTest):
                            params=self.attributes)
 
         metrics = {'foo': {'archive_policy_name': "high"}}
-        self.app.post_json("/v1/resource/" + self.resource_type
-                           + "/" + self.attributes['id'] + "/metric",
+        self.app.post_json("/v1/resource/" + self.resource_type +
+                           "/" + self.attributes['id'] + "/metric",
                            params=metrics, status=200)
         metrics = {'foo': {'archive_policy_name': "low"}}
-        self.app.post_json("/v1/resource/" + self.resource_type
-                           + "/" + self.attributes['id']
-                           + "/metric",
+        self.app.post_json("/v1/resource/" + self.resource_type +
+                           "/" + self.attributes['id'] +
+                           "/metric",
                            params=metrics,
                            status=409)
 
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type + "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
 
@@ -1025,12 +1032,12 @@ class ResourceTest(RestTest):
                            params=self.attributes)
 
         metrics = {'foo': {'archive_policy_name': "high"}}
-        self.app.post_json("/v1/resource/" + self.resource_type
-                           + "/" + self.attributes['id'] + "/metric",
+        self.app.post_json("/v1/resource/" + self.resource_type +
+                           "/" + self.attributes['id'] + "/metric",
                            params=metrics, status=200)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type + "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
 
@@ -1042,8 +1049,8 @@ class ResourceTest(RestTest):
                 "/v1/metric",
                 params={'archive_policy_name': "high"})
         metric_id = json.loads(metric.text)['id']
-        result = self.app.post_json("/v1/resource/" + self.resource_type
-                                    + "/" + self.attributes['id'] + "/metric",
+        result = self.app.post_json("/v1/resource/" + self.resource_type +
+                                    "/" + self.attributes['id'] + "/metric",
                                     params={str(uuid.uuid4()): metric_id},
                                     status=400)
         self.assertIn("Metric %s does not exist" % metric_id, result.text)
@@ -1059,13 +1066,13 @@ class ResourceTest(RestTest):
         utcnow.return_value = utils.datetime_utc(2014, 1, 2, 6, 49)
         new_metrics = {'foo': {'archive_policy_name': "medium"}}
         self.app.patch_json(
-            "/v1/resource/" + self.resource_type + "/"
-            + self.attributes['id'],
+            "/v1/resource/" + self.resource_type + "/" +
+            self.attributes['id'],
             params={'metrics': new_metrics},
             status=200)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type + "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         self.assertTrue(uuid.UUID(result['metrics']['foo']))
         self.assertIsNone(result['revision_end'])
@@ -1090,17 +1097,17 @@ class ResourceTest(RestTest):
                 params={'archive_policy_name': "medium"})
         metric_id = json.loads(result.text)['id']
         result = self.app.patch_json(
-            "/v1/resource/"
-            + self.resource_type
-            + "/"
-            + self.attributes['id'],
+            "/v1/resource/" +
+            self.resource_type +
+            "/" +
+            self.attributes['id'],
             params={'metrics': {'foo': metric_id}},
             status=400)
         self.assertIn("Metric %s does not exist" % metric_id, result.text)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type
-                              + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type +
+                              "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         self.assertEqual({}, result['metrics'])
 
@@ -1110,17 +1117,17 @@ class ResourceTest(RestTest):
                            status=201)
         e1 = str(uuid.uuid4())
         result = self.app.patch_json(
-            "/v1/resource/"
-            + self.resource_type
-            + "/"
-            + self.attributes['id'],
+            "/v1/resource/" +
+            self.resource_type +
+            "/" +
+            self.attributes['id'],
             params={'metrics': {'foo': e1}},
             status=400)
         self.assertIn("Metric %s does not exist" % e1, result.text)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type
-                              + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type +
+                              "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         self.assertEqual({}, result['metrics'])
 
@@ -1132,12 +1139,12 @@ class ResourceTest(RestTest):
                            status=201)
         utcnow.return_value = utils.datetime_utc(2014, 1, 2, 6, 48)
         presponse = self.app.patch_json(
-            "/v1/resource/" + self.resource_type
-            + "/" + self.attributes['id'],
+            "/v1/resource/" + self.resource_type +
+            "/" + self.attributes['id'],
             params=self.patchable_attributes,
             status=200)
-        response = self.app.get("/v1/resource/" + self.resource_type
-                                + "/" + self.attributes['id'])
+        response = self.app.get("/v1/resource/" + self.resource_type +
+                                "/" + self.attributes['id'])
         result = json.loads(response.text)
         presult = json.loads(presponse.text)
         self.assertEqual(result, presult)
@@ -1172,8 +1179,8 @@ class ResourceTest(RestTest):
                            status=201)
         with self.app.use_another_user():
             self.app.patch_json(
-                "/v1/resource/" + self.resource_type
-                + "/" + self.attributes['id'],
+                "/v1/resource/" + self.resource_type +
+                "/" + self.attributes['id'],
                 params=self.patchable_attributes,
                 status=403)
 
@@ -1182,10 +1189,10 @@ class ResourceTest(RestTest):
                            params=self.attributes,
                            status=201)
         self.app.patch_json(
-            "/v1/resource/"
-            + self.resource_type
-            + "/"
-            + self.attributes['id'],
+            "/v1/resource/" +
+            self.resource_type +
+            "/" +
+            self.attributes['id'],
             params={'ended_at': "2000-05-05 23:23:23"},
             status=400)
 
@@ -1195,15 +1202,15 @@ class ResourceTest(RestTest):
                            status=201)
         e1 = str(uuid.uuid4())
         result = self.app.patch_json(
-            "/v1/resource/" + self.resource_type + "/"
-            + self.attributes['id'],
+            "/v1/resource/" + self.resource_type + "/" +
+            self.attributes['id'],
             params={'ended_at': "2044-05-05 23:23:23",
                     'metrics': {"foo": e1}},
             status=400)
         self.assertIn("Metric %s does not exist" % e1, result.text)
-        result = self.app.get("/v1/resource/"
-                              + self.resource_type + "/"
-                              + self.attributes['id'])
+        result = self.app.get("/v1/resource/" +
+                              self.resource_type + "/" +
+                              self.attributes['id'])
         result = json.loads(result.text)
         del result['revision_start']
         del result['revision_end']
@@ -1211,15 +1218,15 @@ class ResourceTest(RestTest):
 
     def test_patch_resource_non_existent(self):
         self.app.patch_json(
-            "/v1/resource/" + self.resource_type
-            + "/" + str(uuid.uuid4()),
+            "/v1/resource/" + self.resource_type +
+            "/" + str(uuid.uuid4()),
             params={},
             status=404)
 
     def test_patch_resource_non_existent_with_body(self):
         self.app.patch_json(
-            "/v1/resource/" + self.resource_type
-            + "/" + str(uuid.uuid4()),
+            "/v1/resource/" + self.resource_type +
+            "/" + str(uuid.uuid4()),
             params=self.patchable_attributes,
             status=404)
 
@@ -1227,25 +1234,25 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         result = self.app.patch_json(
-            "/v1/resource/" + self.resource_type + "/"
-            + self.attributes['id'],
+            "/v1/resource/" + self.resource_type + "/" +
+            self.attributes['id'],
             params={'foobar': 123},
             status=400)
-        self.assertIn(b'Invalid input: extra keys not allowed @ data['
-                      + repr(u'foobar').encode('ascii') + b"]",
+        self.assertIn(b'Invalid input: extra keys not allowed @ data[' +
+                      repr(u'foobar').encode('ascii') + b"]",
                       result.body)
 
     def test_delete_resource(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.get("/v1/resource/" + self.resource_type + "/"
-                     + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type + "/" +
+                     self.attributes['id'],
                      status=200)
-        self.app.delete("/v1/resource/" + self.resource_type + "/"
-                        + self.attributes['id'],
+        self.app.delete("/v1/resource/" + self.resource_type + "/" +
+                        self.attributes['id'],
                         status=204)
-        self.app.get("/v1/resource/" + self.resource_type + "/"
-                     + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type + "/" +
+                     self.attributes['id'],
                      status=404)
 
     def test_delete_resource_with_metrics(self):
@@ -1259,14 +1266,14 @@ class ResourceTest(RestTest):
                      status=200)
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.get("/v1/resource/" + self.resource_type + "/"
-                     + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type + "/" +
+                     self.attributes['id'],
                      status=200)
-        self.app.delete("/v1/resource/" + self.resource_type + "/"
-                        + self.attributes['id'],
+        self.app.delete("/v1/resource/" + self.resource_type + "/" +
+                        self.attributes['id'],
                         status=204)
-        self.app.get("/v1/resource/" + self.resource_type + "/"
-                     + self.attributes['id'],
+        self.app.get("/v1/resource/" + self.resource_type + "/" +
+                     self.attributes['id'],
                      status=404)
         self.app.get("/v1/metric/" + metric_id,
                      status=404)
@@ -1275,13 +1282,13 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         with self.app.use_another_user():
-            self.app.delete("/v1/resource/" + self.resource_type + "/"
-                            + self.attributes['id'],
+            self.app.delete("/v1/resource/" + self.resource_type + "/" +
+                            self.attributes['id'],
                             status=403)
 
     def test_delete_resource_non_existent(self):
-        result = self.app.delete("/v1/resource/" + self.resource_type + "/"
-                                 + self.attributes['id'],
+        result = self.app.delete("/v1/resource/" + self.resource_type + "/" +
+                                 self.attributes['id'],
                                  status=404)
         self.assertIn(
             "Resource %s does not exist" % self.attributes['id'],
@@ -1296,9 +1303,9 @@ class ResourceTest(RestTest):
                                     params=self.attributes,
                                     status=201)
         resource = json.loads(result.text)
-        self.assertEqual("http://localhost/v1/resource/"
-                         + self.resource_type + "/"
-                         + self.attributes['id'],
+        self.assertEqual("http://localhost/v1/resource/" +
+                         self.resource_type + "/" +
+                         self.attributes['id'],
                          result.headers['Location'])
         self.resource['metrics'] = self.attributes['metrics']
         del resource['revision_start']
@@ -1311,9 +1318,9 @@ class ResourceTest(RestTest):
                                     params=self.attributes,
                                     status=201)
         resource = json.loads(result.text)
-        self.assertEqual("http://localhost/v1/resource/"
-                         + self.resource_type + "/"
-                         + self.attributes['id'],
+        self.assertEqual("http://localhost/v1/resource/" +
+                         self.resource_type + "/" +
+                         self.attributes['id'],
                          result.headers['Location'])
         self.assertEqual(self.attributes['id'], resource["id"])
         metric_id = uuid.UUID(resource['metrics']['foo'])
@@ -1324,8 +1331,8 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes,
                            status=201)
-        result = self.app.get("/v1/resource/" + self.resource_type
-                              + "/" + self.attributes['id'])
+        result = self.app.get("/v1/resource/" + self.resource_type +
+                              "/" + self.attributes['id'])
         result = json.loads(result.text)
 
         resources = self.app.post_json(
@@ -1432,8 +1439,8 @@ class ResourceTest(RestTest):
             "/v1/search/resource/" + self.resource_type,
             params={"=": {"foobar": "baz"}},
             status=400)
-        self.assertIn("Resource type " + self.resource_type
-                      + " has no foobar attribute",
+        self.assertIn("Resource type " + self.resource_type +
+                      " has no foobar attribute",
                       result.text)
 
     def test_search_resources_started_after(self):
@@ -1620,8 +1627,8 @@ class ResourceTest(RestTest):
                            params=self.attributes)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/"
-            + self.resource_type + "/metric/foo?aggregation=max",
+            "/v1/aggregation/resource/" +
+            self.resource_type + "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             status=400,
             headers={"Accept": "application/json"})
@@ -1663,25 +1670,25 @@ class ResourceTest(RestTest):
                            params=self.attributes)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/" + self.resource_type
-            + "/metric/foo?aggregation=max",
+            "/v1/aggregation/resource/" + self.resource_type +
+            "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             expect_errors=True)
         self.assertEqual(400, result.status_code, result.text)
         self.assertIn("No overlap", result.text)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/" + self.resource_type
-            + "/metric/foo?aggregation=max&needed_overlap=5&start=2013-01-01",
+            "/v1/aggregation/resource/" + self.resource_type +
+            "/metric/foo?aggregation=max&needed_overlap=5&start=2013-01-01",
             params={"=": {"name": name}},
             expect_errors=True)
         self.assertEqual(400, result.status_code, result.text)
         self.assertIn("No overlap", result.text)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/"
-            + self.resource_type + "/metric/foo?aggregation=min"
-            + "&needed_overlap=0&start=2013-01-01T00:00:00%2B00:00",
+            "/v1/aggregation/resource/" +
+            self.resource_type + "/metric/foo?aggregation=min" +
+            "&needed_overlap=0&start=2013-01-01T00:00:00%2B00:00",
             params={"=": {"name": name}})
         self.assertEqual(200, result.status_code, result.text)
         measures = json.loads(result.text)
@@ -1725,8 +1732,8 @@ class ResourceTest(RestTest):
                            params=self.attributes)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/" + self.resource_type
-            + "/metric/foo?aggregation=max",
+            "/v1/aggregation/resource/" + self.resource_type +
+            "/metric/foo?aggregation=max",
             params={"=": {"name": name}},
             expect_errors=True)
 
@@ -1738,8 +1745,8 @@ class ResourceTest(RestTest):
                          measures)
 
         result = self.app.post_json(
-            "/v1/aggregation/resource/"
-            + self.resource_type + "/metric/foo?aggregation=min",
+            "/v1/aggregation/resource/" +
+            self.resource_type + "/metric/foo?aggregation=min",
             params={"=": {"name": name}},
             expect_errors=True)
 
@@ -1752,8 +1759,8 @@ class ResourceTest(RestTest):
 
     def test_get_aggregated_measures_across_entities_no_match(self):
         result = self.app.post_json(
-            "/v1/aggregation/resource/"
-            + self.resource_type + "/metric/foo?aggregation=min",
+            "/v1/aggregation/resource/" +
+            self.resource_type + "/metric/foo?aggregation=min",
             params={"=": {"name": "none!"}},
             expect_errors=True)
 
@@ -1866,8 +1873,8 @@ class GenericResourceTest(RestTest):
             params={"wrongoperator": {"user_id": "bar"}},
             status=400)
         self.assertIn(
-            "Invalid input: extra keys not allowed @ data["
-            + repr(u'wrongoperator') + "]",
+            "Invalid input: extra keys not allowed @ data[" +
+            repr(u'wrongoperator') + "]",
             result.text)
 
 

@@ -19,8 +19,10 @@ import datetime
 import operator
 
 import numpy
+
 from oslo_config import cfg
 from oslo_config import types
+
 import six
 
 from gnocchi import carbonara
@@ -150,11 +152,11 @@ class ArchivePolicy(object):
                    d.get('aggregation_methods'))
 
     def __eq__(self, other):
-        return (isinstance(other, ArchivePolicy)
-                and self.name == other.name
-                and self.back_window == other.back_window
-                and self.definition == other.definition
-                and self.aggregation_methods == other.aggregation_methods)
+        return (isinstance(other, ArchivePolicy) and
+                self.name == other.name and
+                self.back_window == other.back_window and
+                self.definition == other.definition and
+                self.aggregation_methods == other.aggregation_methods)
 
     def jsonify(self):
         return {
@@ -183,9 +185,9 @@ OPTS = [
 
 class ArchivePolicyItem(dict):
     def __init__(self, granularity=None, points=None, timespan=None):
-        if (granularity is not None
-           and points is not None
-           and timespan is not None):
+        if (granularity is not None and
+           points is not None and
+           timespan is not None):
             if timespan != granularity * points:
                 raise ValueError(
                     u"timespan ≠ granularity × points")
@@ -199,8 +201,8 @@ class ArchivePolicyItem(dict):
         if points is not None and points <= 0:
             raise ValueError("Number of points should be > 0")
 
-        if (timespan is not None
-           and not isinstance(timespan, numpy.timedelta64)):
+        if (timespan is not None and
+           not isinstance(timespan, numpy.timedelta64)):
             timespan = numpy.timedelta64(int(timespan * 10e8), 'ns')
 
         if granularity is None:

@@ -18,6 +18,7 @@
 import os
 
 from gabbi import driver
+
 import wsgi_intercept
 
 from gnocchi.tests.functional import fixtures

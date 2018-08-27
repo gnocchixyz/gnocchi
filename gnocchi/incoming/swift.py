@@ -11,18 +11,19 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-from collections import defaultdict
 import contextlib
-import daiquiri
 import datetime
 import json
 import uuid
+from collections import defaultdict
+
+import daiquiri
 
 import six
 
-from gnocchi.common import swift
 from gnocchi import incoming
 from gnocchi import utils
+from gnocchi.common import swift
 
 swclient = swift.swclient
 swift_utils = swift.swift_utils

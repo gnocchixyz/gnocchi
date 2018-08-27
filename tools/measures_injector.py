@@ -15,9 +15,10 @@
 # limitations under the License.
 import random
 import uuid
-
 from concurrent import futures
+
 from oslo_config import cfg
+
 import six
 
 from gnocchi import incoming

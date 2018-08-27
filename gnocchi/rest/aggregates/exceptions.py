@@ -17,6 +17,7 @@
 
 class UnAggregableTimeseries(Exception):
     """Error raised when timeseries cannot be aggregated."""
+
     def __init__(self, references, reason):
         self.references = references
         self.reason = reason

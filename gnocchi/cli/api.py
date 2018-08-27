@@ -14,20 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import copy
-from distutils import spawn
 import math
 import os
 import sys
+from distutils import spawn
 
 import daiquiri
+
 from oslo_config import cfg
+
 from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
-from gnocchi.rest import app
 from gnocchi import service
 from gnocchi import utils
-
+from gnocchi.rest import app
 
 LOG = daiquiri.getLogger(__name__)
 

@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 from oslo_config import cfg
+
 import six
 from six.moves.urllib import parse
 

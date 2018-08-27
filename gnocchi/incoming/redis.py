@@ -17,10 +17,11 @@ import contextlib
 import uuid
 
 import daiquiri
+
 import six
 
-from gnocchi.common import redis
 from gnocchi import incoming
+from gnocchi.common import redis
 
 
 LOG = daiquiri.getLogger(__name__)

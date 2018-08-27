@@ -17,12 +17,13 @@
 import collections
 
 from oslo_config import cfg
+
 import six
 
 from gnocchi import carbonara
-from gnocchi.common import ceph
 from gnocchi import storage
 from gnocchi import utils
+from gnocchi.common import ceph
 
 
 OPTS = [
@@ -192,8 +193,8 @@ class CephStorage(storage.StorageDriver):
             for timestamp, method, granularity in six.moves.zip(
                     k_timestamps, k_methods, k_granularities):
                 for aggregation in aggregations:
-                    if (aggregation.method == method
-                       and aggregation.granularity == granularity):
+                    if (aggregation.method == method and
+                       aggregation.granularity == granularity):
                         keys[aggregation].add(carbonara.SplitKey(
                             timestamp,
                             sampling=granularity))
@@ -202,8 +203,8 @@ class CephStorage(storage.StorageDriver):
 
     @staticmethod
     def _build_unaggregated_timeserie_path(metric, version):
-        return (('gnocchi_%s_none' % metric.id)
-                + ("_v%s" % version if version else ""))
+        return (('gnocchi_%s_none' % metric.id) +
+                ("_v%s" % version if version else ""))
 
     def _get_or_create_unaggregated_timeseries_unbatched(
             self, metric, version=3):

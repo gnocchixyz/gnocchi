@@ -18,8 +18,10 @@ import os
 import sys
 
 import daiquiri
+
 from oslo_config import cfg
 from oslo_config import generator
+
 import six
 
 from gnocchi import archive_policy
@@ -38,8 +40,7 @@ def config_generator():
         args = ['--output-file', 'etc/gnocchi/gnocchi.conf']
     return generator.main(['--config-file',
                            '%s/../gnocchi-config-generator.conf' %
-                           os.path.dirname(__file__)]
-                          + args)
+                           os.path.dirname(__file__)] + args)
 
 
 _SACK_NUMBER_OPT = cfg.IntOpt(
@@ -76,9 +77,9 @@ def upgrade():
         LOG.info("Upgrading incoming storage %s", i)
         i.upgrade(conf.sacks_number)
 
-    if (not conf.skip_archive_policies_creation
-            and not index.list_archive_policies()
-            and not index.list_archive_policy_rules()):
+    if (not conf.skip_archive_policies_creation and
+            not index.list_archive_policies() and
+            not index.list_archive_policy_rules()):
         if conf.skip_index:
             index = indexer.get_driver(conf)
         for name, ap in six.iteritems(archive_policy.DEFAULT_ARCHIVE_POLICIES):

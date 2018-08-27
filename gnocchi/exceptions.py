@@ -15,5 +15,6 @@
 # under the License.
 
 
-class NotImplementedError(NotImplementedError):
+class NotImplementedError(NotImplementedError):  # noqa
+
     pass

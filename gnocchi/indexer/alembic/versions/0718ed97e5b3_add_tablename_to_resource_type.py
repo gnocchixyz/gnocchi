@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Add tablename to resource_type
+"""Add tablename to resource_type.
 
 Revision ID: 0718ed97e5b3
 Revises: 828c16f70cce
@@ -22,6 +22,7 @@ Create Date: 2016-01-20 08:14:04.893783
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

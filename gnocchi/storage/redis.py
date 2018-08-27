@@ -18,9 +18,9 @@ import collections
 import six
 
 from gnocchi import carbonara
-from gnocchi.common import redis
 from gnocchi import storage
 from gnocchi import utils
+from gnocchi.common import redis
 
 
 class RedisStorage(storage.StorageDriver):

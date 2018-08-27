@@ -14,10 +14,11 @@
 import copy
 import itertools
 import operator
-import pkg_resources
 import uuid
 
 from oslo_config import cfg
+
+import pkg_resources
 
 import gnocchi.archive_policy
 import gnocchi.common.redis

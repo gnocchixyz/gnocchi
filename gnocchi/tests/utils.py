@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from oslo_config import cfg
+
 from oslo_policy import opts as policy_opts
 
 from gnocchi import opts

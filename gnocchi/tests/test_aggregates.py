@@ -18,14 +18,15 @@ import functools
 import uuid
 
 import mock
+
 import numpy
 
 from gnocchi import carbonara
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi import storage
 from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
-from gnocchi import storage
 from gnocchi.tests import base
 
 
@@ -44,7 +45,7 @@ def datetime64(*args):
 class TestAggregatedTimeseries(base.BaseTestCase):
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
-        """Helper method that mimics _compute_splits_operations workflow."""
+        """Mimic _compute_splits_operations workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         name = agg_dict.get("name")

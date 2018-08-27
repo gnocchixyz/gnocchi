@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""create instance_disk and instance_net_int tables
+"""Create instance_disk and instance_net_int tables.
 
 Revision ID: 3901f5ea2b8e
 Revises: 42ee7f3e25f8
@@ -21,15 +21,17 @@ Create Date: 2015-08-27 17:00:25.092891
 
 """
 
+from alembic import op
+
+import sqlalchemy as sa
+
+import sqlalchemy_utils
+
 # revision identifiers, used by Alembic.
 revision = '3901f5ea2b8e'
 down_revision = '42ee7f3e25f8'
 branch_labels = None
 depends_on = None
-
-from alembic import op
-import sqlalchemy as sa
-import sqlalchemy_utils
 
 
 def upgrade():

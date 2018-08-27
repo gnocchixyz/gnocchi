@@ -17,11 +17,12 @@ import os
 import uuid
 
 import iso8601
+
 import mock
 
 from gnocchi import storage
-from gnocchi.tests import base as tests_base
 from gnocchi import utils
+from gnocchi.tests import base as tests_base
 
 
 class TestUtils(tests_base.TestCase):

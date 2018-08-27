@@ -17,9 +17,12 @@ import itertools
 import uuid
 
 import daiquiri
+
 import proton.handlers
 import proton.reactor
+
 import six
+
 import ujson
 
 from gnocchi import incoming
@@ -178,11 +181,11 @@ class CollectdFormatHandler(object):
         suffix = ("-%s" % message["dsnames"][index]
                   if len(message["dsnames"]) > 1 else "")
         return (message["plugin"] + ("-" + message["plugin_instance"]
-                                     if message["plugin_instance"] else "")
-                + "@"
-                + message["type"] + ("-" + message["type_instance"]
-                                     if message["type_instance"] else "")
-                + suffix)
+                                     if message["plugin_instance"] else "") +
+                "@" +
+                message["type"] + ("-" + message["type_instance"]
+                                   if message["type_instance"] else "") +
+                suffix)
 
     def on_message(self, event):
         json_message = ujson.loads(event.message.body)

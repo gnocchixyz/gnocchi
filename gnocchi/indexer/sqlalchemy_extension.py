@@ -15,10 +15,11 @@
 from __future__ import absolute_import
 
 import sqlalchemy
+
 import sqlalchemy_utils
 
-from gnocchi.indexer import sqlalchemy_types
 from gnocchi import resource_type
+from gnocchi.indexer import sqlalchemy_types
 
 
 class SchemaMixin(object):

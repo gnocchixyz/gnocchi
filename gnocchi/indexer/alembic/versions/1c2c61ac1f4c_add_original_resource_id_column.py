@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""add original resource id column
+"""Add original resource id column.
 
 Revision ID: 1c2c61ac1f4c
 Revises: 1f21cbdd6bc2
@@ -22,6 +22,7 @@ Create Date: 2016-01-27 05:57:48.909012
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.

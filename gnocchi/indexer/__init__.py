@@ -18,9 +18,12 @@ import hashlib
 import os
 
 import iso8601
+
 from oslo_config import cfg
+
 import six
 from six.moves.urllib import parse
+
 from stevedore import driver
 
 from gnocchi import exceptions
@@ -45,16 +48,16 @@ class Resource(object):
                 return m
 
     def __eq__(self, other):
-        return (self.id == other.id
-                and self.type == other.type
-                and self.revision == other.revision
-                and self.revision_start == other.revision_start
-                and self.revision_end == other.revision_end
-                and self.creator == other.creator
-                and self.user_id == other.user_id
-                and self.project_id == other.project_id
-                and self.started_at == other.started_at
-                and self.ended_at == other.ended_at)
+        return (self.id == other.id and
+                self.type == other.type and
+                self.revision == other.revision and
+                self.revision_start == other.revision_start and
+                self.revision_end == other.revision_end and
+                self.creator == other.creator and
+                self.user_id == other.user_id and
+                self.project_id == other.project_id and
+                self.started_at == other.started_at and
+                self.ended_at == other.ended_at)
 
     @property
     def etag(self):
@@ -89,12 +92,12 @@ class Metric(object):
         return str(self.id)
 
     def __eq__(self, other):
-        return (isinstance(other, Metric)
-                and self.id == other.id
-                and self.archive_policy == other.archive_policy
-                and self.creator == other.creator
-                and self.name == other.name
-                and self.resource_id == other.resource_id)
+        return (isinstance(other, Metric) and
+                self.id == other.id and
+                self.archive_policy == other.archive_policy and
+                self.creator == other.creator and
+                self.name == other.name and
+                self.resource_id == other.resource_id)
 
     __hash__ = object.__hash__
 
@@ -114,6 +117,7 @@ class IndexerException(Exception):
 
 class NoSuchResourceType(IndexerException):
     """Error raised when the resource type is unknown."""
+
     def __init__(self, type):
         super(NoSuchResourceType, self).__init__(
             "Resource type %s does not exist" % type)
@@ -128,6 +132,7 @@ class NoSuchResourceType(IndexerException):
 
 class NoSuchMetric(IndexerException):
     """Error raised when a metric does not exist."""
+
     def __init__(self, metric):
         super(NoSuchMetric, self).__init__("Metric %s does not exist" %
                                            metric)
@@ -136,6 +141,7 @@ class NoSuchMetric(IndexerException):
 
 class NoSuchResource(IndexerException):
     """Error raised when a resource does not exist."""
+
     def __init__(self, resource):
         super(NoSuchResource, self).__init__("Resource %s does not exist" %
                                              resource)
@@ -144,6 +150,7 @@ class NoSuchResource(IndexerException):
 
 class NoSuchArchivePolicy(IndexerException):
     """Error raised when an archive policy does not exist."""
+
     def __init__(self, archive_policy):
         super(NoSuchArchivePolicy, self).__init__(
             "Archive policy %s does not exist" % archive_policy)
@@ -158,6 +165,7 @@ class NoSuchArchivePolicy(IndexerException):
 
 class UnsupportedArchivePolicyChange(IndexerException):
     """Error raised when modifying archive policy if not supported."""
+
     def __init__(self, archive_policy, message):
         super(UnsupportedArchivePolicyChange, self).__init__(
             "Archive policy %s does not support change: %s" %
@@ -168,6 +176,7 @@ class UnsupportedArchivePolicyChange(IndexerException):
 
 class ArchivePolicyInUse(IndexerException):
     """Error raised when an archive policy is still being used."""
+
     def __init__(self, archive_policy):
         super(ArchivePolicyInUse, self).__init__(
             "Archive policy %s is still in use" % archive_policy)
@@ -176,6 +185,7 @@ class ArchivePolicyInUse(IndexerException):
 
 class ResourceTypeInUse(IndexerException):
     """Error raised when an resource type is still being used."""
+
     def __init__(self, resource_type):
         super(ResourceTypeInUse, self).__init__(
             "Resource type %s is still in use" % resource_type)
@@ -184,6 +194,7 @@ class ResourceTypeInUse(IndexerException):
 
 class UnexpectedResourceTypeState(IndexerException):
     """Error raised when an resource type state is not expected."""
+
     def __init__(self, resource_type, expected_state, state):
         super(UnexpectedResourceTypeState, self).__init__(
             "Resource type %s state is %s (expected: %s)" % (
@@ -195,6 +206,7 @@ class UnexpectedResourceTypeState(IndexerException):
 
 class NoSuchArchivePolicyRule(IndexerException):
     """Error raised when an archive policy rule does not exist."""
+
     def __init__(self, archive_policy_rule):
         super(NoSuchArchivePolicyRule, self).__init__(
             "Archive policy rule %s does not exist" %
@@ -204,6 +216,7 @@ class NoSuchArchivePolicyRule(IndexerException):
 
 class NoArchivePolicyRuleMatch(IndexerException):
     """Error raised when no archive policy rule found for metric."""
+
     def __init__(self, metric_name):
         super(NoArchivePolicyRuleMatch, self).__init__(
             "No Archive policy rule found for metric %s" %
@@ -213,6 +226,7 @@ class NoArchivePolicyRuleMatch(IndexerException):
 
 class UnsupportedArchivePolicyRuleChange(IndexerException):
     """Error raised when modifying archive policy rule if not supported."""
+
     def __init__(self, archive_policy_rule, message):
         super(UnsupportedArchivePolicyRuleChange, self).__init__(
             "Archive policy rule %s does not support change: %s" %
@@ -223,6 +237,7 @@ class UnsupportedArchivePolicyRuleChange(IndexerException):
 
 class NamedMetricAlreadyExists(IndexerException):
     """Error raised when a named metric already exists."""
+
     def __init__(self, metric_name):
         super(NamedMetricAlreadyExists, self).__init__(
             "Named metric %s already exists" % metric_name)
@@ -235,6 +250,7 @@ class NamedMetricAlreadyExists(IndexerException):
 
 class ResourceAlreadyExists(IndexerException):
     """Error raised when a resource already exists."""
+
     def __init__(self, resource):
         super(ResourceAlreadyExists, self).__init__(
             "Resource %s already exists" % resource)
@@ -247,6 +263,7 @@ class ResourceAlreadyExists(IndexerException):
 
 class ResourceTypeAlreadyExists(IndexerException):
     """Error raised when a resource type already exists."""
+
     def __init__(self, resource_type):
         super(ResourceTypeAlreadyExists, self).__init__(
             "Resource type %s already exists" % resource_type)
@@ -255,6 +272,7 @@ class ResourceTypeAlreadyExists(IndexerException):
 
 class ResourceAttributeError(IndexerException, AttributeError):
     """Error raised when an attribute does not exist for a resource type."""
+
     def __init__(self, resource, attribute):
         super(ResourceAttributeError, self).__init__(
             "Resource type %s has no %s attribute" % (resource, attribute))
@@ -264,6 +282,7 @@ class ResourceAttributeError(IndexerException, AttributeError):
 
 class ResourceValueError(IndexerException, ValueError):
     """Error raised when an attribute value is invalid for a resource type."""
+
     def __init__(self, resource_type, attribute, value):
         super(ResourceValueError, self).__init__(
             "Value %s for attribute %s on resource type %s is invalid"
@@ -275,6 +294,7 @@ class ResourceValueError(IndexerException, ValueError):
 
 class ArchivePolicyAlreadyExists(IndexerException):
     """Error raised when an archive policy already exists."""
+
     def __init__(self, name):
         super(ArchivePolicyAlreadyExists, self).__init__(
             "Archive policy %s already exists" % name)
@@ -283,6 +303,7 @@ class ArchivePolicyAlreadyExists(IndexerException):
 
 class ArchivePolicyRuleAlreadyExists(IndexerException):
     """Error raised when an archive policy rule already exists."""
+
     def __init__(self, name):
         super(ArchivePolicyRuleAlreadyExists, self).__init__(
             "Archive policy rule %s already exists" % name)
@@ -313,6 +334,7 @@ class QueryAttributeError(QueryError, ResourceAttributeError):
 
 class InvalidPagination(IndexerException):
     """Error raised when a resource does not exist."""
+
     def __init__(self, reason):
         self.reason = reason
         super(InvalidPagination, self).__init__(
@@ -438,7 +460,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     def get_archive_policy_for_metric(self, metric_name):
-        """Helper to get the archive policy according archive policy rules."""
+        """Get the archive policy according to archive policy rules."""
         rules = self.list_archive_policy_rules()
         for rule in rules:
             if fnmatch.fnmatch(metric_name or "", rule.metric_pattern):

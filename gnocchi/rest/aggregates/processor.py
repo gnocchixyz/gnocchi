@@ -18,14 +18,16 @@
 import collections
 
 import daiquiri
+
 import numpy
+
 import six
 
 from gnocchi import carbonara
-from gnocchi.rest.aggregates import exceptions
-from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi import storage as gnocchi_storage
 from gnocchi import utils
+from gnocchi.rest.aggregates import exceptions
+from gnocchi.rest.aggregates import operations as agg_operations
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -78,7 +80,6 @@ def get_measures(storage, references, operations,
     :param granularities: The granularities to retrieve.
     :param fill: The value to use to fill in missing data in series.
     """
-
     if granularities is None:
         all_granularities = (
             definition.granularity

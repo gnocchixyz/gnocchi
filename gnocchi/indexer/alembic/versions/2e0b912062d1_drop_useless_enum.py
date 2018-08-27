@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""drop_useless_enum
+"""Drop useless enum.
 
 Revision ID: 2e0b912062d1
 Revises: 34c517bcc2dd

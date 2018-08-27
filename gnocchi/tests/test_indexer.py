@@ -18,12 +18,13 @@ import operator
 import uuid
 
 import mock
+
 import numpy
 
 from gnocchi import archive_policy
 from gnocchi import indexer
-from gnocchi.tests import base as tests_base
 from gnocchi import utils
+from gnocchi.tests import base as tests_base
 
 
 class MockException(Exception):
@@ -39,12 +40,11 @@ class TestIndexer(tests_base.TestCase):
 class TestIndexerDriver(tests_base.TestCase):
 
     def test_str(self):
-        self.assertEqual("%s: %s" % (self.index.__class__.__name__,
-                                     self.conf.indexer.url.replace(
-                                         "root@", "").replace(
-                                             "localhost", "***:***@localhost"
-                                         )),
-                         str(self.index))
+        self.assertEqual("%s: %s" % (
+            self.index.__class__.__name__,
+            self.conf.indexer.url.replace("root@", "").replace(
+                "localhost", "***:***@localhost")
+        ), str(self.index))
 
     def test_create_archive_policy_already_exists(self):
         # NOTE(jd) This archive policy

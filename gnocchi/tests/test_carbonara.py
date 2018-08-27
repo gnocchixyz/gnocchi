@@ -19,8 +19,11 @@ import math
 import operator
 
 import fixtures
+
 import iso8601
+
 import numpy
+
 import six
 
 from gnocchi import carbonara
@@ -398,7 +401,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
 
     @staticmethod
     def _resample_and_merge(ts, agg_dict):
-        """Helper method that mimics _compute_splits_operations workflow."""
+        """Mimic _compute_splits_operations workflow."""
         grouped = ts.group_serie(agg_dict['sampling'])
         existing = agg_dict.get('return')
         agg_dict['return'] = carbonara.AggregatedTimeSerie.from_grouped_serie(
@@ -860,8 +863,8 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         grouped_points = list(agg.split())
 
         self.assertEqual(
-            math.ceil((points / sampling.astype(float))
-                      / carbonara.SplitKey.POINTS_PER_SPLIT),
+            math.ceil((points / sampling.astype(float)) /
+                      carbonara.SplitKey.POINTS_PER_SPLIT),
             len(grouped_points))
         self.assertEqual("0.0",
                          str(carbonara.SplitKey(grouped_points[0][0], 0)))

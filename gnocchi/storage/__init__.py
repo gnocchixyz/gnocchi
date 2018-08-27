@@ -19,8 +19,11 @@ import itertools
 import operator
 
 import daiquiri
+
 import numpy
+
 from oslo_config import cfg
+
 import six
 
 from gnocchi import carbonara
@@ -103,7 +106,7 @@ def get_driver(conf):
 
 
 class Statistics(collections.defaultdict):
-    class StatisticsTimeContext(object):
+    class StatisticsTimeContext(object):  # noqa
         def __init__(self, stats, name):
             self.stats = stats
             self.name = name + " time"
@@ -223,10 +226,9 @@ class StorageDriver(object):
         Store a bunch of splits for some metrics.
 
         :param metrics_keys_aggregations_data_offset: A dict where keys are
-                                                      `storage.Metric` and
-                                                      values are a list of
-                                                      (key, aggregation,
-                                                       data, offset) tuples.
+          `storage.Metric` and values are a list of
+          (key, aggregation, data, offset) tuples.
+
         :param version: Storage engine format version.
         """
         self.MAP_METHOD(
@@ -253,13 +255,12 @@ class StorageDriver(object):
         """List split keys for metrics.
 
         :param metrics_and_aggregations: Dict of
-                                         {`storage.Metric`:
-                                          [`carbonara.Aggregation`]}
-                                         to look for.
+         {`storage.Metric`: [`carbonara.Aggregation`]} to look for.
         :param version: Storage engine format version.
         :return: A dict where keys are `storage.Metric` and values are dicts
-                 where keys are `carbonara.Aggregation` objects and values are
-                 a set of `carbonara.SplitKey` objects.
+         where keys are `carbonara.Aggregation` objects and values are
+         a set of `carbonara.SplitKey` objects.
+
         """
         metrics = list(metrics_and_aggregations.keys())
         r = self.MAP_METHOD(
@@ -273,7 +274,6 @@ class StorageDriver(object):
 
     @staticmethod
     def _version_check(name, v):
-
         """Validate object matches expected version.
 
         Version should be last attribute and start with 'v'
@@ -283,7 +283,7 @@ class StorageDriver(object):
     def get_aggregated_measures(self, metrics_and_aggregations,
                                 from_timestamp=None, to_timestamp=None,
                                 resample=None):
-        """Get aggregated measures from a metric.
+        u"""Get aggregated measures from a metric.
 
         :param metrics_and_aggregations: The metrics and aggregations to
                                          retrieve in format
@@ -308,8 +308,8 @@ class StorageDriver(object):
                 # Replace keys with filtered version
                 metrics_aggs_keys[metric][aggregation] = [
                     key for key in sorted(keys)
-                    if ((not start or key >= start)
-                        and (not stop or key <= stop))
+                    if ((not start or key >= start) and
+                        (not stop or key <= stop))
                 ]
 
         metrics_aggregations_splits = self._get_splits_and_unserialize(
@@ -331,21 +331,21 @@ class StorageDriver(object):
                 # be processed. Truncate to be sure we don't return them.
                 if aggregation.timespan is not None:
                     ts.truncate(aggregation.timespan)
-                results[metric][aggregation] = ts.resample(resample) if resample \
-                    else ts
+                results[metric][aggregation] = (
+                    ts.resample(resample) if resample else ts
+                )
                 results[metric][aggregation] = results[metric][
                     aggregation].fetch(from_timestamp, to_timestamp)
         return results
 
     def _get_splits_and_unserialize(self, metrics_aggregations_keys):
-        """Get splits and unserialize them
+        """Get splits and unserialize them.
 
         :param metrics_aggregations_keys: A dict where keys are
-                                         `storage.Metric` and values are dict
-                                          of {Aggregation: [SplitKey]} to
-                                          retrieve.
+         `storage.Metric` and values are dict of {Aggregation: [SplitKey]} to
+         retrieve.
         :return: A dict where keys are `storage.Metric` and values are dict
-                 {aggregation: [`carbonara.AggregatedTimeSerie`]}.
+         {aggregation: [`carbonara.AggregatedTimeSerie`]}.
         """
         raw_measures = self._get_splits(metrics_aggregations_keys)
         results = collections.defaultdict(
@@ -374,10 +374,8 @@ class StorageDriver(object):
         argument, then writing it to the storage.
 
         :param metrics_keys_aggregations_splits: A dict where keys are
-                                                 `storage.Metric` and values
-                                                 are tuples of the form
-                                                 ({(key, aggregation): split},
-                                                  oldest_mutable_timestamp)
+         `storage.Metric` and values are tuples of the form
+         ({(key, aggregation): split}, oldest_mutable_timestamp).
         """
         metrics_splits_to_store = {}
         keys_to_get = collections.defaultdict(
@@ -454,8 +452,8 @@ class StorageDriver(object):
         # We only need to check for rewrite if driver is not in WRITE_FULL mode
         # and if we already stored splits once
         need_rewrite = (
-            not self.WRITE_FULL
-            and previous_oldest_mutable_timestamp is not None
+            not self.WRITE_FULL and
+            previous_oldest_mutable_timestamp is not None
         )
 
         aggregations_needing_list_of_keys = set()

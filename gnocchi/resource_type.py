@@ -14,8 +14,11 @@
 
 import numbers
 import re
+
 import six
+
 import stevedore
+
 import voluptuous
 
 from gnocchi import utils
@@ -34,11 +37,13 @@ VALID_CHARS = re.compile("[a-zA-Z0-9][a-zA-Z0-9_]*")
 
 
 class InvalidResourceAttribute(ValueError):
+
     pass
 
 
 class InvalidResourceAttributeName(InvalidResourceAttribute):
     """Error raised when the resource attribute name is invalid."""
+
     def __init__(self, name):
         super(InvalidResourceAttributeName, self).__init__(
             "Resource attribute name %s is invalid" % str(name))
@@ -46,7 +51,8 @@ class InvalidResourceAttributeName(InvalidResourceAttribute):
 
 
 class InvalidResourceAttributeValue(InvalidResourceAttribute):
-    """Error raised when the resource attribute min is greater than max"""
+    """Error raised when the resource attribute min is greater than max."""
+
     def __init__(self, min, max):
         super(InvalidResourceAttributeValue, self).__init__(
             "Resource attribute value min (or min_length) %s must be less  "
@@ -57,6 +63,7 @@ class InvalidResourceAttributeValue(InvalidResourceAttribute):
 
 class InvalidResourceAttributeOption(InvalidResourceAttribute):
     """Error raised when the resource attribute name is invalid."""
+
     def __init__(self, name, option, reason):
         super(InvalidResourceAttributeOption, self).__init__(
             "Option '%s' of resource attribute %s is invalid: %s" %
@@ -83,8 +90,8 @@ class CommonAttributeSchema(object):
     schema_ext = None
 
     def __init__(self, type, name, required, options=None):
-        if (len(name) > 63 or name in INVALID_NAMES
-                or not VALID_CHARS.match(name)):
+        if (len(name) > 63 or name in INVALID_NAMES or
+                not VALID_CHARS.match(name)):
             raise InvalidResourceAttributeName(name)
 
         self.name = name

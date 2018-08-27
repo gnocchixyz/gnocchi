@@ -22,24 +22,29 @@ import threading
 import uuid
 
 import daiquiri
+
 import fixtures
+
 import numpy
+
 import six
 from six.moves.urllib.parse import unquote
+
 try:
     from swiftclient import exceptions as swexc
 except ImportError:
     swexc = None
+
 from testtools import testcase
 
 from gnocchi import archive_policy
 from gnocchi import chef
-from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import service
 from gnocchi import storage
+from gnocchi.cli import metricd
 from gnocchi.tests import utils
 
 
@@ -181,15 +186,10 @@ class FakeSwiftClient(object):
 class CaptureOutput(fixtures.Fixture):
     """Optionally capture the output streams.
 
-    .. py:attribute:: stdout
-
-       The ``stream`` attribute from a :class:`StringStream` instance
-       replacing stdout.
-
-    .. py:attribute:: stderr
-
-       The ``stream`` attribute from a :class:`StringStream` instance
-       replacing stderr.
+    :ivar stdout: The ``stream`` attribute from a py:class:`StringStream`
+     instance replacing stdout.
+    :ivar stderr: The ``stream`` attribute from a py:class:`StringStream`
+     instance replacing stderr.
 
     """
 
@@ -380,7 +380,7 @@ class TestCase(BaseTestCase):
         super(TestCase, self).tearDown()
 
     def _create_metric(self, archive_policy_name="low"):
-        """Create a metric and return it"""
+        """Create a metric and return it."""
         m = indexer.Metric(uuid.uuid4(),
                            self.archive_policies[archive_policy_name])
         m_sql = self.index.create_metric(m.id, str(uuid.uuid4()),

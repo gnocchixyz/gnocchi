@@ -21,29 +21,36 @@ import operator
 import uuid
 
 import jsonpatch
+
 import pecan
 from pecan import rest
+
 import pyparsing
+
 import six
 from six.moves.urllib import parse as urllib_parse
+
 import tenacity
+
 import tooz
+
 import voluptuous
+
 import werkzeug.http
 
 import gnocchi
 from gnocchi import archive_policy
 from gnocchi import calendar
 from gnocchi import chef
-from gnocchi.cli import metricd
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi import json
 from gnocchi import resource_type
-from gnocchi.rest.aggregates import exceptions
-from gnocchi.rest.aggregates import processor
 from gnocchi import storage
 from gnocchi import utils
+from gnocchi.cli import metricd
+from gnocchi.rest.aggregates import exceptions
+from gnocchi.rest.aggregates import processor
 
 try:
     from gnocchi.rest.prometheus import remote_pb2
@@ -74,7 +81,7 @@ def abort(status_code, detail=''):
 
 
 def flatten_dict_to_keypairs(d, separator=':'):
-    """Generator that produces sequence of keypairs for nested dictionaries.
+    """Produce a generator for a sequence of keypairs for nested dictionaries.
 
     :param d: dictionaries which may be nested
     :param separator: symbol between names
@@ -353,7 +360,7 @@ class ArchivePolicyRulesController(rest.RestController):
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("metric_pattern"): six.text_type,
             voluptuous.Required("archive_policy_name"): six.text_type,
-            })
+        })
 
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
         enforce("create archive policy rule", body)
@@ -391,7 +398,7 @@ class ArchivePolicyRuleController(rest.RestController):
     def patch(self):
         ArchivePolicyRuleSchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
-            })
+        })
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
         enforce("update archive policy rule", {})
         try:
@@ -654,9 +661,9 @@ class MetricsController(rest.RestController):
             provided_creator = filtering.pop('creator', None)
         else:
             provided_creator = (
-                (provided_user_id or "")
-                + ":"
-                + (provided_project_id or "")
+                (provided_user_id or "") +
+                ":" +
+                (provided_project_id or "")
             )
 
         pagination_opts = get_pagination_options(kwargs,
@@ -809,9 +816,9 @@ def etag_precondition_check(obj):
     # and are identique...
     if etag not in pecan.request.if_match:
         abort(412)
-    elif (not pecan.request.environ.get("HTTP_IF_MATCH")
-          and pecan.request.if_unmodified_since
-          and pecan.request.if_unmodified_since < lastmodified):
+    elif (not pecan.request.environ.get("HTTP_IF_MATCH") and
+          pecan.request.if_unmodified_since and
+          pecan.request.if_unmodified_since < lastmodified):
         abort(412)
 
     if etag in pecan.request.if_none_match:
@@ -819,11 +826,11 @@ def etag_precondition_check(obj):
             abort(304)
         else:
             abort(412)
-    elif (not pecan.request.environ.get("HTTP_IF_NONE_MATCH")
-          and pecan.request.if_modified_since
-          and (pecan.request.if_modified_since >=
-               lastmodified)
-          and pecan.request.method in ['GET', 'HEAD']):
+    elif (not pecan.request.environ.get("HTTP_IF_NONE_MATCH") and
+          pecan.request.if_modified_since and
+          (pecan.request.if_modified_since >=
+           lastmodified) and
+          pecan.request.method in ['GET', 'HEAD']):
         abort(304)
 
 
@@ -1113,9 +1120,9 @@ class ResourcesController(rest.RestController):
             abort(400, six.text_type(e))
         except indexer.ResourceAlreadyExists as e:
             abort(409, six.text_type(e))
-        set_resp_location_hdr("/resource/"
-                              + self._resource_type + "/"
-                              + six.text_type(resource.id))
+        set_resp_location_hdr("/resource/" +
+                              self._resource_type + "/" +
+                              six.text_type(resource.id))
         etag_set_headers(resource)
         pecan.response.status = 201
         return resource
@@ -1214,7 +1221,10 @@ class QueryStringSearchAttrFilter(object):
     boolean = "False|True|false|true"
     boolean = pyparsing.Regex(boolean).setParseAction(
         lambda t: t[0].lower() == "true")
-    hex_string = lambda n: pyparsing.Word(pyparsing.hexnums, exact=n)
+
+    def hex_string(n):
+        return pyparsing.Word(pyparsing.hexnums, exact=n)
+
     uuid_string = pyparsing.Combine(
         hex_string(8) + (pyparsing.Optional("-") + hex_string(4)) * 3 +
         pyparsing.Optional("-") + hex_string(12))
@@ -1406,12 +1416,12 @@ class SearchResourceController(rest.RestController):
 
 
 def _MetricSearchSchema(v):
-    """Helper method to indirect the recursivity of the search schema"""
+    """Indirect the recursivity of the search schema."""
     return SearchMetricController.MetricSearchSchema(v)
 
 
 def _MetricSearchOperationSchema(v):
-    """Helper method to indirect the recursivity of the search schema"""
+    """Indirect the recursivity of the search schema."""
     return SearchMetricController.MetricSearchOperationSchema(v)
 
 
@@ -1463,6 +1473,8 @@ class SearchMetricController(rest.RestController):
     )
 
     class MeasureQuery(object):
+        """Evaluate a measure against a predicate."""
+
         binary_operators = {
             u"=": operator.eq,
             u"==": operator.eq,
@@ -1555,7 +1567,7 @@ class SearchMetricController(rest.RestController):
             return lambda value: op(node0(value), node1(value))
 
         class InvalidQuery(Exception):
-            pass
+            """Invalid query."""
 
     @pecan.expose('json')
     def post(self, metric_id, start=None, stop=None, aggregation='mean',
@@ -1844,6 +1856,7 @@ class AggregationResourceController(rest.RestController):
 
         return results
 
+
 FillSchema = voluptuous.Schema(
     voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
                    msg="Must be a float, 'dropna' or 'null'"))
@@ -2056,8 +2069,8 @@ class AggregationController(rest.RestController):
         # Check RBAC policy
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": metric_ids}})
-        missing_metric_ids = (set(metric_ids)
-                              - set(six.text_type(m.id) for m in metrics))
+        missing_metric_ids = (set(metric_ids) -
+                              set(six.text_type(m.id) for m in metrics))
         if missing_metric_ids:
             # Return one of the missing one in the error
             abort(404, six.text_type(storage.MetricDoesNotExist(
@@ -2328,10 +2341,10 @@ class VersionsController(object):
                         {
                             "rel": "self",
                             "href": pecan.request.application_url + "/v1/"
-                            }
-                        ],
+                        },
+                    ],
                     "id": "v1.0",
                     "updated": "2015-03-19"
-                    }
-                ]
-            }
+                },
+            ],
+        }

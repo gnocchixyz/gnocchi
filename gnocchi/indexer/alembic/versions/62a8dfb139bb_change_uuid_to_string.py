@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Change uuid to string
+"""Change uuid to string.
 
 Revision ID: 62a8dfb139bb
 Revises: 1f21cbdd6bc2
@@ -22,7 +22,9 @@ Create Date: 2016-01-20 11:57:45.954607
 """
 
 from alembic import op
+
 import sqlalchemy as sa
+
 import sqlalchemy_utils
 
 

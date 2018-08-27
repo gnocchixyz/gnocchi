@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""merges primarykey and indexes
+"""Merges primarykey and indexes.
 
 Revision ID: a54c57ada3f5
 Revises: 1c2c61ac1f4c

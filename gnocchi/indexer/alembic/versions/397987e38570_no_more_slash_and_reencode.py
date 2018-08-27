@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Remove slashes from original resource IDs, recompute their id with creator
+"""Remove slashes from original resource IDs, recompute their id with creator.
 
 Revision ID: 397987e38570
 Revises: aba5a217ca9b
@@ -23,8 +23,11 @@ Create Date: 2017-01-11 16:32:40.421758
 import uuid
 
 from alembic import op
+
 import six
+
 import sqlalchemy as sa
+
 import sqlalchemy_utils
 
 from gnocchi import utils

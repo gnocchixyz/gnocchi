@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import numpy
+
 import pyparsing
 
 from gnocchi.rest import influxdb

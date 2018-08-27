@@ -25,7 +25,9 @@ import tempfile
 import uuid
 
 import daiquiri
+
 from oslo_config import cfg
+
 import six
 
 from gnocchi import carbonara
@@ -51,7 +53,7 @@ LOG = daiquiri.getLogger(__name__)
 try:
     FileNotFoundError
 except NameError:
-    FileNotFoundError = None
+    FileNotFoundError = None  # noqa
 
 
 class FileStorage(storage.StorageDriver):
@@ -121,7 +123,7 @@ class FileStorage(storage.StorageDriver):
         if self.SUBDIR_LEN > 0:
             metric_id = metric.id.hex
             path_parts.extend(
-                [metric_id[start:start+self.SUBDIR_LEN]
+                [metric_id[start:start + self.SUBDIR_LEN]
                  for start in range(0, 32, self.SUBDIR_LEN)
                  ])
         path_parts.append(str(metric.id))
@@ -140,9 +142,9 @@ class FileStorage(storage.StorageDriver):
                                      key, version=3):
         path = os.path.join(
             self._build_metric_path(metric, aggregation),
-            str(key)
-            + "_"
-            + str(utils.timespan_total_seconds(key.sampling)))
+            str(key) +
+            "_" +
+            str(utils.timespan_total_seconds(key.sampling)))
         return path + '_v%s' % version if version else path
 
     def _create_metric(self, metric):

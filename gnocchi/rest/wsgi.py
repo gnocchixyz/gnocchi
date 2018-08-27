@@ -10,7 +10,8 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This file is loaded by gnocchi-api when executing uwsgi"""
+"""This file is loaded by gnocchi-api when executing uwsgi."""
 from gnocchi.cli import api
 from gnocchi.rest import app
+
 application = app.load_app(api.prepare_service())

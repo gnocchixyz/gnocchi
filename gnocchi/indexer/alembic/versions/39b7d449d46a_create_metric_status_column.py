@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""create metric status column
+"""Create metric status column.
 
 Revision ID: 39b7d449d46a
 Revises: 3901f5ea2b8e
@@ -22,6 +22,7 @@ Create Date: 2015-09-16 13:25:34.249237
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

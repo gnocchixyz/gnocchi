@@ -21,15 +21,22 @@ import itertools
 import multiprocessing
 import os
 import uuid
-
 from concurrent import futures
+
 import daiquiri
+
 import iso8601
+
 import monotonic
+
 import numpy
+
 import pytimeparse
+
 import six
+
 from stevedore import driver
+
 import tenacity
 
 
@@ -150,7 +157,7 @@ def timespan_total_seconds(td):
 
 
 def utcnow():
-    """Version of utcnow() that returns utcnow with a correct TZ."""
+    """Return utcnow timestamp with a correct TZ."""
     return datetime.datetime.now(tz=iso8601.iso8601.UTC)
 
 
@@ -225,6 +232,7 @@ class StopWatch(object):
 
     .. _monotonic: https://pypi.python.org/pypi/monotonic/
     """
+
     _STARTED = object()
     _STOPPED = object()
 
@@ -234,7 +242,7 @@ class StopWatch(object):
         self._state = None
 
     def start(self):
-        """Starts the watch (if not already started).
+        """Start the watch (if not already started).
 
         NOTE(harlowja): resets any splits previously captured (if any).
         """
@@ -250,7 +258,7 @@ class StopWatch(object):
         return max(0.0, later - earlier)
 
     def elapsed(self):
-        """Returns how many seconds have elapsed."""
+        """Return how many seconds have elapsed."""
         if self._state not in (self._STARTED, self._STOPPED):
             raise RuntimeError("Can not get the elapsed time of a stopwatch"
                                " if it has not been started/stopped")
@@ -262,19 +270,19 @@ class StopWatch(object):
         return elapsed
 
     def __enter__(self):
-        """Starts the watch."""
+        """Start the watch."""
         self.start()
         return self
 
     def __exit__(self, type, value, traceback):
-        """Stops the watch (ignoring errors if stop fails)."""
+        """Stop the watch (ignoring errors if stop fails)."""
         try:
             self.stop()
         except RuntimeError:
             pass
 
     def stop(self):
-        """Stops the watch."""
+        """Stop the watch."""
         if self._state == self._STOPPED:
             return self
         if self._state != self._STARTED:
@@ -305,7 +313,6 @@ def sequencial_map(fn, list_of_args):
 
 def parallel_map(fn, list_of_args):
     """Run a function in parallel."""
-
     if parallel_map.MAX_WORKERS == 1:
         return sequencial_map(fn, list_of_args)
 

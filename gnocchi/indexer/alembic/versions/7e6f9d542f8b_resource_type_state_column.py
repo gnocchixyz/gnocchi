@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""resource_type state column
+"""Add resource_type state column.
 
 Revision ID: 7e6f9d542f8b
 Revises: c62df18bf4ee
@@ -22,6 +22,7 @@ Create Date: 2016-05-19 16:52:58.939088
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.

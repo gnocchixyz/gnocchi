@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""create resource_type table
+"""Create resource_type table.
 
 Revision ID: 828c16f70cce
 Revises: 9901e5ea4b6e
@@ -22,6 +22,7 @@ Create Date: 2016-01-19 12:47:19.384127
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 
 

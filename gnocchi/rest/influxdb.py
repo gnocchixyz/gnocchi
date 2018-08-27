@@ -16,24 +16,29 @@
 import collections
 import time
 
-import gnocchi
-from gnocchi import incoming
-from gnocchi import indexer
-from gnocchi.rest import api
-from gnocchi import utils
-
 import daiquiri
+
 import numpy
+
 import pecan
 from pecan import rest
+
 import pyparsing
+
 import six
+
 import tenacity
+
 try:
     import uwsgi
 except ImportError:
     uwsgi = None
 
+import gnocchi
+from gnocchi import incoming
+from gnocchi import indexer
+from gnocchi import utils
+from gnocchi.rest import api
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -61,7 +66,7 @@ integer = (
     pyparsing.Word(pyparsing.nums).setParseAction(
         lambda s, loc, tok: int(tok[0])) +
     pyparsing.Suppress("i")
-    )
+)
 field_value = integer | number | quoted_string
 timestamp = pyparsing.Word(pyparsing.nums).setParseAction(
     lambda s, loc, tok: numpy.datetime64(int(tok[0]), 'ns'))

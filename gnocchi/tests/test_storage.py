@@ -17,7 +17,9 @@ import datetime
 import uuid
 
 import mock
+
 import numpy
+
 import six.moves
 
 from gnocchi import archive_policy
@@ -334,8 +336,8 @@ class TestStorageDriver(tests_base.TestCase):
             for metric, key_agg_data_offset in six.iteritems(args[0]):
                 if metric.id == m_sql.id:
                     for key, aggregation, data, offset in key_agg_data_offset:
-                        if (key.sampling == numpy.timedelta64(1, 'm')
-                           and aggregation.method == "mean"):
+                        if (key.sampling == numpy.timedelta64(1, 'm') and
+                           aggregation.method == "mean"):
                             count += 1
         self.assertEqual(1, count)
 
@@ -646,8 +648,8 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 16, 18), numpy.timedelta64(1, 'm'), 45),
             (datetime64(2016, 1, 10, 17, 12), numpy.timedelta64(1, 'm'), 46),
-            ]}, get_measures_list(self.storage.get_aggregated_measures(
-                {self.metric: [aggregation]})[self.metric]))
+        ]}, get_measures_list(self.storage.get_aggregated_measures(
+            {self.metric: [aggregation]})[self.metric]))
 
     def test_rewrite_measures_multiple_granularities(self):
         apname = str(uuid.uuid4())
@@ -678,7 +680,7 @@ class TestStorageDriver(tests_base.TestCase):
             self.trigger_processing()
 
     def test_rewrite_measures_oldest_mutable_timestamp_eq_next_key(self):
-        """See LP#1655422"""
+        # See LP#1655422
         # Create an archive policy that spans on several splits. Each split
         # being 3600 points, let's go for 36k points so we have 10 splits.
         apname = str(uuid.uuid4())
@@ -1229,7 +1231,7 @@ class TestStorageDriver(tests_base.TestCase):
             {m: [aggregation]})[m]))
 
     def test_resample_no_metric(self):
-        """https://github.com/gnocchixyz/gnocchi/issues/69"""
+        # https://github.com/gnocchixyz/gnocchi/issues/69
         aggregation = self.metric.archive_policy.get_aggregation(
             "mean", numpy.timedelta64(300, 's'))
         self.assertRaises(storage.MetricDoesNotExist,

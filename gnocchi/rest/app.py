@@ -15,28 +15,34 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
-import pkg_resources
 import threading
 import uuid
 
 import daiquiri
+
 from oslo_middleware import cors
+
 from oslo_policy import policy
+
 from paste import deploy
+
 import pecan
 from pecan import jsonify
 from pecan import templating
+
+import pkg_resources
+
 from stevedore import driver
+
 import webob.exc
 
 from gnocchi import chef
-from gnocchi.cli import metricd
 from gnocchi import exceptions
 from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi import storage as gnocchi_storage
-
+from gnocchi.cli import metricd
 
 LOG = daiquiri.getLogger(__name__)
 

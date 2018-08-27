@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""Make sure resource.original_resource_id is NOT NULL
+"""Make sure resource.original_resource_id is NOT NULL.
 
 Revision ID: 1e1a63d3d186
 Revises: 397987e38570
@@ -22,8 +22,10 @@ Create Date: 2017-01-26 19:33:35.209688
 """
 
 from alembic import op
+
 import sqlalchemy as sa
 from sqlalchemy import func
+
 import sqlalchemy_utils
 
 

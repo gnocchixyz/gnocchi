@@ -20,12 +20,14 @@ import itertools
 import operator
 
 import daiquiri
+
 import numpy
+
 import six
 
-from gnocchi.carbonara import TIMESERIES_ARRAY_DTYPE
 from gnocchi import exceptions
 from gnocchi import utils
+from gnocchi.carbonara import TIMESERIES_ARRAY_DTYPE
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -189,7 +191,7 @@ class IncomingDriver(object):
 
         :param metrics_and_measures: A dict where keys are metric objects
                                      and values are a list of
-                                     :py:class:`gnocchi.incoming.Measure`.
+                                     py:class:`gnocchi.incoming.Measure`.
         """
         self.MAP_METHOD(self._store_new_measures,
                         ((metric_id, self._encode_measures(measures))
@@ -260,7 +262,7 @@ class IncomingDriver(object):
 
 @utils.retry_on_exception_and_log("Unable to initialize incoming driver")
 def get_driver(conf):
-    """Return configured incoming driver only
+    """Return configured incoming driver only.
 
     :param conf: incoming configuration only (not global)
     """

@@ -21,9 +21,10 @@ import datetime
 import decimal
 
 import iso8601
+
 import sqlalchemy
-from sqlalchemy.dialects import mysql
 from sqlalchemy import types
+from sqlalchemy.dialects import mysql
 
 from gnocchi import utils
 

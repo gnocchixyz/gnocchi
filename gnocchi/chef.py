@@ -17,6 +17,7 @@
 import hashlib
 
 import daiquiri
+
 import six
 
 from gnocchi import indexer

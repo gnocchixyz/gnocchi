@@ -13,7 +13,7 @@
 #    under the License.
 #
 
-"""create host tables
+"""Create host tables.
 
 Revision ID: 9901e5ea4b6e
 Revises: a54c57ada3f5
@@ -21,15 +21,17 @@ Create Date: 2015-12-15 17:20:25.092891
 
 """
 
+from alembic import op
+
+import sqlalchemy as sa
+
+import sqlalchemy_utils
+
 # revision identifiers, used by Alembic.
 revision = '9901e5ea4b6e'
 down_revision = 'a54c57ada3f5'
 branch_labels = None
 depends_on = None
-
-from alembic import op
-import sqlalchemy as sa
-import sqlalchemy_utils
 
 
 def upgrade():
