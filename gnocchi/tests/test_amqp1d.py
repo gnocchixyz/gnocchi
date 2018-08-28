@@ -19,6 +19,7 @@ import numpy
 
 from gnocchi import amqp1d
 from gnocchi.tests import base as tests_base
+from gnocchi.tests.test_utils import get_measures_list
 from gnocchi import utils
 
 
@@ -92,6 +93,8 @@ class TestAmqp1d(tests_base.TestCase):
         for metric in metrics:
             aggregation = metric.archive_policy.get_aggregation(
                 "mean", numpy.timedelta64(1, 'm'))
-            measures = self.storage.get_measures(metric, [aggregation])
+            results = self.storage.get_aggregated_measures(
+                {metric: [aggregation]})[metric]
+            measures = get_measures_list(results)
             self.assertEqual(expected_measures[metric.name],
                              measures["mean"])
