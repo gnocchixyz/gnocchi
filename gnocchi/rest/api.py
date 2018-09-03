@@ -2099,9 +2099,11 @@ class StatusController(rest.RestController):
                     metricd.MetricProcessor.GROUP_ID, member)
                 for member in members
             ]
-            report_dict['metricd']['processors'] = members
+            report_dict['metricd']['processors'] = [
+                member.decode() for member in members
+            ]
             report_dict['metricd']['statistics'] = {
-                member: cap.get()
+                member.decode(): cap.get()
                 for member, cap in six.moves.zip(members, caps)
             }
         else:
