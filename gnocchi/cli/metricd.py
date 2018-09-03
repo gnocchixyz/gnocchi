@@ -60,12 +60,14 @@ class MetricProcessBase(cotyledon.Service):
         self._wake_up.set()
 
     def _configure(self):
-        member_id = "%s.%s.%s" % (socket.gethostname(),
-                                  self.worker_id,
-                                  # NOTE(jd) Still use a uuid here so we're
-                                  # sure there's no conflict in case of
-                                  # crash/restart
-                                  str(uuid.uuid4()))
+        member_id = (
+            "%s.%s.%s" % (socket.gethostname(),
+                          self.worker_id,
+                          # NOTE(jd) Still use a uuid here so we're
+                          # sure there's no conflict in case of
+                          # crash/restart
+                          str(uuid.uuid4()))
+        ).encode()
         self.coord = get_coordinator_and_start(member_id,
                                                self.conf.coordination_url)
         self.store = storage.get_driver(self.conf)
