@@ -281,7 +281,8 @@ class StorageDriver(object):
         return name.split("_")[-1] == 'v%s' % v
 
     def get_aggregated_measures(self, metrics_and_aggregations,
-                                from_timestamp=None, to_timestamp=None):
+                                from_timestamp=None, to_timestamp=None,
+                                resample=None):
         """Get aggregated measures from a metric.
 
         :param metrics_and_aggregations: The metrics and aggregations to
@@ -330,41 +331,11 @@ class StorageDriver(object):
                 # be processed. Truncate to be sure we don't return them.
                 if aggregation.timespan is not None:
                     ts.truncate(aggregation.timespan)
-                results[metric][aggregation] = ts.fetch(
-                    from_timestamp, to_timestamp)
-
+                results[metric][aggregation] = ts.resample(resample) if resample \
+                    else ts
+                results[metric][aggregation] = results[metric][
+                    aggregation].fetch(from_timestamp, to_timestamp)
         return results
-
-    def get_measures(self, metric, aggregations,
-                     from_timestamp=None, to_timestamp=None,
-                     resample=None):
-        """Get aggregated measures from a metric.
-
-        Deprecated. Use `get_aggregated_measures` instead.
-
-        :param metric: The metric measured.
-        :param aggregations: The aggregations to retrieve.
-        :param from timestamp: The timestamp to get the measure from.
-        :param to timestamp: The timestamp to get the measure to.
-        :param resample: The granularity to resample to.
-        """
-        timeseries = self.get_aggregated_measures(
-            {metric: aggregations}, from_timestamp, to_timestamp)[metric]
-
-        if resample:
-            for agg, ts in six.iteritems(timeseries):
-                timeseries[agg] = ts.resample(resample)
-
-        return {
-            aggmethod: list(itertools.chain(
-                *[[(timestamp, timeseries[agg].aggregation.granularity, value)
-                   for timestamp, value in timeseries[agg]]
-                  for agg in sorted(aggs,
-                                    key=ATTRGETTER_GRANULARITY,
-                                    reverse=True)]))
-            for aggmethod, aggs in itertools.groupby(timeseries.keys(),
-                                                     ATTRGETTER_METHOD)
-        }
 
     def _get_splits_and_unserialize(self, metrics_aggregations_keys):
         """Get splits and unserialize them
