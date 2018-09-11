@@ -154,12 +154,11 @@ def get_client(conf, scripts=None):
         del kwargs['sentinel']
         if 'sentinel_fallback' in kwargs:
             del kwargs['sentinel_fallback']
-        master_client = sentinel_server.master_for(sentinel_name, **kwargs)
-        # The master_client is a redis.StrictRedis using a
+        # The client is a redis.StrictRedis using a
         # Sentinel managed connection pool.
-        return master_client
-
-    client = redis.StrictRedis(**kwargs)
+        client = sentinel_server.master_for(sentinel_name, **kwargs)
+    else:
+        client = redis.StrictRedis(**kwargs)
 
     if scripts is not None:
         scripts = {
