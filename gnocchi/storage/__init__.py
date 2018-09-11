@@ -695,7 +695,7 @@ class StorageDriver(object):
         self.statistics["splits delete"] += len(splits_to_delete)
         with self.statistics.time("splits update"):
             self._update_metric_splits(splits_to_update)
-        self.statistics["splits delete"] += len(splits_to_update)
+        self.statistics["splits update"] += len(splits_to_update)
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
