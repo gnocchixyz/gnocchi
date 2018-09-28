@@ -38,6 +38,7 @@ try:
 except ImportError:
     pymysql = None
 import six
+from six.moves.urllib import parse as urlparse
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
@@ -291,7 +292,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         self.facade = PerInstanceFacade(conf)
 
     def __str__(self):
-        return "%s: %s" % (self.__class__.__name__, self.conf.indexer.url)
+        parsed = urlparse.urlparse(self.conf.indexer.url)
+        url = urlparse.urlunparse((
+            parsed.scheme,
+            "***:***@%s%s" % (parsed.hostname,
+                              ":%s" % parsed.port if parsed.port else ""),
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment))
+        return "%s: %s" % (self.__class__.__name__, url)
 
     def disconnect(self):
         self.facade.dispose()
