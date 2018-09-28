@@ -37,6 +37,17 @@ class TestIndexer(tests_base.TestCase):
 
 class TestIndexerDriver(tests_base.TestCase):
 
+<<<<<<< HEAD
+=======
+    def test_str(self):
+        self.assertEqual("%s: %s" % (self.index.__class__.__name__,
+                                     self.conf.indexer.url.replace(
+                                         "root@", "").replace(
+                                             "localhost", "***:***@localhost"
+                                         )),
+                         str(self.index))
+
+>>>>>>> ca28902e... Hide username/password in indexer __str__ representation
     def test_create_archive_policy_already_exists(self):
         # NOTE(jd) This archive policy
         # is created by gnocchi.tests on setUp() :)
