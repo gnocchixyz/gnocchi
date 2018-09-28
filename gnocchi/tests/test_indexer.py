@@ -40,7 +40,11 @@ class TestIndexerDriver(tests_base.TestCase):
 
     def test_str(self):
         self.assertEqual("%s: %s" % (self.index.__class__.__name__,
-                         self.conf.indexer.url), str(self.index))
+                                     self.conf.indexer.url.replace(
+                                         "root@", "").replace(
+                                             "localhost", "***:***@localhost"
+                                         )),
+                         str(self.index))
 
     def test_create_archive_policy_already_exists(self):
         # NOTE(jd) This archive policy
