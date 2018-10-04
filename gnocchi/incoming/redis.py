@@ -193,3 +193,5 @@ return results
         # Delete the sack key which handles no data but is used to get a SET
         # notification in iter_on_sacks_to_process
         self._client.delete(str(sack))
+
+    get_health_status = redis.get_redis_health_status

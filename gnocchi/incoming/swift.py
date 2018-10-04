@@ -144,3 +144,5 @@ class SwiftStorage(incoming.IncomingDriver):
         yield measures
 
         swift.bulk_delete(self.swift, sack_name, files)
+
+    get_health_status = swift.get_swift_health_status

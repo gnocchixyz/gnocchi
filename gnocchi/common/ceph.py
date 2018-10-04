@@ -12,7 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections import OrderedDict
 import errno
+import six
 
 import daiquiri
 
@@ -97,3 +99,22 @@ def errno_to_exception(ret):
             raise rados.Error("Unhandled error '%s'" % ret)
         else:
             raise getattr(rados, name)
+
+
+def get_ceph_health_status(driver):
+    """Return ceph status.
+
+    Include ceph stats.
+    """
+    response = OrderedDict([
+        ('name', driver.__class__.__name__)
+    ])
+    try:
+        stats = driver.rados.get_cluster_stats()
+    except Exception as e:
+        response['is_available'] = False
+        response['error'] = six.text_type(e)
+    else:
+        response['is_available'] = True
+        response['stats'] = stats
+    return response

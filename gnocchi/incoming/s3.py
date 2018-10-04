@@ -42,21 +42,21 @@ class S3Storage(incoming.IncomingDriver):
             s3.get_connection(conf)
         )
 
-        self._bucket_name_measures = (
+        self._bucket_name = (
             self._bucket_prefix + "-" + self.MEASURE_PREFIX
         )
 
     def __str__(self):
-        return "%s: %s" % (self.__class__.__name__, self._bucket_name_measures)
+        return "%s: %s" % (self.__class__.__name__, self._bucket_name)
 
     def _get_storage_sacks(self):
-        response = self.s3.get_object(Bucket=self._bucket_name_measures,
+        response = self.s3.get_object(Bucket=self._bucket_name,
                                       Key=self.CFG_PREFIX)
         return json.loads(response['Body'].read().decode())[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
         data = {self.CFG_SACKS: num_sacks}
-        self.s3.put_object(Bucket=self._bucket_name_measures,
+        self.s3.put_object(Bucket=self._bucket_name,
                            Key=self.CFG_PREFIX,
                            Body=json.dumps(data).encode())
 
@@ -67,7 +67,7 @@ class S3Storage(incoming.IncomingDriver):
 
     def upgrade(self, num_sacks):
         try:
-            s3.create_bucket(self.s3, self._bucket_name_measures,
+            s3.create_bucket(self.s3, self._bucket_name,
                              self._region_name)
         except botocore.exceptions.ClientError as e:
             if e.response['Error'].get('Code') not in (
@@ -80,7 +80,7 @@ class S3Storage(incoming.IncomingDriver):
     def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.s3.put_object(
-            Bucket=self._bucket_name_measures,
+            Bucket=self._bucket_name,
             Key="/".join((str(self.sack_for_metric(metric_id)),
                           str(metric_id),
                           str(uuid.uuid4()) + now)),
@@ -97,7 +97,7 @@ class S3Storage(incoming.IncomingDriver):
             else:
                 kwargs = {}
             response = self.s3.list_objects_v2(
-                Bucket=self._bucket_name_measures,
+                Bucket=self._bucket_name,
                 **kwargs)
             for c in response.get('Contents', ()):
                 if c['Key'] != self.CFG_PREFIX:
@@ -118,7 +118,7 @@ class S3Storage(incoming.IncomingDriver):
                 except KeyError:
                     pass
             response = self.s3.list_objects_v2(
-                Bucket=self._bucket_name_measures,
+                Bucket=self._bucket_name,
                 Prefix="/".join(path_items) + "/",
                 **kwargs)
             yield response
@@ -136,7 +136,7 @@ class S3Storage(incoming.IncomingDriver):
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
-        s3.bulk_delete(self.s3, self._bucket_name_measures, files)
+        s3.bulk_delete(self.s3, self._bucket_name, files)
 
     def has_unprocessed(self, metric_id):
         sack = self.sack_for_metric(metric_id)
@@ -152,7 +152,7 @@ class S3Storage(incoming.IncomingDriver):
             all_files.extend(files)
             for f in files:
                 response = self.s3.get_object(
-                    Bucket=self._bucket_name_measures,
+                    Bucket=self._bucket_name,
                     Key=f)
                 measures[metric_id] = numpy.concatenate((
                     measures[metric_id],
@@ -162,7 +162,7 @@ class S3Storage(incoming.IncomingDriver):
         yield measures
 
         # Now clean objects
-        s3.bulk_delete(self.s3, self._bucket_name_measures, all_files)
+        s3.bulk_delete(self.s3, self._bucket_name, all_files)
 
     @contextlib.contextmanager
     def process_measures_for_sack(self, sack):
@@ -177,7 +177,7 @@ class S3Storage(incoming.IncomingDriver):
                 continue
 
             response = self.s3.get_object(
-                Bucket=self._bucket_name_measures,
+                Bucket=self._bucket_name,
                 Key=f)
             measures[metric_id] = numpy.concatenate((
                 measures[metric_id],
@@ -187,4 +187,6 @@ class S3Storage(incoming.IncomingDriver):
         yield measures
 
         # Now clean objects
-        s3.bulk_delete(self.s3, self._bucket_name_measures, files)
+        s3.bulk_delete(self.s3, self._bucket_name, files)
+
+    get_health_status = s3.get_s3_health_status

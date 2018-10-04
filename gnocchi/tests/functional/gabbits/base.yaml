@@ -131,7 +131,7 @@ tests:
     # User admin
     authorization: "basic YWRtaW46"
   response_json_paths:
-    $.storage.`len`: 2
+    $.storage.`len`: 3
     $.metricd.`len`: 2
 
 - name: get status, no details
@@ -140,5 +140,5 @@ tests:
     # User admin
     authorization: "basic YWRtaW46"
   response_json_paths:
-    $.storage.`len`: 1
+    $.storage.`len`: 2
     $.metricd.`len`: 2

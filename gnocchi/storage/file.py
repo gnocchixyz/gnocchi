@@ -29,6 +29,7 @@ from oslo_config import cfg
 import six
 
 from gnocchi import carbonara
+from gnocchi.common.file import get_file_health_status
 from gnocchi import storage
 from gnocchi import utils
 
@@ -247,3 +248,5 @@ class FileStorage(storage.StorageDriver):
             if e.errno == errno.ENOENT:
                 return
             raise
+
+    get_health_status = get_file_health_status

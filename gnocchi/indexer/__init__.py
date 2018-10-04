@@ -477,3 +477,7 @@ class IndexerDriver(object):
     @staticmethod
     def get_resource_type_schema():
         raise exceptions.NotImplementedError
+
+    @staticmethod
+    def get_health_status():
+        raise exceptions.NotImplementedError

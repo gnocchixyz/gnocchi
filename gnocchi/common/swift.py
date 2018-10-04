@@ -11,8 +11,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import daiquiri
+
+from collections import OrderedDict
+import six
 from six.moves.urllib.parse import quote
+
+import daiquiri
 
 try:
     from swiftclient import client as swclient
@@ -71,3 +75,22 @@ def bulk_delete(conn, container, objects):
     resp = swift_utils.parse_api_response(headers, body)
     LOG.debug('# of objects deleted: %s, # of objects skipped: %s',
               resp['Number Deleted'], resp['Number Not Found'])
+
+
+def get_swift_health_status(driver):
+    """Return swift status.
+
+    Include swift account info.
+    """
+    response = OrderedDict([
+        ('name', driver.__class__.__name__)
+    ])
+    try:
+        info = driver.swift.head_account()
+    except Exception as e:
+        response['is_available'] = False
+        response['error'] = six.text_type(e)
+    else:
+        response['is_available'] = True
+        response['info'] = info
+    return response

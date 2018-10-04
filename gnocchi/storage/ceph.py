@@ -232,3 +232,5 @@ class CephStorage(storage.StorageDriver):
             content += data
             offset += len(data)
         return content
+
+    get_health_status = ceph.get_ceph_health_status

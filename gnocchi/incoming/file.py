@@ -24,6 +24,7 @@ import daiquiri
 import numpy
 import six
 
+from gnocchi.common.status import get_file_health_status
 from gnocchi import incoming
 from gnocchi import utils
 
@@ -206,3 +207,5 @@ class FileStorage(incoming.IncomingDriver):
 
         for metric_id, files in six.iteritems(processed_files):
             self._delete_measures_files_for_metric(metric_id, files)
+
+    get_health_status = get_file_health_status

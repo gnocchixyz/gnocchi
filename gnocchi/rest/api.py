@@ -2092,29 +2092,51 @@ class StatusController(rest.RestController):
     @pecan.expose('json')
     def get(details=True):
         enforce("get status", {})
+
+        # Add status for incoming/indexer/storage
+        response_data = {
+            'incoming': {
+                'status': pecan.request.incoming.get_health_status(),
+            },
+            'indexer': {
+                'status': pecan.request.indexer.get_health_status(),
+            },
+            'storage': {
+                'status': pecan.request.storage.get_health_status(),
+            }
+        }
+
+        # Always return the detail, but set status code to 503
+        # if a component is not available
+        pecan.response.status = 200 if all([
+            component['status']['is_available']
+            for component in response_data.values()]) else 503
+
+        # Add storage measures to process
+        try:
+            report = pecan.request.incoming.measures_report(
+                strtobool('details', details))
+        except incoming.ReportGenerationError:
+            abort(503, "Unable to generate status. Please retry.")
+        response_data['storage']['summary'] = report['summary']
+        if 'details' in report:
+            response_data['storage']['measures_to_process'] = report['details']
+
+        # Add metricd status
         try:
             members_req = pecan.request.coordinator.get_members(
                 metricd.MetricProcessor.GROUP_ID)
         except tooz.NotImplemented:
-            members_req = None
-        try:
-            report = pecan.request.incoming.measures_report(
-                strtobool("details", details))
-        except incoming.ReportGenerationError:
-            abort(503, 'Unable to generate status. Please retry.')
-        report_dict = {"storage": {"summary": report['summary']}}
-        if 'details' in report:
-            report_dict["storage"]["measures_to_process"] = report['details']
-        report_dict['metricd'] = {}
-        if members_req:
+            response_data['metricd'] = {
+                'processors': None,
+                'statistics': {}
+            }
+        else:
             members = members_req.get()
             caps = [
                 pecan.request.coordinator.get_member_capabilities(
                     metricd.MetricProcessor.GROUP_ID, member)
                 for member in members
-            ]
-            report_dict['metricd']['processors'] = [
-                member.decode() for member in members
             ]
             members_data = {}
             for member, cap in six.moves.zip(members, caps):
@@ -2123,11 +2145,15 @@ class StatusController(rest.RestController):
                     for k, v in six.iteritems(cap.get())
                 }
                 members_data[member.decode()] = caps_data
-            report_dict['metricd']['statistics'] = members_data
-        else:
-            report_dict['metricd']['processors'] = None
-            report_dict['metricd']['statistics'] = {}
-        return report_dict
+
+            response_data['metricd'] = {
+                'processors': [
+                    member.decode() for member in members
+                ],
+                'statistics': members_data
+            }
+
+        return response_data
 
 
 class MetricsBatchController(object):

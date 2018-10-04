@@ -45,6 +45,7 @@ import sqlalchemy.exc
 from sqlalchemy import types as sa_types
 import sqlalchemy_utils
 
+from gnocchi.common.sqlalchemy import get_sqlalchemy_health_status
 from gnocchi import exceptions
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy_base as base
@@ -1175,6 +1176,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 sort_dirs.append('asc')
 
         return sort_keys, sort_dirs
+
+    get_health_status = get_sqlalchemy_health_status
 
 
 def _operator_in(field_name, value):
