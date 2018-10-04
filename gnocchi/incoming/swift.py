@@ -21,6 +21,7 @@ import uuid
 import six
 
 from gnocchi.common import swift
+from gnocchi.status import get_swift_health_status
 from gnocchi import incoming
 from gnocchi import utils
 
@@ -144,3 +145,6 @@ class SwiftStorage(incoming.IncomingDriver):
         yield measures
 
         swift.bulk_delete(self.swift, sack_name, files)
+
+    def get_health_status(self):
+        return get_swift_health_status(self)

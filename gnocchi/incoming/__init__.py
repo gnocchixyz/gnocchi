@@ -257,6 +257,10 @@ class IncomingDriver(object):
         """Mark sack processing has finished."""
         pass
 
+    @staticmethod
+    def get_health_status():
+        raise exceptions.NotImplementedError
+
 
 @utils.retry_on_exception_and_log("Unable to initialize incoming driver")
 def get_driver(conf):

@@ -20,6 +20,7 @@ import tenacity
 
 from gnocchi import carbonara
 from gnocchi.common import s3
+from gnocchi.status import get_s3_health_status
 from gnocchi import storage
 from gnocchi import utils
 
@@ -242,3 +243,6 @@ class S3Storage(storage.StorageDriver):
             Bucket=self._bucket_name,
             Key=self._build_unaggregated_timeserie_path(metric, version),
             Body=data)
+
+    def get_health_status(self):
+        return get_s3_health_status(self)
