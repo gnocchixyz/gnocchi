@@ -186,12 +186,15 @@ tests:
 
     - name: patch generic resource with id
       PATCH: $LAST_URL
+      request_headers:
+        accept: application/json
       data:
           id: foobar
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed @ data["
-          - "'id']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.detail: ["id"]
 
     - name: patch generic with metrics
       PATCH: $LAST_URL
@@ -316,12 +319,16 @@ tests:
 
     - name: patch resource bad data
       desc: providing data that is not a dict is an error
+      request_headers:
+        accept: application/json
       PATCH: $LAST_URL
       status: 400
       data:
           - Beer and pickles
-      response_strings:
-          - "Invalid input: expected a dictionary"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected a dictionary/"
+        $.description.detail: []
 
     - name: patch noexit resource
       desc: "patching something that doesn't exist is a 404"

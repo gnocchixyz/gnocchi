@@ -147,12 +147,15 @@ tests:
       POST: /v1/archive_policy_rule
       request_headers:
         # User admin
+        accept: application/json
         authorization: "basic YWRtaW46"
       data:
           whaa: foobar
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.detail: ["whaa"]
 
 # get an archive policy rules
 

@@ -30,40 +30,49 @@ tests:
           id: "cd9eef"
 
     - name: search invalid and value
+      request_headers:
+        accept: application/json
       desc: and should be followed by a list, not dict
       POST: /v1/search/resource/generic
       data:
         and:
           project_id: foobar
       status: 400
-      response_strings:
-       - "expected a list for dictionary value @ data["
-       - "'and']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected a list for dictionary value @ data/"
+        $.description.detail: ["and"]
 
     - name: search like id
+      request_headers:
+        accept: application/json
       POST: /v1/search/resource/generic
       data:
         like:
           id: fa%
       status: 400
-      response_strings:
-       - "Invalid input: extra keys not allowed @ data["
-       - "'like']["
-       - "'id']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.detail: ["like", "id"]
 
     - name: search like list id
+      request_headers:
+        accept: application/json
       POST: /v1/search/resource/generic
       data:
         like:
           id:
             - fa%
       status: 400
-      response_strings:
-       - "Invalid input: extra keys not allowed @ data["
-       - "'like']["
-       - "'id']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.detail: ["like", "id"]
 
     - name: search invalid ne value
+      request_headers:
+        accept: application/json
       desc: attribute value for binary operator must not be dict or list
       POST: /v1/search/resource/generic
       data:
@@ -71,21 +80,24 @@ tests:
           project_id:
             - foobar
       status: 400
-      response_strings:
-       - "for dictionary value @ data["
-       - "'ne']["
-       - "'project_id']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected (unicode|str) for dictionary value @ data/"
+        $.description.detail: ["ne", "project_id"]
 
     - name: search invalid not value
+      request_headers:
+        accept: application/json
       desc: uninary operator must follow by dict, not list
       POST: /v1/search/resource/generic
       data:
         not:
           - project_id: foobar
       status: 400
-      response_strings:
-       - "expected a dictionary for dictionary value @ data["
-       - "'not']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected a dictionary for dictionary value @ data/"
+        $.description.detail: ["not"]
 
     - name: post generic resource
       POST: /v1/resource/generic
