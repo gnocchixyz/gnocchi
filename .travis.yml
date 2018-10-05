@@ -66,6 +66,10 @@ notifications:
     channels:
       - "irc.freenode.org#gnocchi"
 
+before_deploy:
+  # Remove |substitutions| to fix rendering on pypi.
+  - sed -i -e 's/|\([a-zA-Z0-9 ]\+\)|/\1/g' README.rst
+
 deploy:
   provider: pypi
   user: jd
