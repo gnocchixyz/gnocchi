@@ -22,6 +22,7 @@ from oslo_config import cfg
 import gnocchi.archive_policy
 import gnocchi.common.redis
 import gnocchi.indexer
+import gnocchi.rest.http_proxy_to_wsgi
 import gnocchi.storage
 import gnocchi.storage.ceph
 import gnocchi.storage.file
@@ -192,7 +193,7 @@ def list_opts():
                        default=10, min=0,
                        help='Number of seconds before timeout when attempting '
                             'to do some operations.'),
-        ) + API_OPTS,
+        ) + API_OPTS + gnocchi.rest.http_proxy_to_wsgi.OPTS,
         ),
         ("storage", _STORAGE_OPTS),
         ("incoming", _INCOMING_OPTS),
