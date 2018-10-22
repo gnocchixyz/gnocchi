@@ -1433,6 +1433,60 @@ class CrossMetricAggregated(base.TestCase):
                  numpy.timedelta64(1, 'h'), 88)]
         }}, values)
 
+    def test_ternary_operator_ts_on_left(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.trigger_processing()
+
+        values = processor.get_measures(
+            self.storage, [processor.MetricReference(self.metric, "mean")],
+            ["clip", ["metric", str(self.metric.id), "mean"], 5 60],
+            granularities=[numpy.timedelta64(1, 'h')])
+
+        self.assertEqual({str(self.metric.id): {
+            "mean": [
+                (datetime64(2014, 1, 1, 12, 0, 0),
+                 numpy.timedelta64(1, 'h'), 60),
+                (datetime64(2014, 1, 1, 13, 0, 0),
+                 numpy.timedelta64(1, 'h'), 42),
+                (datetime64(2014, 1, 1, 14, 0, 0),
+                 numpy.timedelta64(1, 'h'), 5),
+                (datetime64(2014, 1, 1, 15, 0, 0),
+                 numpy.timedelta64(1, 'h'), 44)]
+        }}, values)
+
+    def test_ternary_operator_ts_on_left(self):
+        metric2, __ = self._create_metric()
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.trigger_processing()
+
+        values = processor.get_measures(
+            self.storage, [processor.MetricReference(self.metric, "mean")],
+            ["clip", ["metric", str(self.metric.id), "mean"], 50],
+            granularities=[numpy.timedelta64(1, 'h')])
+
+        self.assertEqual({str(self.metric.id): {
+            "mean": [
+                (datetime64(2014, 1, 1, 12, 0, 0),
+                 numpy.timedelta64(1, 'h'), 69),
+                (datetime64(2014, 1, 1, 13, 0, 0),
+                 numpy.timedelta64(1, 'h'), 50),
+                (datetime64(2014, 1, 1, 14, 0, 0),
+                 numpy.timedelta64(1, 'h'), 50),
+                (datetime64(2014, 1, 1, 15, 0, 0),
+                 numpy.timedelta64(1, 'h'), 50)]
+        }}, values)
+
     def test_binary_operator_ts_on_right(self):
         metric2, __ = self._create_metric()
         self.incoming.add_measures(self.metric.id, [
