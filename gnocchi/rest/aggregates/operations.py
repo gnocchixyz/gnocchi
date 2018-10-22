@@ -81,6 +81,13 @@ binary_operators = {
     u"^": numpy.power,
     u"pow": numpy.power,
 
+    u"clip_min": lambda array, value: numpy.clip(array, value, None),
+    u"clip_max": lambda array, value: numpy.clip(array, None, value),
+
+}
+
+ternary_operators = {
+    u"clip": numpy.clip,
 }
 
 # TODO(sileht): adds, numpy.around, but it take a decimal argument to handle
@@ -147,6 +154,47 @@ def handle_binary_operator(nodes, granularity, timestamps,
         granularity = g1
 
     values = binary_operators[op](v1, v2)
+    return granularity, timestamps, values, is_aggregated
+
+
+def handle_ternary_operator(nodes, granularity, timestamps,
+                            initial_values, is_aggregated, references):
+    op = nodes[0]
+    g1, t1, v1, is_a1 = evaluate(nodes[1], granularity, timestamps,
+                                 initial_values, is_aggregated, references)
+    g2, t2, v2, is_a2 = evaluate(nodes[2], granularity, timestamps,
+                                 initial_values, is_aggregated, references)
+    if len(nodes) > 3:
+        g3, t3, v3, is_a3 = evaluate(nodes[3], granularity, timestamps,
+                                     initial_values, is_aggregated, references)
+    else:
+        g3, t3, v3, is_a3 = g2, t2, None, is_a2
+
+    is_aggregated = is_a1 or is_a2 or is_a3
+    if isinstance(v1, numpy.ndarray) and isinstance(v2, numpy.ndarray)\
+            and isinstance(v3, numpy.ndarray):
+        if not numpy.array_equal(t1, t2) or g1 != g2:
+            if not numpy.array_equal(t2, t3) or g2 != g3:
+                raise exceptions.OperandsMismatch(
+                    references,
+                    "Can't compute timeseries with different "
+                    "granularity %s <> %s <> %s"
+                    % (nodes[1], nodes[2], nodes[3]))
+        timestamps = t1
+        granularity = g1
+        is_aggregated = True
+
+    elif isinstance(v2, numpy.ndarray):
+        timestamps = t2
+        granularity = g2
+    elif isinstance(v3, numpy.ndarray):
+        timestamps = t3
+        granularity = g3
+    else:
+        timestamps = t1
+        granularity = g1
+
+    values = ternary_operators[op](v1, v2, v3)
     return granularity, timestamps, values, is_aggregated
 
 
@@ -254,10 +302,16 @@ def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
         return handle_aggregation_operator(nodes, granularity, timestamps,
                                            initial_values, is_aggregated,
                                            references)
+    elif nodes[0] in ternary_operators:
+        return handle_ternary_operator(nodes, granularity, timestamps,
+                                       initial_values, is_aggregated,
+                                       references)
+
     elif nodes[0] in binary_operators:
         return handle_binary_operator(nodes, granularity, timestamps,
                                       initial_values, is_aggregated,
                                       references)
+
     elif (nodes[0] in unary_operators or
           nodes[0] in unary_operators_with_timestamps):
         return handle_unary_operator(nodes, granularity, timestamps,
@@ -271,5 +325,6 @@ def evaluate(nodes, granularity, timestamps, initial_values, is_aggregated,
         indexes = [i for i, r in enumerate(references) if predicat(r)]
         return (granularity, timestamps, initial_values.T[indexes].T,
                 is_aggregated)
+
     else:
         raise RuntimeError("Operation node tree is malformed: %s" % nodes)

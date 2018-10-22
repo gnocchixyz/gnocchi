@@ -72,7 +72,18 @@ OperationsSchemaBase = [
     MetricSchema,
     voluptuous.ExactSequence(
         [voluptuous.Any(*list(
+            agg_operations.ternary_operators.keys())),
+         _OperationsSubNodeSchema, _OperationsSubNodeSchema,
+         _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
+        [voluptuous.Any(*list(
             agg_operations.binary_operators.keys())),
+         _OperationsSubNodeSchema, _OperationsSubNodeSchema]
+    ),
+    voluptuous.ExactSequence(
+        [voluptuous.Any(*list(
+            agg_operations.ternary_operators.keys())),
          _OperationsSubNodeSchema, _OperationsSubNodeSchema]
     ),
     voluptuous.ExactSequence(
