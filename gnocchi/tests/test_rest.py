@@ -1230,10 +1230,15 @@ class ResourceTest(RestTest):
             "/v1/resource/" + self.resource_type + "/"
             + self.attributes['id'],
             params={'foobar': 123},
-            status=400)
-        self.assertIn(b'Invalid input: extra keys not allowed @ data['
-                      + repr(u'foobar').encode('ascii') + b"]",
-                      result.body)
+            status=400,
+            headers={"Accept": "application/json"}
+        )
+
+        result_description = result.json['description']
+        self.assertEqual("Invalid input", result_description['cause'])
+        self.assertIn(
+            "extra keys not allowed @ data[", result_description['reason']
+        )
 
     def test_delete_resource(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1864,11 +1869,15 @@ class GenericResourceTest(RestTest):
         result = self.app.post_json(
             "/v1/search/resource/generic",
             params={"wrongoperator": {"user_id": "bar"}},
-            status=400)
+            status=400,
+            headers={"Accept": "application/json"},
+        )
+
+        result_description = result.json['description']
+        self.assertEqual("Invalid input", result_description['cause'])
         self.assertIn(
-            "Invalid input: extra keys not allowed @ data["
-            + repr(u'wrongoperator') + "]",
-            result.text)
+            "extra keys not allowed @ data[", result_description['reason']
+        )
 
 
 class QueryStringSearchAttrFilterTest(tests_base.TestCase):

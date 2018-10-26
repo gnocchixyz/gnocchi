@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The error format for many requests API has changed and the error is now reported in a better way.

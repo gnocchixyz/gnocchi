@@ -579,8 +579,10 @@ tests:
       data:
         operations: []
       status: 400
-      response_strings:
-        - "Invalid input: Operation must not be empty"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ['operations']
+        $.description.reason: "/^Operation must not be empty/"
 
     - name: get operations without list
       POST: /v1/aggregates
@@ -592,8 +594,10 @@ tests:
         operations:
           foo: bar
       status: 400
-      response_strings:
-        - "Invalid input: Expected a tuple/list, got a "
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ['operations']
+        $.description.reason: "/^Expected a tuple/list, got a/"
 
     - name: invalid operations string
       POST: /v1/aggregates
@@ -607,7 +611,7 @@ tests:
       response_json_paths:
         $.code: 400
         $.description.cause: "Invalid operations"
-        $.description.reason: "Fail to parse the operations string"
+        $.description.reason: "/^Fail to parse the operations string/"
         $.description.detail: "Expected \")\" (at char 15), (line:1, col:16)"
 
     - name: get invalid metric operations
@@ -619,8 +623,10 @@ tests:
       data:
         operations: ["metric"]
       status: 400
-      response_strings:
-        - "Invalid input: Operation need at least one argument for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ["operations"]
+        $.description.reason: "/^Operation need at least one argument for dictionary value/"
 
     - name: get unknown metrics
       POST: /v1/aggregates
@@ -774,8 +780,10 @@ tests:
       data:
         operations: "(rolling blah 2 (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       status: 400
-      response_strings:
-        - "Invalid input: 'rolling' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'rolling' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: get rolling-mean missing window
       POST: /v1/aggregates
@@ -786,8 +794,10 @@ tests:
       data:
         operations: "(rolling mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       status: 400
-      response_strings:
-        - "Invalid input: 'rolling' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'rolling' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: get measurements from metric and invalid operations
       POST: /v1/aggregates
@@ -798,8 +808,10 @@ tests:
       data:
         operations: "(notexist (absolute (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)))"
       status: 400
-      response_strings:
-        - "Invalid input: 'notexist' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'notexist' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: invalid resample
       POST: /v1/aggregates
@@ -810,5 +822,7 @@ tests:
       data:
         operations: "(resample mean invalid (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       status: 400
-      response_strings:
-        - "Invalid input: 'resample' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'resample' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]

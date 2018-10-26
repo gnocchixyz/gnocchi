@@ -91,59 +91,74 @@ tests:
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           cowsay: moo
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed/"
+        $.description.detail: ["cowsay"]
 
     - name: missing definition
       POST: /v1/archive_policy
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: medium
       status: 400
-      response_strings:
-          - "Invalid input: required key not provided"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^required key not provided/"
+        $.description.detail: ["definition"]
 
     - name: empty definition
       POST: /v1/archive_policy
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: medium
           definition: []
       status: 400
-      response_strings:
-          - "Invalid input: length of value must be at least 1"
+      response_json_paths:
+          $.description.cause: "Invalid input"
+          $.description.reason: "/^length of value must be at least 1/"
+          $.description.detail: ["definition"]
 
     - name: wrong value definition
       POST: /v1/archive_policy
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: somename
           definition: foobar
       status: 400
-      response_strings:
-          - "Invalid input: expected a list"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected a list/"
+        $.description.detail: ["definition"]
 
     - name: useless definition
       POST: /v1/archive_policy
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: medium
           definition:
               - cowsay: moo
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed/"
+        $.description.detail: ["definition", '0', "cowsay"]
 
 # Create a valid archive policy.
 
@@ -434,28 +449,35 @@ tests:
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: complex
           definition:
               - granularity: 0
                 points: 60
       status: 400
-      response_strings:
-          - "Invalid input: Timespan must be positive for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^Timespan must be positive for dictionary value/"
+        $.description.detail: ["definition", '0', "granularity"]
 
     - name: create invalid points policy
       POST: /v1/archive_policy
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
+          accept: application/json
       data:
           name: complex
           definition:
               - granularity: 10
                 points: 0
       status: 400
-      response_strings:
-          - "Invalid input: value must be at least 1 for dictionary value "
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^value must be at least 1 for dictionary value/"
+        $.description.detail: ["definition", '0', "points"]
+
 
     - name: create identical granularities policy
       POST: /v1/archive_policy
@@ -504,6 +526,7 @@ tests:
       request_headers:
         # User admin
         authorization: "basic YWRtaW46"
+        accept: application/json
       data:
           name: should-have-failed
           definition:
