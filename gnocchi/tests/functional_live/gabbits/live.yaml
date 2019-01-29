@@ -46,60 +46,75 @@ tests:
       desc: archive policy contains invalid key 'cowsay'
       POST: /v1/archive_policy
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           cowsay: moo
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.detail: ["cowsay"]
 
     - name: missing definition
       desc: archive policy is missing 'definition' keyword
       POST: /v1/archive_policy
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           name: medium
       status: 400
-      response_strings:
-          - "Invalid input: required key not provided"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^required key not provided/"
+        $.description.detail: ["definition"]
 
     - name: empty definition
       desc: empty definition for archive policy
       POST: /v1/archive_policy
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           name: medium
           definition: []
       status: 400
-      response_strings:
-          - "Invalid input: length of value must be at least 1"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^length of value must be at least 1/"
+        $.description.detail: ["definition"]
 
     - name: wrong value definition
       desc: invalid type of 'definition' key
       POST: /v1/archive_policy
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           name: somename
           definition: foobar
       status: 400
-      response_strings:
-          - "Invalid input: expected a list"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^expected a list/"
+        $.description.detail: ["definition"]
 
     - name: useless definition
       desc: invalid archive policy definition
       POST: /v1/archive_policy
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           name: medium
           definition:
               - cowsay: moo
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed/"
+        $.description.detail: ['definition', '0', 'cowsay']
 
     #
     # Create archive policy
@@ -320,12 +335,15 @@ tests:
     - name: bad archive policy rule body
       POST: /v1/archive_policy_rule
       request_headers:
+          accept: application/json
           content-type: application/json
       data:
           whaa: foobar
       status: 400
-      response_strings:
-          - "Invalid input: extra keys not allowed"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^extra keys not allowed/"
+        $.description.detail: ["whaa"]
 
     # get an archive policy rules
 

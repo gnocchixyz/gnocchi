@@ -171,6 +171,8 @@ class ConfigFixture(fixture.GabbiFixture):
         # Set pagination to a testable value
         conf.set_override('max_limit', 7, 'api')
 
+        conf.set_override('enable_proxy_headers_parsing', True, group="api")
+
         self.index = index
 
         self.coord = metricd.get_coordinator_and_start(str(uuid.uuid4()),

@@ -45,6 +45,7 @@ tests:
       request_headers:
         # User admin
         authorization: "basic YWRtaW46"
+        accept: application/json
       data:
           name: my_custom_resource
           attributes:
@@ -54,12 +55,14 @@ tests:
                   min_length: 5
                   noexist: foo
       status: 400
-      response_strings:
-          # NOTE(sileht): We would prefer to have a better message but voluptuous seems a bit lost when
-          # an Any have many dict with the same key, here "type"
-          # - "Invalid input: extra keys not allowed @ data[u'attributes'][u'foo'][u'noexist']"
-          # - "Invalid input: not a valid value for dictionary value @ data[u'attributes'][u'foo'][u'type']"
-          - "Invalid input:"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        # NOTE(sileht): We would prefer to have a better message but voluptuous seems a bit lost when
+        # an Any have many dict with the same key, here "type"
+        # $.description.reason: "/^extra keys not allowed/"
+        # $.description.reason: "/^not a valid value for dictionary value @ data/"
+        # $.description.detail: ['attributes', 'foo', 'type']
+        # $.description.detail: ['attributes', 'foo', 'noexist']
 
     - name: post resource type bad min_length value
       POST: $LAST_URL
@@ -233,29 +236,33 @@ tests:
 
     - name: post invalid resource
       POST: /v1/resource/my_custom_resource
+      request_headers:
+        accept: application/json
       data:
           id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           name: toolong!!!
           foobar: what
           uuid: 07eb339e-23c0-4be2-be43-cd8247afae3b
       status: 400
-      response_strings:
-          # split to not match the u' in py2
-          - "Invalid input: length of value must be at most 5 for dictionary value @ data["
-          - "'name']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^length of value must be at most 5 for dictionary value @ data/"
+        $.description.detail: ['name']
 
     - name: post invalid resource uuid
       POST: $LAST_URL
+      request_headers:
+        accept: application/json
       data:
           id: d11edfca-4393-4fda-b94d-b05a3a1b3747
           name: too
           foobar: what
           uuid: really!
       status: 400
-      response_strings:
-          # split to not match the u' in py2
-          - "Invalid input: badly formed hexadecimal UUID string for dictionary value @ data["
-          - "'uuid']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^badly formed hexadecimal UUID string for dictionary value @ data/"
+        $.description.detail: ['uuid']
 
 # Good resources for this type
 
@@ -506,7 +513,6 @@ tests:
 
     - name: post a new resource attribute with incorrect fill
       PATCH: /v1/resource_type/my_custom_resource
-      request_headers:
       request_headers:
           # User admin
           authorization: "basic YWRtaW46"
@@ -771,6 +777,7 @@ tests:
           # User admin
           authorization: "basic YWRtaW46"
           content-type: application/json-patch+json
+          accept: application/json
       data:
         - op: replace
           path: /attributes/newstuff
@@ -780,9 +787,10 @@ tests:
             min_length: 0
             max_length: 255
       status: 400
-      response_strings:
-       - "Invalid input: not a valid value for dictionary value @ data[0]["
-       - "'op']"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ['0', 'op']
+        $.description.reason: "/^not a valid value for dictionary value @ data/"
 
     - name: patch a resource attribute type not exist
       PATCH: /v1/resource_type/my_custom_resource
