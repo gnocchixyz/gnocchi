@@ -235,21 +235,32 @@ class AggregatesController(rest.RestController):
             except indexer.IndexerException as e:
                 api.abort(400, six.text_type(e))
             if not groupby:
-                return self._get_measures_by_name(
-                    resources, references, body["operations"], start, stop,
-                    granularity, needed_overlap, fill, details=details)
+                try:
+                    return self._get_measures_by_name(
+                        resources, references, body["operations"], start, stop,
+                        granularity, needed_overlap, fill, details=details)
+                except indexer.NoSuchMetric as e:
+                    api.abort(400, e)
 
             def groupper(r):
                 return tuple((attr, r[attr]) for attr in groupby)
 
             results = []
             for key, resources in itertools.groupby(resources, groupper):
-                results.append({
-                    "group": dict(key),
-                    "measures": self._get_measures_by_name(
-                        resources, references, body["operations"], start, stop,
-                        granularity, needed_overlap, fill, details=details)
-                })
+                try:
+                    results.append({
+                        "group": dict(key),
+                        "measures": self._get_measures_by_name(
+                            resources, references, body["operations"],
+                            start, stop, granularity, needed_overlap, fill,
+                            details=details)
+                    })
+                except indexer.NoSuchMetric:
+                    pass
+            if not results:
+                api.abort(
+                    400,
+                    indexer.NoSuchMetric(set((m for (m, a) in references))))
             return results
 
         else:
@@ -305,8 +316,7 @@ class AggregatesController(rest.RestController):
             ])
 
         if not references:
-            api.abort(400, {"cause": "Metrics not found",
-                            "detail": set((m for (m, a) in metric_wildcards))})
+            raise indexer.NoSuchMetric(set((m for (m, a) in metric_wildcards)))
 
         response = {
             "measures": get_measures_or_abort(
