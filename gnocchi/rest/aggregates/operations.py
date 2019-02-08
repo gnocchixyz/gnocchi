@@ -36,6 +36,19 @@ AGG_MAP = {
 }
 
 
+def rated_agg(agg):
+    def _inner_rated_agg(values, axis):
+        values = AGG_MAP[agg](values, axis)
+        values = numpy.diff(values)
+        return values
+
+    return _inner_rated_agg
+
+
+for agg in list(AGG_MAP):
+    AGG_MAP["rate:%s" % agg] = rated_agg(agg)
+
+
 # TODO(sileht): expose all operators in capability API
 binary_operators = {
     u"=": numpy.equal,
@@ -156,6 +169,8 @@ def handle_aggregate(agg, granularity, timestamps, values, is_aggregated,
     if values.shape[1] != 1:
         raise RuntimeError("Unexpected resulting aggregated array shape: %s" %
                            values)
+    if agg.startswith("rate:"):
+        timestamps = timestamps[1:]
     return (granularity, timestamps, values, True)
 
 
@@ -175,6 +190,8 @@ def handle_rolling(agg, granularity, timestamps, values, is_aggregated,
     strides = values.strides + (values.strides[-1],)
     new_values = AGG_MAP[agg](as_strided(values, shape=shape, strides=strides),
                               axis=-1)
+    if agg.startswith("rate:"):
+        timestamps = timestamps[1:]
     return granularity, timestamps, new_values.T, is_aggregated
 
 
