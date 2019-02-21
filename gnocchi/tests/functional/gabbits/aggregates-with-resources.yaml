@@ -66,7 +66,18 @@ tests:
         metrics:
           cpu.util:
             archive_policy_name: low
+          unique.stuff:
+            archive_policy_name: low
       status: 201
+
+    - name: post customstuff measures 1
+      POST: /v1/resource/generic/2447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/unique.stuff/measures
+      data:
+        - timestamp: "2015-03-06T14:33:57"
+          value: 23
+        - timestamp: "2015-03-06T14:34:12"
+          value: 8
+      status: 202
 
     - name: post cpuutil measures 2
       POST: /v1/resource/generic/2447CD7E-48A6-4C50-A991-6677CC0D00E6/metric/cpu.util/measures
@@ -296,6 +307,23 @@ tests:
               user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
               project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
 
+    - name: aggregate metric with groupby on id aggregates API
+      POST: /v1/aggregates?groupby=id&details=true
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(aggregate mean (metric unique.stuff mean))"
+      response_json_paths:
+        $.`len`: 1
+        $[0].measures.references.`len`: 1
+        $[0].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $[0].measures.measures.aggregated:
+              - ['2015-03-06T14:30:00+00:00', 300.0, 15.5]
+              - ['2015-03-06T14:33:57+00:00', 1.0, 23.0]
+              - ['2015-03-06T14:34:12+00:00', 1.0, 8.0]
+        $[0].group:
+              id: 2447cd7e-48a6-4c50-a991-6677cc0d00e6
+
 # Negative tests
 
     - name: not matching granularity
@@ -316,6 +344,24 @@ tests:
 
     - name: not matching metrics
       POST: /v1/aggregates
+      request_headers:
+        accept: application/json
+        content-type: application/json
+        authorization: "basic Zm9vYmFyOg=="
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(aggregate mean (metric (notexists mean) (foobar mean)))"
+      status: 400
+      response_json_paths:
+        $.code: 400
+        $.description.cause: "Metrics not found"
+        $.description.detail.`sorted`:
+          - foobar
+          - notexists
+
+    - name: not matching metrics in any group
+      POST: /v1/aggregates?groupby=id
       request_headers:
         accept: application/json
         content-type: application/json
