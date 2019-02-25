@@ -133,6 +133,12 @@ class NoSuchMetric(IndexerException):
                                            metric)
         self.metric = metric
 
+    def jsonify(self):
+        return {
+            "cause": "Metrics not found",
+            "detail": self.metric,
+        }
+
 
 class NoSuchResource(IndexerException):
     """Error raised when a resource does not exist."""
