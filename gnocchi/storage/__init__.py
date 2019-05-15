@@ -630,11 +630,6 @@ class StorageDriver(object):
             else:
                 current_first_block_timestamp = ts.first_block_timestamp()
 
-            # NOTE(jd) This is Python where you need such
-            # hack to pass a variable around a closure,
-            # sorry.
-            computed_points = {"number": 0}
-
             def _map_compute_splits_operations(bound_timeserie):
                 # NOTE (gordc): bound_timeserie is entire set of
                 # unaggregated measures matching largest
@@ -644,8 +639,6 @@ class StorageDriver(object):
                 new_first_block_timestamp = (
                     bound_timeserie.first_block_timestamp()
                 )
-                computed_points['number'] = len(bound_timeserie)
-
                 aggregations = metric.archive_policy.aggregations
 
                 grouped_timeseries = {
