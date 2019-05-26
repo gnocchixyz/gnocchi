@@ -324,6 +324,57 @@ tests:
         $[0].group:
               id: 2447cd7e-48a6-4c50-a991-6677cc0d00e6
 
+    - name: aggregate and drop infinity from divide by zero
+      POST: /v1/aggregates?details=true
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(/ (* 100 (aggregate mean (metric cpu.util mean))) 0 )"
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures.aggregated: []
+
+    - name: aggregate and return infinity from divide by zero
+      POST: /v1/aggregates?details=true&fill=null
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(/ (* 100 (aggregate mean (metric cpu.util mean))) 0 )"
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures.aggregated:
+          - ['2015-03-06T14:30:00+00:00', 300.0, .inf]
+          - ['2015-03-06T14:33:57+00:00', 1.0, .inf]
+          - ['2015-03-06T14:34:12+00:00', 1.0, .inf]
+
+    - name: aggregate metric with groupby on project_id and user_id drop infinity
+      POST: /v1/aggregates?groupby=project_id&groupby=user_id&details=true
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(/ (* 100 (aggregate mean (metric cpu.util mean))) 0 )"
+      response_json_paths:
+        $.`len`: 2
+        $[0].measures.references.`len`: 2
+        $[0].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $[0].measures.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $[0].measures.measures.aggregated: []
+        $[0].group:
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+              project_id: c7f32f1f-c5ef-427a-8ecd-915b219c66e8
+        $[1].measures.references.`len`: 1
+        $[1].measures.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $[1].measures.measures.aggregated: []
+        $[1].group:
+              user_id: A50F549C-1F1C-4888-A71A-2C5473CCCEC1
+              project_id: ee4cfc41-1cdc-4d2f-9a08-f94111d80171
+
 # Negative tests
 
     - name: not matching granularity
