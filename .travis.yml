@@ -11,10 +11,6 @@ env:
   - TARGET: pep8
   - TARGET: docs
 
-  - TARGET: py27-mysql-ceph-upgrade-from-4.0
-  - TARGET: py37-postgresql-file-upgrade-from-4.0
-  - TARGET: py27-mysql-ceph-upgrade-from-4.1
-  - TARGET: py37-postgresql-file-upgrade-from-4.1
   - TARGET: py27-mysql-ceph-upgrade-from-4.2
   - TARGET: py37-postgresql-file-upgrade-from-4.2
 

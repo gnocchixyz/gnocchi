@@ -24,10 +24,14 @@ import jinja2
 from oslo_config import generator
 import six
 import six.moves
+from sphinx.util import logging
 import webob.request
 import yaml
 
 from gnocchi.tests import test_rest
+
+
+LOG = logging.getLogger(__name__)
 
 # HACK(jd) Not sure why but Sphinx setup this multiple times, so we just avoid
 # doing several times the requests by using this global variable :(
@@ -223,8 +227,8 @@ def setup(app):
                 else:
                     request.body = fake_file.read(clen)
 
-            app.info("Doing request %s: %s" % (entry['name'],
-                                               six.text_type(request)))
+            LOG.info("Doing request %s: %s",
+                     entry['name'], six.text_type(request))
             with webapp.use_admin_user():
                 response = webapp.request(request)
             entry['response'] = response
@@ -244,7 +248,7 @@ def setup(app):
         f.write(content)
 
     config_output_file = 'doc/source/gnocchi.conf.sample'
-    app.info("Generating %s" % config_output_file)
+    LOG.info("Generating %s", config_output_file)
     generator.main([
         '--config-file',
         '%s/gnocchi-config-generator.conf' % os.path.dirname(__file__),
