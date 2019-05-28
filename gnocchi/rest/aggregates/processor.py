@@ -202,7 +202,8 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
         for sampling in sorted(result, reverse=True):
             granularity, times, values, references = result[sampling]
             if fill == "dropna":
-                pos = ~numpy.isnan(values[0])
+                pos = ~numpy.logical_or(numpy.isnan(values[0]),
+                                        numpy.isinf(values[0]))
                 v = values[0][pos]
                 t = times[pos]
             else:
@@ -221,7 +222,8 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             granularity, times, values, references = result[sampling]
             for i, ref in enumerate(references):
                 if fill == "dropna":
-                    pos = ~numpy.isnan(values[i])
+                    pos = ~numpy.logical_or(numpy.isnan(values[i]),
+                                            numpy.isinf(values[i]))
                     v = values[i][pos]
                     t = times[pos]
                 else:
