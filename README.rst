@@ -11,20 +11,20 @@
 
 .. image:: doc/source/_static/gnocchi-logo.png
 
-Gnocchi is an open-source |time series| database.
+Gnocchi is an open-source time series database.
 
-The problem that Gnocchi solves is the storage and indexing of |time series|
+The problem that Gnocchi solves is the storage and indexing of time series
 data and resources at a large scale. This is useful in modern cloud platforms
 which are not only huge but also are dynamic and potentially multi-tenant.
 Gnocchi takes all of that into account.
 
-Gnocchi has been designed to handle large amounts of |aggregates| being stored
+Gnocchi has been designed to handle large amounts of aggregates being stored
 while being performant, scalable and fault-tolerant. While doing this, the goal
 was to be sure to not build any hard dependency on any complex storage system.
 
-Gnocchi takes a unique approach to |time series| storage: rather than storing
+Gnocchi takes a unique approach to time series storage: rather than storing
 raw data points, it aggregates them before storing them. This built-in feature
-is different from most other |time series| databases, which usually support
+is different from most other time series databases, which usually support
 this mechanism as an option and compute aggregation (average, minimum, etc.) at
 query time.
 
