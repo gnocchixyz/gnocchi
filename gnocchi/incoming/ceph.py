@@ -22,6 +22,7 @@ import numpy
 import six
 
 from gnocchi.common import ceph
+from gnocchi.status import get_ceph_health_status
 from gnocchi import incoming
 
 rados = ceph.rados
@@ -232,3 +233,6 @@ class CephStorage(incoming.IncomingDriver):
                 self.ioctx.remove_omap_keys(op, tuple(processed_keys))
                 self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)
+
+    def get_health_status(self):
+        return get_ceph_health_status(self)

@@ -19,6 +19,7 @@ import six
 
 from gnocchi import carbonara
 from gnocchi.common import redis
+from gnocchi.status import get_redis_health_status
 from gnocchi import storage
 from gnocchi import utils
 
@@ -193,3 +194,6 @@ return ids
             results[metric][aggregation] = result
 
         return results
+
+    def get_health_status(self):
+        return get_redis_health_status(self)

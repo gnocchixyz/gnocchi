@@ -21,6 +21,7 @@ import six
 
 from gnocchi import carbonara
 from gnocchi.common import swift
+from gnocchi.status import get_swift_health_status
 from gnocchi import storage
 from gnocchi import utils
 
@@ -221,3 +222,6 @@ class SwiftStorage(storage.StorageDriver):
             self._container_name(metric),
             self._build_unaggregated_timeserie_path(version),
             data)
+
+    def get_health_status(self):
+        return get_swift_health_status(self)

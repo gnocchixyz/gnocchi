@@ -20,6 +20,7 @@ import daiquiri
 import six
 
 from gnocchi.common import redis
+from gnocchi.status import get_redis_health_status
 from gnocchi import incoming
 
 
@@ -193,3 +194,6 @@ return results
         # Delete the sack key which handles no data but is used to get a SET
         # notification in iter_on_sacks_to_process
         self._client.delete(str(sack))
+
+    def get_health_status(self):
+        return get_redis_health_status(self)

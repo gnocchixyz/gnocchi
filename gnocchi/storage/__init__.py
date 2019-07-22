@@ -692,3 +692,7 @@ class StorageDriver(object):
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
+
+    @staticmethod
+    def get_health_status():
+        raise NotImplementedError

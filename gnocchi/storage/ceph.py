@@ -21,6 +21,7 @@ import six
 
 from gnocchi import carbonara
 from gnocchi.common import ceph
+from gnocchi.status import get_ceph_health_status
 from gnocchi import storage
 from gnocchi import utils
 
@@ -232,3 +233,6 @@ class CephStorage(storage.StorageDriver):
             content += data
             offset += len(data)
         return content
+
+    def get_health_status(self):
+        return get_ceph_health_status(self)

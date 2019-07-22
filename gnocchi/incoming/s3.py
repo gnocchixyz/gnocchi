@@ -23,6 +23,7 @@ import uuid
 import numpy
 
 from gnocchi.common import s3
+from gnocchi.status import get_s3_health_status
 from gnocchi import incoming
 
 boto3 = s3.boto3
@@ -188,3 +189,6 @@ class S3Storage(incoming.IncomingDriver):
 
         # Now clean objects
         s3.bulk_delete(self.s3, self._bucket_name_measures, files)
+
+    def get_health_status(self):
+        return get_s3_health_status(self)
