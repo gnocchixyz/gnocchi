@@ -129,15 +129,19 @@ class GroupedTimeSeries(object):
         self.tstamps, self.counts = numpy.unique(self.indexes,
                                                  return_counts=True)
 
+    @staticmethod
+    def _sum(values, counts):
+        return numpy.bincount(
+            numpy.repeat(numpy.arange(counts.size), counts), weights=values)
+
     def mean(self):
-        series = self.sum()
-        series['values'] /= self.counts
-        return series
+        return make_timeseries(
+            self.tstamps,
+            self._sum(self._ts['values'], self.counts) / self.counts)
 
     def sum(self):
-        return make_timeseries(self.tstamps, numpy.bincount(
-            numpy.repeat(numpy.arange(self.counts.size), self.counts),
-            weights=self._ts['values']))
+        return make_timeseries(self.tstamps,
+                               self._sum(self._ts['values'], self.counts))
 
     def min(self):
         ordered = self._ts['values'].argsort()
@@ -165,9 +169,9 @@ class GroupedTimeSeries(object):
                            self._ts['values'][ordered][mid_ceil]) / 2.0)
 
     def std(self):
-        mean_ts = self.mean()
+        values = self._sum(self._ts['values'], self.counts) / self.counts
         diff_sq = numpy.square(self._ts['values'] -
-                               numpy.repeat(mean_ts['values'], self.counts))
+                               numpy.repeat(values, self.counts))
         bin_sum = numpy.bincount(
             numpy.repeat(numpy.arange(self.counts.size), self.counts),
             weights=diff_sq)

@@ -152,10 +152,10 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     is_aggregated = False
     result = {}
     for sampling in sorted(series, reverse=True):
-        combine = numpy.concatenate(series[sampling])
         # np.unique sorts results for us
-        times, indices = numpy.unique(combine['timestamps'],
-                                      return_inverse=True)
+        times, indices = numpy.unique(
+            numpy.concatenate([i['timestamps'] for i in series[sampling]]),
+            return_inverse=True)
 
         # create nd-array (unique series x unique times) and fill
         filler = (numpy.NaN if fill in [None, 'null', 'dropna']
