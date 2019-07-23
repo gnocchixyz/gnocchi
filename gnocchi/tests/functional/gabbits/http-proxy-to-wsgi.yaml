@@ -1,0 +1,16 @@
+fixtures:
+    - ConfigFixture
+
+defaults:
+  request_headers:
+    content-type: application/json
+    # User foobar
+    authorization: "basic Zm9vYmFyOg=="
+
+tests:
+  - name: test HTTP proxy headers
+    GET: /
+    request_headers:
+      Forwarded: for=192.0.2.60;proto=http;host=foobar
+    response_json_paths:
+      $.versions[0].links[0].href: http://foobar/gnocchi/v1/

@@ -10,6 +10,7 @@ cache:
 env:
   - TARGET: pep8
   - TARGET: docs
+  - TARGET: docs-gnocchi.xyz
 
   - TARGET: py27-mysql-ceph-upgrade-from-4.3
   - TARGET: py37-postgresql-file-upgrade-from-4.3
@@ -64,6 +65,10 @@ notifications:
     skip_join: true
     channels:
       - "irc.freenode.org#gnocchi"
+
+before_deploy:
+  # Remove |substitutions| to fix rendering on pypi.
+  - sed -i -e 's/|\([a-zA-Z0-9 ]\+\)|/\1/g' README.rst
 
 deploy:
   provider: pypi

@@ -68,7 +68,14 @@ def abort(status_code, detail=''):
     """Like pecan.abort, but make sure detail is a string."""
     if status_code == 404 and not detail:
         raise RuntimeError("http code 404 must have 'detail' set")
-    if isinstance(detail, Exception):
+
+    if isinstance(detail, voluptuous.Invalid):
+        detail = {
+            'cause': 'Invalid input',
+            'reason': six.text_type(detail),
+            'detail': [six.text_type(path) for path in detail.path],
+        }
+    elif isinstance(detail, Exception):
         detail = detail.jsonify()
     return pecan.abort(status_code, detail)
 
@@ -154,25 +161,18 @@ def deserialize(expected_content_types=None):
     return params
 
 
-def validate(schema, data, required=True, detailed_exc=False):
+def validate(schema, data, required=True):
     try:
         return voluptuous.Schema(schema, required=required)(data)
     except voluptuous.Invalid as e:
-        if detailed_exc:
-            abort(400, {"cause": "Attribute value error",
-                        "reason": str(e),
-                        "detail": e.path})
-        else:
-            abort(400, "Invalid input: %s" % e)
+        abort(400, e)
 
 
 def deserialize_and_validate(schema, required=True,
-                             expected_content_types=None,
-                             detailed_exc=False):
+                             expected_content_types=None):
     return validate(schema,
                     deserialize(expected_content_types=expected_content_types),
-                    required,
-                    detailed_exc)
+                    required)
 
 
 def Timespan(value):
@@ -449,8 +449,7 @@ class MetricController(rest.RestController):
     @pecan.expose('json')
     def post_measures(self):
         self.enforce_metric("post measures")
-        measures = deserialize_and_validate(MeasuresListSchema,
-                                            detailed_exc=True)
+        measures = deserialize_and_validate(MeasuresListSchema)
         if measures:
             pecan.request.incoming.add_measures(self.metric.id, measures)
         pecan.response.status = 202
@@ -1654,8 +1653,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         MeasuresBatchSchema = voluptuous.Schema(
             {functools.partial(ResourceID, creator=creator):
              {six.text_type: self.BackwardCompatibleMeasuresList}})
-        body = deserialize_and_validate(MeasuresBatchSchema,
-                                        detailed_exc=True)
+        body = deserialize_and_validate(MeasuresBatchSchema)
 
         known_metrics = []
         unknown_metrics = []
@@ -2245,7 +2243,7 @@ class PrometheusWriteController(rest.RestController):
                 data = [{'timestamp': s.timestamp_ms / 1000.0,
                          'value': s.value} for s in ts.samples]
                 measures_by_rid[original_rid][name] = validate(
-                    MeasuresListSchema, data, detailed_exc=True)
+                    MeasuresListSchema, data)
 
         creator = pecan.request.auth_helper.get_current_user(pecan.request)
 

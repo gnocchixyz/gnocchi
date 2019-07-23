@@ -319,7 +319,6 @@ tests:
           - ["2015-03-06T14:35:12+00:00", 1.0, 7.5]
           - ["2015-03-06T14:35:15+00:00", 1.0, 12.5]
 
-
     - name: get one metric
       POST: /v1/aggregates?details=true
       data:
@@ -336,6 +335,40 @@ tests:
           - ["2015-03-06T14:34:15+00:00", 1.0, -16.0]
           - ["2015-03-06T14:35:12+00:00", 1.0, 9.0]
           - ["2015-03-06T14:35:15+00:00", 1.0, 11.0]
+
+    - name: get aggregates mean
+      POST: /v1/aggregates
+      data:
+        operations:
+          - aggregate
+          - mean
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.measures.aggregated:
+          - ["2015-03-06T14:33:00+00:00", 60.0, 22.55]
+          - ["2015-03-06T14:34:00+00:00", 60.0, 1.25]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 11.25]
+          - ["2015-03-06T14:33:57+00:00", 1.0, 22.55]
+          - ["2015-03-06T14:34:12+00:00", 1.0, 8.0]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -5.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 9.5]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 13.0]
+
+    - name: get aggregates rate:mean
+      POST: /v1/aggregates
+      data:
+        operations:
+          - aggregate
+          - rate:mean
+          - ["metric", ["$HISTORY['create metric1'].$RESPONSE['$.id']", "mean"], ["$HISTORY['create metric2'].$RESPONSE['$.id']", "mean"]]
+      response_json_paths:
+        $.measures.aggregated:
+          - ["2015-03-06T14:34:00+00:00", 60.0, -21.30]
+          - ["2015-03-06T14:35:00+00:00", 60.0, 10.0]
+          - ["2015-03-06T14:34:12+00:00", 1.0, -14.55]
+          - ["2015-03-06T14:34:15+00:00", 1.0, -13.5]
+          - ["2015-03-06T14:35:12+00:00", 1.0, 15.0]
+          - ["2015-03-06T14:35:15+00:00", 1.0, 3.5]
 
     - name: get aggregates one metric
       POST: /v1/aggregates?details=true
@@ -579,8 +612,10 @@ tests:
       data:
         operations: []
       status: 400
-      response_strings:
-        - "Invalid input: Operation must not be empty"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ['operations']
+        $.description.reason: "/^Operation must not be empty/"
 
     - name: get operations without list
       POST: /v1/aggregates
@@ -592,8 +627,10 @@ tests:
         operations:
           foo: bar
       status: 400
-      response_strings:
-        - "Invalid input: Expected a tuple/list, got a "
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ['operations']
+        $.description.reason: "/^Expected a tuple/list, got a/"
 
     - name: invalid operations string
       POST: /v1/aggregates
@@ -607,8 +644,8 @@ tests:
       response_json_paths:
         $.code: 400
         $.description.cause: "Invalid operations"
-        $.description.reason: "Fail to parse the operations string"
-        $.description.detail: "Expected \")\" (at char 15), (line:1, col:16)"
+        $.description.reason: "/^Fail to parse the operations string/"
+        $.description.detail: '/^Expected "\)", found end of text  \(at char 15\), \(line:1, col:16\)/'
 
     - name: get invalid metric operations
       POST: /v1/aggregates
@@ -619,8 +656,10 @@ tests:
       data:
         operations: ["metric"]
       status: 400
-      response_strings:
-        - "Invalid input: Operation need at least one argument for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.detail: ["operations"]
+        $.description.reason: "/^Operation need at least one argument for dictionary value/"
 
     - name: get unknown metrics
       POST: /v1/aggregates
@@ -774,8 +813,10 @@ tests:
       data:
         operations: "(rolling blah 2 (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       status: 400
-      response_strings:
-        - "Invalid input: 'rolling' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'rolling' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: get rolling-mean missing window
       POST: /v1/aggregates
@@ -786,8 +827,10 @@ tests:
       data:
         operations: "(rolling mean (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean))"
       status: 400
-      response_strings:
-        - "Invalid input: 'rolling' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'rolling' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: get measurements from metric and invalid operations
       POST: /v1/aggregates
@@ -798,8 +841,10 @@ tests:
       data:
         operations: "(notexist (absolute (metric $HISTORY['create metric1'].$RESPONSE['$.id'] mean)))"
       status: 400
-      response_strings:
-        - "Invalid input: 'notexist' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'notexist' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]
 
     - name: invalid resample
       POST: /v1/aggregates
@@ -810,5 +855,7 @@ tests:
       data:
         operations: "(resample mean invalid (metric ($HISTORY['create metric1'].$RESPONSE['$.id'] mean) ($HISTORY['create metric2'].$RESPONSE['$.id'] mean)))"
       status: 400
-      response_strings:
-        - "Invalid input: 'resample' operation invalid for dictionary value"
+      response_json_paths:
+        $.description.cause: "Invalid input"
+        $.description.reason: "/^'resample' operation invalid for dictionary value/"
+        $.description.detail: ["operations"]

@@ -459,16 +459,17 @@ class StorageDriver(object):
         )
 
         aggregations_needing_list_of_keys = set()
+        oldest_values = {}
 
         for aggregation, ts in six.iteritems(aggregations_and_timeseries):
             # Don't do anything if the timeseries is empty
             if not ts:
                 continue
 
-            if aggregation.timespan:
-                oldest_point_to_keep = ts.truncate(aggregation.timespan)
-            else:
-                oldest_point_to_keep = None
+            agg_oldest_values = {
+                'oldest_point_to_keep': ts.truncate(aggregation.timespan)
+                if aggregation.timespan else None,
+                'prev_oldest_mutable_key': None, 'oldest_mutable_key': None}
 
             if previous_oldest_mutable_timestamp and (aggregation.timespan or
                                                       need_rewrite):
@@ -480,6 +481,12 @@ class StorageDriver(object):
                 # object for an old object to be cleanup
                 if previous_oldest_mutable_key != oldest_mutable_key:
                     aggregations_needing_list_of_keys.add(aggregation)
+                    agg_oldest_values['prev_oldest_mutable_key'] = (
+                        previous_oldest_mutable_key)
+                    agg_oldest_values['oldest_mutable_key'] = (
+                        oldest_mutable_key)
+
+            oldest_values[aggregation.granularity] = agg_oldest_values
 
         all_existing_keys = self._list_split_keys(
             {metric: aggregations_needing_list_of_keys})[metric]
@@ -495,7 +502,10 @@ class StorageDriver(object):
             if not ts:
                 continue
 
-            oldest_key_to_keep = ts.get_split_key(oldest_point_to_keep)
+            agg_oldest_values = oldest_values[aggregation.granularity]
+
+            oldest_key_to_keep = ts.get_split_key(
+                agg_oldest_values['oldest_point_to_keep'])
 
             # If we listed the keys for the aggregation, that's because we need
             # to check for cleanup and/or rewrite
@@ -523,8 +533,8 @@ class StorageDriver(object):
                 # not the first time we treat this timeserie.
                 if need_rewrite:
                     for key in existing_keys:
-                        if previous_oldest_mutable_key <= key:
-                            if key >= oldest_mutable_key:
+                        if agg_oldest_values['prev_oldest_mutable_key'] <= key:
+                            if key >= agg_oldest_values['oldest_mutable_key']:
                                 break
                             LOG.debug(
                                 "Compressing previous split %s (%s) for "
@@ -620,11 +630,6 @@ class StorageDriver(object):
             else:
                 current_first_block_timestamp = ts.first_block_timestamp()
 
-            # NOTE(jd) This is Python where you need such
-            # hack to pass a variable around a closure,
-            # sorry.
-            computed_points = {"number": 0}
-
             def _map_compute_splits_operations(bound_timeserie):
                 # NOTE (gordc): bound_timeserie is entire set of
                 # unaggregated measures matching largest
@@ -634,8 +639,6 @@ class StorageDriver(object):
                 new_first_block_timestamp = (
                     bound_timeserie.first_block_timestamp()
                 )
-                computed_points['number'] = len(bound_timeserie)
-
                 aggregations = metric.archive_policy.aggregations
 
                 grouped_timeseries = {
@@ -685,7 +688,7 @@ class StorageDriver(object):
         self.statistics["splits delete"] += len(splits_to_delete)
         with self.statistics.time("splits update"):
             self._update_metric_splits(splits_to_update)
-        self.statistics["splits delete"] += len(splits_to_update)
+        self.statistics["splits update"] += len(splits_to_update)
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)

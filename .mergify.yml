@@ -1,24 +1,66 @@
-rules:
-  default:
-    protection:
-      required_status_checks:
-        strict: True
-        contexts:
-          - continuous-integration/travis-ci
-      required_pull_request_reviews:
-        required_approving_review_count: 2
-    merge_strategy:
-      method: rebase
-    automated_backport_labels:
-      backport-to-4.3: stable/4.3
-      backport-to-4.2: stable/4.2
-      backport-to-4.1: stable/4.1
-      backport-to-4.0: stable/4.0
-      backport-to-3.1: stable/3.1
-      backport-to-3.0: stable/3.0
-  branches:
-    '^stable/.*':
-      protection:
-        required_pull_request_reviews:
-          required_approving_review_count: 1
+pull_request_rules:
+  - name: automatic merge
+    actions:
+      merge:
+        method: rebase
+        rebase_fallback: merge
+        strict: true
+    conditions:
+    - label!=work-in-progress
+    - '#approved-reviews-by>=1'
+    - status-success=continuous-integration/travis-ci/pr
+  - name: automatic merge backports from Mergify
+    actions:
+      merge:
+        method: rebase
+        rebase_fallback: merge
+        strict: true
+    conditions:
+    - base~=^stable/.*
+    - label!=work-in-progress
+    - author=mergify[bot]
+    - status-success=continuous-integration/travis-ci/pr
 
+# Backports to stable branches
+  - actions:
+      backport:
+        branches:
+        - stable/3.0
+    conditions:
+    - label=backport-to-3.0
+    name: backport stable/3.0
+  - actions:
+      backport:
+        branches:
+        - stable/3.1
+    conditions:
+    - label=backport-to-3.1
+    name: backport stable/3.1
+  - actions:
+      backport:
+        branches:
+        - stable/4.0
+    conditions:
+    - label=backport-to-4.0
+    name: backport stable/4.0
+  - actions:
+      backport:
+        branches:
+        - stable/4.1
+    conditions:
+    - label=backport-to-4.1
+    name: backport stable/4.1
+  - actions:
+      backport:
+        branches:
+        - stable/4.2
+    conditions:
+    - label=backport-to-4.2
+    name: backport stable/4.2
+  - actions:
+      backport:
+        branches:
+        - stable/4.3
+    conditions:
+    - label=backport-to-4.3
+    name: backport stable/4.3
