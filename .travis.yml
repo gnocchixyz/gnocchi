@@ -65,6 +65,10 @@ notifications:
     channels:
       - "irc.freenode.org#gnocchi"
 
+before_deploy:
+  - pip install --user --upgrade pip
+  - pip install --user --upgrade six
+
 deploy:
   provider: pypi
   user: jd
