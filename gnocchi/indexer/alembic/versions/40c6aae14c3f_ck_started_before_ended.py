@@ -31,9 +31,9 @@ from alembic import op
 
 
 def upgrade():
-    op.create_check_constraint("ck_started_before_ended",
+    op.create_check_constraint("ck_resource_started_before_ended",
                                "resource",
                                "started_at <= ended_at")
-    op.create_check_constraint("ck_started_before_ended",
+    op.create_check_constraint("ck_resource_history_started_before_ended",
                                "resource_history",
                                "started_at <= ended_at")
