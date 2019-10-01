@@ -880,7 +880,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                 session.flush()
             except exception.DBConstraintError as e:
-                if e.check_name == "ck_started_before_ended":
+                if e.check_name in (
+                        "ck_resource_started_before_ended",
+                        "ck_resource_history_started_before_ended"):
                     raise indexer.ResourceValueError(
                         resource_type, "ended_at", ended_at)
                 raise
