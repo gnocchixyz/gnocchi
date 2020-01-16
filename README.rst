@@ -31,4 +31,4 @@ query time.
 Because Gnocchi computes all the aggregations at ingestion, getting the data
 back is extremely fast, as it just needs to read back the pre-computed results.
 
-You can read the full documentation online at http://gnocchi.xyz.
+You can read the full documentation online at http://gnocchi.osci.io.
