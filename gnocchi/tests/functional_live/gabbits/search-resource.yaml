@@ -1,6 +1,6 @@
 #
 # Tests to confirm resources are searchable. Run against a live setup.
-# URL: http://gnocchi.xyz/rest.html#searching-for-resources
+# URL: http://gnocchi.osci.io/rest.html#searching-for-resources
 #
 # Instance-ResourceID-1: a64ca14f-bc7c-45b0-aa85-42cd2179e1e2
 # Instance-ResourceID-2: 7ccccfa0-92ce-4225-80ca-3ac9cb122d6a

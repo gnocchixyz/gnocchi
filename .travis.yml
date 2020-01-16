@@ -10,7 +10,7 @@ cache:
 env:
   - TARGET: pep8
   - TARGET: docs
-  - TARGET: docs-gnocchi.xyz
+  - TARGET: docs-gnocchi-web
 
   - TARGET: py27-mysql-ceph-upgrade-from-4.3
   - TARGET: py37-postgresql-file-upgrade-from-4.3
@@ -38,7 +38,7 @@ before_script:
           ;;
       esac ;
       case $TARGET in
-        docs-gnocchi.xyz)
+        docs-gnocchi-web)
           git branch -a | sed -n "/\/HEAD /d; /\/master$/d; s,remotes/origin/,,p;" | xargs -i git branch {} origin/{} ;
           git branch -D master;
           git checkout -b master;

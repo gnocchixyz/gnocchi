@@ -175,7 +175,7 @@ def setup(app):
     if _RUN:
         return
 
-    # NOTE(sileht): On gnocchi.xyz, we build a multiversion of the docs
+    # NOTE(sileht): On gnocchi.osci.io, we build a multiversion of the docs
     # all versions are built with the master gnocchi.gendoc sphinx extension.
     # So the hack here run an other python script to generate the rest.rst
     # file of old version of the module.
