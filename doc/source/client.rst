@@ -24,6 +24,6 @@ It can be installed using *go get*::
 
 This package provides the Go SDK only. You can read the `godoc reference`_.
 
-.. _full documentation online: http://gnocchi.xyz/gnocchiclient
+.. _full documentation online: http://gnocchi.osci.io/gnocchiclient
 .. _Gophercloud: https://github.com/gophercloud
 .. _godoc reference: https://godoc.org/github.com/gophercloud/utils
