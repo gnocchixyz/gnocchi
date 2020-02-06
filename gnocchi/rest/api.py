@@ -17,6 +17,7 @@
 import collections
 import functools
 import itertools
+import logging
 import operator
 import uuid
 
@@ -42,6 +43,7 @@ from gnocchi import json
 from gnocchi import resource_type
 from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
+from gnocchi.rest import exceptions as rest_exceptions
 from gnocchi import storage
 from gnocchi import utils
 
@@ -54,6 +56,7 @@ except ImportError:
 
 
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
+LOG = logging.getLogger(__name__)
 
 
 def arg_to_list(value):
@@ -77,6 +80,7 @@ def abort(status_code, detail=''):
         }
     elif isinstance(detail, Exception):
         detail = detail.jsonify()
+    LOG.debug("Aborting request. Code [%s]. Details [%s]", status_code, detail)
     return pecan.abort(status_code, detail)
 
 
@@ -157,7 +161,10 @@ def deserialize(expected_content_types=None):
     try:
         params = json.load(pecan.request.body_file)
     except Exception as e:
-        abort(400, "Unable to decode body: " + six.text_type(e))
+        details = rest_exceptions.UnableToDecodeBody(e,
+                                                     pecan.request.body_file)
+        LOG.warning(details.jsonify())
+        abort(400, details)
     return params
 
 

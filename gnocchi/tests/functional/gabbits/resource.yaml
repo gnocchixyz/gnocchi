@@ -312,10 +312,15 @@ tests:
 
     - name: patch resource no data
       desc: providing no data is an error
+      request_headers:
+        accept: application/json
       PATCH: /v1/resource/generic/75C44741-CC60-4033-804E-2D3098C7D2E9
       status: 400
-      response_strings:
-          - "Unable to decode body:"
+      response_json_paths:
+        $.description:
+          cause: "Unable to decode body"
+          reason: "Expected object or value"
+          detail: []
 
     - name: patch resource bad data
       desc: providing data that is not a dict is an error
