@@ -202,6 +202,9 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
 
 
 class ResourceJsonifier(indexer.Resource):
+    def __str__(self):
+        return str(self.jsonify())
+
     def jsonify(self, attrs=None):
         d = dict(self)
         del d['revision']

@@ -818,6 +818,23 @@ requested |resource| type, and then compute the aggregation:
 
 {{ scenarios['get-aggregates-by-attributes-lookup-groupby']['doc'] }}
 
+Gnocchi will only group by the last attribute's value for each resource.
+Therefore, in cases that the resource's attributes get changed over the
+provided time window, Gnocchi will only display the last attributes' value.
+Below we have an example of a resource that had the `flavor_id` attribute
+changed from `1` to `2` after `2015`.
+
+{{ scenarios['get-aggregates-by-attributes-lookup-groupby-without-history']['doc'] }}
+
+Between the measurements from `2015` and `2099`, the `flavor_id` was changed
+from `1` to `2`, but in the response, it is always `2`. In these cases, if you
+want to get all the attributes' values over the time window, and group each
+measurement by the attribute value the resource has when the measurement was
+collected, you can add the `use_history=true` in the aggregates API request,
+like the following example.
+
+{{ scenarios['get-aggregates-by-attributes-lookup-groupby-with-history']['doc'] }}
+
 List of supported <operations>
 ------------------------------
 
