@@ -393,67 +393,126 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return resource_type
 
     def update_resource_type(self, name, add_attributes=None,
-                             del_attributes=None):
-        if not add_attributes and not del_attributes:
+                             del_attributes=None, update_attributes=None):
+        if not add_attributes and not del_attributes and not update_attributes:
             return
         add_attributes = add_attributes or []
         del_attributes = del_attributes or []
+        update_attributes = update_attributes or []
 
-        self._set_resource_type_state(name, "updating", "active")
+        with self.facade.independent_writer() as session:
+            engine = session.connection()
+            rt = self._get_resource_type(session, name)
 
-        try:
-            with self.facade.independent_writer() as session:
-                engine = session.connection()
-                rt = self._get_resource_type(session, name)
+            with self.facade.writer_connection() as connection:
+                ctx = migration.MigrationContext.configure(connection)
+                op = operations.Operations(ctx)
+                self.fill_null_attribute_values(engine, name, rt, session,
+                                                update_attributes)
 
-                with self.facade.writer_connection() as connection:
-                    ctx = migration.MigrationContext.configure(connection)
-                    op = operations.Operations(ctx)
-                    for table in [rt.tablename, '%s_history' % rt.tablename]:
-                        with op.batch_alter_table(table) as batch_op:
-                            for attr in del_attributes:
-                                batch_op.drop_column(attr)
-                            for attr in add_attributes:
-                                server_default = attr.for_filling(
-                                    engine.dialect)
-                                batch_op.add_column(sqlalchemy.Column(
-                                    attr.name, attr.satype,
-                                    nullable=not attr.required,
-                                    server_default=server_default))
+                self._set_resource_type_state(name, "updating", "active")
+                for table in [rt.tablename, '%s_history' % rt.tablename]:
+                    with op.batch_alter_table(table) as batch_op:
+                        for attr in del_attributes:
+                            LOG.debug("Dropping column [%s] from resource [%s]"
+                                      " and database table [%s]",
+                                      attr, name, table)
+                            batch_op.drop_column(attr)
+                        for attr in add_attributes:
+                            LOG.debug("Adding new column [%s] with type [%s], "
+                                      "nullable [%s] and default value [%s] "
+                                      "in resource [%s] and database "
+                                      "table [%s]", attr.name, attr.satype,
+                                      not attr.required,
+                                      getattr(attr, 'fill', None), name, table)
 
-                                # We have all rows filled now, we can remove
-                                # the server_default
-                                if server_default is not None:
-                                    batch_op.alter_column(
-                                        column_name=attr.name,
-                                        existing_type=attr.satype,
-                                        existing_server_default=server_default,
-                                        existing_nullable=not attr.required,
-                                        server_default=None)
+                            server_default = attr.for_filling(
+                                engine.dialect)
+                            batch_op.add_column(sqlalchemy.Column(
+                                attr.name, attr.satype,
+                                nullable=not attr.required,
+                                server_default=server_default))
 
-                rt.state = "active"
-                rt.updated_at = utils.utcnow()
-                rt.attributes.extend(add_attributes)
-                for attr in list(rt.attributes):
-                    if attr.name in del_attributes:
-                        rt.attributes.remove(attr)
-                # FIXME(sileht): yeah that's wierd but attributes is a custom
-                # json column and 'extend' doesn't trigger sql update, this
-                # enforce the update. I wonder if sqlalchemy provides something
-                # on column description side.
-                sqlalchemy.orm.attributes.flag_modified(rt, 'attributes')
+                            # We have all rows filled now, we can remove
+                            # the server_default
+                            if server_default is not None:
+                                LOG.debug("Removing default value [%s] from "
+                                          "column [%s] of resource [%s] and "
+                                          "database table [%s]",
+                                          getattr(attr, 'fill', None),
+                                          attr.name, name, table)
+                                batch_op.alter_column(
+                                    column_name=attr.name,
+                                    existing_type=attr.satype,
+                                    existing_server_default=server_default,
+                                    existing_nullable=not attr.required,
+                                    server_default=None)
 
-        except Exception:
-            # NOTE(sileht): We fail the DDL, we have no way to automatically
-            # recover, just set a particular state
-            # TODO(sileht): Create a repair REST endpoint that delete
-            # columns not existing in the database but in the resource type
-            # description. This will allow to pass wrong update_error to active
-            # state, that currently not possible.
-            self._set_resource_type_state(name, "updating_error")
-            raise
+                        for attr in update_attributes:
+                            LOG.debug("Updating column [%s] from old values "
+                                      "type [%s], nullable [%s], to new values"
+                                      " type [%s], nullable [%s] of resource "
+                                      "[%s] and database_table [%s]",
+                                      attr[1].name, attr[1].satype,
+                                      not attr[1].required, attr[0].satype,
+                                      not attr[0].required, name, table)
+                            batch_op.alter_column(
+                                column_name=attr[1].name,
+                                existing_type=attr[1].satype,
+                                existing_nullable=not attr[1].required,
+                                type_=attr[0].satype,
+                                nullable=not attr[0].required)
+
+            rt.state = "active"
+            rt.updated_at = utils.utcnow()
+            rt.attributes.extend(add_attributes)
+            update_attributes = list(map(lambda a: a[0],
+                                         update_attributes))
+            update_attributes_names = list(map(lambda a: a.name,
+                                               update_attributes))
+            for attr in list(rt.attributes):
+                if (attr.name in del_attributes or
+                        attr.name in update_attributes_names):
+                    rt.attributes.remove(attr)
+
+            rt.attributes.extend(update_attributes)
+            # FIXME(sileht): yeah that's wierd but attributes is a custom
+            # json column and 'extend' doesn't trigger sql update, this
+            # enforce the update. I wonder if sqlalchemy provides something
+            # on column description side.
+            LOG.debug("Updating resource [%s] setting attributes as [%s]",
+                      name, list(rt.attributes))
+            sqlalchemy.orm.attributes.flag_modified(rt, 'attributes')
 
         return rt
+
+    def fill_null_attribute_values(self, engine, name, rt, session,
+                                   update_attributes):
+        for table in [rt.tablename, '%s_history' % rt.tablename]:
+            for attr in update_attributes:
+                if (hasattr(attr[0], 'fill') and
+                        attr[0].fill is not None):
+                    mappers = self._resource_type_to_mappers(
+                        session, name)
+                    if table == rt.tablename:
+                        resource_cls = mappers["resource"]
+                    else:
+                        resource_cls = mappers["history"]
+                    cls_attr = attr[0].name
+                    f = QueryTransformer.build_filter(
+                        engine.dialect.name, resource_cls,
+                        {'=': {cls_attr: None}})
+                    q = session.query(resource_cls).filter(
+                        f).with_for_update()
+                    resources = q.all()
+                    if resources:
+                        LOG.debug("Null resources [%s] to be filled with [%s] "
+                                  "for resource-type [%s]", resources,
+                                  attr[0].fill, name)
+                        for resource in resources:
+                            if hasattr(resource, attr[0].name):
+                                setattr(resource, attr[0].name,
+                                        attr[0].fill)
 
     def get_resource_type(self, name):
         with self.facade.independent_reader() as session:

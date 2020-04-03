@@ -901,23 +901,71 @@ class ResourceTypeController(rest.RestController):
                      if k not in rt_json_current["attributes"]}
         del_attrs = [k for k in rt_json_current["attributes"]
                      if k not in rt_json_next["attributes"]]
+        update_attrs = self.retrieve_update_attrs(rt_json_current,
+                                                  rt_json_next)
 
-        if not add_attrs and not del_attrs:
+        if update_attrs:
+            LOG.debug("Updating attributes [%s] for resource-type [%s]",
+                      update_attrs, self._name)
+
+        if not add_attrs and not del_attrs and not update_attrs:
             # NOTE(sileht): just returns the resource, the asked changes
             # just do nothing
             return rt
 
         try:
             add_attrs = schema.attributes_from_dict(add_attrs)
+            update_attrs = self.create_update_attrs(schema, update_attrs)
         except resource_type.InvalidResourceAttribute as e:
             abort(400, "Invalid input: %s" % e)
 
         try:
             return pecan.request.indexer.update_resource_type(
                 self._name, add_attributes=add_attrs,
-                del_attributes=del_attrs)
+                del_attributes=del_attrs, update_attributes=update_attrs)
         except indexer.NoSuchResourceType as e:
             abort(400, six.text_type(e))
+
+    def create_update_attrs(self, schema, update_attrs):
+        new_attrs = dict(map(lambda entry: (entry[0], entry[1][1]),
+                             update_attrs.items()))
+        old_attrs = dict(map(lambda entry: (entry[0], entry[1][0]),
+                             update_attrs.items()))
+        update_attrs_new = schema.attributes_from_dict(new_attrs)
+        update_attrs_new.sort(key=lambda attr: attr.name)
+        update_attrs_old = schema.attributes_from_dict(old_attrs)
+        update_attrs_old.sort(key=lambda attr: attr.name)
+        update_attrs = []
+        for i in range(len(update_attrs_new)):
+            update_attrs.append((update_attrs_new[i],
+                                 update_attrs_old[i]))
+
+        return update_attrs
+
+    def retrieve_update_attrs(self, rt_json_current, rt_json_next):
+        update_attrs = {}
+        for k, v in rt_json_current["attributes"].items():
+            if k in rt_json_next["attributes"]:
+                self.validate_types(k, rt_json_next, v)
+                should_be_updated = False
+                for kc, vc in v.items():
+                    if vc != rt_json_next["attributes"][k][kc]:
+                        should_be_updated = True
+                        break
+
+                if should_be_updated:
+                    update_attrs[k] = (v, rt_json_next["attributes"][k])
+
+        return update_attrs
+
+    def validate_types(self, attribute, new_json, old_json):
+        old_type = old_json['type']
+        new_type = new_json["attributes"][attribute]['type']
+        if new_type != old_type:
+            msg = "Type update is not available yet. Changing %s to %s " \
+                  "for attribute %s of resource %s" % (old_type, new_type,
+                                                       attribute, self._name)
+            abort(400, msg)
 
     @pecan.expose('json')
     def delete(self):
