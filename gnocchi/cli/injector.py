@@ -71,7 +71,7 @@ def _inject(inc, coord, store, idx,
     with utils.StopWatch() as sw:
         measures = {
             m_id: [incoming.Measure(
-                now + numpy.timedelta64(seconds=s),
+                now + numpy.timedelta64(s, 's'),
                 random.randint(-999999, 999999)) for s in range(measures)]
             for m_id in metric_ids
         }
