@@ -1,5 +1,15 @@
 #!/bin/bash
-set -e
+set -xe
+
+if [ "$1" == "postgresql-file" ]; then
+  eval $(pifpaf --debug --env-prefix INDEXER run postgresql)
+elif [ "$1" == "mysql-ceph" ]; then
+  eval $(pifpaf --debug --env-prefix INDEXER run mysql)
+  eval $(pifpaf --debug --env-prefix STORAGE run ceph)
+else
+  echo "error: unsupported upgrade type"
+  exit 1
+fi
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
@@ -72,7 +82,7 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
