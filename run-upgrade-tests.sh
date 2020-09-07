@@ -3,7 +3,7 @@ set -e
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
-old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
+old_version=$(pip3 freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
@@ -40,7 +40,7 @@ inject_data() {
 
     {
         measures_sep=""
-        MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
+        MEASURES=$(python3 -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
         echo -n '{'
         resource_sep=""
         for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
@@ -80,9 +80,9 @@ inject_data $GNOCCHI_DATA
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
-new_version=$(python setup.py --version)
+new_version=$(python3 setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
-pip install -v -U .[${GNOCCHI_VARIANT}]
+pip3 install -v -U .[${GNOCCHI_VARIANT}]
 
 eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
@@ -100,5 +100,5 @@ echo "* Checking output difference between Gnocchi $old_version and $new_version
 # archive policy
 for old in $GNOCCHI_DATA/old/*.json; do
     new=$GNOCCHI_DATA/new/$(basename $old)
-    python -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
+    python3 -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
 done

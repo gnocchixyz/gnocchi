@@ -12,12 +12,10 @@ env:
   - TARGET: docs
   - TARGET: docs-gnocchi-web
 
-  - TARGET: py27-mysql-ceph-upgrade-from-4.3
+  - TARGET: py37-mysql-ceph-upgrade-from-4.3
   - TARGET: py37-postgresql-file-upgrade-from-4.3
 
-  - TARGET: py27-mysql
   - TARGET: py37-mysql
-  - TARGET: py27-postgresql
   - TARGET: py37-postgresql
 
 before_script:
