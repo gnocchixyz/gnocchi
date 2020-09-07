@@ -54,12 +54,7 @@ be created for example with:
 
 
 Gnocchi leverages some *librados* features (omap, async, operation context)
-available in the Python binding only since *python-rados* >= 12.2.0. To handle
-this, Gnocchi uses *cradox* python library which has exactly the same API but
-works with Ceph >= 0.80.0.
-
-If Ceph and python-rados are >= 12.2.0, the cradox Python library becomes
-optional but is still recommended.
+available in the Ceph Python binding only since *python-rados* >= 12.2.0.
 
 
 Configuration
