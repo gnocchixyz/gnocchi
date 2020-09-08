@@ -1,11 +1,11 @@
 #!/bin/bash
-set -xe
+set -e
 
 if [ "$1" == "postgresql-file" ]; then
-  eval $(pifpaf --debug --env-prefix INDEXER run postgresql)
+  eval $(pifpaf --env-prefix INDEXER run postgresql)
 elif [ "$1" == "mysql-ceph" ]; then
-  eval $(pifpaf --debug --env-prefix INDEXER run mysql)
-  eval $(pifpaf --debug --env-prefix STORAGE run ceph)
+  eval $(pifpaf --env-prefix INDEXER run mysql)
+  eval $(pifpaf --env-prefix STORAGE run ceph)
 else
   echo "error: unsupported upgrade type"
   exit 1
@@ -13,7 +13,7 @@ fi
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
-old_version=$(pip3 freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
+old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
@@ -50,7 +50,7 @@ inject_data() {
 
     {
         measures_sep=""
-        MEASURES=$(python3 -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
+        MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
         echo -n '{'
         resource_sep=""
         for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
@@ -71,6 +71,8 @@ pifpaf_stop(){
 cleanup(){
     pifpaf_stop
     rm -rf $GNOCCHI_DATA
+    indexer_stop || true
+    [ "$STORAGE_DAEMON" == "ceph" ] && storage_stop || true
 }
 trap cleanup EXIT
 
@@ -82,7 +84,7 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID
@@ -90,11 +92,11 @@ inject_data $GNOCCHI_DATA
 dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
-new_version=$(python3 setup.py --version)
+new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
-pip3 install -v -U .[${GNOCCHI_VARIANT}]
+pip install -v -U .[${GNOCCHI_VARIANT}]
 
-eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
@@ -110,5 +112,5 @@ echo "* Checking output difference between Gnocchi $old_version and $new_version
 # archive policy
 for old in $GNOCCHI_DATA/old/*.json; do
     new=$GNOCCHI_DATA/new/$(basename $old)
-    python3 -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
+    python -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
 done
