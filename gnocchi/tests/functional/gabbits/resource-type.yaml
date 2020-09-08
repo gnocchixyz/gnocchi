@@ -768,6 +768,8 @@ tests:
             min_length: 0
             max_length: 255
       status: 400
+      response_strings:
+       - "can't remove non-existent object 'what'"
 
     - name: patch a resource attribute replace
       PATCH: /v1/resource_type/my_custom_resource
@@ -816,6 +818,8 @@ tests:
         - op: remove
           path: /attributes/unknown
       status: 400
+      response_strings:
+       - "can't remove non-existent object 'unknown'"
 
 # Ensure we can't delete the type
 
