@@ -345,12 +345,12 @@ class TestCase(BaseTestCase):
             self.conf.set_override('ceph_conffile',
                                    os.getenv("CEPH_CONF"),
                                    'storage')
-            pool_name = uuid.uuid4().hex
+            self.ceph_pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:
                 subprocess.call("rados -c %s mkpool %s" % (
-                    os.getenv("CEPH_CONF"), pool_name), shell=True,
+                    os.getenv("CEPH_CONF"), self.ceph_pool_name), shell=True,
                     stdout=f, stderr=subprocess.STDOUT)
-            self.conf.set_override('ceph_pool', pool_name, 'storage')
+            self.conf.set_override('ceph_pool', self.ceph_pool_name, 'storage')
 
         # Override the bucket prefix to be unique to avoid concurrent access
         # with any other test
@@ -377,6 +377,15 @@ class TestCase(BaseTestCase):
     def tearDown(self):
         self.index.disconnect()
         self.coord.stop()
+
+        if self.conf.storage.driver == 'ceph':
+            with open(os.devnull, 'w') as f:
+                ceph_rmpool_command = "rados -c %s rmpool %s %s \
+--yes-i-really-really-mean-it" % (os.getenv("CEPH_CONF"), self.ceph_pool_name,
+                                  self.ceph_pool_name)
+                subprocess.call(ceph_rmpool_command, shell=True,
+                                stdout=f, stderr=subprocess.STDOUT)
+
         super(TestCase, self).tearDown()
 
     def _create_metric(self, archive_policy_name="low"):

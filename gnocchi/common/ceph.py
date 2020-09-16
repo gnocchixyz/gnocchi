@@ -20,7 +20,7 @@ import daiquiri
 LOG = daiquiri.getLogger(__name__)
 
 
-for RADOS_MODULE_NAME in ('cradox', 'rados'):
+for RADOS_MODULE_NAME in ('rados', 'cradox'):
     try:
         rados = __import__(RADOS_MODULE_NAME)
     except ImportError:
