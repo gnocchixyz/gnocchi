@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+if [ "$1" == "postgresql-file" ]; then
+  eval $(pifpaf --env-prefix INDEXER run postgresql)
+elif [ "$1" == "mysql-ceph" ]; then
+  eval $(pifpaf --env-prefix INDEXER run mysql)
+  eval $(pifpaf --env-prefix STORAGE run ceph)
+else
+  echo "error: unsupported upgrade type"
+  exit 1
+fi
+
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
@@ -84,7 +94,7 @@ new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $old_version to $new_version"
 pip install -v -U .[${GNOCCHI_VARIANT}]
 
-eval $(pifpaf --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
