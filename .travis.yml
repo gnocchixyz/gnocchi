@@ -47,9 +47,6 @@ before_script:
       esac ;
       set +x;
     fi
-
-    # pull python3-rados from distro packages
-    sudo apt install -y python3-rados
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
       docker pull gnocchixyz/ci-tools:latest;
