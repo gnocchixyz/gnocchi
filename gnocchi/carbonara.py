@@ -307,9 +307,8 @@ class TimeSerie(object):
 
     @staticmethod
     def _compress(payload):
-        # FIXME(jd) lz4 > 0.9.2 returns bytearray instead of bytes. But Cradox
-        # does not accept bytearray but only bytes, so make sure that we have a
-        # byte type returned.
+        # FIXME(jd) lz4 > 0.9.2 returns bytearray instead of bytes but we need
+        # a byte type returned.
         return memoryview(lz4.block.compress(payload)).tobytes()
 
 
