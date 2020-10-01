@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Cradox is no longer maintained or supported, please use the python rados
+    module that can be installation from your distributions package manager.
