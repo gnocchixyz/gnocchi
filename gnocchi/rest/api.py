@@ -2116,10 +2116,14 @@ class StatusController(rest.RestController):
             report_dict['metricd']['processors'] = [
                 member.decode() for member in members
             ]
-            report_dict['metricd']['statistics'] = {
-                member.decode(): cap.get()
-                for member, cap in six.moves.zip(members, caps)
-            }
+            members_data = {}
+            for member, cap in six.moves.zip(members, caps):
+                caps_data = {
+                    six.ensure_str(k): v
+                    for k, v in six.iteritems(cap.get())
+                }
+                members_data[member.decode()] = caps_data
+            report_dict['metricd']['statistics'] = members_data
         else:
             report_dict['metricd']['processors'] = None
             report_dict['metricd']['statistics'] = {}
