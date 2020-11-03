@@ -68,7 +68,8 @@ class ModelsMigrationsSync(
     def _drop_database(self):
         try:
             sqlalchemy_utils.drop_database(self.conf.indexer.url)
-        except oslo_db.exception.DBNonExistentDatabase:
+        except oslo_db.exception.DBNonExistentDatabase as e:
+            print(f'FUUU: {self.conf.indexer.url}: {e}')
             # NOTE(sileht): oslo db >= 4.15.0 cleanup this for us
             pass
 
