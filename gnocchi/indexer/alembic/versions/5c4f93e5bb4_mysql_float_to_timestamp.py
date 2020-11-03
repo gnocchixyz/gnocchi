@@ -55,18 +55,18 @@ def upgrade():
 
             existing_type = sa.types.DECIMAL(
                 precision=20, scale=6, asdecimal=True)
-            existing_col = sa.Column(
+            existing_col = lambda: sa.Column(
                 column_name,
                 existing_type,
                 nullable=nullable)
-            temp_col = sa.Column(
+            temp_col = lambda: sa.Column(
                 column_name + "_ts",
                 sqlalchemy_types.TimestampUTC(),
                 nullable=True)
-            op.add_column(table_name, temp_col)
-            t = sa.sql.table(table_name, existing_col, temp_col)
+            op.add_column(table_name, temp_col())
+            t = sa.sql.table(table_name, existing_col(), temp_col())
             op.execute(t.update().values(
-                **{column_name + "_ts": func.from_unixtime(existing_col)}))
+                **{column_name + "_ts": func.from_unixtime(existing_col())}))
             op.drop_column(table_name, column_name)
             op.alter_column(table_name,
                             column_name + "_ts",
