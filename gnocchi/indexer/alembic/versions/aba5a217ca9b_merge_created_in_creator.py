@@ -34,20 +34,24 @@ depends_on = None
 
 def upgrade():
     for table_name in ("resource", "resource_history", "metric"):
-        creator_col = sa.Column("creator", sa.String(255))
-        created_by_user_id_col = sa.Column("created_by_user_id",
-                                           sa.String(255))
-        created_by_project_id_col = sa.Column("created_by_project_id",
-                                              sa.String(255))
-        op.add_column(table_name, creator_col)
+        creator_col = lambda: sa.Column("creator", sa.String(255))
+        created_by_user_id_col = lambda: sa.Column(
+            "created_by_user_id", sa.String(255))
+        created_by_project_id_col = lambda: sa.Column(
+            "created_by_project_id", sa.String(255))
+        op.add_column(table_name, creator_col())
         t = sa.sql.table(
-            table_name, creator_col,
-            created_by_user_id_col, created_by_project_id_col)
+            table_name,
+            creator_col(),
+            created_by_user_id_col(),
+            created_by_project_id_col(),
+        )
         op.execute(
             t.update().values(
                 creator=(
-                    created_by_user_id_col + ":" + created_by_project_id_col
-                )).where((created_by_user_id_col is not None)
-                         | (created_by_project_id_col is not None)))
+                    created_by_user_id_col() + ":" +
+                    created_by_project_id_col()
+                )).where((created_by_user_id_col() is not None)
+                         | (created_by_project_id_col() is not None)))
         op.drop_column(table_name, "created_by_user_id")
         op.drop_column(table_name, "created_by_project_id")
