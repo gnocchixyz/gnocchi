@@ -136,6 +136,27 @@ class NotImplementedMiddleware(object):
                 "not implement this feature 😞")
 
 
+def sanitize(obj):
+    """Avoids using bytes in given object."""
+    # handle dicts
+    try:
+        for key in list(obj.keys()):
+            val = sanitize(obj[key])
+            if type(key) is bytes:
+                del obj[key]
+                key = key.decode('utf-8')
+            obj[key] = val
+    except AttributeError:
+        pass
+    # handle iterables
+    if isinstance(obj, (list, tuple, set)):
+        return type(obj)([sanitize(i) for i in obj])
+    # handle items
+    if type(obj) is bytes:
+        return obj.decode('utf-8')
+    return obj
+
+
 class JsonRenderer(templating.JsonRenderer):
     def render(self, template_path, namespace):
         # NOTE(sileht): Unlike the builtin renderer of pecan
@@ -143,7 +164,11 @@ class JsonRenderer(templating.JsonRenderer):
         # returns only empty, list or dict.
         if namespace is None:
             return ""
-        return super(JsonRenderer, self).render(template_path, namespace)
+        try:
+            return super(JsonRenderer, self).render(template_path, namespace)
+        except TypeError:
+            return super(JsonRenderer, self).render(template_path,
+                                                    sanitize(namespace))
 
 
 # NOTE(sileht): pastedeploy uses ConfigParser to handle
