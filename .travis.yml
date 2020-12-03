@@ -2,9 +2,6 @@ dist: bionic
 language: generic
 sudo: required
 
-services:
-  - docker
-
 cache:
   directories:
     - ~/.cache/pip
@@ -49,11 +46,11 @@ before_script:
     fi
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker pull gnocchixyz/ci-tools:latest;
+      ./tools/install_deps.sh ;
     fi
 script:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
+      tox -e ${TARGET} ;
     fi
 
 notifications:
