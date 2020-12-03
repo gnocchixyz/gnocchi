@@ -79,7 +79,7 @@ trap cleanup EXIT
 
 
 if [ "$STORAGE_DAEMON" == "ceph" ]; then
-    rados -c $STORAGE_CEPH_CONF mkpool gnocchi
+    ceph -c $STORAGE_CEPH_CONF osd pool create gnocchi 16 16 replicated
     STORAGE_URL=ceph://$STORAGE_CEPH_CONF
 else
     STORAGE_URL=file://$GNOCCHI_DATA
