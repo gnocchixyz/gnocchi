@@ -29,7 +29,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
             ceph)
                 eval $(pifpaf -e STORAGE run ceph)
                 check_empty_var STORAGE_URL
-                rados -c $STORAGE_CEPH_CONF mkpool gnocchi
+                ceph -c $STORAGE_CEPH_CONF osd pool create gnocchi 16 16 replicated
                 STORAGE_URL=ceph://$STORAGE_CEPH_CONF
                 ;;
             s3)
