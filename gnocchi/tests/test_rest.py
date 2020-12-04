@@ -389,7 +389,8 @@ class MetricTest(RestTest):
                                     params={"archive_policy_name": "medium"})
         metric = json.loads(result.text)
         with self.app.use_another_user():
-            self.app.delete("/v1/metric/" + metric['id'], status=403)
+            r = self.app.delete("/v1/metric/" + metric['id'], status=403)
+            self.assertEqual("text/plain", r.content_type)
 
     def test_add_measure_with_another_user(self):
         result = self.app.post_json("/v1/metric",
@@ -976,18 +977,20 @@ class ResourceTest(RestTest):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
-        self.app.delete("/v1/resource/"
-                        + self.resource_type
-                        + "/"
-                        + self.attributes['id']
-                        + "/metric/foo",
-                        status=204)
-        self.app.delete("/v1/resource/"
-                        + self.resource_type
-                        + "/"
-                        + self.attributes['id']
-                        + "/metric/foo/measures",
-                        status=404)
+        r = self.app.delete("/v1/resource/"
+                            + self.resource_type
+                            + "/"
+                            + self.attributes['id']
+                            + "/metric/foo",
+                            status=204)
+        self.assertEqual(None, r.content_type)
+        r = self.app.delete("/v1/resource/"
+                            + self.resource_type
+                            + "/"
+                            + self.attributes['id']
+                            + "/metric/foo/measures",
+                            status=404)
+        self.assertEqual("text/plain", r.content_type)
 
     def test_get_resource_unknown_named_metric(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1246,9 +1249,10 @@ class ResourceTest(RestTest):
         self.app.get("/v1/resource/" + self.resource_type + "/"
                      + self.attributes['id'],
                      status=200)
-        self.app.delete("/v1/resource/" + self.resource_type + "/"
-                        + self.attributes['id'],
-                        status=204)
+        r = self.app.delete("/v1/resource/" + self.resource_type + "/"
+                            + self.attributes['id'],
+                            status=204)
+        self.assertEqual(None, r.content_type)
         self.app.get("/v1/resource/" + self.resource_type + "/"
                      + self.attributes['id'],
                      status=404)
@@ -1267,9 +1271,10 @@ class ResourceTest(RestTest):
         self.app.get("/v1/resource/" + self.resource_type + "/"
                      + self.attributes['id'],
                      status=200)
-        self.app.delete("/v1/resource/" + self.resource_type + "/"
-                        + self.attributes['id'],
-                        status=204)
+        r = self.app.delete("/v1/resource/" + self.resource_type + "/"
+                            + self.attributes['id'],
+                            status=204)
+        self.assertEqual(None, r.content_type)
         self.app.get("/v1/resource/" + self.resource_type + "/"
                      + self.attributes['id'],
                      status=404)
@@ -1280,14 +1285,16 @@ class ResourceTest(RestTest):
         self.app.post_json("/v1/resource/" + self.resource_type,
                            params=self.attributes)
         with self.app.use_another_user():
-            self.app.delete("/v1/resource/" + self.resource_type + "/"
-                            + self.attributes['id'],
-                            status=403)
+            r = self.app.delete("/v1/resource/" + self.resource_type + "/"
+                                + self.attributes['id'],
+                                status=403)
+            self.assertEqual("text/plain", r.content_type)
 
     def test_delete_resource_non_existent(self):
         result = self.app.delete("/v1/resource/" + self.resource_type + "/"
                                  + self.attributes['id'],
                                  status=404)
+        self.assertEqual("text/plain", result.content_type)
         self.assertIn(
             "Resource %s does not exist" % self.attributes['id'],
             result.text)

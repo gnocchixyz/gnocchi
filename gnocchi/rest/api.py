@@ -279,7 +279,7 @@ class ArchivePolicyController(rest.RestController):
         except indexer.UnsupportedArchivePolicyChange as e:
             abort(400, six.text_type(e))
 
-    @pecan.expose()
+    @pecan.expose('json')
     def delete(self):
         # NOTE(jd) I don't think there's any point in fetching and passing the
         # archive policy here, as the rule is probably checking the actual role
@@ -407,7 +407,7 @@ class ArchivePolicyRuleController(rest.RestController):
         except indexer.UnsupportedArchivePolicyRuleChange as e:
             abort(400, six.text_type(e))
 
-    @pecan.expose()
+    @pecan.expose('json')
     def delete(self):
         # NOTE(jd) I don't think there's any point in fetching and passing the
         # archive policy rule here, as the rule is probably checking the actual
@@ -527,7 +527,7 @@ class MetricController(rest.RestController):
         except storage.MetricDoesNotExist:
             return []
 
-    @pecan.expose()
+    @pecan.expose('json')
     def delete(self):
         self.enforce_metric("delete metric")
         try:
@@ -922,7 +922,7 @@ class ResourceTypeController(rest.RestController):
         except indexer.NoSuchResourceType as e:
             abort(400, six.text_type(e))
 
-    @pecan.expose()
+    @pecan.expose('json')
     def delete(self):
         try:
             pecan.request.indexer.get_resource_type(self._name)
@@ -1051,7 +1051,7 @@ class ResourceController(rest.RestController):
         etag_set_headers(resource)
         return resource
 
-    @pecan.expose()
+    @pecan.expose('json')
     def delete(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
