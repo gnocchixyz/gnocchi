@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 rules:
   default:
     protection:
@@ -20,4 +21,28 @@ rules:
       protection:
         required_pull_request_reviews:
           required_approving_review_count: 1
+=======
+pull_request_rules:
+  - name: automatic merge
+    actions:
+      merge:
+        method: rebase
+        rebase_fallback: merge
+        strict: true
+    conditions:
+    - label!=work-in-progress
+    - '#approved-reviews-by>=1'
+    - status-success=Travis CI - Pull Request
+  - name: automatic merge backports from Mergify
+    actions:
+      merge:
+        method: rebase
+        rebase_fallback: merge
+        strict: true
+    conditions:
+    - base~=^stable/.*
+    - label!=work-in-progress
+    - author=mergify[bot]
+    - status-success=Travis CI - Pull Request
+>>>>>>> e7f25878... Update mergify config
 
