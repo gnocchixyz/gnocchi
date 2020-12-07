@@ -66,16 +66,16 @@ a virtual environment for each test environment, so make sure you are using an
 up to date version of `virtualenv <https://pypi.python.org/pypi/virtualenv>`_.
 
 Different test environments and configurations can be found by running the
-``tox -l`` command. For example, to run tests with Python 2.7, PostgreSQL as
+``tox -l`` command. For example, to run tests with Python 3.6, PostgreSQL as
 indexer, and file as storage backend:
 
 ::
 
-    tox -e py27-postgresql-file
+    tox -e py36-postgresql-file
 
 
-To run tests with Python 2.7, MySQL as indexer, and Ceph as storage backend:
+To run tests with Python 3.6, MySQL as indexer, and Ceph as storage backend:
 
 ::
 
-    tox -e py35-mysql-ceph
+    tox -e py36-mysql-ceph
