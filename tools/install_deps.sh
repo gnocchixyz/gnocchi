@@ -5,6 +5,8 @@ sudo apt-get update -y
 sudo apt-get install -qy gnupg
 echo 'deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main' | sudo tee /etc/apt/sources.list.d/deadsnakes.list
 sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com F23C5A6CF475977595C89F51BA6932366A755776
+echo 'deb https://download.ceph.com/debian-nautilus/ bionic main' | sudo tee /etc/apt/sources.list.d/ceph.list
+wget -q -O- 'https://download.ceph.com/keys/release.asc' | sudo apt-key add -
 sudo apt-get update -y
 sudo apt-get install -qy \
         locales \
