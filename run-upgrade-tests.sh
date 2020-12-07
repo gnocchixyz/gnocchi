@@ -71,6 +71,8 @@ pifpaf_stop(){
 cleanup(){
     pifpaf_stop
     rm -rf $GNOCCHI_DATA
+    indexer_stop || true
+    [ "$STORAGE_DAEMON" == "ceph" ] && storage_stop || true
 }
 trap cleanup EXIT
 
