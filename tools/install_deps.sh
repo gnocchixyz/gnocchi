@@ -14,6 +14,7 @@ sudo apt-get install -qy \
         wget \
         curl \
         nodejs \
+        node-gyp \
         npm \
         python3 \
         python3-dev \
