@@ -260,7 +260,7 @@ class MetricProcessor(MetricProcessBase):
 class MetricJanitor(MetricProcessBase):
     name = "janitor"
 
-    def __init__(self,  worker_id, conf):
+    def __init__(self, worker_id, conf):
         super(MetricJanitor, self).__init__(
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 

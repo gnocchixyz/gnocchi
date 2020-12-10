@@ -221,9 +221,20 @@ class ResourceJsonifier(indexer.Resource):
 class ResourceMixin(ResourceJsonifier):
     @declarative.declared_attr
     def __table_args__(cls):
+<<<<<<< HEAD
         return (sqlalchemy.CheckConstraint('started_at <= ended_at',
                                            name="ck_started_before_ended"),
                 COMMON_TABLES_ARGS)
+=======
+        return (sqlalchemy.CheckConstraint(
+            'started_at <= ended_at',
+            name="ck_{}_started_before_ended".format(
+                cls.__tablename__
+            )
+        ),
+            COMMON_TABLES_ARGS
+        )
+>>>>>>> c40c9db6... Update hacking
 
     @declarative.declared_attr
     def type(cls):
