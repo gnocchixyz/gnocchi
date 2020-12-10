@@ -17,6 +17,9 @@ env:
   - TARGET: py36-postgresql
 
 before_script:
+  - ulimit -a
+  - ls -l /etc/security/*.conf
+  - cat /etc/security/limits.conf
   # NOTE(sileht): We need to fetch all tags/branches for documentation.
   # For the multiversioning, we change all remotes refs to point to
   # the pull request checkout. So the "master" branch will be the PR sha and not
