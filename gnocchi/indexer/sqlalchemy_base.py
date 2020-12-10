@@ -229,8 +229,8 @@ class ResourceMixin(ResourceJsonifier):
             'started_at <= ended_at',
             name="ck_{}_started_before_ended".format(
                 cls.__tablename__
-                )
-            ),
+            )
+        ),
             COMMON_TABLES_ARGS
         )
 

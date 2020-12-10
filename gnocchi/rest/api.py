@@ -360,7 +360,7 @@ class ArchivePolicyRulesController(rest.RestController):
             voluptuous.Required("name"): six.text_type,
             voluptuous.Required("metric_pattern"): six.text_type,
             voluptuous.Required("archive_policy_name"): six.text_type,
-            })
+        })
 
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
         enforce("create archive policy rule", body)
@@ -398,7 +398,7 @@ class ArchivePolicyRuleController(rest.RestController):
     def patch(self):
         ArchivePolicyRuleSchema = voluptuous.Schema({
             voluptuous.Required("name"): six.text_type,
-            })
+        })
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
         enforce("update archive policy rule", {})
         try:
@@ -917,7 +917,7 @@ class ResourceTypeController(rest.RestController):
                 self._name, add_attributes=add_attrs,
                 del_attributes=del_attrs)
         except indexer.NoSuchResourceType as e:
-                abort(400, six.text_type(e))
+            abort(400, six.text_type(e))
 
     @pecan.expose()
     def delete(self):
@@ -1849,6 +1849,7 @@ class AggregationResourceController(rest.RestController):
 
         return results
 
+
 FillSchema = voluptuous.Schema(
     voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
                    msg="Must be a float, 'dropna' or 'null'"))
@@ -2246,7 +2247,7 @@ class PrometheusWriteController(rest.RestController):
         f.ParseFromString(buf)
         measures_by_rid = collections.defaultdict(dict)
         for ts in f.timeseries:
-            attrs = dict((l.name, l.value) for l in ts.labels)
+            attrs = dict((label.name, label.value) for label in ts.labels)
             original_rid = (attrs.get("job", "none"),
                             attrs.get("instance", "none"))
             name = attrs['__name__']
@@ -2339,10 +2340,10 @@ class VersionsController(object):
                         {
                             "rel": "self",
                             "href": pecan.request.application_url + "/v1/"
-                            }
-                        ],
+                        }
+                    ],
                     "id": "v1.0",
                     "updated": "2015-03-19"
-                    }
-                ]
-            }
+                }
+            ]
+        }
