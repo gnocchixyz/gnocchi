@@ -121,7 +121,7 @@ class FileStorage(storage.StorageDriver):
         if self.SUBDIR_LEN > 0:
             metric_id = metric.id.hex
             path_parts.extend(
-                [metric_id[start:start+self.SUBDIR_LEN]
+                [metric_id[start:start + self.SUBDIR_LEN]
                  for start in range(0, 32, self.SUBDIR_LEN)
                  ])
         path_parts.append(str(metric.id))
