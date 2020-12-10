@@ -14,6 +14,7 @@ sudo apt-get install -qy \
         wget \
         curl \
         nodejs \
+        libssl1.0-dev \
         nodejs-dev \
         node-gyp \
         npm \
