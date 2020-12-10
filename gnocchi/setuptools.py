@@ -101,9 +101,9 @@ class local_egg_info(egg_info.egg_info):
                     continue
                 if msg.endswith("."):
                     msg = msg[:-1]
-                msg = msg.replace('*', '\*')
-                msg = msg.replace('_', '\_')
-                msg = msg.replace('`', '\`')
+                msg = msg.replace('*', '\*')   # noqa: W605
+                msg = msg.replace('_', '\_')   # noqa: W605
+                msg = msg.replace('`', '\`')   # noqa: W605
                 f.write(b"* %s\n" % msg.encode("utf8"))
 
 

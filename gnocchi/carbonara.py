@@ -78,10 +78,10 @@ def make_timeseries(timestamps, values):
     This array specifies correctly the data types, which is important for
     Numpy to operate fastly.
     """
-    l = len(timestamps)
-    if l != len(values):
+    length = len(timestamps)
+    if length != len(values):
         raise ValueError("Timestamps and values must have the same length")
-    arr = numpy.zeros(l, dtype=TIMESERIES_ARRAY_DTYPE)
+    arr = numpy.zeros(length, dtype=TIMESERIES_ARRAY_DTYPE)
     arr['timestamps'] = timestamps
     arr['values'] = values
     return arr
@@ -240,7 +240,7 @@ class TimeSerie(object):
 
     def __eq__(self, other):
         return (isinstance(other, TimeSerie) and
-                numpy.array_equal(self.ts,  other.ts))
+                numpy.array_equal(self.ts, other.ts))
 
     def __getitem__(self, key):
         if isinstance(key, numpy.datetime64):
@@ -704,7 +704,7 @@ class AggregatedTimeSerie(TimeSerie):
                                          count=nb_points)
                     x = numpy.frombuffer(
                         uncompressed, dtype='<d',
-                        offset=nb_points*cls.COMPRESSED_TIMESPAMP_LEN)
+                        offset=nb_points * cls.COMPRESSED_TIMESPAMP_LEN)
                 except ValueError:
                     raise InvalidData()
                 y = numpy.cumsum(y * key.sampling) + key.key
