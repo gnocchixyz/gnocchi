@@ -194,7 +194,7 @@ def setup(app):
 
     # TODO(jd) Do not hardcode doc/source
     with open("doc/source/rest.yaml") as f:
-        scenarios = ScenarioList(yaml.load(f))
+        scenarios = ScenarioList(yaml.load(f, Loader=yaml.FullLoader))
 
     test = test_rest.RestTest()
     test.auth_mode = "basic"
