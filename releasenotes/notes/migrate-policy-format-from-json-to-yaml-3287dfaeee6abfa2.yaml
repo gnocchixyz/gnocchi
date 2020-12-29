@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Now Gnocchi uses policy.yaml as its default policy file instead of
+    policy.json.
+
+deprecations:
+  - |
+    Default policy.json has been deprecated and will be removed in a future
+    release. Use policy.yaml instead.

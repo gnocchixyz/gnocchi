@@ -44,7 +44,7 @@ def prepare_service(conf=None):
         cfg_path = conf.find_file(cfg_path)
     if cfg_path is None or not os.path.exists(cfg_path):
         cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                   '..', 'rest', 'policy.json'))
+                                   '..', 'rest', 'policy.yaml'))
     conf.set_default('policy_file', cfg_path, group='oslo_policy')
     return conf
 
