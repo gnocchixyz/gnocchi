@@ -26,6 +26,9 @@ class KeystoneAuthHelper(object):
         # FIXME(jd) should have domain but should not break existing :(
         user_id = request.headers.get("X-User-Id", "")
         project_id = request.headers.get("X-Project-Id", "")
+        domain_id = request.headers.get("X-Domain-Id", "")
+        if not project_id and domain_id:
+            project_id = domain_id
         return user_id + ":" + project_id
 
     @staticmethod
@@ -50,6 +53,9 @@ class KeystoneAuthHelper(object):
         except webob.exc.HTTPForbidden:
             policy_filter = []
             project_id = request.headers.get("X-Project-Id")
+            domain_id = request.headers.get("X-Domain-Id", "")
+            if not project_id and domain_id:
+                project_id = domain_id
             target = {}
             if prefix:
                 resource = target[prefix] = {}
