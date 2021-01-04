@@ -184,6 +184,123 @@ resource_type_rules = [
     )
 ]
 
+archive_policy_rules = [
+    policy.DocumentedRuleDefault(
+        name="create archive policy",
+        check_str=RULE_ADMIN,
+        description='Create a new archive policy',
+        operations=[
+            {
+                'path': '/v1/archive_policy',
+                'method': 'POST'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="get archive policy",
+        check_str=RULE_UNPROTECTED,
+        description='Get an archive policy',
+        operations=[
+            {
+                'path': '/v1/archive_policy/{archive_policy}',
+                'method': 'GET'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="update archive policy",
+        check_str=RULE_ADMIN,
+        description='Update an archive policy',
+        operations=[
+            {
+                'path': '/v1/archive_policy/{archive_policy}',
+                'method': 'PATCH'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="delete archive policy",
+        check_str=RULE_ADMIN,
+        description='Delete an archive policy',
+        operations=[
+            {
+                'path': '/v1/archive_policy/{archive_policy}',
+                'method': 'DELETE'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="list archive policy",
+        check_str=RULE_UNPROTECTED,
+        description='List all archive policies',
+        operations=[
+            {
+                'path': '/v1/archive_policy',
+                'method': 'GET'
+            }
+        ]
+    )
+]
+
+archive_policy_rule_rules = [
+    policy.DocumentedRuleDefault(
+        name="create archive policy rule",
+        check_str=RULE_ADMIN,
+        description='Create a new archive policy rule',
+        operations=[
+            {
+                'path': '/v1/archive_policy_rule',
+                'method': 'POST'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="get archive policy rule",
+        check_str=RULE_UNPROTECTED,
+        description='Get an archive policy rule',
+        operations=[
+            {
+                'path': '/v1/archive_policy_rule/{archive_policy_rule}',
+                'method': 'GET'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="update archive policy rule",
+        check_str=RULE_ADMIN,
+        description='Update an archive policy rule',
+        operations=[
+            {
+                'path': '/v1/archive_policy_rule/{archive_policy_rule}',
+                'method': 'PATCH'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="delete archive policy rule",
+        check_str=RULE_ADMIN,
+        description='Delete an archive policy rule',
+        operations=[
+            {
+                'path': '/v1/archive_policy_rule/{archive_policy_rule}',
+                'method': 'DELETE'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="list archive policy rule",
+        check_str=RULE_UNPROTECTED,
+        description='List all archive policy rules',
+        operations=[
+            {
+                'path': '/v1/archive_policy_rule',
+                'method': 'GET'
+            }
+        ]
+    )
+]
+
 
 def list_rules():
-    return rules + resource_rules + resource_type_rules
+    return rules + resource_rules + resource_type_rules \
+        + archive_policy_rules + archive_policy_rule_rules
