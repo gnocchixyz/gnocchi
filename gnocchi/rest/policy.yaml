@@ -1,7 +1,3 @@
-"admin_or_creator": "role:admin or user:%(creator)s or project_id:%(created_by_project_id)s"
-"resource_owner": "project_id:%(project_id)s"
-"metric_owner": "project_id:%(resource.project_id)s"
-
 "get status": "role:admin"
 
 "create resource": ""
