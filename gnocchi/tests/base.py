@@ -315,7 +315,7 @@ class TestCase(BaseTestCase):
                                os.path.join(py_root, 'rest', 'api-paste.ini'),
                                group="api")
         self.conf.set_override('policy_file',
-                               os.path.join(py_root, 'rest', 'policy.json'),
+                               os.path.join(py_root, 'rest', 'policy.yaml'),
                                group="oslo_policy")
 
         # NOTE(jd) This allows to test S3 on AWS
