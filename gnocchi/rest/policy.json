@@ -1,18 +1,6 @@
 {
     "get status": "role:admin",
 
-    "get archive policy": "",
-    "list archive policy": "",
-    "create archive policy": "role:admin",
-    "update archive policy": "role:admin",
-    "delete archive policy": "role:admin",
-
-    "create archive policy rule": "role:admin",
-    "get archive policy rule": "",
-    "list archive policy rule": "",
-    "update archive policy rule": "role:admin",
-    "delete archive policy rule": "role:admin",
-
     "create metric": "",
     "delete metric": "rule:admin_or_creator",
     "get metric": "rule:admin_or_creator or rule:metric_owner",
