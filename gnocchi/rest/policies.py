@@ -300,7 +300,99 @@ archive_policy_rule_rules = [
     )
 ]
 
+metric_rules = [
+    policy.DocumentedRuleDefault(
+        name="create metric",
+        check_str=RULE_UNPROTECTED,
+        description='Create a new metric',
+        operations=[
+            {
+                'path': '/v1/metric',
+                'method': 'POST'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="get metric",
+        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        description='Get a metric',
+        operations=[
+            {
+                'path': '/v1/metric/{metric}',
+                'method': 'GET'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="delete metric",
+        check_str=ADMIN_OR_CREATOR,
+        description='Delete a metric',
+        operations=[
+            {
+                'path': '/v1/metric/{metric}',
+                'method': 'DELETE'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="list metric",
+        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        description='List all metrics',
+        operations=[
+            {
+                'path': '/v1/metric',
+                'method': 'GET'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="search metric",
+        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        description='Search metrics',
+        operations=[
+            {
+                'path': '/v1/search/metric',
+                'method': 'POST'
+            }
+        ]
+    )
+]
+
+measure_rules = [
+    policy.DocumentedRuleDefault(
+        name="post measures",
+        check_str=ADMIN_OR_CREATOR,
+        description='Post measures',
+        operations=[
+            {
+                'path': '/v1/metric/{metric}/measures',
+                'method': 'POST'
+            },
+            {
+                'path': '/v1/batch/metrics/measures',
+                'method': 'POST'
+            },
+            {
+                'path': '/v1/batch/resources/metrics/measures',
+                'method': 'POST'
+            }
+        ]
+    ),
+    policy.DocumentedRuleDefault(
+        name="get measures",
+        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        description='Get measures',
+        operations=[
+            {
+                'path': '/v1/metric/{metric}/measures',
+                'method': 'GET'
+            }
+        ]
+    )
+]
+
 
 def list_rules():
     return rules + resource_rules + resource_type_rules \
-        + archive_policy_rules + archive_policy_rule_rules
+        + archive_policy_rules + archive_policy_rule_rules \
+        + metric_rules + measure_rules

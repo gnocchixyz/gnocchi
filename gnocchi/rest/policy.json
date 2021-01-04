@@ -1,12 +1,3 @@
 {
     "get status": "role:admin",
-
-    "create metric": "",
-    "delete metric": "rule:admin_or_creator",
-    "get metric": "rule:admin_or_creator or rule:metric_owner",
-    "search metric": "rule:admin_or_creator or rule:metric_owner",
-    "list metric": "rule:admin_or_creator or rule:metric_owner",
-
-    "get measures":  "rule:admin_or_creator or rule:metric_owner",
-    "post measures":  "rule:admin_or_creator"
 }
