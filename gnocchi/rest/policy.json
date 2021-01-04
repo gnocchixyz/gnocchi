@@ -1,20 +1,6 @@
 {
     "get status": "role:admin",
 
-    "create resource": "",
-    "get resource": "rule:admin_or_creator or rule:resource_owner",
-    "update resource": "rule:admin_or_creator",
-    "delete resource": "rule:admin_or_creator",
-    "delete resources": "rule:admin_or_creator",
-    "list resource": "rule:admin_or_creator or rule:resource_owner",
-    "search resource": "rule:admin_or_creator or rule:resource_owner",
-
-    "create resource type": "role:admin",
-    "delete resource type": "role:admin",
-    "update resource type": "role:admin",
-    "list resource type": "",
-    "get resource type": "",
-
     "get archive policy": "",
     "list archive policy": "",
     "create archive policy": "role:admin",
