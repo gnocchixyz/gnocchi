@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Now all default policies are implemented in code, and the default policy
+    rules are no longer required in policy configuration.
