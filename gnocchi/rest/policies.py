@@ -46,6 +46,20 @@ rules = [
     )
 ]
 
+status_rules = [
+    policy.DocumentedRuleDefault(
+        name="get status",
+        check_str=RULE_ADMIN,
+        description='Get status of Gnocchi service.',
+        operations=[
+            {
+                'path': '/v1/status',
+                'method': 'GET'
+            }
+        ]
+    )
+]
+
 resource_rules = [
     policy.DocumentedRuleDefault(
         name="create resource",
@@ -393,6 +407,7 @@ measure_rules = [
 
 
 def list_rules():
-    return rules + resource_rules + resource_type_rules \
+    return rules + status_rules \
+        + resource_rules + resource_type_rules \
         + archive_policy_rules + archive_policy_rule_rules \
         + metric_rules + measure_rules
