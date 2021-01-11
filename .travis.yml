@@ -17,7 +17,11 @@ env:
   - TARGET: py36-postgresql-file-upgrade-from-4.3
 
   - TARGET: py36-mysql-file
+  - TARGET: py36-mysql-swift
+  - TARGET: py36-mysql-s3
   - TARGET: py36-postgresql-file
+  - TARGET: py36-postgresql-swift
+  - TARGET: py36-postgresql-s3
 
 before_script:
   # NOTE(sileht): We need to fetch all tags/branches for documentation.
