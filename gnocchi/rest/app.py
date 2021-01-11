@@ -36,6 +36,7 @@ from gnocchi import incoming as gnocchi_incoming
 from gnocchi import indexer as gnocchi_indexer
 from gnocchi import json
 from gnocchi.rest import http_proxy_to_wsgi
+from gnocchi.rest import policies
 from gnocchi import storage as gnocchi_storage
 
 
@@ -52,6 +53,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
         self.backends = {}
         self.conf = conf
         self.policy_enforcer = policy.Enforcer(conf)
+        self.policy_enforcer.register_defaults(policies.list_rules())
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
                                                 conf.api.auth_mode,
                                                 invoke_on_load=True).driver
