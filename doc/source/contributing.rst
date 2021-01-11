@@ -79,3 +79,13 @@ To run tests with MySQL as indexer, and Ceph as storage backend:
 ::
 
     tox -e py36-mysql-ceph
+
+
+In order to run the tests like they do in travis CI, you could create
+a user named tester, use UID 2000 and GID 2000 and run a command like
+this
+
+::
+    docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox
+
+Make sure the machine executing the tests has as least 4 GB of RAM.
