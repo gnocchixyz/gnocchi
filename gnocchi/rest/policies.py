@@ -15,41 +15,42 @@
 
 from oslo_policy import policy
 
-RULE_ADMIN = "role:admin"
-RULE_ADMIN_OR_CREATOR = \
+ADMIN = "role:admin"
+ADMIN_OR_CREATOR = \
     'role:admin or user:%(creator)s or project_id:%(created_by_project_id)s'
-RULE_RESOURCE_OWNER = "project_id:%(project_id)s"
-RULE_METRIC_OWNER = "project_id:%(resource.project_id)s"
-RULE_UNPROTECTED = ""
+RESOURCE_OWNER = "project_id:%(project_id)s"
+METRIC_OWNER = "project_id:%(resource.project_id)s"
+UNPROTECTED = ""
 
-ADMIN_OR_CREATOR = "rule:admin_or_creator"
-ADMIN_OR_CREATOR_OR_RESOURCE_OWNER = \
+RULE_ADMIN_OR_CREATOR = "rule:admin_or_creator"
+RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER = \
     "rule:admin_or_creator or rule:resource_owner"
-ADMIN_OR_CREATOR_OR_METRIC_OWNER = "rule:admin_or_creator or rule:metric_owner"
+RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER = \
+    "rule:admin_or_creator or rule:metric_owner"
 
 rules = [
     policy.RuleDefault(
         name="context_is_admin",
-        check_str=RULE_ADMIN
+        check_str=ADMIN
     ),
     policy.RuleDefault(
         name="admin_or_creator",
-        check_str=RULE_ADMIN_OR_CREATOR
+        check_str=ADMIN_OR_CREATOR
     ),
     policy.RuleDefault(
         name="resource_owner",
-        check_str=RULE_RESOURCE_OWNER
+        check_str=RESOURCE_OWNER
     ),
     policy.RuleDefault(
         name="metric_owner",
-        check_str=RULE_METRIC_OWNER
+        check_str=METRIC_OWNER
     )
 ]
 
 status_rules = [
     policy.DocumentedRuleDefault(
         name="get status",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Get status of Gnocchi service.',
         operations=[
             {
@@ -63,7 +64,7 @@ status_rules = [
 resource_rules = [
     policy.DocumentedRuleDefault(
         name="create resource",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='Create a new resource.',
         operations=[
             {
@@ -74,7 +75,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get resource",
-        check_str=ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
         description='Get a resource.',
         operations=[
             {
@@ -85,7 +86,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource",
-        check_str=ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_CREATOR,
         description='Update a resource.',
         operations=[
             {
@@ -96,7 +97,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete resource",
-        check_str=ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_CREATOR,
         description='Delete a resource.',
         operations=[
             {
@@ -107,7 +108,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete resources",
-        check_str=ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_CREATOR,
         description='Delete multiple resources.',
         operations=[
             {
@@ -118,7 +119,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="list resource",
-        check_str=ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
         description='List all resources.',
         operations=[
             {
@@ -129,7 +130,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="search resource",
-        check_str=ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
         description='Search resources.',
         operations=[
             {
@@ -143,7 +144,7 @@ resource_rules = [
 resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="create resource type",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Create a new resource type.',
         operations=[
             {
@@ -154,7 +155,7 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get resource type",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='Get a resource type.',
         operations=[
             {
@@ -165,7 +166,7 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource type",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Update a resource type.',
         operations=[
             {
@@ -176,7 +177,7 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete resource type",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Delete a resource type.',
         operations=[
             {
@@ -187,7 +188,7 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="list resource type",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='List all resource types.',
         operations=[
             {
@@ -201,7 +202,7 @@ resource_type_rules = [
 archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Create a new archive policy',
         operations=[
             {
@@ -212,7 +213,7 @@ archive_policy_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get archive policy",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='Get an archive policy',
         operations=[
             {
@@ -223,7 +224,7 @@ archive_policy_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update archive policy",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Update an archive policy',
         operations=[
             {
@@ -234,7 +235,7 @@ archive_policy_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete archive policy",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Delete an archive policy',
         operations=[
             {
@@ -245,7 +246,7 @@ archive_policy_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="list archive policy",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='List all archive policies',
         operations=[
             {
@@ -259,7 +260,7 @@ archive_policy_rules = [
 archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy rule",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Create a new archive policy rule',
         operations=[
             {
@@ -270,7 +271,7 @@ archive_policy_rule_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get archive policy rule",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='Get an archive policy rule',
         operations=[
             {
@@ -281,7 +282,7 @@ archive_policy_rule_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update archive policy rule",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Update an archive policy rule',
         operations=[
             {
@@ -292,7 +293,7 @@ archive_policy_rule_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete archive policy rule",
-        check_str=RULE_ADMIN,
+        check_str=ADMIN,
         description='Delete an archive policy rule',
         operations=[
             {
@@ -303,7 +304,7 @@ archive_policy_rule_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="list archive policy rule",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='List all archive policy rules',
         operations=[
             {
@@ -317,7 +318,7 @@ archive_policy_rule_rules = [
 metric_rules = [
     policy.DocumentedRuleDefault(
         name="create metric",
-        check_str=RULE_UNPROTECTED,
+        check_str=UNPROTECTED,
         description='Create a new metric',
         operations=[
             {
@@ -328,7 +329,7 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get metric",
-        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
         description='Get a metric',
         operations=[
             {
@@ -339,7 +340,7 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="delete metric",
-        check_str=ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_CREATOR,
         description='Delete a metric',
         operations=[
             {
@@ -350,7 +351,7 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="list metric",
-        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
         description='List all metrics',
         operations=[
             {
@@ -361,7 +362,7 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="search metric",
-        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
         description='Search metrics',
         operations=[
             {
@@ -375,7 +376,7 @@ metric_rules = [
 measure_rules = [
     policy.DocumentedRuleDefault(
         name="post measures",
-        check_str=ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_CREATOR,
         description='Post measures',
         operations=[
             {
@@ -394,7 +395,7 @@ measure_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get measures",
-        check_str=ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
         description='Get measures',
         operations=[
             {
