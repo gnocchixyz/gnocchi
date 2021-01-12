@@ -2099,13 +2099,6 @@ class StatusController(rest.RestController):
                     metricd.MetricProcessor.GROUP_ID, member)
                 for member in members
             ]
-<<<<<<< HEAD
-            report_dict['metricd']['processors'] = members
-            report_dict['metricd']['statistics'] = {
-                member: cap.get()
-                for member, cap in six.moves.zip(members, caps)
-            }
-=======
             report_dict['metricd']['processors'] = [
                 member.decode() for member in members
             ]
@@ -2117,7 +2110,6 @@ class StatusController(rest.RestController):
                 }
                 members_data[member.decode()] = caps_data
             report_dict['metricd']['statistics'] = members_data
->>>>>>> bd2cafad... Ensure member statistics key is decoded
         else:
             report_dict['metricd']['processors'] = None
             report_dict['metricd']['statistics'] = {}
