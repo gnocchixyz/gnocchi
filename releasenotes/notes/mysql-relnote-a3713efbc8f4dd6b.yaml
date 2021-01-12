@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Gnocchi now supports MySQL >= 8
