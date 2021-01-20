@@ -23,8 +23,7 @@ pull_request_rules:
   - name: dismiss reviews on additional commit
     actions:
       dismiss_reviews: {}
-    contitions:
-    - .*
+    conditions: []
 
 # Backports to stable branches
   - actions:
