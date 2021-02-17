@@ -88,7 +88,6 @@ class MetricProcessBase(cotyledon.Service):
                     self._run_job()
                 except ConnectionError as ce:
                     LOG.debug("Redis server closed connection. Retrying.")
-                    raise tenacity.TryAgain(ce)
                 except Exception:
                     LOG.error("Unexpected error during %s job",
                               self.name,
@@ -198,7 +197,6 @@ class MetricProcessor(MetricProcessBase):
             LOG.info("Incoming driver does not support notification")
         except ConnectionError as ce:
             LOG.debug("Redis server closed connection. Retrying.")
-            raise tenacity.TryAgain(ce)
         except Exception as e:
             LOG.error(
                 "Error while listening for new measures notification, "
@@ -226,6 +224,7 @@ class MetricProcessor(MetricProcessBase):
         finally:
             return self._tasks or self.fallback_tasks
 
+    @utils.retry_on_exception.wraps
     def _run_job(self):
         m_count = 0
         s_count = 0
@@ -249,7 +248,6 @@ class MetricProcessor(MetricProcessBase):
                 self.sacks_with_measures_to_process.discard(s)
             except ConnectionError as ce:
                 LOG.debug("Redis server closed connection. Retrying.")
-                raise tenacity.TryAgain(ce)
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
