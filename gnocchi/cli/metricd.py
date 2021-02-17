@@ -86,7 +86,7 @@ class MetricProcessBase(cotyledon.Service):
             with utils.StopWatch() as timer:
                 try:
                     self._run_job()
-                except ConnectionError as ce:
+                except ConnectionError:
                     LOG.debug("Redis server closed connection. Retrying.")
                 except Exception:
                     LOG.error("Unexpected error during %s job",
@@ -195,7 +195,7 @@ class MetricProcessor(MetricProcessBase):
                     self.wakeup()
         except exceptions.NotImplementedError:
             LOG.info("Incoming driver does not support notification")
-        except ConnectionError as ce:
+        except ConnectionError:
             LOG.debug("Redis server closed connection. Retrying.")
         except Exception as e:
             LOG.error(
@@ -246,7 +246,7 @@ class MetricProcessor(MetricProcessBase):
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
-            except ConnectionError as ce:
+            except ConnectionError:
                 LOG.debug("Redis server closed connection. Retrying.")
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
