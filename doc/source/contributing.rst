@@ -66,16 +66,26 @@ a virtual environment for each test environment, so make sure you are using an
 up to date version of `virtualenv <https://pypi.python.org/pypi/virtualenv>`_.
 
 Different test environments and configurations can be found by running the
-``tox -l`` command. For example, to run tests with Python 3.7, PostgreSQL as
+``tox -l`` command. For example, to run tests with Python 3.6, PostgreSQL as
 indexer, and file as storage backend:
 
 ::
 
-    tox -e py37-postgresql-file
+    tox -e py36-postgresql-file
 
 
 To run tests with MySQL as indexer, and Ceph as storage backend:
 
 ::
 
-    tox -e py37-mysql-ceph
+    tox -e py36-mysql-ceph
+
+
+In order to run the tests like they do in travis CI, you could create
+a user named tester, use UID 2000 and GID 2000 and run a command like
+this
+
+::
+    docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox
+
+Make sure the machine executing the tests has as least 4 GB of RAM.

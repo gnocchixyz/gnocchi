@@ -111,7 +111,7 @@ class ConfigFixture(fixture.GabbiFixture):
                           os.path.join(py_root, 'rest', 'api-paste.ini'),
                           group="api")
         conf.set_override('policy_file',
-                          os.path.join(py_root, 'rest', 'policy.json'),
+                          os.path.join(py_root, 'rest', 'policy.yaml'),
                           group="oslo_policy")
 
         # NOTE(sileht): This is not concurrency safe, but only this tests file
