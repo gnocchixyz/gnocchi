@@ -99,7 +99,7 @@ return results
     @tenacity.retry(
         wait=utils.wait_exponential,
         # Never retry except when explicitly asked by raising TryAgain
-        retry=tenacity.retry_never)
+        retry=tenacity.retry_if_exception_type(ConnectionError))
     def _build_report(self, details):
         report_vars = {'measures': 0, 'metric_details': {}}
 
@@ -128,9 +128,8 @@ return results
             else:
                 results = pipe.execute()
                 update_report(results, m_list)
-        except ConnectionError as ce:
+        except ConnectionError:
             LOG.debug("Redis Server closed connection. Retrying.")
-            tenacity.TryAgain(ce)
         return (metrics, report_vars['measures'],
                 report_vars['metric_details'] if details else None)
 
@@ -190,7 +189,7 @@ return results
     @tenacity.retry(
         wait=utils.wait_exponential,
         # Never retry except when explicitly asked by raising TryAgain
-        retry=tenacity.retry_never)
+        retry=tenacity.retry_if_exception_type(ConnectionError))
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
         p = self._client.pubsub()
@@ -204,9 +203,8 @@ return results
                     # FIXME(jd) This is awful, we need a better way to extract this
                     # Format is defined by _get_sack_name: incoming128-17
                     yield self._make_sack(int(message['channel'].split(b"-")[-1]))
-        except ConnectionError as ce:
+        except ConnectionError:
             LOG.debug("Redis Server closed connection. Retrying.")
-            tenacity.TryAgain(ce)
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
