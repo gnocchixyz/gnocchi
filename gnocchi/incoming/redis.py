@@ -96,9 +96,10 @@ return results
                 notified_sacks.add(sack_name)
         pipe.execute()
 
+    # if ConnectionError exception occurs, try again, max 5 times.
     @tenacity.retry(
         wait=utils.wait_exponential,
-        # Never retry except when explicitly asked by raising TryAgain
+        stop=tenacity.stop_after_attempt(5),
         retry=tenacity.retry_if_exception_type(ConnectionError))
     def _build_report(self, details):
         report_vars = {'measures': 0, 'metric_details': {}}
@@ -183,9 +184,10 @@ return results
             pipe.ltrim(key, item_len + 1, -1)
         pipe.execute()
 
+    # if ConnectionError exception occurs, try again, max 5 times.
     @tenacity.retry(
         wait=utils.wait_exponential,
-        # Never retry except when explicitly asked by raising TryAgain
+        stop=tenacity.stop_after_attempt(5),
         retry=tenacity.retry_if_exception_type(ConnectionError))
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
