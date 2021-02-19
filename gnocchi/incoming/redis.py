@@ -113,23 +113,20 @@ return results
         metrics = 0
         m_list = []
         pipe = self._client.pipeline()
-        try:
-            for key in self._client.scan_iter(match=match, count=1000):
-                metrics += 1
-                pipe.llen(key)
-                if details:
-                    m_list.append(key.split(redis.SEP)[1].decode("utf8"))
-                # group 100 commands/call
-                if metrics % 100 == 0:
-                    results = pipe.execute()
-                    update_report(results, m_list)
-                    m_list = []
-                    pipe = self._client.pipeline()
-            else:
+        for key in self._client.scan_iter(match=match, count=1000):
+            metrics += 1
+            pipe.llen(key)
+            if details:
+                m_list.append(key.split(redis.SEP)[1].decode("utf8"))
+            # group 100 commands/call
+            if metrics % 100 == 0:
                 results = pipe.execute()
                 update_report(results, m_list)
-        except ConnectionError:
-            LOG.debug("Redis Server closed connection. Retrying.")
+                m_list = []
+                pipe = self._client.pipeline()
+        else:
+            results = pipe.execute()
+            update_report(results, m_list)
         return (metrics, report_vars['measures'],
                 report_vars['metric_details'] if details else None)
 
@@ -197,14 +194,11 @@ return results
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
         pattern = keyspace + self._get_sack_name("*").encode()
         p.psubscribe(pattern)
-        try:
-            for message in p.listen():
-                if message['type'] == 'pmessage' and message['pattern'] == pattern:
-                    # FIXME(jd) This is awful, we need a better way to extract this
-                    # Format is defined by _get_sack_name: incoming128-17
-                    yield self._make_sack(int(message['channel'].split(b"-")[-1]))
-        except ConnectionError:
-            LOG.debug("Redis Server closed connection. Retrying.")
+        for message in p.listen():
+            if message['type'] == 'pmessage' and message['pattern'] == pattern:
+                # FIXME(jd) This is awful, we need a better way to extract this
+                # Format is defined by _get_sack_name: incoming128-17
+                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
