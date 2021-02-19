@@ -240,7 +240,6 @@ class MetricProcessor(MetricProcessBase):
                 s_count += 1
                 self.incoming.finish_sack_processing(s)
                 self.sacks_with_measures_to_process.discard(s)
-
             except Exception:
                 LOG.error("Unexpected error processing assigned job",
                           exc_info=True)
