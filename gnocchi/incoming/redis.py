@@ -96,6 +96,10 @@ return results
                 notified_sacks.add(sack_name)
         pipe.execute()
 
+    @tenacity.retry(
+        wait=utils.wait_exponential,
+        # Never retry except when explicitly asked by raising TryAgain
+        retry=tenacity.retry_never)
     def _build_report(self, details):
         report_vars = {'measures': 0, 'metric_details': {}}
 
@@ -109,20 +113,24 @@ return results
         metrics = 0
         m_list = []
         pipe = self._client.pipeline()
-        for key in self._client.scan_iter(match=match, count=1000):
-            metrics += 1
-            pipe.llen(key)
-            if details:
-                m_list.append(key.split(redis.SEP)[1].decode("utf8"))
-            # group 100 commands/call
-            if metrics % 100 == 0:
+        try:
+            for key in self._client.scan_iter(match=match, count=1000):
+                metrics += 1
+                pipe.llen(key)
+                if details:
+                    m_list.append(key.split(redis.SEP)[1].decode("utf8"))
+                # group 100 commands/call
+                if metrics % 100 == 0:
+                    results = pipe.execute()
+                    update_report(results, m_list)
+                    m_list = []
+                    pipe = self._client.pipeline()
+            else:
                 results = pipe.execute()
                 update_report(results, m_list)
-                m_list = []
-                pipe = self._client.pipeline()
-        else:
-            results = pipe.execute()
-            update_report(results, m_list)
+        except ConnectionError as ce:
+            LOG.debug("Redis Server closed connection. Retrying.")
+            tenacity.TryAgain(ce)
         return (metrics, report_vars['measures'],
                 report_vars['metric_details'] if details else None)
 
