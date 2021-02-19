@@ -17,10 +17,13 @@ import contextlib
 import uuid
 
 import daiquiri
+from redis.exceptions import ConnectionError
 import six
+import tenacity
 
 from gnocchi.common import redis
 from gnocchi import incoming
+from gnocchi import utils
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -176,6 +179,10 @@ return results
             pipe.ltrim(key, item_len + 1, -1)
         pipe.execute()
 
+    @tenacity.retry(
+        wait=utils.wait_exponential,
+        # Never retry except when explicitly asked by raising TryAgain
+        retry=tenacity.retry_never)
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
         p = self._client.pubsub()
@@ -183,11 +190,15 @@ return results
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
         pattern = keyspace + self._get_sack_name("*").encode()
         p.psubscribe(pattern)
-        for message in p.listen():
-            if message['type'] == 'pmessage' and message['pattern'] == pattern:
-                # FIXME(jd) This is awful, we need a better way to extract this
-                # Format is defined by _get_sack_name: incoming128-17
-                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
+        try:
+            for message in p.listen():
+                if message['type'] == 'pmessage' and message['pattern'] == pattern:
+                    # FIXME(jd) This is awful, we need a better way to extract this
+                    # Format is defined by _get_sack_name: incoming128-17
+                    yield self._make_sack(int(message['channel'].split(b"-")[-1]))
+        except ConnectionError as ce:
+            LOG.debug("Redis Server closed connection. Retrying.")
+            tenacity.TryAgain(ce)
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
