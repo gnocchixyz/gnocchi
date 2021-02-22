@@ -494,6 +494,206 @@ tests:
                   type: datetime
                   required: True
 
+    - name: update the name attribute to be optional
+      PATCH: /v1/resource_type/my_custom_resource
+      request_headers:
+          # User admin
+          authorization: "basic YWRtaW46"
+          content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/name
+          value:
+            type: string
+            required: False
+            min_length: 2
+            max_length: 5
+      status: 200
+      response_json_paths:
+        $.name: my_custom_resource
+        $.attributes:
+          name:
+            type: string
+            required: False
+            min_length: 2
+            max_length: 5
+          uuid:
+            type: uuid
+            required: True
+          int:
+            type: number
+            required: False
+            min: -2
+            max: 3
+          intnomin:
+            type: number
+            required: False
+            min:
+            max: 3
+          float:
+            type: number
+            required: false
+            min: -2.3
+            max:
+          bool:
+            type: bool
+            required: false
+          datetime:
+            type: datetime
+            required: False
+          new-optional-bool:
+            type: bool
+            required: False
+          new-optional-int:
+            type: number
+            required: False
+            min: 0
+            max: 255
+          new-optional-uuid:
+            type: uuid
+            required: False
+          new-optional-datetime:
+            type: datetime
+            required: False
+          newstuff:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+          newfilled:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+          newstring:
+            type: string
+            required: True
+            min_length: 0
+            max_length: 255
+          newbool:
+            type: bool
+            required: True
+          newint:
+            type: number
+            required: True
+            min: 0
+            max: 255
+          newuuid:
+            type: uuid
+            required: True
+          newdatetime:
+            type: datetime
+            required: True
+
+    - name: restore the name attribute to be required
+      PATCH: /v1/resource_type/my_custom_resource
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+        content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/name
+          value:
+            type: string
+            required: True
+            min_length: 2
+            max_length: 5
+            options:
+              fill: "name"
+      status: 200
+      response_json_paths:
+        $.name: my_custom_resource
+        $.attributes:
+          name:
+            type: string
+            required: True
+            min_length: 2
+            max_length: 5
+          uuid:
+            type: uuid
+            required: True
+          int:
+            type: number
+            required: False
+            min: -2
+            max: 3
+          intnomin:
+            type: number
+            required: False
+            min:
+            max: 3
+          float:
+            type: number
+            required: false
+            min: -2.3
+            max:
+          bool:
+            type: bool
+            required: false
+          datetime:
+            type: datetime
+            required: False
+          new-optional-bool:
+            type: bool
+            required: False
+          new-optional-int:
+            type: number
+            required: False
+            min: 0
+            max: 255
+          new-optional-uuid:
+            type: uuid
+            required: False
+          new-optional-datetime:
+            type: datetime
+            required: False
+          newstuff:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+          newfilled:
+            type: string
+            required: False
+            min_length: 0
+            max_length: 255
+          newstring:
+            type: string
+            required: True
+            min_length: 0
+            max_length: 255
+          newbool:
+            type: bool
+            required: True
+          newint:
+            type: number
+            required: True
+            min: 0
+            max: 255
+          newuuid:
+            type: uuid
+            required: True
+          newdatetime:
+            type: datetime
+            required: True
+
+    - name: update the resource attribute type
+      PATCH: /v1/resource_type/my_custom_resource
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+        content-type: application/json-patch+json
+      data:
+        - op: add
+          path: /attributes/name
+          value:
+            type: number
+            required: False
+      status: 400
+      response_strings:
+        - "Type update is not available yet. Changing string to number for attribute name of resource my_custom_resource"
+
     - name: post a new resource attribute with missing fill
       PATCH: /v1/resource_type/my_custom_resource
       request_headers:
