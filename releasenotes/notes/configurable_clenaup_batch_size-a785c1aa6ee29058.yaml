@@ -1,0 +1,12 @@
+---
+
+features:
+  - |
+    Users can now configure the ``cleanup_batch_size``. This limits the amount of
+    metrics being deleted during a run of the janitor thereby preventing
+    out-of-memory errors.
+upgrade:
+  - |
+    Users having a large amount of metrics being deleted regularly might needs
+    to increase ``cleanup_batch_size`` to a higher value so that the janitor
+    can keep up.
