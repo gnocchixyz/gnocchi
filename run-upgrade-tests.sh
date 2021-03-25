@@ -13,7 +13,8 @@ fi
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
-old_version=$(pip freeze | sed -n '/gnocchi==/s/.*==\(.*\)/\1/p')
+echo "* Installing Gnocchi from ${GNOCCHI_VERSION_FROM}"
+pip install -q --force-reinstall git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}#egg=gnocchi[${GNOCCHI_VARIANT}]
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
@@ -93,7 +94,7 @@ dump_data $GNOCCHI_DATA/old
 pifpaf_stop
 
 new_version=$(python setup.py --version)
-echo "* Upgrading Gnocchi from $old_version to $new_version"
+echo "* Upgrading Gnocchi from $GNOCCHI_VERSION_FROM to $new_version"
 pip install -v -U .[${GNOCCHI_VARIANT}]
 
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
@@ -106,7 +107,7 @@ gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 
 dump_data $GNOCCHI_DATA/new
 
-echo "* Checking output difference between Gnocchi $old_version and $new_version"
+echo "* Checking output difference between Gnocchi $GNOCCHI_VERSION_FROM and $new_version"
 # This asserts we find the new measures in the old ones. Gnocchi > 4.1 will
 # store less points because it uses the timespan and not the points of the
 # archive policy
