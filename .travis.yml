@@ -2,9 +2,6 @@ dist: bionic
 language: generic
 sudo: required
 
-services:
-  - docker
-
 cache:
   directories:
     - ~/.cache/pip
@@ -24,6 +21,10 @@ env:
   - TARGET: py36-postgresql-s3
 
 before_script:
+  - ulimit -a
+  - ls -l /etc/security/*.conf
+  - cat /etc/security/limits.conf
+  - ulimit -n 50000
   # NOTE(sileht): We need to fetch all tags/branches for documentation.
   # For the multiversioning, we change all remotes refs to point to
   # the pull request checkout. So the "master" branch will be the PR sha and not
@@ -53,11 +54,11 @@ before_script:
     fi
 install:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker pull gnocchixyz/ci-tools:latest;
+      ./tools/install_deps.sh ;
     fi
 script:
   - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
+      tox -e ${TARGET} ;
     fi
 
 notifications:
