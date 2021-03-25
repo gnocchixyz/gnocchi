@@ -193,3 +193,5 @@ return ids
             results[metric][aggregation] = result
 
         return results
+
+    get_health_status = redis.get_redis_health_status

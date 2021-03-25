@@ -242,3 +242,5 @@ class S3Storage(storage.StorageDriver):
             Bucket=self._bucket_name,
             Key=self._build_unaggregated_timeserie_path(metric, version),
             Body=data)
+
+    get_health_status = s3.get_s3_health_status

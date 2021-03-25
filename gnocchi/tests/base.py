@@ -152,6 +152,9 @@ class FakeSwiftClient(object):
             raise swexc.ClientException("No such container",
                                         http_status=404)
 
+    def head_account(self):
+        return {}
+
     def post_account(self, headers, query_string=None, data=None,
                      response_dict=None):
         if query_string == 'bulk-delete':

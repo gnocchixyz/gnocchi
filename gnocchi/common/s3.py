@@ -13,6 +13,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+from collections import OrderedDict
+import six
+
 import daiquiri
 
 import tenacity
@@ -82,3 +86,18 @@ def bulk_delete(conn, bucket, objects):
         deleted += len(response['Deleted'])
     LOG.debug('%s objects deleted, %s objects skipped',
               deleted, len(objects) - deleted)
+
+
+def get_s3_health_status(driver):
+    """Return s3 status."""
+    response = OrderedDict([
+        ('name', driver.__class__.__name__)
+    ])
+    try:
+        driver.s3.head_bucket(Bucket=driver._bucket_name)
+    except Exception as e:
+        response['is_available'] = False
+        response['error'] = six.text_type(e)
+    else:
+        response['is_available'] = True
+    return response

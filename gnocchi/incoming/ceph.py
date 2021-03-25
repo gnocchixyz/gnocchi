@@ -232,3 +232,5 @@ class CephStorage(incoming.IncomingDriver):
                 self.ioctx.remove_omap_keys(op, tuple(processed_keys))
                 self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)
+
+    get_health_status = ceph.get_ceph_health_status

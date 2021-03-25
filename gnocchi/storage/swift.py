@@ -221,3 +221,5 @@ class SwiftStorage(storage.StorageDriver):
             self._container_name(metric),
             self._build_unaggregated_timeserie_path(version),
             data)
+
+    get_health_status = swift.get_swift_health_status

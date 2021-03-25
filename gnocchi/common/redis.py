@@ -16,6 +16,7 @@
 
 from __future__ import absolute_import
 
+from collections import OrderedDict
 from oslo_config import cfg
 import six
 from six.moves.urllib import parse
@@ -167,3 +168,22 @@ def get_client(conf, scripts=None):
         }
 
     return client, scripts
+
+
+def get_redis_health_status(driver):
+    """Return redis status.
+
+    Include redis info.
+    """
+    response = OrderedDict([
+        ('name', driver.__class__.__name__)
+    ])
+    try:
+        info = driver._client.info()
+    except Exception as e:
+        response['is_available'] = False
+        response['error'] = six.text_type(e)
+    else:
+        response['is_available'] = True
+        response['info'] = info
+    return response
