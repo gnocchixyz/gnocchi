@@ -12,9 +12,6 @@ env:
   - TARGET: pep8
   - TARGET: docs
 
-  - TARGET: py36-mysql-ceph-upgrade-from-4.2
-  - TARGET: py36-postgresql-file-upgrade-from-4.2
-
   - TARGET: py36-mysql
   - TARGET: py36-postgresql
   - TARGET: py36-postgresql
