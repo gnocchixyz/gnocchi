@@ -172,6 +172,11 @@ def list_opts():
                        "value may improve worker utilization but may also "
                        "increase load on coordination backend. Value is "
                        "capped by number of workers globally."),
+            cfg.IntOpt('cleanup_batch_size',
+                       default=10000,
+                       min=1,
+                       help="Number of metrics that should be deleted "
+                       "simultaneously by one janitor."),
         )),
         ("api", (
             cfg.StrOpt('paste_config',

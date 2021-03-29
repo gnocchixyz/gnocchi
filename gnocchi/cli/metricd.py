@@ -267,7 +267,7 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
-        self.chef.expunge_metrics()
+        self.chef.expunge_metrics(self.conf.metricd.cleanup_batch_size)
         LOG.debug("Metrics marked for deletion removed from backend")
 
 

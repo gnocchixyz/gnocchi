@@ -49,14 +49,17 @@ class Chef(object):
         self.index = index
         self.storage = storage
 
-    def expunge_metrics(self, sync=False):
+    def expunge_metrics(self, cleanup_batch_size, sync=False):
         """Remove deleted metrics.
 
+        :param cleanup_batch_size: The amount of metrics to delete in one
+                                   run.
         :param sync: If True, then delete everything synchronously and raise
                      on error
         :type sync: bool
         """
-        metrics_to_expunge = self.index.list_metrics(status='delete')
+        metrics_to_expunge = self.index.list_metrics(status='delete',
+                                                     limit=cleanup_batch_size)
         metrics_by_id = {m.id: m for m in metrics_to_expunge}
         for sack, metric_ids in self.incoming.group_metrics_by_sack(
                 metrics_by_id.keys()):
