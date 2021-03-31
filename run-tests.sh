@@ -28,9 +28,10 @@ do
             s3)
                 if ! which s3rver >/dev/null 2>&1
                 then
+                    rm -rf npm-s3rver || true
                     mkdir npm-s3rver
                     export NPM_CONFIG_PREFIX=npm-s3rver
-                    npm install s3rver --global
+                    npm install s3rver@1.0.3 --global
                     export PATH=$PWD/npm-s3rver/bin:$PATH
                 fi
                 pifpaf -e GNOCCHI_STORAGE run s3rver -- \
