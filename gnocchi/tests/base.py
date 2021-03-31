@@ -301,6 +301,10 @@ class TestCase(BaseTestCase):
         with self.coord.get_lock(b"gnocchi-tests-db-lock"):
             self.index.upgrade()
 
+        self.test = self.coord.get_lock(b"test-lock")
+        self.test.acquire(blocking=True)
+        self.test.release()
+
         self.archive_policies = self.ARCHIVE_POLICIES.copy()
         for name, ap in six.iteritems(self.archive_policies):
             # Create basic archive policies
@@ -380,6 +384,9 @@ class TestCase(BaseTestCase):
             self.coord, self.incoming, self.index, self.storage)
 
     def tearDown(self):
+        if self.test:
+            self.test.release()
+
         self.index.disconnect()
         self.coord.stop()
 
