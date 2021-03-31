@@ -43,7 +43,7 @@ class TestIndexerDriver(tests_base.TestCase):
                                      self.conf.indexer.url.replace(
                                          "root@", "").replace(
                                              "localhost", "***:***@localhost"
-                                         )),
+                                     )),
                          str(self.index))
 
     def test_create_archive_policy_already_exists(self):

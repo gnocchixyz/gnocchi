@@ -61,7 +61,7 @@ integer = (
     pyparsing.Word(pyparsing.nums).setParseAction(
         lambda s, loc, tok: int(tok[0])) +
     pyparsing.Suppress("i")
-    )
+)
 field_value = integer | number | quoted_string
 timestamp = pyparsing.Word(pyparsing.nums).setParseAction(
     lambda s, loc, tok: numpy.datetime64(int(tok[0]), 'ns'))
