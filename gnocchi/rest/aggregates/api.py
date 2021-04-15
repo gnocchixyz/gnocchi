@@ -14,7 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fnmatch
+from distutils import util
 import itertools
 
 import pecan
@@ -24,11 +24,10 @@ import six
 import voluptuous
 
 from gnocchi import indexer
-from gnocchi.rest.aggregates import exceptions
+from gnocchi.rest.aggregates import measures_grouper
 from gnocchi.rest.aggregates import operations as agg_operations
 from gnocchi.rest.aggregates import processor
 from gnocchi.rest import api
-from gnocchi import storage
 from gnocchi import utils
 
 
@@ -163,28 +162,6 @@ def extract_references(nodes):
     return references
 
 
-def get_measures_or_abort(references, operations, start,
-                          stop, granularity, needed_overlap, fill):
-    try:
-        return processor.get_measures(
-            pecan.request.storage,
-            references,
-            operations,
-            start, stop,
-            granularity, needed_overlap, fill)
-    except exceptions.UnAggregableTimeseries as e:
-        api.abort(400, e)
-    # TODO(sileht): We currently got only one metric for these exceptions but
-    # we can improve processor to returns all missing metrics at once, so we
-    # returns a list for the future
-    except storage.MetricDoesNotExist as e:
-        api.abort(404, {"cause": "Unknown metrics",
-                        "detail": [str(e.metric.id)]})
-    except storage.AggregationDoesNotExist as e:
-        api.abort(404, {"cause": "Metrics with unknown aggregation",
-                        "detail": [(str(e.metric.id), e.method)]})
-
-
 def ResourceTypeSchema(resource_type):
     try:
         pecan.request.indexer.get_resource_type(resource_type)
@@ -206,7 +183,11 @@ class AggregatesController(rest.RestController):
 
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
-             needed_overlap=None, fill=None, groupby=None, **kwargs):
+             needed_overlap=None, fill=None, groupby=None, use_history="False",
+             **kwargs):
+
+        use_history = util.strtobool(use_history)
+
         details = api.get_bool_param('details', kwargs)
 
         if fill is None and needed_overlap is None:
@@ -238,14 +219,11 @@ class AggregatesController(rest.RestController):
 
             groupby = sorted(set(api.arg_to_list(groupby)))
             sorts = groupby if groupby else api.RESOURCE_DEFAULT_PAGINATION
-            try:
+            if not groupby:
                 resources = pecan.request.indexer.list_resources(
                     body["resource_type"],
                     attribute_filter=attr_filter,
                     sorts=sorts)
-            except indexer.IndexerException as e:
-                api.abort(400, six.text_type(e))
-            if not groupby:
                 try:
                     return self._get_measures_by_name(
                         resources, references, body["operations"], start, stop,
@@ -253,21 +231,23 @@ class AggregatesController(rest.RestController):
                 except indexer.NoSuchMetric as e:
                     api.abort(400, e)
 
-            def groupper(r):
-                return tuple((attr, r[attr]) for attr in groupby)
-
-            results = []
-            for key, resources in itertools.groupby(resources, groupper):
+            if use_history:
+                results = self.get_measures_grouping_with_history(
+                    attr_filter, body, details, fill, granularity, groupby,
+                    needed_overlap, references, sorts, start, stop)
+            else:
                 try:
-                    results.append({
-                        "group": dict(key),
-                        "measures": self._get_measures_by_name(
-                            resources, references, body["operations"],
-                            start, stop, granularity, needed_overlap, fill,
-                            details=details)
-                    })
-                except indexer.NoSuchMetric:
-                    pass
+                    resources = pecan.request.indexer.list_resources(
+                        body["resource_type"],
+                        attribute_filter=attr_filter,
+                        sorts=sorts)
+                except indexer.IndexerException as e:
+                    api.abort(400, six.text_type(e))
+
+                results = self.get_measures_grouping(
+                    body, details, fill, granularity, needed_overlap,
+                    references, resources, start, stop, groupby)
+
             if not results:
                 api.abort(
                     400,
@@ -304,7 +284,7 @@ class AggregatesController(rest.RestController):
                           for (m, a) in references]
 
             response = {
-                "measures": get_measures_or_abort(
+                "measures": measures_grouper.get_measures_or_abort(
                     references, body["operations"],
                     start, stop, granularity, needed_overlap, fill)
             }
@@ -313,27 +293,48 @@ class AggregatesController(rest.RestController):
 
             return response
 
+    def get_measures_grouping(self, body, details, fill, granularity,
+                              needed_overlap, references, resources, start,
+                              stop, groupby):
+        def groupper(r):
+            return tuple((attr, r[attr]) for attr in groupby)
+
+        results = []
+        for key, resources in itertools.groupby(resources, groupper):
+            try:
+                results.append({
+                    "group": dict(key),
+                    "measures": self._get_measures_by_name(
+                        resources, references, body["operations"],
+                        start, stop, granularity, needed_overlap, fill,
+                        details=details)
+                })
+            except indexer.NoSuchMetric:
+                pass
+        return results
+
+    def get_measures_grouping_with_history(self, attr_filter, body, details,
+                                           fill, granularity, groupby,
+                                           needed_overlap, references,
+                                           sorts, start, stop):
+        results = []
+        try:
+            grouper = measures_grouper.Grouper(groupby, start, stop, body,
+                                               sorts, attr_filter, references,
+                                               granularity, needed_overlap,
+                                               fill, details)
+            results = grouper.get_grouped_measures()
+        except indexer.NoSuchMetric:
+            pass
+        except indexer.IndexerException as e:
+            api.abort(400, six.text_type(e))
+        return results
+
     @staticmethod
     def _get_measures_by_name(resources, metric_wildcards, operations,
                               start, stop, granularity, needed_overlap, fill,
                               details):
 
-        references = []
-        for r in resources:
-            references.extend([
-                processor.MetricReference(m, agg, r, wildcard)
-                for wildcard, agg in metric_wildcards
-                for m in r.metrics if fnmatch.fnmatch(m.name, wildcard)
-            ])
-
-        if not references:
-            raise indexer.NoSuchMetric(set((m for (m, a) in metric_wildcards)))
-
-        response = {
-            "measures": get_measures_or_abort(
-                references, operations, start, stop, granularity,
-                needed_overlap, fill)
-        }
-        if details:
-            response["references"] = set((r.resource for r in references))
-        return response
+        return measures_grouper._get_measures_by_name(
+            resources, metric_wildcards, operations, start, stop, granularity,
+            needed_overlap, fill, details)
