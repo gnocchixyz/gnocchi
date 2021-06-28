@@ -64,14 +64,17 @@ class BatchProcessor(object):
         for host_id, measures_by_names in six.iteritems(self._measures):
             resource = resources[host_id]
 
-            names = set(measures_by_names.keys())
+            mbn_keys = measures_by_names.keys()
+            names = (set(mbn_keys) if len(mbn_keys)
+                     else set())
+
             for name in names:
                 if name not in archive_policies:
                     archive_policies[name] = (
                         self.indexer.get_archive_policy_for_metric(name))
             known_metrics = self.indexer.list_metrics(attribute_filter={
                 "and": [{"=": {"resource_id": resource.id}},
-                        {"in": {"name": names}}]
+                        {"in": {"name": list(names)}}]
             })
             known_names = set((m.name for m in known_metrics))
             already_exists_names = []

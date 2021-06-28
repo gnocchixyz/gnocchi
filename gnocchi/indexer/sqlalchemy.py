@@ -260,27 +260,46 @@ class ResourceClassMapper(object):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
+    @staticmethod
+    def _set_url_database(url, database):
+        if hasattr(url, "set"):
+            return url.set(database=database)
+        else:
+            url.database = database
+            return url
+
+    @staticmethod
+    def _set_url_drivername(url, drivername):
+        if hasattr(url, "set"):
+            return url.set(drivername=drivername)
+        else:
+            url.drivername = drivername
+            return url
+
     @classmethod
     def _create_new_database(cls, url):
         """Used by testing to create a new database."""
         purl = sqlalchemy_url.make_url(
             cls.dress_url(
                 url))
-        purl.database = purl.database + str(uuid.uuid4()).replace('-', '')
+        new_database = purl.database + str(uuid.uuid4()).replace('-', '')
+        purl = cls._set_url_database(purl, new_database)
         new_url = str(purl)
         sqlalchemy_utils.create_database(new_url)
         return new_url
 
-    @staticmethod
-    def dress_url(url):
+    @classmethod
+    def dress_url(cls, url):
         # If no explicit driver has been set, we default to pymysql
         if url.startswith("mysql://"):
             url = sqlalchemy_url.make_url(url)
-            url.drivername = "mysql+pymysql"
+            new_drivername = "mysql+pymysql"
+            url = cls._set_url_drivername(url, new_drivername)
             return str(url)
         if url.startswith("postgresql://"):
             url = sqlalchemy_url.make_url(url)
-            url.drivername = "postgresql+psycopg2"
+            new_drivername = "postgresql+psycopg2"
+            url = cls._set_url_drivername(url, new_drivername)
             return str(url)
         return url
 
@@ -1010,8 +1029,6 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             target_cls = self._resource_type_to_mappers(
                 session, resource_type)["resource"]
 
-            q = session.query(target_cls.id)
-
             engine = session.connection()
             try:
                 f = QueryTransformer.build_filter(engine.dialect.name,
@@ -1023,12 +1040,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceAttributeError(resource_type,
                                                      e.attribute)
 
-            q = q.filter(f)
+            q1 = session.query(target_cls.id)
+            q1 = q1.filter(f)
 
             session.query(Metric).filter(
-                Metric.resource_id.in_(q)
+                Metric.resource_id.in_(q1)
             ).update({"status": "delete"},
                      synchronize_session=False)
+
+            q = session.query(target_cls)
+            q = q.filter(f)
             return q.delete(synchronize_session=False)
 
     @retry_on_deadlock
