@@ -24,6 +24,7 @@ Create Date: 2016-07-25 15:36:36.469847
 """
 
 from alembic import op
+from sqlalchemy.engine.reflection import Inspector
 import sqlalchemy as sa
 from sqlalchemy.sql import func
 
@@ -38,8 +39,21 @@ depends_on = None
 
 def upgrade():
     bind = op.get_bind()
+    inspector = Inspector.from_engine(bind)
+
     if bind and bind.engine.name == "mysql":
         op.execute("SET time_zone = '+00:00'")
+
+        previous_cks = {"resource": [], "resource_history": []}
+        for table in ("resource", "resource_history"):
+            existing_cks = [
+                c['name'] for c in inspector.get_check_constraints(table)
+            ]
+            ck_name = "ck_{}_started_before_ended".format(table)
+            if ck_name in existing_cks:
+                op.drop_constraint(ck_name, table, type_="check")
+                previous_cks[table].append(ck_name)
+
         # NOTE(jd) So that crappy engine that is MySQL does not have "ALTER
         # TABLE … USING …". We need to copy everything and convert…
         for table_name, column_name in (("resource", "started_at"),
@@ -75,3 +89,7 @@ def upgrade():
                             existing_nullable=nullable,
                             existing_type=existing_type,
                             new_column_name=column_name)
+
+        for table in ("resource", "resource_history"):
+            for ck_name in previous_cks[table]:
+                op.create_check_constraint(ck_name, table, "started_at <= ended_at")
