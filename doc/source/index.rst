@@ -34,7 +34,7 @@ You can join Gnocchi's community via the following channels:
 
 - Source code: https://github.com/gnocchixyz/gnocchi
 - Bug tracker: https://github.com/gnocchixyz/gnocchi/issues
-- IRC: #gnocchi on `Freenode <https://freenode.net>`_
+- IRC: #gnocchi on `OFTC <https://www.oftc.net>`_
 
 Documentation
 -------------
