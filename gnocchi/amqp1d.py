@@ -64,10 +64,7 @@ class BatchProcessor(object):
         for host_id, measures_by_names in six.iteritems(self._measures):
             resource = resources[host_id]
 
-            mbn_keys = measures_by_names.keys()
-            names = (set(mbn_keys) if len(mbn_keys)
-                     else set())
-
+            names = set(measures_by_names.keys())
             for name in names:
                 if name not in archive_policies:
                     archive_policies[name] = (
