@@ -71,7 +71,7 @@ class BatchProcessor(object):
                         self.indexer.get_archive_policy_for_metric(name))
             known_metrics = self.indexer.list_metrics(attribute_filter={
                 "and": [{"=": {"resource_id": resource.id}},
-                        {"in": {"name": names}}]
+                        {"in": {"name": list(names)}}]
             })
             known_names = set((m.name for m in known_metrics))
             already_exists_names = []
