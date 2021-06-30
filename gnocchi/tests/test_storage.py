@@ -637,12 +637,7 @@ class TestStorageDriver(tests_base.TestCase):
             (datetime64(2016, 1, 6, 15, 12), numpy.timedelta64(1, 'm'), 44),
             (datetime64(2016, 1, 10, 16, 18), numpy.timedelta64(1, 'm'), 45),
             (datetime64(2016, 1, 10, 17, 12), numpy.timedelta64(1, 'm'), 46),
-<<<<<<< HEAD
         ]}, self.storage.get_measures(self.metric, [aggregation]))
-=======
-        ]}, get_measures_list(self.storage.get_aggregated_measures(
-            {self.metric: [aggregation]})[self.metric]))
->>>>>>> 2b01ed1b (Update hacking)
 
     def test_rewrite_measures_multiple_granularities(self):
         apname = str(uuid.uuid4())
