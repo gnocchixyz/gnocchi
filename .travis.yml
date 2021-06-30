@@ -67,7 +67,7 @@ notifications:
     on_failure: always
     skip_join: true
     channels:
-      - "irc.freenode.org#gnocchi"
+      - "irc.oftc.net#gnocchi"
 
 before_deploy:
   - pip install --user --upgrade pip
