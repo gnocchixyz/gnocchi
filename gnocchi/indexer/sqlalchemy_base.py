@@ -51,13 +51,17 @@ class ArchivePolicyDefinitionType(sqlalchemy_utils.JSONType):
     def process_result_value(self, value, dialect):
         values = super(ArchivePolicyDefinitionType,
                        self).process_result_value(value, dialect)
+        if values is None:
+            return []
         return [archive_policy.ArchivePolicyItem(**v) for v in values]
 
 
 class SetType(sqlalchemy_utils.JSONType):
     def process_result_value(self, value, dialect):
-        return set(super(SetType,
-                         self).process_result_value(value, dialect))
+        values = super(SetType, self).process_result_value(value, dialect)
+        if values is None:
+            return set()
+        return set(values)
 
 
 class ArchivePolicy(Base, GnocchiBase, archive_policy.ArchivePolicy):
@@ -225,8 +229,8 @@ class ResourceMixin(ResourceJsonifier):
             'started_at <= ended_at',
             name="ck_{}_started_before_ended".format(
                 cls.__tablename__
-                )
-            ),
+            )
+        ),
             COMMON_TABLES_ARGS
         )
 

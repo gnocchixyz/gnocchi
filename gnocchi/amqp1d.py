@@ -71,7 +71,7 @@ class BatchProcessor(object):
                         self.indexer.get_archive_policy_for_metric(name))
             known_metrics = self.indexer.list_metrics(attribute_filter={
                 "and": [{"=": {"resource_id": resource.id}},
-                        {"in": {"name": names}}]
+                        {"in": {"name": list(names)}}]
             })
             known_names = set((m.name for m in known_metrics))
             already_exists_names = []
@@ -85,7 +85,7 @@ class BatchProcessor(object):
                         archive_policy_name=archive_policies[name].name)
                 except indexer.NamedMetricAlreadyExists as e:
                     already_exists_names.append(e.metric)
-                except indexer.IndexerException as e:
+                except indexer.IndexerException:
                     LOG.error("Unexpected error, dropping metric %s",
                               name, exc_info=True)
                 else:
