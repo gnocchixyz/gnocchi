@@ -119,7 +119,7 @@ class BasicAuthHelper(object):
     @staticmethod
     def get_current_user(request):
         hdr = request.headers.get("Authorization")
-        auth_hdr = (hdr.decode('utf-8') if type(hdr) == bytes
+        auth_hdr = (hdr.decode('utf-8') if isinstance(hdr, bytes)
                     else hdr)
         auth = werkzeug.http.parse_authorization_header(auth_hdr)
         if auth is None:
