@@ -118,8 +118,10 @@ class KeystoneAuthHelper(object):
 class BasicAuthHelper(object):
     @staticmethod
     def get_current_user(request):
-        auth = werkzeug.http.parse_authorization_header(
-            request.headers.get("Authorization"))
+        hdr = request.headers.get("Authorization")
+        auth_hdr = (hdr.decode('utf-8') if isinstance(hdr, bytes)
+                    else hdr)
+        auth = werkzeug.http.parse_authorization_header(auth_hdr)
         if auth is None:
             api.abort(401)
         return auth.username
