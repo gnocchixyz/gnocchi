@@ -1,77 +1,16 @@
+os: linux
 dist: bionic
 language: generic
-sudo: required
-
-services:
-  - docker
-
-cache:
-  directories:
-    - ~/.cache/pip
-env:
-  - TARGET: pep8
-  - TARGET: docs
-  - TARGET: docs-gnocchi-web
-
-  - TARGET: py36-mysql-ceph-upgrade-from-4.3
-  - TARGET: py36-postgresql-file-upgrade-from-4.3
-
-  - TARGET: py36-mysql
-  - TARGET: py36-postgresql
-
-before_script:
-  # NOTE(sileht): We need to fetch all tags/branches for documentation.
-  # For the multiversioning, we change all remotes refs to point to
-  # the pull request checkout. So the "master" branch will be the PR sha and not
-  # real "master" branch. This ensures the doc build use the PR code for initial
-  # doc setup.
-  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      set -x;
-      case $TARGET in
-        docs*)
-          git config --get-all remote.origin.fetch;
-          git config --unset-all remote.origin.fetch;
-          git config --add remote.origin.fetch +refs/heads/*:refs/remotes/origin/*;
-          git config --get-all remote.origin.fetch;
-          git fetch --unshallow --tags;
-          ;;
-      esac ;
-      case $TARGET in
-        docs-gnocchi-web)
-          git branch -a | sed -n "/\/HEAD /d; /\/master$/d; s,remotes/origin/,,p;" | xargs -i git branch {} origin/{} ;
-          git branch -D master;
-          git checkout -b master;
-          git remote set-url origin file:///home/tester/src;
-          git ls-remote --heads --tags | grep heads;
-          ;;
-      esac ;
-      set +x;
-    fi
-install:
-  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker pull gnocchixyz/ci-tools:latest;
-    fi
-script:
-  - if \[ "$TRAVIS_PULL_REQUEST" != "false" -o  -n "$TRAVIS_TAG" \]; then
-      docker run -v ~/.cache/pip:/home/tester/.cache/pip -v $(pwd):/home/tester/src gnocchixyz/ci-tools:latest tox -e ${TARGET} ;
-    fi
-
-notifications:
-  email: false
-  irc:
-    on_success: change
-    on_failure: always
-    skip_join: true
-    channels:
-      - "irc.freenode.org#gnocchi"
 
 before_deploy:
-  - pip install --user --upgrade pip
-  - pip install --user --upgrade six
+  - sudo apt update -y
+  - sudo apt install -y python3 python3-pip python3-virtualenv
+  - python3 -m virtualenv env
+  - source env/bin/activate
 
 deploy:
   provider: pypi
-  user: jd
+  username: jd
   password:
     secure: c+Ccx3SHCWepiy0PUxDJ7XO9r3aNYnHjkzxF5c/kjV8QaCJayAJEgXJnBKhvjroqwgn7JPUgpD6QdSWdB4FqjbZYQ3I3oHOO1YL0vYYa8wHG5HuMsMp4J8qvzgs3QNQDECPI1mXsPevn3VMfGszUN+6BQrHB3FbZsTtOmE+Kmgok5NCT+obsfEhVea/UOD0XFUkVW9VJhPjQ2ytvYvFIc46/73GQf2Er/5DCa/4GGDEBSD++bDJgp3kQj438xslCAFeZWDwGsa+cTc43PI0Y0+E144ySVY7QyVbZ1B66a1BGWVrXJuM+gW/eIBCMN1FJXmD7CDdPa22azKI8dfMF7qaH3Oiv3cVovPWpubOvhTUHUFwG8+W7Fx+zUKktCWiLer/fZvEd3W8tcgby2kNOdcUfKfDB2ImZJ+P694/OJ4jJ8T5TQerruNoP2OstzcBMon77Ry0XawXR15SZd4JhbqhSi+h7XV6EYmct1UN4zoysA7fx/cWHcBxdnm2G6R0gzmOiiGUd74ptU8lZ3IlEP6EZckK/OZOdy1I8EQeUe7aiTooXZDAn07iPkDZliYRr2e36ij/xjtWCe1AjCksn/xdKfHOKJv5UVob495DU2GuNObe01ewXzexcnldjfp9Sb8SVEFuhHx6IvH5OC+vAq+BVYu2jwvMcVfXi3VSOkB4=
   skip_existing: true
