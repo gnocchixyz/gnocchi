@@ -323,9 +323,9 @@ class TestCase(BaseTestCase):
             self.conf.set_override('s3_endpoint_url',
                                    os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
                                    group="storage")
-            self.conf.set_override('s3_access_key_id', "gnocchi",
+            self.conf.set_override('s3_access_key_id', "S3RVER",
                                    group="storage")
-            self.conf.set_override('s3_secret_access_key', "anythingworks",
+            self.conf.set_override('s3_secret_access_key', "S3RVER",
                                    group="storage")
 
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
