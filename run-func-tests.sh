@@ -41,6 +41,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                     export PATH=$PWD/npm-s3rver/bin:$PATH
                 fi
                 eval $(pifpaf -e STORAGE run s3rver)
+                STORAGE_URL=s3://S3RVER:S3RVER@localhost:4568
                 ;;
             file)
                 STORAGE_URL=file://
