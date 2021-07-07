@@ -3,9 +3,8 @@ ENV GNOCCHI_WORKSPACE /github/workspace
 ENV DEBIAN_FRONTEND noninteractive
 
 #NOTE(tobias-urdin): need gnupg for apt-key
-RUN apt-get update -y && apt-get install -qy gnupg
-RUN echo 'deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu focal main' >> /etc/apt/sources.list
-RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com F23C5A6CF475977595C89F51BA6932366A755776
+RUN apt-get update -y && apt-get install -qy gnupg software-properties-common
+RUN add-apt-repository -y ppa:deadsnakes/ppa
 RUN apt-get update -y && apt-get install -qy \
         locales \
         git \
