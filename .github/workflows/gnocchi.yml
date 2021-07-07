@@ -1,8 +1,6 @@
 name: Gnocchi
 
-on:
-  pull_request:
-    branches: [master]
+on: pull_request
 
 # NOTE(tobias-urdin): If you change any jobs make sure to modify
 # the Mergify.io config in .mergify.yml to include the jobs!
