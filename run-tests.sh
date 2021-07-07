@@ -28,7 +28,7 @@ do
             s3)
                 if ! which s3rver >/dev/null 2>&1
                 then
-                    mkdir npm-s3rver
+                    mkdir -p npm-s3rver
                     export NPM_CONFIG_PREFIX=npm-s3rver
                     npm install s3rver --global
                     export PATH=$PWD/npm-s3rver/bin:$PATH
@@ -53,5 +53,5 @@ do
     PIDS=""
     # TODO(sileht): the output can be a mess with this
     # Create a less verbose testrun output (with dot like nose ?)
-    # merge all subunit output and print it in after_script in travis
+    # merge all subunit output and print it after.
 done

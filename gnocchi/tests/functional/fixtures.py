@@ -150,8 +150,8 @@ class ConfigFixture(fixture.GabbiFixture):
             conf.set_override('s3_endpoint_url',
                               os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
                               group="storage")
-            conf.set_override('s3_access_key_id', "gnocchi", group="storage")
-            conf.set_override('s3_secret_access_key', "anythingworks",
+            conf.set_override('s3_access_key_id', "S3RVER", group="storage")
+            conf.set_override('s3_secret_access_key', "S3RVER",
                               group="storage")
             conf.set_override("s3_bucket_prefix", str(uuid.uuid4())[:26],
                               "storage")

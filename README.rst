@@ -2,10 +2,6 @@
  Gnocchi - Metric as a Service
 ===============================
 
-.. image:: https://travis-ci.org/gnocchixyz/gnocchi.png?branch=master
-    :target: https://travis-ci.org/gnocchixyz/gnocchi
-    :alt: Build Status
-
 .. image:: https://badge.fury.io/py/gnocchi.svg
     :target: https://badge.fury.io/py/gnocchi
 

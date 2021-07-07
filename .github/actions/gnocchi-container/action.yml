@@ -1,0 +1,12 @@
+name: 'Gnocchi Container'
+description: 'Run command inside Gnocchi Container'
+author: 'Tobias Urdin'
+inputs:
+  command:
+    description: 'Command to run'
+    required: true
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.command }}

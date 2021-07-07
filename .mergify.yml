@@ -8,7 +8,30 @@ pull_request_rules:
     conditions:
     - label!=work-in-progress
     - '#approved-reviews-by>=1'
-    - status-success=Travis CI - Pull Request
+    - status-success=doc (docs)
+    - status-success=doc (docs-gnocchi-web)
+
+    - status-success=check (pep8)
+
+    - status-success=test (py36-postgresql-file-upgrade-from-4.3)
+    - status-success=test (py36-mysql-file)
+    - status-success=test (py36-mysql-swift)
+    - status-success=test (py36-mysql-s3)
+    - status-success=test (py36-postgresql-file)
+    - status-success=test (py36-postgresql-swift)
+    - status-success=test (py36-postgresql-s3)
+
+    - status-success=test (py38-mysql-ceph-upgrade-from-4.3)
+    - status-success=test (py38-postgresql-file-upgrade-from-4.3)
+    - status-success=test (py38-mysql-file)
+    - status-success=test (py38-mysql-swift)
+    - status-success=test (py38-mysql-s3)
+    - status-success=test (py38-mysql-ceph)
+    - status-success=test (py38-postgresql-file)
+    - status-success=test (py38-postgresql-swift)
+    - status-success=test (py38-postgresql-s3)
+    - status-success=test (py38-postgresql-ceph)
+
   - name: automatic merge backports from Mergify
     actions:
       merge:
@@ -20,6 +43,7 @@ pull_request_rules:
     - label!=work-in-progress
     - author=mergify[bot]
     - status-success=Travis CI - Pull Request
+
   - name: dismiss reviews on additional commit
     actions:
       dismiss_reviews: {}
@@ -29,42 +53,14 @@ pull_request_rules:
   - actions:
       backport:
         branches:
-        - stable/3.0
-    conditions:
-    - label=backport-to-3.0
-    name: backport stable/3.0
-  - actions:
-      backport:
-        branches:
-        - stable/3.1
-    conditions:
-    - label=backport-to-3.1
-    name: backport stable/3.1
-  - actions:
-      backport:
-        branches:
-        - stable/4.0
-    conditions:
-    - label=backport-to-4.0
-    name: backport stable/4.0
-  - actions:
-      backport:
-        branches:
-        - stable/4.1
-    conditions:
-    - label=backport-to-4.1
-    name: backport stable/4.1
-  - actions:
-      backport:
-        branches:
-        - stable/4.2
-    conditions:
-    - label=backport-to-4.2
-    name: backport stable/4.2
-  - actions:
-      backport:
-        branches:
         - stable/4.3
     conditions:
     - label=backport-to-4.3
     name: backport stable/4.3
+  - actions:
+      backport:
+        branches:
+        - stable/4.4
+    conditions:
+    - label=backport-to-4.4
+    name: backport stable/4.4
