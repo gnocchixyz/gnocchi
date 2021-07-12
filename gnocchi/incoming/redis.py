@@ -184,11 +184,6 @@ return results
             pipe.ltrim(key, item_len + 1, -1)
         pipe.execute()
 
-    # if ConnectionError exception occurs, try again, max 5 times.
-    @tenacity.retry(
-        wait=utils.wait_exponential,
-        stop=tenacity.stop_after_attempt(5),
-        retry=tenacity.retry_if_exception_type(ConnectionError))
     def iter_on_sacks_to_process(self):
         self._client.config_set("notify-keyspace-events", "K$")
         p = self._client.pubsub()
@@ -196,11 +191,17 @@ return results
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
         pattern = keyspace + self._get_sack_name("*").encode()
         p.psubscribe(pattern)
-        for message in p.listen():
-            if message['type'] == 'pmessage' and message['pattern'] == pattern:
-                # FIXME(jd) This is awful, we need a better way to extract this
-                # Format is defined by _get_sack_name: incoming128-17
-                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
+        try:
+            for message in p.listen():
+                if message['type'] == 'pmessage' and \
+                   message['pattern'] == pattern:
+                    # FIXME(jd) This is awful, we need a better way to extract this
+                    # Format is defined by _get_sack_name: incoming128-17
+                    yield self._make_sack(int(
+                        message['channel'].split(b"-")[-1]))
+        except ConnectionError:
+            # will try again later
+            pass
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET
