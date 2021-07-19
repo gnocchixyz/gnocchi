@@ -2,8 +2,10 @@
 Gnocchi – Metric as a Service
 ==================================
 
+Gnocchi is an open-source time series database.
+
 .. include:: ../../README.rst
-   :start-line: 13
+   :start-after: Gnocchi is an open-source time series database.
 
 Key Features
 ------------
