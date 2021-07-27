@@ -29,7 +29,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
             ceph)
                 eval $(pifpaf -e STORAGE run ceph)
                 check_empty_var STORAGE_URL
-                rados -c $STORAGE_CEPH_CONF mkpool gnocchi
+                ceph -c $STORAGE_CEPH_CONF osd pool create gnocchi 16 16 replicated
                 STORAGE_URL=ceph://$STORAGE_CEPH_CONF
                 ;;
             s3)
@@ -41,6 +41,7 @@ for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
                     export PATH=$PWD/npm-s3rver/bin:$PATH
                 fi
                 eval $(pifpaf -e STORAGE run s3rver)
+                STORAGE_URL=s3://S3RVER:S3RVER@localhost:4568
                 ;;
             file)
                 STORAGE_URL=file://

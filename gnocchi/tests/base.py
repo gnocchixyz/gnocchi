@@ -323,9 +323,9 @@ class TestCase(BaseTestCase):
             self.conf.set_override('s3_endpoint_url',
                                    os.getenv("GNOCCHI_STORAGE_HTTP_URL"),
                                    group="storage")
-            self.conf.set_override('s3_access_key_id', "gnocchi",
+            self.conf.set_override('s3_access_key_id', "S3RVER",
                                    group="storage")
-            self.conf.set_override('s3_secret_access_key', "anythingworks",
+            self.conf.set_override('s3_secret_access_key', "S3RVER",
                                    group="storage")
 
         storage_driver = os.getenv("GNOCCHI_TEST_STORAGE_DRIVER", "file")
@@ -347,7 +347,12 @@ class TestCase(BaseTestCase):
                                    'storage')
             self.ceph_pool_name = uuid.uuid4().hex
             with open(os.devnull, 'w') as f:
-                subprocess.call("rados -c %s mkpool %s" % (
+                subprocess.call(("ceph -c %s osd pool create %s "
+                                 "16 16 replicated") % (
+                    os.getenv("CEPH_CONF"), self.ceph_pool_name), shell=True,
+                    stdout=f, stderr=subprocess.STDOUT)
+                subprocess.call(("ceph -c %s osd pool application "
+                                 "enable %s rbd") % (
                     os.getenv("CEPH_CONF"), self.ceph_pool_name), shell=True,
                     stdout=f, stderr=subprocess.STDOUT)
             self.conf.set_override('ceph_pool', self.ceph_pool_name, 'storage')
@@ -380,7 +385,7 @@ class TestCase(BaseTestCase):
 
         if self.conf.storage.driver == 'ceph':
             with open(os.devnull, 'w') as f:
-                ceph_rmpool_command = "rados -c %s rmpool %s %s \
+                ceph_rmpool_command = "ceph -c %s osd pool delete %s %s \
 --yes-i-really-really-mean-it" % (os.getenv("CEPH_CONF"), self.ceph_pool_name,
                                   self.ceph_pool_name)
                 subprocess.call(ceph_rmpool_command, shell=True,

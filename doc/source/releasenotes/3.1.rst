@@ -3,4 +3,4 @@
 ===================================
 
 .. release-notes::
-   :branch: origin/stable/3.1
+   :branch: origin/eol/3.1
