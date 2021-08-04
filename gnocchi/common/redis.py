@@ -36,6 +36,7 @@ SEP = b':'
 CLIENT_ARGS = frozenset([
     'db',
     'encoding',
+    'health_check_interval',
     'retry_on_timeout',
     'socket_keepalive',
     'socket_timeout',
@@ -62,6 +63,7 @@ CLIENT_BOOL_ARGS = frozenset([
 #: Client arguments that are expected to be int convertible.
 CLIENT_INT_ARGS = frozenset([
     'db',
+    'health_check_interval',
     'socket_keepalive',
     'socket_timeout',
 ])
