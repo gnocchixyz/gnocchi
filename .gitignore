@@ -2,6 +2,7 @@
 *.pyc
 .tox
 *.egg-info
+.eggs/
 AUTHORS
 ChangeLog
 etc/gnocchi/gnocchi.conf
