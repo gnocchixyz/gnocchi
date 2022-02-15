@@ -348,10 +348,10 @@ class _retry_on_exception_and_log(tenacity.retry_if_exception_type):
         super(_retry_on_exception_and_log, self).__init__()
         self.msg = msg
 
-    def __call__(self, attempt):
-        if attempt.failed:
-            LOG.error(self.msg, exc_info=attempt.exception())
-        return super(_retry_on_exception_and_log, self).__call__(attempt)
+    def __call__(self, retry_state):
+        if retry_state.outcome.failed:
+            LOG.error(self.msg, exc_info=retry_state.outcome.exception())
+        return super(_retry_on_exception_and_log, self).__call__(retry_state)
 
 
 def retry_on_exception_and_log(msg):
