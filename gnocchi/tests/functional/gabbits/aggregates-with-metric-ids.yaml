@@ -640,8 +640,13 @@ tests:
       response_json_paths:
         $.code: 400
         $.description.cause: "Invalid operations"
+<<<<<<< HEAD
         $.description.reason: "Fail to parse the operations string"
         $.description.detail: '/^Expected "\)", found end of text  \(at char 15\), \(line:1, col:16\)/'
+=======
+        $.description.reason: "/^Fail to parse the operations string/"
+        $.description.detail: /^Expected \'\)\', found end of text  \(at char 15\), \(line:1, col:16\)/
+>>>>>>> 70da17a9 (Update gabbi assertRegex because of changed output)
 
     - name: get invalid metric operations
       POST: /v1/aggregates
