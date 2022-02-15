@@ -1248,7 +1248,7 @@ class QueryStringSearchAttrFilter(object):
     @classmethod
     def _parsed_query2dict(cls, parsed_query):
         result = None
-        while parsed_query:
+        while len(parsed_query.asList()):
             part = parsed_query.pop()
             if part in cls.binary_operator:
                 result = {part: {parsed_query.pop(): result}}
