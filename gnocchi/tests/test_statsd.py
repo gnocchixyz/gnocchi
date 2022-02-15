@@ -17,8 +17,8 @@
 import datetime
 import uuid
 
-import mock
 import numpy
+from unittest import mock
 
 from gnocchi import indexer
 from gnocchi import statsd

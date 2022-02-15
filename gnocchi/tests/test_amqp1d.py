@@ -14,8 +14,8 @@ import datetime
 import json
 import uuid
 
-import mock
 import numpy
+from unittest import mock
 
 from gnocchi import amqp1d
 from gnocchi.tests import base as tests_base
