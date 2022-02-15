@@ -15,12 +15,12 @@
 import abc
 
 import fixtures
-import mock
 import oslo_db.exception
 from oslo_db.sqlalchemy import test_migrations
 import six
 import sqlalchemy.schema
 import sqlalchemy_utils
+from unittest import mock
 
 from gnocchi import indexer
 from gnocchi.indexer import sqlalchemy
