@@ -1,18 +1,9 @@
-pull_request_rules:
-  - name: automatic merge
-    actions:
-      merge:
-        method: rebase
-        rebase_fallback: merge
-        strict: true
+queue_rules:
+  - name: default
     conditions:
-    - label!=work-in-progress
-    - '#approved-reviews-by>=1'
     - check-success=doc (docs)
     - check-success=doc (docs-gnocchi-web)
-
     - check-success=check (pep8)
-
     - check-success=test (py36, postgresql-file-upgrade-from-4.3)
     - check-success=test (py36, mysql-file)
     - check-success=test (py36, mysql-swift)
@@ -20,7 +11,36 @@ pull_request_rules:
     - check-success=test (py36, postgresql-file)
     - check-success=test (py36, postgresql-swift)
     - check-success=test (py36, postgresql-s3)
+    - check-success=test (py38, mysql-ceph-upgrade-from-4.3)
+    - check-success=test (py38, postgresql-file-upgrade-from-4.3)
+    - check-success=test (py38, mysql-file)
+    - check-success=test (py38, mysql-swift)
+    - check-success=test (py38, mysql-s3)
+    - check-success=test (py38, mysql-ceph)
+    - check-success=test (py38, postgresql-file)
+    - check-success=test (py38, postgresql-swift)
+    - check-success=test (py38, postgresql-s3)
+    - check-success=test (py38, postgresql-ceph)
 
+pull_request_rules:
+  - name: automatic merge
+    actions:
+      queue:
+        method: merge
+        name: default
+    conditions:
+    - label!=work-in-progress
+    - '#approved-reviews-by>=1'
+    - check-success=doc (docs)
+    - check-success=doc (docs-gnocchi-web)
+    - check-success=check (pep8)
+    - check-success=test (py36, postgresql-file-upgrade-from-4.3)
+    - check-success=test (py36, mysql-file)
+    - check-success=test (py36, mysql-swift)
+    - check-success=test (py36, mysql-s3)
+    - check-success=test (py36, postgresql-file)
+    - check-success=test (py36, postgresql-swift)
+    - check-success=test (py36, postgresql-s3)
     - check-success=test (py38, mysql-ceph-upgrade-from-4.3)
     - check-success=test (py38, postgresql-file-upgrade-from-4.3)
     - check-success=test (py38, mysql-file)
@@ -34,10 +54,9 @@ pull_request_rules:
 
   - name: automatic merge backports from Mergify
     actions:
-      merge:
-        method: rebase
-        rebase_fallback: merge
-        strict: true
+      queue:
+        method: merge
+        name: default
     conditions:
     - base~=^stable/.*
     - label!=work-in-progress

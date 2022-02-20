@@ -645,7 +645,7 @@ tests:
         $.code: 400
         $.description.cause: "Invalid operations"
         $.description.reason: "/^Fail to parse the operations string/"
-        $.description.detail: '/^Expected "\)", found end of text  \(at char 15\), \(line:1, col:16\)/'
+        $.description.detail: /^Expected \'\)\', found end of text  \(at char 15\), \(line:1, col:16\)/
 
     - name: get invalid metric operations
       POST: /v1/aggregates
