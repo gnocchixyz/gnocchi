@@ -17,8 +17,8 @@ import datetime
 import operator
 import uuid
 
-import mock
 import numpy
+from unittest import mock
 
 from gnocchi import archive_policy
 from gnocchi import indexer

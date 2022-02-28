@@ -17,8 +17,8 @@ import datetime
 import functools
 import uuid
 
-import mock
 import numpy
+from unittest import mock
 
 from gnocchi import carbonara
 from gnocchi import incoming
