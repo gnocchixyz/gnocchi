@@ -16,9 +16,9 @@
 import datetime
 import uuid
 
-import mock
 import numpy
 import six.moves
+from unittest import mock
 
 from gnocchi import archive_policy
 from gnocchi import carbonara
