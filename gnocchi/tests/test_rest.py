@@ -26,10 +26,10 @@ import uuid
 import fixtures
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
-import mock
 import six
 import testscenarios
 from testtools import testcase
+from unittest import mock
 import webtest
 
 import gnocchi
