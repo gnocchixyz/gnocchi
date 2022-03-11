@@ -403,9 +403,9 @@ tests:
         resource_type: generic
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric (notexists mean) (foobar mean)))"
-      status: 400
+      status: 404
       response_json_paths:
-        $.code: 400
+        $.code: 404
         $.description.cause: "Metrics not found"
         $.description.detail.`sorted`:
           - foobar
@@ -421,9 +421,9 @@ tests:
         resource_type: generic
         search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
         operations: "(aggregate mean (metric (notexists mean) (foobar mean)))"
-      status: 400
+      status: 404
       response_json_paths:
-        $.code: 400
+        $.code: 404
         $.description.cause: "Metrics not found"
         $.description.detail.`sorted`:
           - foobar

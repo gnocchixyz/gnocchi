@@ -251,7 +251,7 @@ class AggregatesController(rest.RestController):
                         resources, references, body["operations"], start, stop,
                         granularity, needed_overlap, fill, details=details)
                 except indexer.NoSuchMetric as e:
-                    api.abort(400, e)
+                    api.abort(404, e)
 
             def groupper(r):
                 return tuple((attr, r[attr]) for attr in groupby)
@@ -270,7 +270,7 @@ class AggregatesController(rest.RestController):
                     pass
             if not results:
                 api.abort(
-                    400,
+                    404,
                     indexer.NoSuchMetric(set((m for (m, a) in references))))
             return results
 
