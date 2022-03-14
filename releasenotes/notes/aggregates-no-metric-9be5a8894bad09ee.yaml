@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The Dynamic Aggregates API now returns a 404 response when metrics are
+    not found rather than a 400 response.  This allows differentiation between
+    an invalid request to the API vs a lack of metric data due to resources
+    not yet being present and is inline with the deprecated metric aggregate
+    API behaviour.
