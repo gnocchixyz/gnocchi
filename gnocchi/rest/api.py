@@ -651,7 +651,10 @@ class MetricsController(rest.RestController):
     @classmethod
     @pecan.expose('json')
     def get_all(cls, **kwargs):
-        filtering = cls.MetricListSchema(kwargs)
+        try:
+            filtering = cls.MetricListSchema(kwargs)
+        except voluptuous.Error as e:
+            abort(400, "Invalid input: %s" % e)
 
         # Compat with old user/project API
         provided_user_id = filtering.pop('user_id', None)
