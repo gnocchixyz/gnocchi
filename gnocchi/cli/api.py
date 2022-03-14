@@ -106,6 +106,9 @@ def api():
         "--wsgi", "gnocchi.rest.wsgi",
         "--pyargv", " ".join(sys.argv[1:]),
     ]
+    if sys.version_info.major == 3:
+        args[3] = "python3"
+
     if conf.api.uwsgi_mode == "http":
         args.extend([
             "--so-keepalive",
