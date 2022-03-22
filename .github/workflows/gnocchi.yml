@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
           command: tox -e ${{ matrix.env }}
@@ -29,6 +30,7 @@ jobs:
           - pep8
     steps:
       - uses: actions/checkout@v2
+      - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
           command: tox -e ${{ matrix.env }}
@@ -60,6 +62,7 @@ jobs:
             python: py36
     steps:
       - uses: actions/checkout@v2
+      - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
           command: tox -e ${{ matrix.python }}-${{ matrix.env }}
