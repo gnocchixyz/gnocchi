@@ -1,4 +1,5 @@
 .testrepository
+.stestr
 *.pyc
 .tox
 *.egg-info
