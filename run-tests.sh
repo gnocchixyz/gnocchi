@@ -23,7 +23,7 @@ do
         {
         case $GNOCCHI_TEST_STORAGE_DRIVER in
             ceph|redis)
-                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
+                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
                 ;;
             s3)
                 if ! which s3rver >/dev/null 2>&1
@@ -35,10 +35,10 @@ do
                 fi
                 pifpaf -e GNOCCHI_STORAGE run s3rver -- \
                        pifpaf -e GNOCCHI_INDEXER run $indexer -- \
-                       ./tools/pretty_tox.sh $*
+                       stestr run $*
                 ;;
             *)
-                pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- ./tools/pretty_tox.sh $*
+                pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
                 ;;
         esac
         # NOTE(sileht): Start all storage tests at once
