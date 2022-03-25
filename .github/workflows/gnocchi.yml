@@ -1,6 +1,14 @@
 name: Gnocchi
 
-on: pull_request
+on:
+  workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug'
+        required: false
+        default: false
+        type: boolean
+  pull_request:
 
 # NOTE(tobias-urdin): If you change any jobs make sure to modify
 # the Mergify.io config in .mergify.yml to include the jobs!
@@ -21,7 +29,7 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: tox -e ${{ matrix.env }}
+          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.env }}
 
   check:
     runs-on: ubuntu-latest
@@ -35,7 +43,8 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: tox -e ${{ matrix.env }}
+          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.env }}
+
 
   test:
     runs-on: ubuntu-latest
@@ -68,4 +77,4 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: tox -e ${{ matrix.python }}-${{ matrix.env }}
+          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.python }}-${{ matrix.env }}
