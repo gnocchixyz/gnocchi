@@ -21,6 +21,6 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           context: images
-          file: "{context}/Dockerfile.ci"
+          file: Dockerfile.ci
           push: true
           tags: gnocchixyz/ci:latest
