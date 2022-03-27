@@ -90,8 +90,7 @@ class ConfigFixture(fixture.GabbiFixture):
         """Create necessary temp files and do the config dance."""
         global LOAD_APP_KWARGS
 
-        test_debug = os.getenv("GNOCCHI_TEST_DEBUG")
-        if not test_debug or test_debug == 'false':
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
             self.output = base.CaptureOutput()
             self.output.setUp()
 
@@ -260,8 +259,7 @@ class ConfigFixture(fixture.GabbiFixture):
 
         self.conf.reset()
 
-        test_debug = os.getenv("GNOCCHI_TEST_DEBUG")
-        if not test_debug or test_debug == 'false':
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
             self.output.cleanUp()
 
 

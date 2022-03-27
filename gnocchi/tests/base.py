@@ -217,8 +217,7 @@ class BaseTestCase(testcase.TestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
 
-        test_debug = os.getenv("GNOCCHI_TEST_DEBUG")
-        if not test_debug or test_debug == 'false':
+        if not os.getenv("GNOCCHI_TEST_DEBUG"):
             self.useFixture(CaptureOutput())
 
 
