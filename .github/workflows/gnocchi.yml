@@ -29,7 +29,8 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.env }}
+          command: tox -e ${{ matrix.env }}
+          debug: ${{ github.event.inputs.debug }}
 
   check:
     runs-on: ubuntu-latest
@@ -43,8 +44,8 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.env }}
-
+          command: tox -e ${{ matrix.env }}
+          debug: ${{ github.event.inputs.debug }}
 
   test:
     runs-on: ubuntu-latest
@@ -77,4 +78,5 @@ jobs:
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
       - uses: ./.github/actions/gnocchi-container
         with:
-          command: GNOCCHI_TEST_DEBUG=${{ github.event.inputs.debug }} tox -e ${{ matrix.python }}-${{ matrix.env }}
+          command: tox -e ${{ matrix.python }}-${{ matrix.env }}
+          debug: ${{ github.event.inputs.debug }}
