@@ -27,10 +27,21 @@ jobs:
         with:
           fetch-depth: 0
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: ./.github/actions/gnocchi-container
+      - uses: docker/login-action@v1
         with:
-          command: tox -e ${{ matrix.env }}
-          debug: ${{ github.event.inputs.debug }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - name: Set env vars
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
+          else
+            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
+          fi
+      - name: Run tests with tox in container
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
   check:
     runs-on: ubuntu-latest
@@ -42,10 +53,21 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: ./.github/actions/gnocchi-container
+      - uses: docker/login-action@v1
         with:
-          command: tox -e ${{ matrix.env }}
-          debug: ${{ github.event.inputs.debug }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - name: Set env vars
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
+          else
+            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
+          fi
+      - name: Run tests with tox in container
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
   test:
     runs-on: ubuntu-latest
@@ -76,7 +98,18 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: ./.github/actions/gnocchi-container
+      - uses: docker/login-action@v1
         with:
-          command: tox -e ${{ matrix.python }}-${{ matrix.env }}
-          debug: ${{ github.event.inputs.debug }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - name: Set env vars
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
+          else
+            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
+          fi
+      - name: Run tests with tox in container
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.python }}-${{ matrix.env }}"
