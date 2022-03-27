@@ -1,6 +1,7 @@
 name: Gnocchi CI Image
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - 'images/Dockerfile.ci'
