@@ -37,4 +37,5 @@ setuptools.setup(
     # Remove any local stuff to mimic pbr
     use_scm_version={'local_scheme': lambda v: ""},
     cmdclass=cmdclass,
+    py_modules=[],
 )
