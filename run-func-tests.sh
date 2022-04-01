@@ -18,10 +18,6 @@ check_empty_var() {
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
 for storage in ${GNOCCHI_TEST_STORAGE_DRIVERS}; do
-    if [ "$storage" == "swift" ]; then
-        echo "WARNING: swift does not support python 3 skipping"
-        continue
-    fi
     for indexer in ${GNOCCHI_TEST_INDEXER_DRIVERS}; do
         unset STORAGE_URL
         unset INDEXER_URL
