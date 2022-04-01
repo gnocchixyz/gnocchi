@@ -1,0 +1,46 @@
+---
+version: "3.1"
+services:
+  gnocchi:
+    image: gnocchi
+    command: ["tox", "-e", "venv"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+  gnocchi-upgrade:
+    image: gnocchi
+    command: ["tox", "-e", "venv", "--", "gnocchi-upgrade", "--config-file=/gnocchi/composes/gnocchi.conf"]
+    depends_on:
+      - gnocchi
+    volumes:
+     - ./:/gnocchi
+  gnocchi-metricd:
+    image: gnocchi
+    command: ["tox", "-e", "venv", "--", "gnocchi-metricd", "--config-file=/gnocchi/composes/gnocchi.conf"]
+    depends_on:
+      - gnocchi-upgrade
+    volumes:
+     - ./:/gnocchi
+  gnocchi-statsd:
+    image: gnocchi
+    command: ["tox", "-e", "venv", "--", "gnocchi-statsd", "--config-file=/gnocchi/composes/gnocchi.conf"]
+    depends_on:
+      - gnocchi-upgrade
+    volumes:
+     - ./:/gnocchi
+  gnocchi-api:
+    image: gnocchi
+    command: ["tox", "-e", "venv", "--", "gnocchi-api", "--config-file=/gnocchi/componses/gnocchi.conf"]
+    depends_on:
+      - gnocchi-upgrade
+      - gnocchi-metricd
+      - gnocchi-statsd
+    ports:
+      - "8041:8041"
+    volumes:
+     - ./:/gnocchi
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8041"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

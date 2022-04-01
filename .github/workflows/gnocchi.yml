@@ -15,6 +15,7 @@ on:
 
 jobs:
   doc:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -44,6 +45,7 @@ jobs:
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
   check:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -69,7 +71,43 @@ jobs:
       - name: Run tests with tox in container
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
+  test-new:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        python-version:
+          - 3.6
+          - 3.8
+        indexer:
+          - postgresql
+          - mysql
+        storage:
+          - file
+        coordinator:
+          - redis
+    steps:
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Show python version
+        run: python --version
+      - name: Install tox
+        run: pip install tox
+      - uses: actions/checkout@v2
+      - name: Set environment variables
+        run: |
+          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
+            echo "GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
+          fi
+          echo "GNOCCHI_TEST_INDEXER_DRIVER=${{ matrix.indexer }}" >> $GITHUB_ENV
+          echo "GNOCCHI_TEST_STORAGE_DRIVER=${{ matrix.storage }}" >> $GITHUB_ENV
+          echo "GNOCCHI_TEST_COORDINATOR_DRIVER=${{ matrix.coordinator }}" >> $GITHUB_ENV
+      - name: Run test.sh
+        run: ./test.sh
+
   test:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
