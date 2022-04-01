@@ -18,6 +18,7 @@ import operator
 import uuid
 
 import numpy
+from six.moves.urllib import parse as urlparse
 from unittest import mock
 
 from gnocchi import archive_policy
@@ -39,12 +40,17 @@ class TestIndexer(tests_base.TestCase):
 class TestIndexerDriver(tests_base.TestCase):
 
     def test_str(self):
-        self.assertEqual("%s: %s" % (self.index.__class__.__name__,
-                                     self.conf.indexer.url.replace(
-                                         "root@", "").replace(
-                                             "localhost", "***:***@localhost"
-                                     )),
-                         str(self.index))
+        parsed = urlparse.urlparse(self.conf.indexer.url)
+        url = urlparse.urlunparse((
+            parsed.scheme,
+            "***:***@%s%s" % (parsed.hostname,
+                              ":%s" % parsed.port if parsed.port else ""),
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment))
+        expected = '%s: %s' % (self.index.__class__.__name__, url)
+        self.assertEqual(str(self.index), expected)
 
     def test_create_archive_policy_already_exists(self):
         # NOTE(jd) This archive policy
