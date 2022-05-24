@@ -25,12 +25,12 @@ import uuid
 from concurrent import futures
 import daiquiri
 import iso8601
-import monotonic
 import numpy
 import pytimeparse
 import six
 from stevedore import driver
 import tenacity
+import time
 
 
 LOG = daiquiri.getLogger(__name__)
@@ -218,12 +218,6 @@ class StopWatch(object):
     the same time). Thread-safe when used by a single thread (not shared) or
     when operations are performed in a thread-safe manner on these objects by
     wrapping those operations with locks.
-
-    It will use the `monotonic`_ pypi library to find an appropriate
-    monotonically increasing time providing function (which typically varies
-    depending on operating system and python version).
-
-    .. _monotonic: https://pypi.python.org/pypi/monotonic/
     """
     _STARTED = object()
     _STOPPED = object()
@@ -240,7 +234,7 @@ class StopWatch(object):
         """
         if self._state == self._STARTED:
             return self
-        self._started_at = monotonic.monotonic()
+        self._started_at = time.monotonic()
         self._state = self._STARTED
         return self
 
@@ -258,7 +252,7 @@ class StopWatch(object):
             elapsed = self._delta_seconds(self._started_at, self._stopped_at)
         else:
             elapsed = self._delta_seconds(
-                self._started_at, monotonic.monotonic())
+                self._started_at, time.monotonic())
         return elapsed
 
     def __enter__(self):
@@ -280,7 +274,7 @@ class StopWatch(object):
         if self._state != self._STARTED:
             raise RuntimeError("Can not stop a stopwatch that has not been"
                                " started")
-        self._stopped_at = monotonic.monotonic()
+        self._stopped_at = time.monotonic()
         self._state = self._STOPPED
         return self
 
