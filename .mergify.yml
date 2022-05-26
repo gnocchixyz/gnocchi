@@ -21,6 +21,16 @@ queue_rules:
     - check-success=test (py38, postgresql-swift)
     - check-success=test (py38, postgresql-s3)
     - check-success=test (py38, postgresql-ceph)
+    - check-success=test (py39, mysql-ceph-upgrade-from-4.3)
+    - check-success=test (py39, postgresql-file-upgrade-from-4.3)
+    - check-success=test (py39, mysql-file)
+    - check-success=test (py39, mysql-swift)
+    - check-success=test (py39, mysql-s3)
+    - check-success=test (py39, mysql-ceph)
+    - check-success=test (py39, postgresql-file)
+    - check-success=test (py39, postgresql-swift)
+    - check-success=test (py39, postgresql-s3)
+    - check-success=test (py39, postgresql-ceph)
 
 pull_request_rules:
   - name: automatic merge
@@ -51,6 +61,16 @@ pull_request_rules:
     - check-success=test (py38, postgresql-swift)
     - check-success=test (py38, postgresql-s3)
     - check-success=test (py38, postgresql-ceph)
+    - check-success=test (py39, mysql-ceph-upgrade-from-4.3)
+    - check-success=test (py39, postgresql-file-upgrade-from-4.3)
+    - check-success=test (py39, mysql-file)
+    - check-success=test (py39, mysql-swift)
+    - check-success=test (py39, mysql-s3)
+    - check-success=test (py39, mysql-ceph)
+    - check-success=test (py39, postgresql-file)
+    - check-success=test (py39, postgresql-swift)
+    - check-success=test (py39, postgresql-s3)
+    - check-success=test (py39, postgresql-ceph)
 
   - name: automatic merge backports from Mergify
     actions:
