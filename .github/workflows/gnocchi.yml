@@ -27,12 +27,28 @@ jobs:
         with:
           fetch-depth: 0
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            ci_image:
+              - 'images/Dockerfile.ci'
+              - 'images/entrypoint.sh.ci'
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'false'
+      - uses: docker/build-push-action@v2
+        with:
+          context: ./images
+          file: ./images/Dockerfile.ci
+          push: false
+          tags: ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
@@ -53,12 +69,28 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            ci_image:
+              - 'images/Dockerfile.ci'
+              - 'images/entrypoint.sh.ci'
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'false'
+      - uses: docker/build-push-action@v2
+        with:
+          context: ./images
+          file: ./images/Dockerfile.ci
+          push: false
+          tags: ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
@@ -98,12 +130,28 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            ci_image:
+              - 'images/Dockerfile.ci'
+              - 'images/entrypoint.sh.ci'
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'false'
+      - uses: docker/build-push-action@v2
+        with:
+          context: ./images
+          file: ./images/Dockerfile.ci
+          push: false
+          tags: ghcr.io/gnocchixyz/ci:latest
+        if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
