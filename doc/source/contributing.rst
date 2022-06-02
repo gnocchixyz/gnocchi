@@ -35,7 +35,7 @@ When opening a pull-request, make sure that:
 
 All sent pull-requests are checked using GitHub Actions, which is in charge of
 running the tests suites. There are different scenarios being run: `PEP 8`_
-compliance tests, upgrade tests, unit and functional tests.
+compliance tests, doc8 lint, upgrade tests, unit and functional tests.
 
 All pull-requests must be reviewed by `members of the Gnocchi project`_.
 
