@@ -14,7 +14,13 @@ fi
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 echo "* Installing Gnocchi from ${GNOCCHI_VERSION_FROM}"
-pip install -q --force-reinstall git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}#egg=gnocchi[${GNOCCHI_VARIANT}]
+#pip install -q --force-reinstall git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}#egg=gnocchi[${GNOCCHI_VARIANT}]
+git clone https://github.com/gnocchixyz/gnocchi /tmp/gnocchi-from
+pushd /tmp/gnocchi-from
+git checkout ${GNOCCHI_VERSION_FROM}
+cp -f /github/workspace/setup.py setup.py
+pip install -v --force-reinstall .[${GNOCCHI_VARIANT}]
+popd
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
