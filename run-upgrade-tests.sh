@@ -19,6 +19,7 @@ git clone https://github.com/gnocchixyz/gnocchi /tmp/gnocchi-from
 pushd /tmp/gnocchi-from
 git checkout ${GNOCCHI_VERSION_FROM}
 cp -f /github/workspace/setup.py setup.py
+cp -f /github/workspace/pyproject.toml pyproject.toml
 pip install -v --force-reinstall .[${GNOCCHI_VARIANT}]
 popd
 
