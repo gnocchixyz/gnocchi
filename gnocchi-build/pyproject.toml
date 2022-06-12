@@ -1,0 +1,3 @@
+[build-system]
+requires = ["./gnocchi-build", "setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
