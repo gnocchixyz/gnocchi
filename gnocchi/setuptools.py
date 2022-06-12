@@ -15,14 +15,10 @@
 
 from __future__ import absolute_import
 
-import os
-import subprocess
 import sys
 
-from distutils import version
 from setuptools.command import develop
 from setuptools.command import easy_install
-from setuptools.command import egg_info
 from setuptools.command import install_scripts
 
 # NOTE(sileht): We use a template to set the right
@@ -48,63 +44,6 @@ if __name__ == '__main__':
 else:
     application = api.wsgi()
 """
-
-
-def git(*args):
-    p = subprocess.Popen(["git"] + list(args),
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    out, _ = p.communicate()
-    return out.strip().decode('utf-8', 'replace')
-
-
-class local_egg_info(egg_info.egg_info):
-    def run(self):
-        if os.path.exists(".git"):
-            self._gen_changelog_and_authors()
-        egg_info.egg_info.run(self)
-
-    @staticmethod
-    def _gen_changelog_and_authors():
-        with open("AUTHORS", 'wb') as f:
-            authors = git('log', '--format=%aN <%aE>')
-            authors = sorted(set(authors.split("\n")))
-            f.writelines([b"%s\n" % author.encode('utf8')
-                          for author in authors])
-
-        with open("ChangeLog", "wb") as f:
-            f.write(b"CHANGES\n")
-            f.write(b"=======\n\n")
-            changelog = git('log', '--decorate=full', '--format=%s%x00%d')
-            for line in changelog.split('\n'):
-                msg, refname = line.split("\x00")
-
-                if "refs/tags/" in refname:
-                    refname = refname.strip()[1:-1]  # remove wrapping ()'s
-                    # If we start with "tag: refs/tags/1.2b1, tag:
-                    # refs/tags/1.2" The first split gives us "['', '1.2b1,
-                    # tag:', '1.2']" Which is why we do the second split below
-                    # on the comma
-                    for tag_string in refname.split("refs/tags/")[1:]:
-                        # git tag does not allow : or " " in tag names, so we
-                        # split on ", " which is the separator between elements
-                        candidate = tag_string.split(", ")[0]
-                        try:
-                            version.StrictVersion(candidate)
-                        except ValueError:
-                            pass
-                        else:
-                            f.write(b"\n%s\n" % candidate.encode('utf8'))
-                            f.write(b"%s\n\n" % (b"-" * len(candidate)))
-
-                if msg.startswith("Merge "):
-                    continue
-                if msg.endswith("."):
-                    msg = msg[:-1]
-                msg = msg.replace('*', '\*')   # noqa: W605
-                msg = msg.replace('_', '\_')   # noqa: W605
-                msg = msg.replace('`', '\`')   # noqa: W605
-                f.write(b"* %s\n" % msg.encode("utf8"))
 
 
 # Can't use six in this file it's too early in the bootstrap process
