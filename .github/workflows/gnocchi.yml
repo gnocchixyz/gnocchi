@@ -39,11 +39,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-<<<<<<< HEAD
-      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
-=======
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
@@ -52,7 +49,6 @@ jobs:
           push: false
           tags: ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'true'
->>>>>>> 41b7331a (ci: run tests with new image if it's changed)
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
@@ -85,11 +81,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-<<<<<<< HEAD
-      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
-=======
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
@@ -98,7 +91,6 @@ jobs:
           push: false
           tags: ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'true'
->>>>>>> 41b7331a (ci: run tests with new image if it's changed)
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
@@ -150,11 +142,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-<<<<<<< HEAD
-      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
-=======
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.4
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
@@ -163,7 +152,6 @@ jobs:
           push: false
           tags: ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'true'
->>>>>>> 41b7331a (ci: run tests with new image if it's changed)
       - name: Set env vars
         run: |
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
