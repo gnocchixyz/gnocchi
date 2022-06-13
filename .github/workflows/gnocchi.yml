@@ -35,11 +35,7 @@ jobs:
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
       - name: Set env vars
         run: |
-          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
-            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
-          else
-            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
-          fi
+          echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
       - name: Run tests with tox in container
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
@@ -61,11 +57,7 @@ jobs:
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
       - name: Set env vars
         run: |
-          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
-            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
-          else
-            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
-          fi
+          echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
       - name: Run tests with tox in container
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
 
@@ -107,10 +99,6 @@ jobs:
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
       - name: Set env vars
         run: |
-          if [ "${{ github.event.inputs.debug }}" == "true" ]; then
-            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
-          else
-            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
-          fi
+          echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
       - name: Run tests with tox in container
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.python }}-${{ matrix.env }}"
