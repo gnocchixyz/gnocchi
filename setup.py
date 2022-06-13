@@ -90,10 +90,6 @@ except ImportError:
 
 
 setuptools.setup(
-    setup_requires=['setuptools>=30.3.0',
-                    'setuptools_scm!=1.16.0,!=1.16.1,!=1.16.2'],
-    # Remove any local stuff to mimic pbr
-    use_scm_version={'local_scheme': lambda v: ""},
     cmdclass=cmdclass,
     py_modules=[],
 )
