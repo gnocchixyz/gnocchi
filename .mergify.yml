@@ -61,7 +61,6 @@ pull_request_rules:
     - base~=^stable/.*
     - label!=work-in-progress
     - author=mergify[bot]
-    - check-success=Travis CI - Pull Request
 
   - name: dismiss reviews on additional commit
     actions:
