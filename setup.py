@@ -19,7 +19,6 @@ import setuptools
 import gnocchi.setuptools
 
 cmdclass = {
-    'egg_info': gnocchi.setuptools.local_egg_info,
     'develop': gnocchi.setuptools.local_develop,
     'install_scripts': gnocchi.setuptools.local_install_scripts,
 }
