@@ -72,13 +72,6 @@ pull_request_rules:
   - actions:
       backport:
         branches:
-        - stable/4.3
-    conditions:
-    - label=backport-to-4.3
-    name: backport stable/4.3
-  - actions:
-      backport:
-        branches:
         - stable/4.4
     conditions:
     - label=backport-to-4.4
