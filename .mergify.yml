@@ -52,17 +52,6 @@ pull_request_rules:
     - check-success=test (py38, postgresql-s3)
     - check-success=test (py38, postgresql-ceph)
 
-  - name: automatic merge backports from Mergify
-    actions:
-      queue:
-        method: merge
-        name: default
-    conditions:
-    - base~=^stable/.*
-    - label!=work-in-progress
-    - author=mergify[bot]
-    - check-success=Travis CI - Pull Request
-
   - name: dismiss reviews on additional commit
     actions:
       dismiss_reviews: {}
