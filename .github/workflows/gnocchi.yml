@@ -110,8 +110,6 @@ jobs:
           - py36
           - py38
         env:
-          - mysql-ceph-upgrade-from-4.3
-          - postgresql-file-upgrade-from-4.3
           - mysql-file
           - mysql-swift
           - mysql-s3
@@ -121,8 +119,6 @@ jobs:
           - postgresql-s3
           - postgresql-ceph
         exclude:
-          - env: mysql-ceph-upgrade-from-4.3
-            python: py36
           - env: mysql-ceph
             python: py36
           - env: postgresql-ceph
