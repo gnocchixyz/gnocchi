@@ -1657,15 +1657,17 @@ class CrossMetricAggregated(base.TestCase):
             [processor.MetricReference(self.metric, "mean")],
             ["rateofchangesec", ["metric", str(self.metric.id), "mean"]],
             granularities=[numpy.timedelta64(5, 'm')],
-        )["aggregated"]
+        )
 
-        self.assertEqual([
-            (datetime64(2014, 1, 1, 12, 0, 0),
-             numpy.timedelta64(5, 'm'), eq_nan),
-            (datetime64(2014, 1, 1, 12, 5, 0),
-             numpy.timedelta64(5, 'm'), 1.5),
-            (datetime64(2014, 1, 1, 12, 10, 0),
-             numpy.timedelta64(5, 'm'), 1.5),
-            (datetime64(2014, 1, 1, 12, 15, 0),
-             numpy.timedelta64(5, 'm'), 1.5),
-        ], values)
+        self.assertEqual({
+            str(self.metric.id): {
+                "mean": [(datetime64(2014, 1, 1, 12, 0, 0),
+                          numpy.timedelta64(5, 'm'), eq_nan),
+                         (datetime64(2014, 1, 1, 12, 5, 0),
+                          numpy.timedelta64(5, 'm'), 1.5),
+                         (datetime64(2014, 1, 1, 12, 10, 0),
+                          numpy.timedelta64(5, 'm'), 1.5),
+                         (datetime64(2014, 1, 1, 12, 15, 0),
+                          numpy.timedelta64(5, 'm'), 1.5),
+                         ]}
+        }, values)
