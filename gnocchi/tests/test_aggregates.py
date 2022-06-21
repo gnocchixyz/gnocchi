@@ -1642,3 +1642,30 @@ class CrossMetricAggregated(base.TestCase):
                           numpy.timedelta64(1, 'h'), 4),
                          ]}
         }, values)
+
+    def test_rateofchangesec_operator(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 0),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 5, 10), 450),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 10, 5), 900),
+            incoming.Measure(datetime64(2014, 1, 1, 12, 15, 30), 1350),
+        ])
+        self.trigger_processing([self.metric])
+
+        values = processor.get_measures(
+            self.storage,
+            [processor.MetricReference(self.metric, "mean")],
+            ["rateofchangesec", ["metric", str(self.metric.id), "mean"]],
+            granularities=[numpy.timedelta64(5, 'm')],
+        )["aggregated"]
+
+        self.assertEqual([
+            (datetime64(2014, 1, 1, 12, 0, 0),
+             numpy.timedelta64(5, 'm'), eq_nan),
+            (datetime64(2014, 1, 1, 12, 5, 0),
+             numpy.timedelta64(5, 'm'), 1.5),
+            (datetime64(2014, 1, 1, 12, 10, 0),
+             numpy.timedelta64(5, 'm'), 1.5),
+            (datetime64(2014, 1, 1, 12, 15, 0),
+             numpy.timedelta64(5, 'm'), 1.5),
+        ], values)
