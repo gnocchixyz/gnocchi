@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added `max` operator to combine different metrics after applied operations.
+    Example: `(max (metric metric1 mean) (* (metric metric2 mean) 100)))`
