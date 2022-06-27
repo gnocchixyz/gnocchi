@@ -65,6 +65,7 @@ jobs:
     strategy:
       matrix:
         env:
+          - build
           - pep8
     steps:
       - uses: actions/checkout@v2
