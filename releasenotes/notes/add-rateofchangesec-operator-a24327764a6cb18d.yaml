@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added ``rateofchangesec`` operator to calculate changes between metric measures per second.
+    Example: ``(* (/ (rateofchangesec (metric cpu mean)) 1000000000) 100))``
