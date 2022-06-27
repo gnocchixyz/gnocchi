@@ -1668,7 +1668,7 @@ class CrossMetricAggregated(base.TestCase):
                 ["metric", str(self.metric.id), "mean"],
                 [
                     "*",
-                    [str(metric2.id), "mean"],
+                    ["metric", str(metric2.id), "mean"],
                     2,
                 ]
             ],
