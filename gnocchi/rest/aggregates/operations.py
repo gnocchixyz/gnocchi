@@ -97,6 +97,7 @@ binary_operators = {
     u"clip_min": lambda array, value: numpy.clip(array, value, None),
     u"clip_max": lambda array, value: numpy.clip(array, None, value),
 
+    u'max': numpy.fmax,
 }
 
 ternary_operators = {
