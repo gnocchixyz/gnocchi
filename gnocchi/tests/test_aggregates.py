@@ -1642,3 +1642,47 @@ class CrossMetricAggregated(base.TestCase):
                           numpy.timedelta64(1, 'h'), 4),
                          ]}
         }, values)
+
+    def test_max_operator(self):
+        metric2, _ = self._create_metric()
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), -69),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 31), 42),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), -4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 45), 44),
+        ])
+        self.incoming.add_measures(metric2.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 5), -9),
+            incoming.Measure(datetime64(2014, 1, 1, 13, 1, 41), -2),
+            incoming.Measure(datetime64(2014, 1, 1, 14, 2, 31), 4),
+            incoming.Measure(datetime64(2014, 1, 1, 15, 3, 10), -4),
+        ])
+        self.trigger_processing([self.metric, metric2])
+
+        values = processor.get_measures(
+            self.storage,
+            [processor.MetricReference(self.metric, "mean"),
+             processor.MetricReference(metric2, "mean")],
+            [
+                "max",
+                ["metric", str(self.metric.id), "mean"],
+                [
+                    "*",
+                    [str(metric2.id), "mean"],
+                    2,
+                ]
+            ],
+            granularities=[numpy.timedelta64(1, 'h')]
+        )["aggregated"]
+
+        self.assertEqual(
+            [
+                (datetime64(2014, 1, 1, 12, 0, 0),
+                 numpy.timedelta64(1, 'h'), -18),
+                (datetime64(2014, 1, 1, 13, 0, 0),
+                 numpy.timedelta64(1, 'h'), 42),
+                (datetime64(2014, 1, 1, 14, 0, 0),
+                 numpy.timedelta64(1, 'h'), 8),
+                (datetime64(2014, 1, 1, 15, 0, 0),
+                 numpy.timedelta64(1, 'h'), 44)
+            ], values)
