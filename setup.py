@@ -15,13 +15,71 @@
 # limitations under the License.
 
 import setuptools
+import sys
 
-import gnocchi.setuptools
+from setuptools.command import develop
+from setuptools.command import easy_install
+from setuptools.command import install_scripts
+
+
+# NOTE(sileht): We use a template to set the right
+# python version in the sheban
+SCRIPT_TMPL = """
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import sys
+from gnocchi.cli import api
+
+if __name__ == '__main__':
+    sys.exit(api.api())
+else:
+    application = api.wsgi()
+"""
+
+
+# Can't use six in this file it's too early in the bootstrap process
+PY3 = sys.version_info >= (3,)
+
+
+class local_install_scripts(install_scripts.install_scripts):
+    def run(self):
+        install_scripts.install_scripts.run(self)
+        # NOTE(sileht): Build wheel embed custom script as data, and put sheban
+        # in script of the building machine. To workaround that build_scripts
+        # on bdist_whell return '#!python' and then during whl install it's
+        # replaced by the correct interpreter. We do the same here.
+        bs_cmd = self.get_finalized_command('build_scripts')
+        executable = getattr(bs_cmd, 'executable', easy_install.sys_executable)
+        script = easy_install.get_script_header("", executable) + SCRIPT_TMPL
+        if PY3:
+            script = script.encode('ascii')
+        self.write_script("gnocchi-api", script, 'b')
+
+
+class local_develop(develop.develop):
+    def install_wrapper_scripts(self, dist):
+        develop.develop.install_wrapper_scripts(self, dist)
+        if self.exclude_scripts:
+            return
+        script = easy_install.get_script_header("") + SCRIPT_TMPL
+        if PY3:
+            script = script.encode('ascii')
+        self.write_script("gnocchi-api", script, 'b')
+
 
 cmdclass = {
-    'egg_info': gnocchi.setuptools.local_egg_info,
-    'develop': gnocchi.setuptools.local_develop,
-    'install_scripts': gnocchi.setuptools.local_install_scripts,
+    'develop': local_develop,
+    'install_scripts': local_install_scripts,
 }
 
 try:
@@ -32,10 +90,6 @@ except ImportError:
 
 
 setuptools.setup(
-    setup_requires=['setuptools>=30.3.0',
-                    'setuptools_scm!=1.16.0,!=1.16.1,!=1.16.2'],
-    # Remove any local stuff to mimic pbr
-    use_scm_version={'local_scheme': lambda v: ""},
     cmdclass=cmdclass,
     py_modules=[],
 )

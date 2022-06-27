@@ -3,6 +3,7 @@ queue_rules:
     conditions:
     - check-success=doc (docs)
     - check-success=doc (docs-gnocchi-web)
+    - check-success=check (build)
     - check-success=check (pep8)
     - check-success=test (py36, mysql-file)
     - check-success=test (py36, mysql-swift)
@@ -36,6 +37,7 @@ pull_request_rules:
     - '#approved-reviews-by>=1'
     - check-success=doc (docs)
     - check-success=doc (docs-gnocchi-web)
+    - check-success=check (build)
     - check-success=check (pep8)
     - check-success=test (py36, mysql-file)
     - check-success=test (py36, mysql-swift)
