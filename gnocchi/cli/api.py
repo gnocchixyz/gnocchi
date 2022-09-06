@@ -37,7 +37,7 @@ def prepare_service(conf=None):
         conf = cfg.ConfigOpts()
 
     opts.set_defaults()
-    policy_opts.set_defaults(conf, 'policy.yaml')
+    policy_opts.set_defaults(conf)
     conf = service.prepare_service(conf=conf)
     cfg_path = conf.oslo_policy.policy_file
     if not os.path.isabs(cfg_path):
