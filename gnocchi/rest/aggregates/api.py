@@ -14,9 +14,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import daiquiri
 import fnmatch
 import itertools
 
+import numpy
 import pecan
 from pecan import rest
 import pyparsing
@@ -30,6 +32,8 @@ from gnocchi.rest.aggregates import processor
 from gnocchi.rest import api
 from gnocchi import storage
 from gnocchi import utils
+
+LOG = daiquiri.getLogger(__name__)
 
 
 def _OperationsSubNodeSchema(v):
@@ -185,6 +189,244 @@ def get_measures_or_abort(references, operations, start,
                         "detail": [(str(e.metric.id), e.method)]})
 
 
+class MeasureGroup(object):
+    def __init__(self, group_key, resources):
+        self.resources = self.join_sequential_groups(resources)
+        self.group_key = dict(group_key)
+        self.measures = []
+        self.references = None
+
+    def add_measures(self, aggregated_measures, date_map, start, stop,
+                     details):
+        measures = aggregated_measures['measures']['aggregated']
+        if details:
+            self.references = aggregated_measures['references']
+        for measure in measures:
+            self.add_measure(list(measure), date_map, start, stop)
+
+    def add_measure(self, measure, date_map, start, stop):
+        measure = Measure(*(measure + [start, stop]))
+        if not date_map.get(measure.date, None):
+            date_map[measure.date] = []
+        date_map[measure.date].append(measure)
+        self.measures.append(measure)
+
+    def join_sequential_groups(self, group):
+        group.sort(key=lambda key: key['revision_start'])
+        new_group = []
+        last_it = None
+        for it in group:
+            if last_it and it['revision_start'] == last_it['revision_end']:
+                last_it['revision_end'] = it['revision_end']
+                continue
+
+            last_it = it
+            new_group.append(it)
+
+        return new_group
+
+    def sum_groups_same_time_values(self):
+        to_remove = []
+        last_visited = None
+        for measure in self.measures:
+            if last_visited and last_visited.date == measure.date:
+                to_remove.append(last_visited)
+                measure.value += last_visited.value
+
+            last_visited = measure
+
+        self.measures = [m for m in self.measures if m not in to_remove]
+
+
+class Measure(object):
+    def __init__(self, date, granularity, value, start, stop):
+        self.date = date
+        self.granularity = granularity
+        self.value = value
+        self.start = (numpy.datetime64(start) if start
+                      else date)
+        measure_next_window_measurement = self.date + self.granularity
+        self.stop = (numpy.datetime64(stop) if stop
+                     else measure_next_window_measurement)
+        measure_expected_beg = max(self.start, self.date)
+        measure_expected_end = min(self.stop, measure_next_window_measurement)
+        measure_delta = measure_expected_end - measure_expected_beg
+        measure_delta_ns = measure_delta.astype('timedelta64[ns]')
+        self.usage_coefficient = (measure_delta_ns.astype(float) /
+                                  self.granularity.astype(float))
+
+
+class Grouper(object):
+    def __init__(self, groups, start, end, body, sorts, attr_filter,
+                 references, granularity, needed_overlap, fill, details):
+        self.groups = groups
+        self.start = start
+        self.end = end
+        self.body = body
+        self.sorts = sorts
+        self.attr_filter = attr_filter
+        self.references = references
+        self.granularity = granularity
+        self.needed_overlap = needed_overlap
+        self.fill = fill
+        self.details = details
+        self.measures_date_map = {}
+        self.grouped_response = None
+
+    def create_history_period_filter(self):
+        period_filter = {
+            "and": [
+                {
+                    "<": {'revision_start': self.end}
+                },
+                {
+                    "or": [
+                        {">=": {'revision_end': self.start}},
+                        {"=": {'revision_end': None}}
+                    ]
+                }
+            ]
+        }
+        if not (self.start and self.end):
+            return self.attr_filter
+
+        if not self.attr_filter:
+            return period_filter
+
+        return {"and": [period_filter, self.attr_filter]}
+
+    def retrieve_resources_history(self):
+        return pecan.request.indexer.list_resources(
+            self.body["resource_type"],
+            attribute_filter=self.create_history_period_filter(),
+            history=True,
+            sorts=self.sorts)
+
+    def get_grouped_measures(self):
+        resources = self.retrieve_resources_history()
+        self.grouped_response = self.get_measures(self.group(resources))
+        response = self.format_response()
+        LOG.debug("[ Resources History: %s ]", resources)
+        LOG.debug("[ Response: %s ]", response)
+        return response
+
+    def group(self, to_group):
+        to_group.sort(key=lambda g: g['revision_start'])
+        is_first = True
+        for value in to_group:
+            self.truncate_resource_time_window(value, is_first=is_first)
+            is_first = False
+        to_group.sort(key=lambda x: tuple((attr, x[attr])
+                                          for attr in self.groups))
+        grouped_values = \
+            itertools.groupby(
+                to_group,
+                lambda x: tuple((attr, x[attr]) for attr in self.groups))
+
+        grouped = []
+        for key, values in grouped_values:
+            resources = []
+            for value in values:
+                resources.append(value)
+            grouped.append(MeasureGroup(key, resources))
+
+        return grouped
+
+    def truncate_resource_time_window(self, value, is_first=False):
+        if is_first:
+            value['revision_start'] = self.start
+        elif self.start:
+            if value['revision_start']:
+                revision_start = numpy.datetime64(value['revision_start'])
+                value['revision_start'] = max(revision_start, self.start)
+            else:
+                value['revision_start'] = self.start
+
+        if self.end:
+            if value['revision_end']:
+                revision_end = numpy.datetime64(value['revision_end'])
+                value['revision_end'] = min(revision_end, self.end)
+            else:
+                value['revision_end'] = self.end
+
+    def get_measures(self, groups):
+        for group in groups:
+            date_map = self.get_date_map(group)
+            for resource in group.resources:
+                start = numpy.datetime64(resource['revision_start']) \
+                    if resource['revision_start'] else None
+                stop = numpy.datetime64(resource['revision_end']) \
+                    if resource['revision_end'] else None
+
+                LOG.debug("[ Collecting measures from %s to %s ]",
+                          start, stop)
+
+                try:
+                    measure = AggregatesController._get_measures_by_name(
+                        [resource], self.references, self.body["operations"],
+                        start, stop, self.granularity, self.needed_overlap,
+                        self.fill, details=self.details)
+                    group.add_measures(measure, date_map, start, stop,
+                                       self.details)
+                except indexer.NoSuchMetric:
+                    continue
+
+        self.truncate_measures()
+        self.sum_sequential_group_metrics(groups)
+        return groups
+
+    def get_date_map(self, group):
+        if 'id' in group.group_key:
+            return self.measures_date_map.setdefault(group.group_key['id'], {})
+
+        return self.measures_date_map
+
+    def sum_sequential_group_metrics(self, groups):
+        for group in groups:
+            group.sum_groups_same_time_values()
+
+    def truncate_measures(self):
+        for measures in self.measures_date_map.values():
+            if isinstance(measures, list):
+                self.truncate_measure(measures)
+                continue
+
+            for measure in measures.values():
+                self.truncate_measure(measure)
+
+    def truncate_measure(self, measures_list):
+        if measures_list and len(measures_list) == 1:
+            return
+        measures_sum = 0
+        for measure in measures_list[:-1]:
+            measure_new_val = (measure.value *
+                               measure.usage_coefficient)
+            measures_sum += measure_new_val
+            measure.value = measure_new_val
+        last_measure = measures_list[-1]
+        last_measure.value = abs(measures_sum - last_measure.value)
+
+    def format_response(self):
+        measures_list = []
+        for group in self.grouped_response:
+            aggregated = []
+            measures = {
+                'measures': {'measures': {'aggregated': aggregated}},
+                'group': group.group_key
+            }
+            if group.references:
+                measures['measures']['references'] = group.references
+
+            for measure in group.measures:
+                aggregated.append((measure.date, measure.granularity,
+                                   measure.value))
+
+            if aggregated:
+                measures_list.append(measures)
+
+        return measures_list
+
+
 def ResourceTypeSchema(resource_type):
     try:
         pecan.request.indexer.get_resource_type(resource_type)
@@ -207,6 +449,8 @@ class AggregatesController(rest.RestController):
     @pecan.expose("json")
     def post(self, start=None, stop=None, granularity=None,
              needed_overlap=None, fill=None, groupby=None, **kwargs):
+
+        use_history = api.get_bool_param('use_history', kwargs)
         details = api.get_bool_param('details', kwargs)
 
         if fill is None and needed_overlap is None:
@@ -238,36 +482,38 @@ class AggregatesController(rest.RestController):
 
             groupby = sorted(set(api.arg_to_list(groupby)))
             sorts = groupby if groupby else api.RESOURCE_DEFAULT_PAGINATION
+            results = []
             try:
-                resources = pecan.request.indexer.list_resources(
-                    body["resource_type"],
-                    attribute_filter=attr_filter,
-                    sorts=sorts)
-            except indexer.IndexerException as e:
-                api.abort(400, six.text_type(e))
-            if not groupby:
-                try:
+                if not groupby:
+                    resources = pecan.request.indexer.list_resources(
+                        body["resource_type"],
+                        attribute_filter=attr_filter,
+                        sorts=sorts)
                     return self._get_measures_by_name(
                         resources, references, body["operations"], start, stop,
                         granularity, needed_overlap, fill, details=details)
-                except indexer.NoSuchMetric as e:
-                    api.abort(404, e)
 
-            def groupper(r):
-                return tuple((attr, r[attr]) for attr in groupby)
+                if use_history:
+                    results = self.get_measures_grouping_with_history(
+                        attr_filter, body, details, fill, granularity, groupby,
+                        needed_overlap, references, sorts, start, stop)
+                else:
+                    resources = pecan.request.indexer.list_resources(
+                        body["resource_type"],
+                        attribute_filter=attr_filter,
+                        sorts=sorts)
+                    results = self.get_measures_grouping(
+                        body, details, fill, granularity, needed_overlap,
+                        references, resources, start, stop, groupby)
 
-            results = []
-            for key, resources in itertools.groupby(resources, groupper):
-                try:
-                    results.append({
-                        "group": dict(key),
-                        "measures": self._get_measures_by_name(
-                            resources, references, body["operations"],
-                            start, stop, granularity, needed_overlap, fill,
-                            details=details)
-                    })
-                except indexer.NoSuchMetric:
-                    pass
+            except indexer.NoSuchMetric as e:
+                api.abort(404, e)
+            except indexer.IndexerException as e:
+                api.abort(400, six.text_type(e))
+            except Exception as e:
+                LOG.exception(e)
+                raise e
+
             if not results:
                 api.abort(
                     404,
@@ -312,6 +558,36 @@ class AggregatesController(rest.RestController):
                 response["references"] = metrics
 
             return response
+
+    def get_measures_grouping(self, body, details, fill, granularity,
+                              needed_overlap, references, resources, start,
+                              stop, groupby):
+        def groupper(r):
+            return tuple((attr, r[attr]) for attr in groupby)
+
+        results = []
+        for key, resources in itertools.groupby(resources, groupper):
+            try:
+                results.append({
+                    "group": dict(key),
+                    "measures": self._get_measures_by_name(
+                        resources, references, body["operations"],
+                        start, stop, granularity, needed_overlap, fill,
+                        details=details)
+                })
+            except indexer.NoSuchMetric:
+                pass
+        return results
+
+    def get_measures_grouping_with_history(self, attr_filter, body, details,
+                                           fill, granularity, groupby,
+                                           needed_overlap, references,
+                                           sorts, start, stop):
+        grouper = Grouper(groupby, start, stop, body,
+                          sorts, attr_filter, references,
+                          granularity, needed_overlap,
+                          fill, details)
+        return grouper.get_grouped_measures()
 
     @staticmethod
     def _get_measures_by_name(resources, metric_wildcards, operations,

@@ -22,6 +22,20 @@
       ]
     }
 
+- name: create-archive-policy-unrelated
+  request: |
+    POST /v1/archive_policy HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "name": "unrelated",
+      "definition": [
+        {
+          "granularity": "1h"
+        }
+      ]
+    }
+
 - name: create-archive-policy-without-max
   request: |
     POST /v1/archive_policy HTTP/1.1
@@ -888,6 +902,85 @@
       "resource_type": "instance",
       "search": "server_group='my_autoscaling_group'",
       "operations": "(* (aggregate mean (metric cpu.util mean)) 4)"
+    }
+
+
+- name: create-resource-instance-c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+  request: |
+    POST /v1/resource/instance HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "id": "c14fafd8-2e50-4a1a-ac13-319c82fb2f65",
+      "user_id": "BD3A1E52-1C62-44CB-BF04-660BD88CD74D",
+      "project_id": "BD3A1E52-1C62-44CB-BF04-660BD88CD74D",
+      "flavor_id": "1",
+      "image_ref": "http://image",
+      "host": "compute2",
+      "display_name": "myvmc1",
+      "server_group": "my_autoscaling_group",
+      "metrics": {
+        "vm.uptime": {
+          "archive_policy_name": "unrelated"
+        }
+      }
+    }
+
+- name: post-uptime-measures-c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+  request: |
+    POST /v1/resource/instance/c14fafd8-2e50-4a1a-ac13-319c82fb2f65/metric/vm.uptime/measures HTTP/1.1
+    Content-Type: application/json
+
+    [{
+      "timestamp": "2015-03-06T14:00:00",
+      "value": 1
+    },{
+      "timestamp": "2015-03-06T15:00:00",
+      "value": 1
+    }]
+
+- name: update-instance-resource-instance-c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+  request: |
+    PATCH /v1/resource/instance/c14fafd8-2e50-4a1a-ac13-319c82fb2f65 HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "flavor_id": "2"
+    }
+
+- name: post-uptime-measures-updated-c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+  request: |
+    POST /v1/resource/instance/c14fafd8-2e50-4a1a-ac13-319c82fb2f65/metric/vm.uptime/measures HTTP/1.1
+    Content-Type: application/json
+
+    [{
+      "timestamp": "2099-01-01T01:00:00",
+      "value": 1
+    },{
+      "timestamp": "2099-01-01T02:00:00",
+      "value": 1
+    }]
+
+- name: get-aggregates-by-attributes-lookup-groupby-without-history
+  request: |
+    POST /v1/aggregates?groupby=flavor_id HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "resource_type": "instance",
+      "search": "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'",
+      "operations": "(aggregate mean (metric vm.uptime mean))"
+    }
+
+- name: get-aggregates-by-attributes-lookup-groupby-with-history
+  request: |
+    POST /v1/aggregates?groupby=flavor_id&use_history=true HTTP/1.1
+    Content-Type: application/json
+
+    {
+      "resource_type": "instance",
+      "search": "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'",
+      "operations": "(aggregate mean (metric vm.uptime mean))"
     }
 
 - name: get-capabilities

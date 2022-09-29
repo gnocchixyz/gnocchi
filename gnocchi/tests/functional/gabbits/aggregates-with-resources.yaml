@@ -131,6 +131,52 @@ tests:
     - name: list resources
       GET: /v1/resource/generic
 
+    - name: create resource type instance
+      POST: /v1/resource_type
+      request_headers:
+        # User admin
+        authorization: "basic YWRtaW46"
+      data:
+        name: instance
+        attributes:
+          flavor_id:
+            type: uuid
+      status: 201
+
+    - name: create resource instance
+      POST: /v1/resource/instance
+      data:
+        id: c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+        flavor_id: d7a2b16c-fd00-4a6e-8e2f-086886b0637f
+        metrics:
+          vm.uptime:
+            archive_policy_name: unrelated
+      status: 201
+
+    - name: post uptime measures
+      POST: /v1/resource/instance/c14fafd8-2e50-4a1a-ac13-319c82fb2f65/metric/vm.uptime/measures
+      data:
+        - timestamp: "2015-03-06T14:00:00"
+          value: 1
+        - timestamp: "2015-03-06T15:00:00"
+          value: 1
+      status: 202
+
+    - name: update resource instance
+      PATCH: /v1/resource/instance/c14fafd8-2e50-4a1a-ac13-319c82fb2f65
+      data:
+        flavor_id: ea98441b-2fcb-4bd9-97af-21333f8ddffa
+      status: 200
+
+    - name: post uptime measures updated
+      POST: /v1/resource/generic/c14fafd8-2e50-4a1a-ac13-319c82fb2f65/metric/vm.uptime/measures
+      data:
+        - timestamp: "2099-01-01T01:00:00" # time after the update
+          value: 1
+        - timestamp: "2099-01-01T02:00:00" # time after the update
+          value: 1
+      status: 202
+
     - name: aggregate metric
       POST: /v1/aggregates?details=true
       data:
@@ -323,6 +369,41 @@ tests:
               - ['2015-03-06T14:34:12+00:00', 1.0, 8.0]
         $[0].group:
               id: 2447cd7e-48a6-4c50-a991-6677cc0d00e6
+
+    - name: aggregate metric with groupby on flavor_id aggregates API
+      POST: /v1/aggregates?groupby=flavor_id
+      data:
+        resource_type: instance
+        search: "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'"
+        operations: "(aggregate mean (metric vm.uptime mean))"
+      response_json_paths:
+        $.`len`: 1
+        $[0].measures.measures.aggregated:
+              - ['2015-03-06T14:00:00+00:00', 5.0, 1.0]
+              - ['2015-03-06T15:00:00+00:00', 5.0, 1.0]
+              - ['2099-01-01T01:00:00+00:00', 5.0, 1.0]
+              - ['2099-01-01T02:00:00+00:00', 5.0, 1.0]
+        $[0].group:
+              flavor_id: ea98441b-2fcb-4bd9-97af-21333f8ddffa
+
+    - name: aggregate metric with groupby on flavor_id aggregates API with history
+      POST: /v1/aggregates?groupby=flavor_id&use_history=true
+      data:
+        resource_type: instance
+        search: "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'"
+        operations: "(aggregate mean (metric vm.uptime mean))"
+      response_json_paths:
+        $.`len`: 2
+        $[0].measures.measures.aggregated:
+              - ['2015-03-06T14:00:00+00:00', 5.0, 1.0]
+              - ['2015-03-06T15:00:00+00:00', 5.0, 1.0]
+        $[0].group:
+              flavor_id: d7a2b16c-fd00-4a6e-8e2f-086886b0637f
+        $[1].measures.measures.aggregated:
+              - ['2099-01-01T01:00:00+00:00', 5.0, 1.0]
+              - ['2099-01-01T02:00:00+00:00', 5.0, 1.0]
+        $[1].group:
+              flavor_id: ea98441b-2fcb-4bd9-97af-21333f8ddffa
 
     - name: aggregate and drop infinity from divide by zero
       POST: /v1/aggregates?details=true
