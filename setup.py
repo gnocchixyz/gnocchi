@@ -53,6 +53,9 @@ PY3 = sys.version_info >= (3,)
 
 class local_install_scripts(install_scripts.install_scripts):
     def run(self):
+        # NOTE(tobias-urdin): Always install_scripts so that we get
+        # gnocchi-api otherwise it's left out when installing with pip.
+        self.no_ep = False
         install_scripts.install_scripts.run(self)
         # NOTE(sileht): Build wheel embed custom script as data, and put sheban
         # in script of the building machine. To workaround that build_scripts
