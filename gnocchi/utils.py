@@ -351,3 +351,18 @@ class _retry_on_exception_and_log(tenacity.retry_if_exception_type):
 def retry_on_exception_and_log(msg):
     return tenacity.Retrying(
         wait=wait_exponential, retry=_retry_on_exception_and_log(msg)).wraps
+
+
+def is_resource_revision_needed(resource, request_attributes):
+    for k, v in six.iteritems(request_attributes):
+        if not hasattr(resource, k):
+            continue
+
+        database_attribute = getattr(resource, k)
+        if k != 'metrics' and database_attribute != v:
+            LOG.debug("Generating a new revision for resource [%s] "
+                      "because the attribute key [%s] with its value [%s] "
+                      "is different from the one found in the database [%s]"
+                      ".", resource, k, v, database_attribute)
+            return True
+    return False
