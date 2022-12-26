@@ -657,7 +657,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         with self.facade.independent_reader() as session:
             return session.query(ArchivePolicy).get(name)
 
-    def update_archive_policy(self, name, ap_items):
+    def update_archive_policy(self, name, ap_items, **kwargs):
         with self.facade.independent_writer() as session:
             ap = session.query(ArchivePolicy).get(name)
             if not ap:
@@ -675,6 +675,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         % utils.timespan_total_seconds(c.granularity))
             # NOTE(gordc): ORM doesn't update JSON column unless new
             ap.definition = ap_items
+            if kwargs.get("back_window") is not None:
+                ap.back_window = kwargs.get("back_window")
             return ap
 
     def delete_archive_policy(self, name):

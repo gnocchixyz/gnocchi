@@ -265,6 +265,8 @@ class ArchivePolicyController(rest.RestController):
 
         body = deserialize_and_validate(voluptuous.Schema({
             voluptuous.Required("definition"): ArchivePolicyDefinitionSchema,
+            voluptuous.Optional("back_window"): voluptuous.All(
+                voluptuous.Coerce(int), voluptuous.Range(min=0))
         }))
         # Validate the data
         try:
@@ -275,7 +277,8 @@ class ArchivePolicyController(rest.RestController):
 
         try:
             return pecan.request.indexer.update_archive_policy(
-                self.archive_policy, ap_items)
+                self.archive_policy, ap_items,
+                back_window=body.get('back_window'))
         except indexer.UnsupportedArchivePolicyChange as e:
             abort(400, six.text_type(e))
 
