@@ -2,14 +2,25 @@
 set -e
 
 if [ "$1" == "postgresql-file" ]; then
-  eval $(pifpaf --env-prefix INDEXER run postgresql)
+  echo "Deploying Postgresql with PifPaf."
+  eval $(pifpaf --debug --env-prefix INDEXER run postgresql)
 elif [ "$1" == "mysql-ceph" ]; then
-  eval $(pifpaf --env-prefix INDEXER run mysql)
-  eval $(pifpaf --env-prefix STORAGE run ceph)
+  # Installing PifPaf from source due to the lack of a new version to handle
+  # Ceph global insecure claims. The patch was introduced in PifPaf via commit
+  # https://github.com/jd/pifpaf/commit/fb376a83a47d678952672a7f5d36a02101135fb2,
+  # but it has never been released. Therefore, we need to install it here from
+  # master/main branch in the upstream repository
+  pip install install git+https://github.com/jd/pifpaf.git@51f74a3d8743a7ac33259413df7efc30df993460
+
+  echo "Deploying MySQL with PifPaf."
+  eval $(pifpaf --debug --env-prefix INDEXER run mysql)
+  echo "Deploying Ceph with PifPaf."
+  eval $(pifpaf --debug --env-prefix STORAGE run ceph)
 else
   echo "error: unsupported upgrade type"
   exit 1
 fi
+echo "Finished deploying backend components with PifPaf."
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
@@ -51,7 +62,7 @@ inject_data() {
 
     {
         measures_sep=""
-        MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now - datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
+        MEASURES=$(python -c 'import datetime, random, json; now = datetime.datetime.utcnow(); print(json.dumps([{"timestamp": (now + datetime.timedelta(seconds=i)).isoformat(), "value": random.uniform(-100000, 100000)} for i in range(0, 288000, 10)]))')
         echo -n '{'
         resource_sep=""
         for resource_id in ${RESOURCE_IDS[@]} $RESOURCE_ID_EXT; do
@@ -59,7 +70,7 @@ inject_data() {
             resource_sep=","
         done
         echo -n '}'
-    } | gnocchi measures batch-resources-metrics -
+    } | gnocchi measures batch-resources-metrics --debug -
 
     echo "* Waiting for measures computation"
     while [ $(gnocchi status -f value -c "storage/total number of measures to process") -gt 0 ]; do sleep 1 ; done
@@ -85,7 +96,13 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
+# This downgrade of `numpy` is needed to enable the merge of PR
+# https://github.com/gnocchixyz/gnocchi/pull/1279, which is the PR that
+# introduces the support of numpy >= 1.24. After we merge it, we can remove
+# this downgrade here.
+pip install "numpy<1.24"
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 original_statsd_resource_id=$GNOCCHI_STATSD_RESOURCE_ID

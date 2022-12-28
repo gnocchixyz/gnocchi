@@ -1,4 +1,5 @@
 .testrepository
+.idea
 .stestr
 *.pyc
 .tox
