@@ -1073,16 +1073,11 @@ class ResourceController(rest.RestController):
             etag_set_headers(resource)
             return resource
 
-        for k, v in six.iteritems(body):
-            if k != 'metrics' and getattr(resource, k) != v:
-                create_revision = True
-                break
-        else:
-            if 'metrics' not in body:
-                # No need to go further, we assume the db resource
-                # doesn't change between the get and update
-                return resource
-            create_revision = False
+        create_revision = utils.is_resource_revision_needed(resource, body)
+        if not create_revision and 'metrics' not in body:
+            # No need to go further, we assume the db resource
+            # doesn't change between the get and update
+            return resource
 
         try:
             resource = pecan.request.indexer.update_resource(

@@ -897,12 +897,29 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return r
 
     @retry_on_deadlock
-    def update_resource(self, resource_type,
-                        resource_id, ended_at=_marker, metrics=_marker,
-                        append_metrics=False,
-                        create_revision=True,
+    def update_resource(self, resource_type, resource_id,
+                        ended_at=_marker, metrics=_marker,
+                        append_metrics=False, create_revision=True,
                         **kwargs):
         with self.facade.writer() as session:
+            data_to_update = kwargs.copy()
+
+            data_to_update['ended_at'] = ended_at
+            data_to_update['metrics'] = metrics
+            if create_revision:
+                resource = self.get_resource(
+                    resource_type, resource_id, with_metrics=True)
+                if not utils.is_resource_revision_needed(
+                        resource, data_to_update):
+                    LOG.info("We thought that a revision for resource "
+                             "[%s] was needed. However, after locking the "
+                             "table and checking it again, we found that it "
+                             "is not needed anymore. This is due to a "
+                             "concurrency issue that might happen. Therefore, "
+                             "no revision is going to be generated at this "
+                             "time.", data_to_update)
+                    create_revision = False
+
             mappers = self._resource_type_to_mappers(session, resource_type)
             resource_cls = mappers["resource"]
             resource_history_cls = mappers["history"]
