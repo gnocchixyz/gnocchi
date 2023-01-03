@@ -5,13 +5,6 @@ if [ "$1" == "postgresql-file" ]; then
   echo "Deploying Postgresql with PifPaf."
   eval $(pifpaf --debug --env-prefix INDEXER run postgresql)
 elif [ "$1" == "mysql-ceph" ]; then
-  # Installing PifPaf from source due to the lack of a new version to handle
-  # Ceph global insecure claims. The patch was introduced in PifPaf via commit
-  # https://github.com/jd/pifpaf/commit/fb376a83a47d678952672a7f5d36a02101135fb2,
-  # but it has never been released. Therefore, we need to install it here from
-  # master/main branch in the upstream repository
-  pip install install git+https://github.com/jd/pifpaf.git@51f74a3d8743a7ac33259413df7efc30df993460
-
   echo "Deploying MySQL with PifPaf."
   eval $(pifpaf --debug --env-prefix INDEXER run mysql)
   echo "Deploying Ceph with PifPaf."
