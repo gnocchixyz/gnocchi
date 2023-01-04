@@ -89,11 +89,6 @@ else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
-# This downgrade of `numpy` is needed to enable the merge of PR
-# https://github.com/gnocchixyz/gnocchi/pull/1279, which is the PR that
-# introduces the support of numpy >= 1.24. After we merge it, we can remove
-# this downgrade here.
-pip install "numpy<1.24"
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 
 export OS_AUTH_TYPE=gnocchi-basic
