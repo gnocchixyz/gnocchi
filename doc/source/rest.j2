@@ -304,6 +304,12 @@ not retroactively calculated as backfill to accommodate the new |timespan|:
 
 {{ scenarios['update-archive-policy']['doc'] }}
 
+The attribute back window of the update request is optional and can be used to
+change the `back_window` of an  |archive policies|. If we reduce the back
+window, data is going to be deleted in the back end when the metrics daemon
+Janitor runs. On the other hand, if the value is increased, more raw data
+will be stored to enable reprocessing in case of data backfill.
+
 .. note::
 
    |Granularities| cannot be changed to a different rate. Also, |granularities|

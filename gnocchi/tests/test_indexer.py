@@ -71,6 +71,23 @@ class TestIndexerDriver(tests_base.TestCase):
                  u'timespan': numpy.timedelta64(2592000, 's')}],
             'name': u'low'}, dict(ap))
 
+    def test_update_archive_policy_back_window(self):
+        apname = str(uuid.uuid4())
+        self.index.create_archive_policy(archive_policy.ArchivePolicy(
+            apname, 0, [(12, 300)]))
+        ap = self.index.update_archive_policy(
+            apname, [archive_policy.ArchivePolicyItem(
+                granularity=300, points=12)], back_window=10)
+        self.assertEqual({
+            'back_window': 10,
+            'aggregation_methods':
+                set(self.conf.archive_policy.default_aggregation_methods),
+            'definition': [
+                {u'granularity': numpy.timedelta64(300, 's'),
+                 u'points': 12,
+                 u'timespan': numpy.timedelta64(3600, 's')}],
+            'name': apname}, dict(ap))
+
     def test_update_archive_policy(self):
         self.assertRaises(indexer.UnsupportedArchivePolicyChange,
                           self.index.update_archive_policy, "low",
