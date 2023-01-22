@@ -367,7 +367,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def update_archive_policy(name, ap_items):
+    def update_archive_policy(name, ap_items, **kwargs):
         raise exceptions.NotImplementedError
 
     @staticmethod
