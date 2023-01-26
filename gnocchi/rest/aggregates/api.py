@@ -507,7 +507,7 @@ class AggregatesController(rest.RestController):
                         references, resources, start, stop, groupby)
 
             except indexer.NoSuchMetric as e:
-                api.abort(404, e)
+                api.abort(404, six.text_type(e))
             except indexer.IndexerException as e:
                 api.abort(400, six.text_type(e))
             except Exception as e:
@@ -515,9 +515,10 @@ class AggregatesController(rest.RestController):
                 raise e
 
             if not results:
-                api.abort(
-                    404,
-                    indexer.NoSuchMetric(set((m for (m, a) in references))))
+                all_metrics_not_found = list(set((m for (m, a) in references)))
+                all_metrics_not_found.sort()
+                api.abort(404, six.text_type(
+                    indexer.NoSuchMetric(all_metrics_not_found)))
             return results
 
         else:
@@ -603,7 +604,10 @@ class AggregatesController(rest.RestController):
             ])
 
         if not references:
-            raise indexer.NoSuchMetric(set((m for (m, a) in metric_wildcards)))
+            all_metrics_not_found = list(
+                set((m for (m, a) in metric_wildcards)))
+            all_metrics_not_found.sort()
+            raise indexer.NoSuchMetric(all_metrics_not_found)
 
         response = {
             "measures": get_measures_or_abort(

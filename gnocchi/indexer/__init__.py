@@ -135,7 +135,7 @@ class NoSuchMetric(IndexerException):
 
     def jsonify(self):
         return {
-            "cause": "Metrics not found",
+            "cause": "Metric not found",
             "detail": self.metric,
         }
 
