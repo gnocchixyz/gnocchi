@@ -487,10 +487,7 @@ tests:
       status: 404
       response_json_paths:
         $.code: 404
-        $.description.cause: "Metrics not found"
-        $.description.detail.`sorted`:
-          - foobar
-          - notexists
+        $.description: "Metric ['foobar', 'notexists'] does not exist"
 
     - name: not matching metrics in any group
       POST: /v1/aggregates?groupby=id
@@ -505,10 +502,7 @@ tests:
       status: 404
       response_json_paths:
         $.code: 404
-        $.description.cause: "Metrics not found"
-        $.description.detail.`sorted`:
-          - foobar
-          - notexists
+        $.description: "Metric ['foobar', 'notexists'] does not exist"
 
     - name: invalid groupby attribute
       POST: /v1/aggregates?groupby=unit

@@ -16,3 +16,6 @@ cover
 .coverage
 dist
 upgrade/
+
+# Ignore the IDE files
+.idea
