@@ -316,7 +316,7 @@ class Grouper(object):
         for value in to_group:
             self.truncate_resource_time_window(value, is_first=is_first)
             is_first = False
-        to_group.sort(key=lambda x: tuple((attr, x[attr])
+        to_group.sort(key=lambda x: tuple((attr, str(x[attr] or ''))
                                           for attr in self.groups))
         grouped_values = \
             itertools.groupby(
