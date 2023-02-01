@@ -23,6 +23,7 @@ from unittest import mock
 from gnocchi import carbonara
 from gnocchi import incoming
 from gnocchi import indexer
+from gnocchi.rest.aggregates import api
 from gnocchi.rest.aggregates import exceptions
 from gnocchi.rest.aggregates import processor
 from gnocchi import storage
@@ -39,6 +40,99 @@ eq_nan = EqNan()
 
 def datetime64(*args):
     return numpy.datetime64(datetime.datetime(*args))
+
+
+class TestGrouper(base.BaseTestCase):
+    def setUp(self):
+        super(TestGrouper, self).setUp()
+        self.body = {"operations": "mean cpu.util"}
+        self.references = self.body['operations']
+
+        self.attribute_filters = {"attribute1": "value_attribute_1"}
+
+        self.group_by = ["attribute1", "attribute2", "attribute3"]
+        self.sorts = self.group_by
+
+        self.start = datetime.datetime.now()
+        self.end = self.start + datetime.timedelta(hours=1)
+
+        self.granularity = 3600
+
+        self.need_overlap = None
+        self.fill = None
+
+        self.details = True
+
+        self.grouper_test = api.Grouper(self.group_by, self.start, self.end,
+                                        self.body, self.sorts,
+                                        self.attribute_filters,
+                                        self.references, self.granularity,
+                                        self.need_overlap, self.fill,
+                                        self.details)
+
+        self.test_resource_1 = {
+            'uuid': '30b51786-944f-427b-85df-ce5f462e58a4',
+            'revision_start': self.start - datetime.timedelta(hours=10),
+            'revision_end': self.start - datetime.timedelta(hours=9),
+            "attribute1": "a", "attribute2": "a", "attribute3": "a"
+        }
+        self.test_resource_2 = {
+            'uuid': '17002c42-2f30-45fb-b1f1-eb33f7345e89',
+            'revision_start': self.start - datetime.timedelta(hours=7),
+            'revision_end': self.start - datetime.timedelta(hours=5),
+            "attribute1": None, "attribute2": "b", "attribute3": "b"
+        }
+        self.test_resource_3 = {
+            'uuid': '8f6be3bb-d5ee-4d01-986b-c034386637b0',
+            'revision_start': self.start - datetime.timedelta(hours=2),
+            'revision_end': self.start - datetime.timedelta(hours=1),
+            "attribute1": "c", "attribute2": None, "attribute3": None
+        }
+        self.test_resources = [self.test_resource_1, self.test_resource_2,
+                               self.test_resource_3]
+
+    def test_create_history_period_filter_no_start(self):
+        self.grouper_test.start = None
+        return_of_method = self.grouper_test.create_history_period_filter()
+
+        self.assertEqual(self.attribute_filters, return_of_method)
+
+    def test_create_history_period_filter_no_end(self):
+        self.grouper_test.end = None
+        return_of_method = self.grouper_test.create_history_period_filter()
+
+        self.assertEqual(self.attribute_filters, return_of_method)
+
+    def test_create_history_period_filter_no_attribute_filter(self):
+        self.grouper_test.attr_filter = None
+        return_of_method = self.grouper_test.create_history_period_filter()
+
+        self.assertEqual({"and": [
+            {"<": {'revision_start': self.end}},
+            {"or": [
+                {">=": {'revision_end': self.start}},
+                {"=": {'revision_end': None}}]}]},
+            return_of_method)
+
+    def test_create_history_period_filter(self):
+        return_of_method = self.grouper_test.create_history_period_filter()
+
+        self.assertEqual({"and": [{"and": [
+            {"<": {'revision_start': self.end}},
+            {"or": [
+                {">=": {'revision_end': self.start}},
+                {"=": {'revision_end': None}}]}]}, self.attribute_filters]},
+            return_of_method)
+
+    def test_group_resources_with_all_attributes(self):
+        response_of_method = self.grouper_test.group(self.test_resources)
+
+        self.assertEqual("17002c42-2f30-45fb-b1f1-eb33f7345e89",
+                         response_of_method[0].resources[0].get('uuid'))
+        self.assertEqual("30b51786-944f-427b-85df-ce5f462e58a4",
+                         response_of_method[1].resources[0].get('uuid'))
+        self.assertEqual("8f6be3bb-d5ee-4d01-986b-c034386637b0",
+                         response_of_method[2].resources[0].get('uuid'))
 
 
 class TestAggregatedTimeseries(base.BaseTestCase):
