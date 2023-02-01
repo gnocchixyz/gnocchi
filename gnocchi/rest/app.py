@@ -21,7 +21,6 @@ import uuid
 
 import daiquiri
 from oslo_middleware import cors
-from oslo_policy import policy
 from paste import deploy
 import pecan
 from pecan import jsonify
@@ -52,8 +51,7 @@ class GnocchiHook(pecan.hooks.PecanHook):
     def __init__(self, conf):
         self.backends = {}
         self.conf = conf
-        self.policy_enforcer = policy.Enforcer(conf)
-        self.policy_enforcer.register_defaults(policies.list_rules())
+        self.policy_enforcer = policies.init(conf)
         self.auth_helper = driver.DriverManager("gnocchi.rest.auth_helper",
                                                 conf.api.auth_mode,
                                                 invoke_on_load=True).driver

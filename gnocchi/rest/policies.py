@@ -13,6 +13,7 @@
 #    under the License.
 
 
+from oslo_config import cfg
 from oslo_policy import policy
 
 ADMIN = "role:admin"
@@ -412,3 +413,16 @@ def list_rules():
         + resource_rules + resource_type_rules \
         + archive_policy_rules + archive_policy_rule_rules \
         + metric_rules + measure_rules
+
+
+def init(conf):
+    policy_enforcer = policy.Enforcer(conf)
+    policy_enforcer.register_defaults(list_rules())
+    return policy_enforcer
+
+
+def get_enforcer():
+    # This method is used by oslopolicy CLI scripts in order to generate policy
+    # files from overrides on disk and defaults in code.
+    cfg.CONF([], project='gnocchi')
+    return init(cfg.CONF)
