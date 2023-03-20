@@ -70,6 +70,7 @@ CLIENT_INT_ARGS = frozenset([
 
 OPTS = [
     cfg.StrOpt('redis_url',
+               secret=True,
                default='redis://localhost:6379/',
                help="""Redis URL
 
