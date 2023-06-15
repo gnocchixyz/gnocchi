@@ -108,7 +108,6 @@ jobs:
     strategy:
       matrix:
         python:
-          - py36
           - py38
           - py39
         env:
@@ -123,12 +122,6 @@ jobs:
           - postgresql-s3
           - postgresql-ceph
         exclude:
-          - env: mysql-ceph-upgrade-from-4.4
-            python: py36
-          - env: mysql-ceph
-            python: py36
-          - env: postgresql-ceph
-            python: py36
           - env: mysql-ceph-upgrade-from-4.4
             python: py39
           - env: mysql-ceph
