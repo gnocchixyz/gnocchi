@@ -49,6 +49,7 @@ else:
 
 # Can't use six in this file it's too early in the bootstrap process
 PY3 = sys.version_info >= (3,)
+SETUPTOOLS_VER = setuptools.__version__
 
 
 class local_install_scripts(install_scripts.install_scripts):
@@ -63,7 +64,10 @@ class local_install_scripts(install_scripts.install_scripts):
         # replaced by the correct interpreter. We do the same here.
         bs_cmd = self.get_finalized_command('build_scripts')
         executable = getattr(bs_cmd, 'executable', easy_install.sys_executable)
-        script = easy_install.get_script_header("", executable) + SCRIPT_TMPL
+        if not SETUPTOOLS_VER.startswith('68'):
+            script = easy_install.get_script_header("", executable) + SCRIPT_TMPL
+        else:
+            script = easy_install.ScriptWriter.get_header("", executable) + SCRIPT_TMPL
         if PY3:
             script = script.encode('ascii')
         self.write_script("gnocchi-api", script, 'b')
@@ -74,7 +78,10 @@ class local_develop(develop.develop):
         develop.develop.install_wrapper_scripts(self, dist)
         if self.exclude_scripts:
             return
-        script = easy_install.get_script_header("") + SCRIPT_TMPL
+        if not SETUPTOOLS_VER.startswith('68'):
+            script = easy_install.get_script_header("") + SCRIPT_TMPL
+        else:
+            script = easy_install.ScriptWriter.get_header("") + SCRIPT_TMPL
         if PY3:
             script = script.encode('ascii')
         self.write_script("gnocchi-api", script, 'b')
