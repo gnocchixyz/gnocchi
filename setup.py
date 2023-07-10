@@ -75,7 +75,7 @@ class local_develop(develop.develop):
         develop.develop.install_wrapper_scripts(self, dist)
         if self.exclude_scripts:
             return
-        script = easy_install.ScriptWriter.get_heade("") + SCRIPT_TMPL
+        script = easy_install.ScriptWriter.get_header("") + SCRIPT_TMPL
         if PY3:
             script = script.encode('ascii')
         self.write_script("gnocchi-api", script, 'b')
