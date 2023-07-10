@@ -13,6 +13,10 @@ fi
 
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
+# Pin down Pyparsing version to <3.1.0, as it has some bugs.
+# We checked 3.1.0 and 3.1.1, and both have issues in the code.
+pip install "pyparsing>=2.2.0,<3.1.0 setuptools<68"
+
 echo "* Installing Gnocchi from ${GNOCCHI_VERSION_FROM}"
 pip install -q --force-reinstall git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}#egg=gnocchi[${GNOCCHI_VARIANT}]
 

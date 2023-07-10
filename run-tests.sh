@@ -12,6 +12,19 @@ cleanup(){
 }
 trap cleanup EXIT
 
+sudo apt update && sudo apt upgrade
+
+echo "MySQL version: $(mysql --version)"
+
+echo "Pip path: $(whereis pip)"
+
+echo "Listing all pip libraries."
+pip freeze
+
+echo "Gnocchi-api version: $(gnocchi-api --version)"
+echo "Gnocchi version: $(gnocchi --version)"
+
+
 PIDS=""
 GNOCCHI_TEST_STORAGE_DRIVERS=${GNOCCHI_TEST_STORAGE_DRIVERS:-file}
 GNOCCHI_TEST_INDEXER_DRIVERS=${GNOCCHI_TEST_INDEXER_DRIVERS:-postgresql}
@@ -23,7 +36,7 @@ do
         {
         case $GNOCCHI_TEST_STORAGE_DRIVER in
             ceph|redis)
-                pifpaf run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
+                pifpaf --debug run $GNOCCHI_TEST_STORAGE_DRIVER -- pifpaf --debug -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
                 ;;
             s3)
                 if ! which s3rver >/dev/null 2>&1
@@ -33,12 +46,12 @@ do
                     npm install s3rver --global
                     export PATH=$PWD/npm-s3rver/bin:$PATH
                 fi
-                pifpaf -e GNOCCHI_STORAGE run s3rver -- \
-                       pifpaf -e GNOCCHI_INDEXER run $indexer -- \
+                pifpaf --debug -e GNOCCHI_STORAGE run s3rver -- \
+                       pifpaf -e GNOCCHI_INDEXER --debug run $indexer -- \
                        stestr run $*
                 ;;
             *)
-                pifpaf -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
+                pifpaf --debug -g GNOCCHI_INDEXER_URL run $indexer -- stestr run $*
                 ;;
         esac
         # NOTE(sileht): Start all storage tests at once
