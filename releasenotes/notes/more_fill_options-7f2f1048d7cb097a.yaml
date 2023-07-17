@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add `ffill`, `bfill`, `full_ffill` and `full_bfill` `fill` options, which
+    back- and/or forward-fill datapoints missing in one of the series in the
+    resulting set, see https://github.com/gnocchixyz/gnocchi/issues/1266.

@@ -793,12 +793,17 @@ Backfill
 ~~~~~~~~
 
 The ability to fill in missing points from a subset of time series is supported
-by specifying a `fill` value. Valid fill values include any float, `dropna` or
-`null`. In the case of `null`, Gnocchi will compute the aggregation using only
-the existing points. `dropna` is like `null` but remove NaN from the result.
-The `fill` parameter will not backfill timestamps which contain no points in
-any of the time series. Only timestamps which have datapoints in at least one
-of the time series is returned.
+by specifying a `fill` value. Valid fill values include any float, `dropna`,
+`null`, `ffill`, `bfill` `full_ffill` or `full_bfill`. In the case of `null`,
+Gnocchi will compute the aggregation using only the existing points. `dropna` is
+like `null` but remove NaN from the result. `ffill` fills NaN measures in one
+metric with previous non-NaN value, `bfill` fills NaN measures with next non-NaN
+value, so if the metric starts (or, in case of `bfill`, ends) with NaNs, those
+wouldn't change and would be excluded from the resulting set, just like `dropna`
+does. To fill the remaining NaN values, producing a metric with as much
+timestamps as there are in all metrics combined, one can use `full_ffill` and
+`full_bfill` variants. In the case of `full_ffill`, it applies a forward then backward
+fill and for `full_bfill`, a backward then forward fill.
 
 {{ scenarios['get-aggregates-by-metric-ids-fill']['doc'] }}
 
@@ -1039,12 +1044,17 @@ expects 100% overlap. If this percentage is not reached, an error is returned.
    boundary to the first or last timestamp common across all series.
 
 The ability to fill in missing points from a subset of time series is supported
-by specifying a `fill` value. Valid fill values include any float, `dropna` or
-`null`. In the case of `null`, Gnocchi will compute the aggregation using only
-the existing points. `dropna` is like `null` but remove NaN from the result.
-The `fill` parameter will not backfill timestamps which contain no points in
-any of the time series. Only timestamps which have datapoints in at least one
-of the time series is returned.
+by specifying a `fill` value. Valid fill values include any float, `dropna`,
+`null`, `ffill`, `bfill` `full_ffill` or `full_bfill`. In the case of `null`,
+Gnocchi will compute the aggregation using only the existing points. `dropna` is
+like `null` but remove NaN from the result. `ffill` fills NaN measures in one
+metric with previous non-NaN value, `bfill` fills NaN measures with next non-NaN
+value, so if the metric starts (or, in case of `bfill`, ends) with NaNs, those
+wouldn't change and would be excluded from the resulting set, just like `dropna`
+does. To fill the remaining NaN values, producing a metric with as much
+timestamps as there are in all metrics combined, one can use `full_ffill` and
+`full_bfill` variants. In the case of `full_ffill`, it applies a forward then backward
+fill and for `full_bfill`, a backward then forward fill.
 
 {{ scenarios['get-across-metrics-measures-by-metric-ids-fill']['doc'] }}
 

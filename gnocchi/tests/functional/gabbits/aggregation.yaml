@@ -39,6 +39,30 @@ tests:
         archive_policy_name: low
       status: 201
 
+    - name: create metric 3
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+        archive_policy_name: low
+      status: 201
+
+    - name: create metric 4
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+        archive_policy_name: low
+      status: 201
+
+    - name: create metric 5 (empty one)
+      POST: /v1/metric
+      request_headers:
+          content-type: application/json
+      data:
+        archive_policy_name: low
+      status: 201
+
     - name: get metric list
       GET: /v1/metric
 
@@ -66,6 +90,34 @@ tests:
             value: 5
       status: 202
 
+    - name: push measurements to metric 3
+      POST: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[2].id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: "2023-11-21T08:47:09"
+            value: 19.5
+          - timestamp: "2023-11-21T08:48:33"
+            value: 32
+          - timestamp: "2023-11-21T08:49:23"
+            value: 11.3
+      status: 202
+
+    - name: push measurements to metric 4
+      POST: /v1/metric/$HISTORY['get metric list'].$RESPONSE['$[3].id']/measures
+      request_headers:
+           content-type: application/json
+      data:
+          - timestamp: "2023-11-21T08:46:34"
+            value: 1.2
+          - timestamp: "2023-11-21T08:48:33"
+            value: 4.2
+          - timestamp: "2023-11-21T08:49:23"
+            value: 3
+          - timestamp: "2023-11-21T08:50:11"
+            value: 4.9
+      status: 202
+
     - name: get measure aggregates by granularity not float
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=foobar
       status: 400
@@ -74,14 +126,21 @@ tests:
       GET: /v1/aggregation/metric?metric=foobar
       status: 400
 
-    - name: GET measure aggregates by granularity with refresh
+    - name: GET measure aggregates by granularity with refresh for metric 1 and 2
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&refresh=true
       response_json_paths:
         $:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
 
-    - name: POST measure aggregates by granularity with refresh
+    - name: GET measure aggregates by granularity with refresh for metric 3 and 4
+      GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[2].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[3].id']&granularity=1&refresh=true
+      response_json_paths:
+        $:
+          - ['2023-11-21T08:48:33+00:00', 1.0, 18.1]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 7.15]
+
+    - name: POST measure aggregates by granularity with refresh for metric 1 and 2
       POST: /v1/aggregation/metric?granularity=1&refresh=true
       request_headers:
           content-type: application/json
@@ -165,6 +224,96 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 23.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 7.0]
           - ['2015-03-06T14:35:12+00:00', 1.0, 2.5]
+
+    - name: get measure aggregates difference with default fill
+      POST: /v1/aggregates?granularity=1
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[3].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated:
+          - ['2023-11-21T08:48:33+00:00', 1.0, 27.8]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 8.3]
+
+    - name: get measure aggregates difference with fill "ffill"
+      POST: /v1/aggregates?granularity=1&fill=ffill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[3].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated:
+          - ['2023-11-21T08:47:09+00:00', 1.0, 18.3]
+          - ['2023-11-21T08:48:33+00:00', 1.0, 27.8]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 8.3]
+          - ['2023-11-21T08:50:11+00:00', 1.0, 6.4]
+
+    - name: get measure aggregates difference with fill "bfill"
+      POST: /v1/aggregates?granularity=1&fill=bfill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[3].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated:
+          - ['2023-11-21T08:46:34+00:00', 1.0, 18.3]
+          - ['2023-11-21T08:47:09+00:00', 1.0, 15.3]
+          - ['2023-11-21T08:48:33+00:00', 1.0, 27.8]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 8.3]
+
+    - name: get measure aggregates difference with fill "full_ffill"
+      POST: /v1/aggregates?granularity=1&fill=full_ffill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[3].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated:
+          - ['2023-11-21T08:46:34+00:00', 1.0, 18.3]
+          - ['2023-11-21T08:47:09+00:00', 1.0, 18.3]
+          - ['2023-11-21T08:48:33+00:00', 1.0, 27.8]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 8.3]
+          - ['2023-11-21T08:50:11+00:00', 1.0, 6.4]
+
+    - name: get measure aggregates difference with fill "full_bfill"
+      POST: /v1/aggregates?granularity=1&fill=full_bfill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[3].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated:
+          - ['2023-11-21T08:46:34+00:00', 1.0, 18.3]
+          - ['2023-11-21T08:47:09+00:00', 1.0, 15.3]
+          - ['2023-11-21T08:48:33+00:00', 1.0, 27.8]
+          - ['2023-11-21T08:49:23+00:00', 1.0, 8.3]
+          - ['2023-11-21T08:50:11+00:00', 1.0, 6.4]
+
+    - name: get measure aggregates difference with default fill (one metric is emtpy)
+      POST: /v1/aggregates?granularity=1
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[4].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated: []
+
+    - name: get measure aggregates difference with fill "ffill" (one metric is emtpy)
+      POST: /v1/aggregates?granularity=1&fill=ffill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[4].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated: []
+
+    - name: get measure aggregates difference with fill "bfill" (one metric is emtpy)
+      POST: /v1/aggregates?granularity=1&fill=bfill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[4].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated: []
+
+    - name: get measure aggregates difference with fill "full_ffill" (one metric is emtpy)
+      POST: /v1/aggregates?granularity=1&fill=full_ffill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[4].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated: []
+
+    - name: get measure aggregates difference with fill "full_bfill" (one metric is emtpy)
+      POST: /v1/aggregates?granularity=1&fill=full_bfill
+      data:
+        operations: "(aggregate mean (- (metric $HISTORY['get metric list'].$RESPONSE['$[2].id'] mean) (metric $HISTORY['get metric list'].$RESPONSE['$[4].id'] mean)))"
+      response_json_paths:
+        $.measures.aggregated: []
 
     - name: get measure aggregates with bad fill
       GET: /v1/aggregation/metric?metric=$HISTORY['get metric list'].$RESPONSE['$[0].id']&metric=$HISTORY['get metric list'].$RESPONSE['$[1].id']&granularity=1&fill=asdf
