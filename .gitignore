@@ -16,6 +16,8 @@ cover
 .coverage
 dist
 upgrade/
+.venv
+build/
 
 # Ignore the IDE files
 .idea

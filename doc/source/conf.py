@@ -31,6 +31,7 @@ extensions = [
     'sphinxcontrib.httpdomain',
     'sphinx.ext.autodoc',
     'reno.sphinxext',
+    'pbr.sphinxext',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

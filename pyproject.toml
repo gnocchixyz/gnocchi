@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools_scm", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["pbr>=5.7.0", "setuptools>=51.0.0"]
+build-backend = "pbr.build"
 
 [tool.setuptools_scm]
