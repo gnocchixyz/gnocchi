@@ -69,7 +69,7 @@ def upgrade():
     resource = sa.Table('resource', sa.MetaData(),
                         type_string_col("type", "resource"))
     op.execute(resource_type.insert().from_select(
-        ['name'], sa.select([resource.c.type]).distinct()))
+        ['name'], sa.select(resource.c.type).distinct()))
 
     for table in ["resource", "resource_history"]:
         op.alter_column(table, "type", new_column_name="old_type",
