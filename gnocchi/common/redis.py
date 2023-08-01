@@ -43,6 +43,7 @@ CLIENT_ARGS = frozenset([
     'ssl',
     'ssl_certfile',
     'ssl_keyfile',
+    'ssl_ca_certs',
     'sentinel',
     'sentinel_fallback',
 ])
