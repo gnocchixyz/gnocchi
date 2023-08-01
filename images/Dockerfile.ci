@@ -37,8 +37,19 @@ RUN apt-get update -y && apt-get install -qy \
         libsnappy-dev \
         libprotobuf-dev \
 # For redis
-        redis-server \
-        && rm -rf /var/lib/apt/lists/*
+        redis-server
+
+# TODO(tobias-urdin): Downgrade MySQL to a version that works. Report this
+# bug to Ubuntu packaging.
+ENV MYSQL_VERSION=8.0.19-0ubuntu5
+RUN apt-get install -qy --allow-downgrades mysql-client=$MYSQL_VERSION \
+        mysql-client-8.0=$MYSQL_VERSION \
+        mysql-server=$MYSQL_VERSION \
+        mysql-server-8.0=$MYSQL_VERSION \
+        mysql-client-core-8.0=$MYSQL_VERSION \
+        mysql-server-core-8.0=$MYSQL_VERSION
+
+RUN rm -rf /var/lib/apt/lists/*
 
 #NOTE(sileht): really no utf-8 in 2017 !?
 ENV LANG en_US.UTF-8

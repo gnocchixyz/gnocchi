@@ -40,14 +40,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
           context: ./images
           file: ./images/Dockerfile.ci
           push: false
-          tags: ghcr.io/gnocchixyz/ci:latest
+          tags: ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
@@ -57,7 +57,7 @@ jobs:
             echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
           fi
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:4.5 "tox -e ${{ matrix.env }}"
 
   check:
     runs-on: ubuntu-latest
@@ -83,14 +83,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
           context: ./images
           file: ./images/Dockerfile.ci
           push: false
-          tags: ghcr.io/gnocchixyz/ci:latest
+          tags: ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
@@ -100,7 +100,7 @@ jobs:
             echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
           fi
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:4.5 "tox -e ${{ matrix.env }}"
 
   test:
     runs-on: ubuntu-latest
@@ -151,14 +151,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
         if: steps.changes.outputs.ci_image == 'false'
-      - run: docker pull ghcr.io/gnocchixyz/ci:latest
+      - run: docker pull ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'false'
       - uses: docker/build-push-action@v2
         with:
           context: ./images
           file: ./images/Dockerfile.ci
           push: false
-          tags: ghcr.io/gnocchixyz/ci:latest
+          tags: ghcr.io/gnocchixyz/ci:4.5
         if: steps.changes.outputs.ci_image == 'true'
       - name: Set env vars
         run: |
@@ -168,4 +168,4 @@ jobs:
             echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
           fi
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.python }}-${{ matrix.env }}"
+        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:4.5 "tox -e ${{ matrix.python }}-${{ matrix.env }}"
