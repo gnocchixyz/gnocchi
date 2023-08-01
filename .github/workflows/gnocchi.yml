@@ -110,6 +110,7 @@ jobs:
         python:
           - py38
           - py39
+          - py311
         env:
           - mysql-ceph-upgrade-from-4.4
           - postgresql-file-upgrade-from-4.4
@@ -128,6 +129,12 @@ jobs:
             python: py39
           - env: postgresql-ceph
             python: py39
+          - env: mysql-ceph-upgrade-from-4.4
+            python: py311
+          - env: mysql-ceph
+            python: py311
+          - env: postgresql-ceph
+            python: py311
     steps:
       - uses: actions/checkout@v2
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
