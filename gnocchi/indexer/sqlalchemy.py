@@ -784,7 +784,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             q = session.query(Metric).filter(
                 Metric.status == status)
             if details:
-                q = q.options(sqlalchemy.orm.joinedload('resource'))
+                q = q.options(sqlalchemy.orm.joinedload(Metric.resource))
             if policy_filter or resource_policy_filter or attribute_filter:
                 engine = session.connection()
                 if attribute_filter:
@@ -1074,7 +1074,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 resource_cls).filter(
                     resource_cls.id == resource_id)
             if with_metrics:
-                q = q.options(sqlalchemy.orm.joinedload('metrics'))
+                q = q.options(sqlalchemy.orm.joinedload(Resource.metrics))
             return q.first()
 
     def _get_history_result_mapper(self, session, resource_type):
@@ -1188,7 +1188,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.InvalidPagination(e)
 
             # Always include metrics
-            q = q.options(sqlalchemy.orm.joinedload("metrics"))
+            q = q.options(sqlalchemy.orm.joinedload(target_cls.metrics))
             all_resources = q.all()
 
             if details:
@@ -1217,7 +1217,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                         q = session.query(target_cls).filter(f)
                         # Always include metrics
-                        q = q.options(sqlalchemy.orm.joinedload('metrics'))
+                        q = q.options(sqlalchemy.orm.joinedload(target_cls.metrics))
                         try:
                             all_resources.extend(q.all())
                         except sqlalchemy.exc.ProgrammingError as e:
