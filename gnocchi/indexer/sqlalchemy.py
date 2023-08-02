@@ -218,19 +218,20 @@ class ResourceClassMapper(object):
         # the resource_type table is already cleaned and committed
         # so this code cannot be triggerred anymore for this
         # resource_type
-        with facade.writer_connection() as connection:
+        with facade.writer() as session:
             for table in tables:
                 for fk in table.foreign_key_constraints:
                     try:
-                        self._safe_execute(
-                            connection,
-                            sqlalchemy.schema.DropConstraint(fk))
+                        stmt = sqlalchemy.schema.DropConstraint(fk)
+                        session.execute(stmt)
+                        session.commit()
                     except exception.DBNonExistentConstraint:
                         pass
             for table in tables:
                 try:
-                    self._safe_execute(connection,
-                                       sqlalchemy.schema.DropTable(table))
+                    stmt = sqlalchemy.schema.DropTable(table)
+                    session.execute(stmt)
+                    session.commit()
                 except exception.DBNonExistentTable:
                     pass
 
@@ -244,14 +245,6 @@ class ResourceClassMapper(object):
         # by using expiration on cache ?
         for table in tables:
             Base.metadata.remove(table)
-
-    @retry_on_deadlock
-    def _safe_execute(self, connection, works):
-        # NOTE(sileht): we create a transaction to ensure mysql
-        # create locks on other transaction...
-        trans = connection.begin()
-        connection.execute(works)
-        trans.commit()
 
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
