@@ -24,7 +24,6 @@ Create Date: 2016-07-25 15:36:36.469847
 """
 
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
 import sqlalchemy as sa
 from sqlalchemy.sql import func
 
@@ -39,7 +38,7 @@ depends_on = None
 
 def upgrade():
     bind = op.get_bind()
-    inspector = Inspector.from_engine(bind)
+    inspector = sa.inspect(bind)
 
     if bind and bind.engine.name == "mysql":
         op.execute("SET time_zone = '+00:00'")
