@@ -1324,10 +1324,15 @@ class QueryTransformer(object):
 
     @classmethod
     def _handle_multiple_op(cls, engine, table, op, nodes):
-        return op(*[
+        args = [
             cls.build_filter(engine, table, node)
             for node in nodes
-        ])
+        ]
+
+        if len(args) == 0:
+            return op(sqlalchemy.true(), *args)
+
+        return op(*args)
 
     @classmethod
     def _handle_unary_op(cls, engine, table, op, node):
