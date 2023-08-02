@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added support for SQLAlchemy 2.0
+upgrade:
+  - |
+    The minimum SQLAlchemy version is now 1.4
