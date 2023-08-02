@@ -223,16 +223,18 @@ class ResourceClassMapper(object):
         # the resource_type table is already cleaned and committed
         # so this code cannot be triggerred anymore for this
         # resource_type
-        with facade.writer() as session:
-            for table in tables:
-                for fk in table.foreign_key_constraints:
+        for table in tables:
+            for fk in table.foreign_key_constraints:
+                with facade.writer() as session:
                     try:
                         stmt = sqlalchemy.schema.DropConstraint(fk)
                         session.execute(stmt)
                         session.commit()
                     except exception.DBNonExistentConstraint:
                         pass
-            for table in tables:
+
+        for table in tables:
+            with facade.writer() as session:
                 try:
                     stmt = sqlalchemy.schema.DropTable(table)
                     session.execute(stmt)
