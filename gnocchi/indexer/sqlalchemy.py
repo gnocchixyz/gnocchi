@@ -51,6 +51,9 @@ from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
 
+
+mapper_reg = sqlalchemy.orm.registry()
+
 Base = base.Base
 Metric = base.Metric
 ArchivePolicy = base.ArchivePolicy
@@ -1104,7 +1107,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             def __iter__(self):
                 return iter((key, getattr(self, key)) for key in stmt.c.keys())
 
-        sqlalchemy.orm.mapper(
+        mapper_reg.map_imperatively(
             Result, stmt, primary_key=[stmt.c.id, stmt.c.revision],
             properties={
                 'metrics': sqlalchemy.orm.relationship(
