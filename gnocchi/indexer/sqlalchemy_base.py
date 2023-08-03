@@ -17,7 +17,6 @@
 from __future__ import absolute_import
 
 from oslo_db.sqlalchemy import models
-import six
 import sqlalchemy
 from sqlalchemy.ext import declarative
 import sqlalchemy_utils
@@ -209,7 +208,7 @@ class ResourceJsonifier(indexer.Resource):
         d = dict(self)
         del d['revision']
         if 'metrics' not in sqlalchemy.inspect(self).unloaded:
-            d['metrics'] = dict((m.name, six.text_type(m.id))
+            d['metrics'] = dict((m.name, str(m.id))
                                 for m in self.metrics)
 
         if self.creator is None:
@@ -358,7 +357,7 @@ class HistoryModelIterator(models.ModelIterator):
         # NOTE(sileht): Our custom resource attribute columns don't
         # have the same name in database than in sqlalchemy model
         # so remove the additional "f_" for the model name
-        n = six.advance_iterator(self.i)
+        n = next(self.i)
         model_attr = n[2:] if n[:2] == "f_" else n
         return model_attr, getattr(self.model, n)
 

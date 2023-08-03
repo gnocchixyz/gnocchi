@@ -25,10 +25,9 @@ import jsonpatch
 import pecan
 from pecan import rest
 import pyparsing
-import six
-from six.moves.urllib import parse as urllib_parse
 import tenacity
 import tooz
+from urllib import parse as urllib_parse
 import voluptuous
 import werkzeug.http
 
@@ -75,8 +74,8 @@ def abort(status_code, detail=''):
     if isinstance(detail, voluptuous.Invalid):
         detail = {
             'cause': 'Invalid input',
-            'reason': six.text_type(detail),
-            'detail': [six.text_type(path) for path in detail.path],
+            'reason': str(detail),
+            'detail': [str(path) for path in detail.path],
         }
     elif isinstance(detail, Exception):
         detail = detail.jsonify()
@@ -90,7 +89,7 @@ def flatten_dict_to_keypairs(d, separator=':'):
     :param d: dictionaries which may be nested
     :param separator: symbol between names
     """
-    for name, value in sorted(six.iteritems(d)):
+    for name, value in sorted(d.items()):
         if isinstance(value, dict):
             for subname, subvalue in flatten_dict_to_keypairs(value,
                                                               separator):
@@ -123,12 +122,6 @@ def enforce(rule, target):
 
 def set_resp_location_hdr(location):
     location = '%s%s' % (pecan.request.script_name, location)
-    # NOTE(sileht): according the pep-3333 the headers must be
-    # str in py2 and py3 even this is not the same thing in both
-    # version
-    # see: http://legacy.python.org/dev/peps/pep-3333/#unicode-issues
-    if six.PY2 and isinstance(location, six.text_type):
-        location = location.encode('utf-8')
     location = urllib_parse.quote(location)
     pecan.response.headers['Location'] = location
 
@@ -198,7 +191,7 @@ def strtobool(varname, v):
     try:
         return utils.strtobool(v)
     except ValueError as e:
-        abort(400, "Unable to parse `%s': %s" % (varname, six.text_type(e)))
+        abort(400, "Unable to parse `%s': %s" % (varname, str(e)))
 
 
 RESOURCE_DEFAULT_PAGINATION = [u'revision_start:asc',
@@ -216,11 +209,11 @@ def get_pagination_options(params, default):
                            voluptuous.Range(min=1),
                            voluptuous.Clamp(
                                min=1, max=pecan.request.conf.api.max_limit)),
-            "marker": six.text_type,
+            "marker": str,
             voluptuous.Required("sort", default=default):
             voluptuous.All(
                 voluptuous.Coerce(arg_to_list),
-                [six.text_type]),
+                [str]),
         }, extra=voluptuous.REMOVE_EXTRA)(params)
     except voluptuous.Invalid as e:
         abort(400, {"cause": "Argument value error",
@@ -252,14 +245,14 @@ class ArchivePolicyController(rest.RestController):
         if ap:
             enforce("get archive policy", ap)
             return ap
-        abort(404, six.text_type(
+        abort(404, str(
             indexer.NoSuchArchivePolicy(self.archive_policy)))
 
     @pecan.expose('json')
     def patch(self):
         ap = pecan.request.indexer.get_archive_policy(self.archive_policy)
         if not ap:
-            abort(404, six.text_type(
+            abort(404, str(
                 indexer.NoSuchArchivePolicy(self.archive_policy)))
         enforce("update archive policy", ap)
 
@@ -273,14 +266,14 @@ class ArchivePolicyController(rest.RestController):
             ap_items = [archive_policy.ArchivePolicyItem(**item) for item in
                         body['definition']]
         except ValueError as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
         try:
             return pecan.request.indexer.update_archive_policy(
                 self.archive_policy, ap_items,
                 back_window=body.get('back_window'))
         except indexer.UnsupportedArchivePolicyChange as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
     @pecan.expose('json')
     def delete(self):
@@ -291,9 +284,9 @@ class ArchivePolicyController(rest.RestController):
         try:
             pecan.request.indexer.delete_archive_policy(self.archive_policy)
         except indexer.NoSuchArchivePolicy as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         except indexer.ArchivePolicyInUse as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 class ArchivePoliciesController(rest.RestController):
@@ -310,7 +303,7 @@ class ArchivePoliciesController(rest.RestController):
             archive_policy.ArchivePolicy.VALID_AGGREGATION_METHODS_VALUES
         )
         ArchivePolicySchema = voluptuous.Schema({
-            voluptuous.Required("name"): six.text_type,
+            voluptuous.Required("name"): str,
             voluptuous.Required("back_window", default=0): voluptuous.All(
                 voluptuous.Coerce(int),
                 voluptuous.Range(min=0),
@@ -327,12 +320,12 @@ class ArchivePoliciesController(rest.RestController):
         try:
             ap = archive_policy.ArchivePolicy.from_dict(body)
         except ValueError as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         enforce("create archive policy", ap)
         try:
             ap = pecan.request.indexer.create_archive_policy(ap)
         except indexer.ArchivePolicyAlreadyExists as e:
-            abort(409, six.text_type(e))
+            abort(409, str(e))
 
         location = "/archive_policy/" + ap.name
         set_resp_location_hdr(location)
@@ -353,16 +346,16 @@ class ArchivePolicyRulesController(rest.RestController):
         )
         if apr:
             return ArchivePolicyRuleController(apr), remainder
-        abort(404, six.text_type(
+        abort(404, str(
             indexer.NoSuchArchivePolicyRule(archive_policy_rule)))
 
     @pecan.expose('json')
     def post(self):
         enforce("create archive policy rule", {})
         ArchivePolicyRuleSchema = voluptuous.Schema({
-            voluptuous.Required("name"): six.text_type,
-            voluptuous.Required("metric_pattern"): six.text_type,
-            voluptuous.Required("archive_policy_name"): six.text_type,
+            voluptuous.Required("name"): str,
+            voluptuous.Required("metric_pattern"): str,
+            voluptuous.Required("archive_policy_name"): str,
         })
 
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
@@ -373,7 +366,7 @@ class ArchivePolicyRulesController(rest.RestController):
                 body['archive_policy_name']
             )
         except indexer.ArchivePolicyRuleAlreadyExists as e:
-            abort(409, six.text_type(e))
+            abort(409, str(e))
         except indexer.NoSuchArchivePolicy as e:
             abort(400, e)
 
@@ -400,7 +393,7 @@ class ArchivePolicyRuleController(rest.RestController):
     @pecan.expose('json')
     def patch(self):
         ArchivePolicyRuleSchema = voluptuous.Schema({
-            voluptuous.Required("name"): six.text_type,
+            voluptuous.Required("name"): str,
         })
         body = deserialize_and_validate(ArchivePolicyRuleSchema)
         enforce("update archive policy rule", {})
@@ -408,7 +401,7 @@ class ArchivePolicyRuleController(rest.RestController):
             return pecan.request.indexer.update_archive_policy_rule(
                 self.archive_policy_rule.name, body["name"])
         except indexer.UnsupportedArchivePolicyRuleChange as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
     @pecan.expose('json')
     def delete(self):
@@ -421,7 +414,7 @@ class ArchivePolicyRuleController(rest.RestController):
                 self.archive_policy_rule.name
             )
         except indexer.NoSuchArchivePolicyRule as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
 
 
 def MeasuresListSchema(measures):
@@ -437,7 +430,7 @@ def MeasuresListSchema(measures):
     except Exception:
         raise voluptuous.Invalid("unexpected measures value")
 
-    return (incoming.Measure(t, v) for t, v in six.moves.zip(times, values))
+    return (incoming.Measure(t, v) for t, v in zip(times, values))
 
 
 class MetricController(rest.RestController):
@@ -477,7 +470,7 @@ class MetricController(rest.RestController):
                 resample = (resample if calendar.GROUPINGS.get(resample) else
                             utils.to_timespan(resample))
             except ValueError as e:
-                abort(400, six.text_type(e))
+                abort(400, str(e))
 
         if granularity is None:
             granularity = [d.granularity
@@ -502,7 +495,7 @@ class MetricController(rest.RestController):
             agg = self.metric.archive_policy.get_aggregation(
                 aggregation, g)
             if agg is None:
-                abort(404, six.text_type(
+                abort(404, str(
                     storage.AggregationDoesNotExist(
                         self.metric, aggregation, g)
                 ))
@@ -526,7 +519,7 @@ class MetricController(rest.RestController):
                                       reverse=True)
                     for timestamp, value in results[key]]
         except storage.AggregationDoesNotExist as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         except storage.MetricDoesNotExist:
             return []
 
@@ -536,7 +529,7 @@ class MetricController(rest.RestController):
         try:
             pecan.request.indexer.delete_metric(self.metric.id)
         except indexer.NoSuchMetric as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
 
 
 class MetricsController(rest.RestController):
@@ -546,13 +539,13 @@ class MetricsController(rest.RestController):
         try:
             metric_id = uuid.UUID(id)
         except ValueError:
-            abort(404, six.text_type(indexer.NoSuchMetric(id)))
+            abort(404, str(indexer.NoSuchMetric(id)))
 
         # Load details for ACL
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"=": {"id": metric_id}}, details=True)
         if not metrics:
-            abort(404, six.text_type(indexer.NoSuchMetric(id)))
+            abort(404, str(indexer.NoSuchMetric(id)))
         return MetricController(metrics[0]), remainder
 
     # NOTE(jd) Define this method as it was a voluptuous schema – it's just a
@@ -564,11 +557,11 @@ class MetricsController(rest.RestController):
 
         # First basic validation
         schema = voluptuous.Schema({
-            "archive_policy_name": six.text_type,
+            "archive_policy_name": str,
             "resource_id": functools.partial(ResourceID, creator=creator),
-            "name": six.text_type,
+            "name": str,
             voluptuous.Optional("unit"):
-            voluptuous.All(six.text_type, voluptuous.Length(max=31)),
+            voluptuous.All(str, voluptuous.Length(max=31)),
         })
         definition = schema(definition)
         archive_policy_name = definition.get('archive_policy_name')
@@ -633,7 +626,7 @@ class MetricsController(rest.RestController):
                 unit=body.get('unit'),
                 archive_policy_name=body['archive_policy_name'])
         except indexer.NoSuchArchivePolicy as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         except indexer.NamedMetricAlreadyExists as e:
             abort(400, e)
         set_resp_location_hdr("/metric/" + str(m.id))
@@ -641,13 +634,13 @@ class MetricsController(rest.RestController):
         return m
 
     MetricListSchema = voluptuous.Schema({
-        "user_id": six.text_type,
-        "project_id": six.text_type,
-        "creator": six.text_type,
-        "name": six.text_type,
-        "id": six.text_type,
-        "unit": six.text_type,
-        "archive_policy_name": six.text_type,
+        "user_id": str,
+        "project_id": str,
+        "creator": str,
+        "name": str,
+        "id": str,
+        "unit": str,
+        "archive_policy_name": str,
         "status": voluptuous.Any("active", "delete"),
     }, extra=voluptuous.REMOVE_EXTRA)
 
@@ -677,7 +670,7 @@ class MetricsController(rest.RestController):
         if provided_creator is not None:
             attr_filters.append({"=": {"creator": provided_creator}})
 
-        for k, v in six.iteritems(filtering):
+        for k, v in filtering.items():
             attr_filters.append({"=": {k: v}})
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
@@ -698,12 +691,11 @@ class MetricsController(rest.RestController):
                 set_resp_link_hdr(str(metrics[-1].id), kwargs, pagination_opts)
             return metrics
         except indexer.InvalidPagination as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 _MetricsSchema = voluptuous.Schema({
-    six.text_type: voluptuous.Any(utils.UUID,
-                                  MetricsController.MetricSchema),
+    str: voluptuous.Any(utils.UUID, MetricsController.MetricSchema),
 })
 
 
@@ -713,7 +705,7 @@ def MetricsSchema(data):
     # available when doing the metric validation with its own MetricSchema,
     # and so we can do things such as applying archive policy rules.
     if isinstance(data, dict):
-        for metric_name, metric_def in six.iteritems(data):
+        for metric_name, metric_def in data.items():
             if isinstance(metric_def, dict):
                 metric_def['name'] = metric_name
     return _MetricsSchema(data)
@@ -738,16 +730,16 @@ class NamedMetricController(rest.RestController):
         resource = pecan.request.indexer.get_resource(self.resource_type,
                                                       self.resource_id)
         if resource:
-            abort(404, six.text_type(indexer.NoSuchMetric(name)))
+            abort(404, str(indexer.NoSuchMetric(name)))
         else:
-            abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
+            abort(404, str(indexer.NoSuchResource(self.resource_id)))
 
     @pecan.expose('json')
     def post(self):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
+            abort(404, str(indexer.NoSuchResource(self.resource_id)))
         enforce("update resource", resource)
         metrics = deserialize_and_validate(MetricsSchema)
         try:
@@ -760,11 +752,11 @@ class NamedMetricController(rest.RestController):
         except (indexer.NoSuchMetric,
                 indexer.NoSuchArchivePolicy,
                 ValueError) as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         except indexer.NamedMetricAlreadyExists as e:
-            abort(409, six.text_type(e))
+            abort(409, str(e))
         except indexer.NoSuchResource as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
 
         return r.metrics
 
@@ -773,7 +765,7 @@ class NamedMetricController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
+            abort(404, str(indexer.NoSuchResource(self.resource_id)))
         enforce("get resource", resource)
         return pecan.request.indexer.list_metrics(
             attribute_filter={"=": {"resource_id": self.resource_id}})
@@ -793,7 +785,7 @@ class ResourceHistoryController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self.resource_type, self.resource_id)
         if not resource:
-            abort(404, six.text_type(indexer.NoSuchResource(self.resource_id)))
+            abort(404, str(indexer.NoSuchResource(self.resource_id)))
 
         enforce("get resource", resource)
 
@@ -810,7 +802,7 @@ class ResourceHistoryController(rest.RestController):
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
             return resources
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 def etag_precondition_check(obj):
@@ -866,7 +858,7 @@ class ResourceTypeController(rest.RestController):
         try:
             rt = pecan.request.indexer.get_resource_type(self._name)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         enforce("get resource type", rt)
         return rt
 
@@ -878,7 +870,7 @@ class ResourceTypeController(rest.RestController):
         try:
             rt = pecan.request.indexer.get_resource_type(self._name)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         enforce("update resource type", rt)
 
         # Ensure this is a valid jsonpatch dict
@@ -891,7 +883,7 @@ class ResourceTypeController(rest.RestController):
         try:
             rt_json_next = jsonpatch.apply_patch(rt_json_current, patch)
         except jsonpatch.JsonPatchException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         del rt_json_next['state']
 
         # Validate that the whole new resource_type is valid
@@ -930,7 +922,7 @@ class ResourceTypeController(rest.RestController):
                 self._name, add_attributes=add_attrs,
                 del_attributes=del_attrs, update_attributes=update_attrs)
         except indexer.NoSuchResourceType as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
     def create_update_attrs(self, schema, update_attrs):
         new_attrs = dict(map(lambda entry: (entry[0], entry[1][1]),
@@ -978,13 +970,13 @@ class ResourceTypeController(rest.RestController):
         try:
             pecan.request.indexer.get_resource_type(self._name)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         enforce("delete resource type", resource_type)
         try:
             pecan.request.indexer.delete_resource_type(self._name)
         except (indexer.NoSuchResourceType,
                 indexer.ResourceTypeInUse) as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 class ResourceTypesController(rest.RestController):
@@ -1008,7 +1000,7 @@ class ResourceTypesController(rest.RestController):
         try:
             rt = pecan.request.indexer.create_resource_type(rt)
         except indexer.ResourceTypeAlreadyExists as e:
-            abort(409, six.text_type(e))
+            abort(409, str(e))
         set_resp_location_hdr("/resource_type/" + rt.name)
         pecan.response.status = 201
         return rt
@@ -1019,15 +1011,15 @@ class ResourceTypesController(rest.RestController):
         try:
             return pecan.request.indexer.list_resource_types()
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 def ResourceSchema(schema):
     base_schema = {
         voluptuous.Optional('started_at'): utils.to_datetime,
         voluptuous.Optional('ended_at'): utils.to_datetime,
-        voluptuous.Optional('user_id'): voluptuous.Any(None, six.text_type),
-        voluptuous.Optional('project_id'): voluptuous.Any(None, six.text_type),
+        voluptuous.Optional('user_id'): voluptuous.Any(None, str),
+        voluptuous.Optional('project_id'): voluptuous.Any(None, str),
         voluptuous.Optional('metrics'): MetricsSchema,
     }
     base_schema.update(schema)
@@ -1043,7 +1035,7 @@ class ResourceController(rest.RestController):
         try:
             self.id = utils.ResourceUUID(id, creator)
         except ValueError:
-            abort(404, six.text_type(indexer.NoSuchResource(id)))
+            abort(404, str(indexer.NoSuchResource(id)))
         self.metric = NamedMetricController(str(self.id), self._resource_type)
         self.history = ResourceHistoryController(str(self.id),
                                                  self._resource_type)
@@ -1057,14 +1049,14 @@ class ResourceController(rest.RestController):
             etag_precondition_check(resource)
             etag_set_headers(resource)
             return resource
-        abort(404, six.text_type(indexer.NoSuchResource(self.id)))
+        abort(404, str(indexer.NoSuchResource(self.id)))
 
     @pecan.expose('json')
     def patch(self):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id, with_metrics=True)
         if not resource:
-            abort(404, six.text_type(indexer.NoSuchResource(self.id)))
+            abort(404, str(indexer.NoSuchResource(self.id)))
         enforce("update resource", resource)
         etag_precondition_check(resource)
 
@@ -1091,9 +1083,9 @@ class ResourceController(rest.RestController):
         except (indexer.NoSuchMetric,
                 indexer.NoSuchArchivePolicy,
                 ValueError) as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         except indexer.NoSuchResource as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         etag_set_headers(resource)
         return resource
 
@@ -1102,13 +1094,13 @@ class ResourceController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id)
         if not resource:
-            abort(404, six.text_type(indexer.NoSuchResource(self.id)))
+            abort(404, str(indexer.NoSuchResource(self.id)))
         enforce("delete resource", resource)
         etag_precondition_check(resource)
         try:
             pecan.request.indexer.delete_resource(self.id)
         except indexer.NoSuchResource as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
 
 
 def schema_for(resource_type):
@@ -1128,7 +1120,7 @@ def ResourceID(value, creator):
 
     :return: A tuple (original_resource_id, resource_id)
     """
-    return (six.text_type(value), ResourceUUID(value, creator))
+    return (str(value), ResourceUUID(value, creator))
 
 
 class ResourcesController(rest.RestController):
@@ -1165,12 +1157,12 @@ class ResourcesController(rest.RestController):
         except (ValueError,
                 indexer.NoSuchMetric,
                 indexer.NoSuchArchivePolicy) as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
         except indexer.ResourceAlreadyExists as e:
-            abort(409, six.text_type(e))
+            abort(409, str(e))
         set_resp_location_hdr("/resource/"
                               + self._resource_type + "/"
-                              + six.text_type(resource.id))
+                              + str(resource.id))
         etag_set_headers(resource)
         pecan.response.status = 201
         return resource
@@ -1204,7 +1196,7 @@ class ResourcesController(rest.RestController):
                 set_resp_link_hdr(marker, kwargs, pagination_opts)
             return [r.jsonify(json_attrs) for r in resources]
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
     @pecan.expose('json')
     def delete(self, **kwargs):
@@ -1234,7 +1226,7 @@ class ResourcesController(rest.RestController):
             delete_num = pecan.request.indexer.delete_resources(
                 self._resource_type, attribute_filter=attr_filter)
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
         return {"deleted": delete_num}
 
@@ -1252,7 +1244,7 @@ class ResourcesByTypeController(rest.RestController):
         try:
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         return ResourcesController(resource_type), remainder
 
 
@@ -1346,10 +1338,10 @@ def ResourceSearchSchema(v):
 # NOTE(sileht): indexer will cast this type to the real attribute
 # type, here we just want to be sure this is not a dict or a list
 ResourceSearchSchemaAttributeValue = voluptuous.Any(
-    six.text_type, float, int, bool, None)
+    str, float, int, bool, None)
 
 
-NotIDKey = voluptuous.All(six.text_type, voluptuous.NotIn(["id"]))
+NotIDKey = voluptuous.All(str, voluptuous.NotIn(["id"]))
 
 
 def _ResourceSearchSchema():
@@ -1447,7 +1439,7 @@ class SearchResourceTypeController(rest.RestController):
         try:
             return [r.jsonify(json_attrs) for r in self._search(**kwargs)]
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
 
 class SearchResourceController(rest.RestController):
@@ -1456,7 +1448,7 @@ class SearchResourceController(rest.RestController):
         try:
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         return SearchResourceTypeController(resource_type), remainder
 
 
@@ -1641,7 +1633,7 @@ class SearchMetricController(rest.RestController):
         try:
             predicate = self.MeasureQuery(query)
         except self.MeasureQuery.InvalidQuery as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
         if granularity is not None:
             granularity = sorted(
@@ -1676,11 +1668,11 @@ class SearchMetricController(rest.RestController):
         return {
             str(metric.id): [
                 (timestamp, aggregation.granularity, value)
-                for aggregation, ts in six.iteritems(aggregations_and_ts)
+                for aggregation, ts in aggregations_and_ts.items()
                 for timestamp, value in ts
                 if predicate(value)
             ]
-            for metric, aggregations_and_ts in six.iteritems(timeseries)
+            for metric, aggregations_and_ts in timeseries.items()
         }
 
 
@@ -1691,9 +1683,9 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
         v = voluptuous.Schema(
             voluptuous.Any(MeasuresListSchema,
                            {voluptuous.Optional("archive_policy_name"):
-                            six.text_type,
+                            str,
                             voluptuous.Optional("unit"):
-                            six.text_type,
+                            str,
                             "measures": MeasuresListSchema}),
             required=True)(v)
         if isinstance(v, dict):
@@ -1708,7 +1700,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
             pecan.request)
         MeasuresBatchSchema = voluptuous.Schema(
             {functools.partial(ResourceID, creator=creator):
-             {six.text_type: self.BackwardCompatibleMeasuresList}})
+             {str: self.BackwardCompatibleMeasuresList}})
         body = deserialize_and_validate(MeasuresBatchSchema)
 
         known_metrics = []
@@ -1762,13 +1754,13 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
                             already_exists_names.append(e.metric_name)
                         except indexer.NoSuchResource:
                             unknown_resources.append({
-                                'resource_id': six.text_type(resource_id),
+                                'resource_id': str(resource_id),
                                 'original_resource_id': original_resource_id})
                             break
                         except indexer.IndexerException as e:
                             # This catch NoSuchArchivePolicy, which is unlikely
                             # be still possible
-                            abort(400, six.text_type(e))
+                            abort(400, str(e))
                         else:
                             known_metrics.append(m)
 
@@ -1784,7 +1776,7 @@ class ResourcesMetricsMeasuresBatchController(rest.RestController):
 
             elif len(names) != len(metrics):
                 unknown_metrics.extend(
-                    ["%s/%s" % (six.text_type(resource_id), m)
+                    ["%s/%s" % (str(resource_id), m)
                      for m in names if m not in known_names])
 
             known_metrics.extend(metrics)
@@ -1828,7 +1820,7 @@ class MetricsMeasuresBatchController(rest.RestController):
         if len(metrics) != len(body):
             missing_metrics = sorted(set(body) - set(m.id for m in metrics))
             abort(400, "Unknown metrics: %s" % ", ".join(
-                six.moves.map(str, missing_metrics)))
+                map(str, missing_metrics)))
 
         for metric in metrics:
             enforce("post measures", metric)
@@ -1868,7 +1860,7 @@ class AggregationResourceController(rest.RestController):
         except indexer.InvalidPagination:
             abort(400, "Invalid groupby attribute")
         except indexer.IndexerException as e:
-            abort(400, six.text_type(e))
+            abort(400, str(e))
 
         if resources is None:
             return []
@@ -1936,7 +1928,7 @@ def validate_qs(start=None, stop=None, granularity=None,
         except ValueError as e:
             abort(400, {"cause": "Argument value error",
                         "detail": "granularity",
-                        "reason": six.text_type(e)})
+                        "reason": str(e)})
 
     if fill is not None:
         try:
@@ -1964,7 +1956,7 @@ class AggregationController(rest.RestController):
         try:
             pecan.request.indexer.get_resource_type(resource_type)
         except indexer.NoSuchResourceType as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
         return AggregationResourceController(resource_type,
                                              metric_name), remainder
 
@@ -1995,7 +1987,7 @@ class AggregationController(rest.RestController):
                 resample = (resample if calendar.GROUPINGS.get(resample) else
                             utils.to_timespan(resample))
             except ValueError as e:
-                abort(400, six.text_type(e))
+                abort(400, str(e))
 
         if granularity is None:
             granularities = (
@@ -2006,8 +1998,8 @@ class AggregationController(rest.RestController):
             # granularities_in_common
             granularity = [
                 g
-                for g, occurrence in six.iteritems(
-                    collections.Counter(granularities))
+                for g, occurrence in collections.Counter(
+                    granularities).items()
                 if occurrence == len(metrics)
             ]
 
@@ -2023,7 +2015,7 @@ class AggregationController(rest.RestController):
                 agg = metric.archive_policy.get_aggregation(
                     aggregation, g)
                 if agg is None:
-                    abort(404, six.text_type(
+                    abort(404, str(
                         storage.AggregationDoesNotExist(metric, aggregation, g)
                     ))
                 aggregations.add(agg)
@@ -2088,7 +2080,7 @@ class AggregationController(rest.RestController):
         except exceptions.UnAggregableTimeseries as e:
             abort(400, e)
         except storage.AggregationDoesNotExist as e:
-            abort(404, six.text_type(e))
+            abort(404, str(e))
 
     MetricIDsSchema = [utils.UUID]
 
@@ -2107,15 +2099,15 @@ class AggregationController(rest.RestController):
             self._workaround_pecan_issue_88()
             metric_ids = deserialize_and_validate(self.MetricIDsSchema)
 
-        metric_ids = [six.text_type(m) for m in metric_ids]
+        metric_ids = [str(m) for m in metric_ids]
         # Check RBAC policy
         metrics = pecan.request.indexer.list_metrics(
             attribute_filter={"in": {"id": metric_ids}})
         missing_metric_ids = (set(metric_ids)
-                              - set(six.text_type(m.id) for m in metrics))
+                              - set(str(m.id) for m in metrics))
         if missing_metric_ids:
             # Return one of the missing one in the error
-            abort(404, six.text_type(storage.MetricDoesNotExist(
+            abort(404, str(storage.MetricDoesNotExist(
                 missing_metric_ids.pop())))
         return self.get_cross_metric_measures_from_objs(
             metrics, start, stop, aggregation, reaggregation,
@@ -2167,10 +2159,10 @@ class StatusController(rest.RestController):
                 member.decode() for member in members
             ]
             members_data = {}
-            for member, cap in six.moves.zip(members, caps):
+            for member, cap in zip(members, caps):
                 caps_data = {
-                    six.ensure_str(k): v
-                    for k, v in six.iteritems(cap.get())
+                    str(k): v
+                    for k, v in cap.get().items()
                 }
                 members_data[member.decode()] = caps_data
             report_dict['metricd']['statistics'] = members_data

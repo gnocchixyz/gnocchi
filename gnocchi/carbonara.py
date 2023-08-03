@@ -27,7 +27,6 @@ import time
 
 import lz4.block
 import numpy
-import six
 
 from gnocchi import calendar
 
@@ -232,7 +231,7 @@ class TimeSerie(object):
         self.ts = ts
 
     def __iter__(self):
-        return six.moves.zip(self.ts['timestamps'], self.ts['values'])
+        return zip(self.ts['timestamps'], self.ts['values'])
 
     @classmethod
     def from_data(cls, timestamps=None, values=None):
@@ -411,34 +410,34 @@ class BoundTimeSerie(TimeSerie):
         now = numpy.datetime64("2015-04-03 23:11")
         timestamps = numpy.sort(numpy.array(
             [now + numpy.timedelta64(random.randint(1000000, 10000000), 'us')
-             for i in six.moves.range(points)]))
+             for i in range(points)]))
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
 
         for title, values in [
-                ("Simple continuous range", six.moves.range(points)),
+                ("Simple continuous range", range(points)),
                 ("All 0", [float(0)] * points),
                 ("All 1", [float(1)] * points),
                 ("0 and 1", [0, 1] * (points // 2)),
                 ("1 and 0 random",
                  [random.randint(0, 1)
-                  for x in six.moves.range(points)]),
+                  for x in range(points)]),
                 ("Small number random pos/neg",
                  [random.randint(-100000, 10000)
-                  for x in six.moves.range(points)]),
+                  for x in range(points)]),
                 ("Small number random pos",
-                 [random.randint(0, 20000) for x in six.moves.range(points)]),
+                 [random.randint(0, 20000) for x in range(points)]),
                 ("Small number random neg",
-                 [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
+                 [random.randint(-20000, 0) for x in range(points)]),
+                ("Sin(x)", list(map(math.sin, range(points)))),
                 ("random ", [random.random()
-                             for x in six.moves.range(points)]),
+                             for x in range(points)]),
         ]:
             print(title)
             ts = cls.from_data(timestamps, values)
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 s = ts.serialize()
             t1 = time.time()
             print("  Serialization speed: %.2f MB/s"
@@ -447,7 +446,7 @@ class BoundTimeSerie(TimeSerie):
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 cls.unserialize(s, ONE_SECOND, 1)
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
@@ -637,7 +636,7 @@ class AggregatedTimeSerie(TimeSerie):
             round_timestamp(self.timestamps, freq),
             return_counts=True)
         start = 0
-        for key, count in six.moves.zip(keys, counts):
+        for key, count in zip(keys, counts):
             end = start + count
             yield (SplitKey(key, self.aggregation.granularity),
                    AggregatedTimeSerie(self.aggregation, self[start:end]))
@@ -680,7 +679,7 @@ class AggregatedTimeSerie(TimeSerie):
     @staticmethod
     def is_compressed(serialized_data):
         """Check whatever the data was serialized with compression."""
-        return six.indexbytes(serialized_data, 0) == ord("c")
+        return serialized_data[0] == ord("c")
 
     @classmethod
     def unserialize(cls, data, key, aggregation):
@@ -813,29 +812,29 @@ class AggregatedTimeSerie(TimeSerie):
         now = numpy.datetime64("2015-04-03 23:11")
         timestamps = numpy.sort(numpy.array(
             [now + i * sampling
-             for i in six.moves.range(points)]))
+             for i in range(points)]))
 
         print(cls.__name__)
         print("=" * len(cls.__name__))
 
         for title, values in [
-                ("Simple continuous range", six.moves.range(points)),
+                ("Simple continuous range", range(points)),
                 ("All 0", [float(0)] * points),
                 ("All 1", [float(1)] * points),
                 ("0 and 1", [0, 1] * (points // 2)),
                 ("1 and 0 random",
                  [random.randint(0, 1)
-                  for x in six.moves.range(points)]),
+                  for x in range(points)]),
                 ("Small number random pos/neg",
                  [random.randint(-100000, 10000)
-                  for x in six.moves.range(points)]),
+                  for x in range(points)]),
                 ("Small number random pos",
-                 [random.randint(0, 20000) for x in six.moves.range(points)]),
+                 [random.randint(0, 20000) for x in range(points)]),
                 ("Small number random neg",
-                 [random.randint(-20000, 0) for x in six.moves.range(points)]),
-                ("Sin(x)", list(map(math.sin, six.moves.range(points)))),
+                 [random.randint(-20000, 0) for x in range(points)]),
+                ("Sin(x)", list(map(math.sin, range(points)))),
                 ("random ", [random.random()
-                             for x in six.moves.range(points)]),
+                             for x in range(points)]),
         ]:
             print(title)
             serialize_times = 50
@@ -843,7 +842,7 @@ class AggregatedTimeSerie(TimeSerie):
             ts = cls.from_data(aggregation, timestamps, values)
             t0 = time.time()
             key = ts.get_split_key()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 e, s = ts.serialize(key, compressed=False)
             t1 = time.time()
             print("  Uncompressed serialization speed: %.2f MB/s"
@@ -852,7 +851,7 @@ class AggregatedTimeSerie(TimeSerie):
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Unserialization speed: %.2f MB/s"
@@ -860,7 +859,7 @@ class AggregatedTimeSerie(TimeSerie):
                       / ((t1 - t0) / serialize_times)) / (1024.0 * 1024.0)))
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 o, s = ts.serialize(key, compressed=True)
             t1 = time.time()
             print("  Compressed serialization speed: %.2f MB/s"
@@ -869,7 +868,7 @@ class AggregatedTimeSerie(TimeSerie):
             print("   Bytes per point: %.2f" % (len(s) / float(points)))
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 cls.unserialize(s, key, 'mean')
             t1 = time.time()
             print("  Uncompression speed: %.2f MB/s"
@@ -880,7 +879,7 @@ class AggregatedTimeSerie(TimeSerie):
                 return 1 / ((t1 - t0) / serialize_times)
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 list(ts.split())
             t1 = time.time()
             print("  split() speed: %.2f Hz" % per_sec(t1, t0))
@@ -894,7 +893,7 @@ class AggregatedTimeSerie(TimeSerie):
             )
 
             t0 = time.time()
-            for i in six.moves.range(serialize_times):
+            for i in range(serialize_times):
                 ts.merge(tsbis)
             t1 = time.time()
             print("  merge() speed %.2f Hz" % per_sec(t1, t0))
@@ -904,7 +903,7 @@ class AggregatedTimeSerie(TimeSerie):
                 serialize_times = 3 if agg.endswith('pct') else 10
                 ts = cls(ts=pts, aggregation=aggregation)
                 t0 = time.time()
-                for i in six.moves.range(serialize_times):
+                for i in range(serialize_times):
                     ts.resample(resample)
                 t1 = time.time()
                 print("  resample(%s) speed: %.2f Hz"

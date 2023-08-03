@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 from __future__ import absolute_import
+import io
 import json
 import os
 import subprocess
@@ -22,8 +23,6 @@ import tempfile
 
 import jinja2
 from oslo_config import generator
-import six
-import six.moves
 from sphinx.util import logging
 import webob.request
 import yaml
@@ -49,10 +48,7 @@ def _extract_body(req_or_resp):
     if not req_or_resp.text:
         return ""
 
-    if six.PY2:
-        body = req_or_resp.body
-    else:
-        body = req_or_resp.text
+    body = req_or_resp.text
     if req_or_resp.content_type.startswith("application/json"):
         body = _format_json(body)
     return "\n      ".join(body.split("\n"))
@@ -61,7 +57,7 @@ def _extract_body(req_or_resp):
 def _format_headers(headers):
     return "\n".join(
         "      %s: %s" % (k, v)
-        for k, v in six.iteritems(headers))
+        for k, v in headers.items())
 
 
 def _response_to_httpdomain(response):
@@ -209,10 +205,8 @@ def setup(app):
                     scenarios=scenarios)
 
             template = jinja2.Template(entry['request'])
-            fake_file = six.moves.cStringIO()
+            fake_file = io.StringIO()
             content = template.render(scenarios=scenarios)
-            if six.PY2:
-                content = content.encode('utf-8')
             fake_file.write(content)
             fake_file.seek(0)
             request = webapp.RequestClass.from_file(fake_file)
@@ -228,7 +222,7 @@ def setup(app):
                     request.body = fake_file.read(clen)
 
             LOG.info("Doing request %s: %s",
-                     entry['name'], six.text_type(request))
+                     entry['name'], str(request))
             with webapp.use_admin_user():
                 response = webapp.request(request)
             entry['response'] = response
@@ -238,13 +232,9 @@ def setup(app):
         test.tearDownClass()
     with open("doc/source/rest.j2", "r") as f:
         content = f.read()
-        if six.PY2:
-            content = content.decode("utf-8")
         template = jinja2.Template(content)
     with open("doc/source/rest.rst", "w") as f:
         content = template.render(scenarios=scenarios)
-        if six.PY2:
-            content = content.encode("utf-8")
         f.write(content)
 
     config_output_file = 'doc/source/gnocchi.conf.sample'

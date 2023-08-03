@@ -18,7 +18,7 @@
 import os
 
 from gabbi import driver
-import six.moves.urllib.parse as urlparse
+import urllib.parse as urlparse
 
 
 TESTS_DIR = 'gabbits'

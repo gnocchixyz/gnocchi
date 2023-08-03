@@ -18,7 +18,6 @@ import uuid
 
 import daiquiri
 from redis.exceptions import ConnectionError
-import six
 import tenacity
 
 from gnocchi.common import redis
@@ -86,7 +85,7 @@ return results
     def add_measures_batch(self, metrics_and_measures):
         notified_sacks = set()
         pipe = self._client.pipeline(transaction=False)
-        for metric_id, measures in six.iteritems(metrics_and_measures):
+        for metric_id, measures in metrics_and_measures.items():
             sack_name = str(self.sack_for_metric(metric_id))
             path = self._build_measure_path_with_sack(metric_id, sack_name)
             pipe.rpush(path, self._encode_measures(measures))
@@ -108,7 +107,7 @@ return results
             report_vars['measures'] += sum(results)
             if details:
                 report_vars['metric_details'].update(
-                    dict(six.moves.zip(m_list, results)))
+                    dict(zip(m_list, results)))
 
         match = redis.SEP.join([self._get_sack_name("*").encode(), b"*"])
         metrics = 0
@@ -149,12 +148,12 @@ return results
             )
 
         results = pipe.execute()
-        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+        for metric_id, (item_len, data) in zip(metric_ids, results):
             measures[metric_id] = self._unserialize_measures(metric_id, data)
 
         yield measures
 
-        for metric_id, (item_len, data) in six.moves.zip(metric_ids, results):
+        for metric_id, (item_len, data) in zip(metric_ids, results):
             key = self._build_measure_path(metric_id)
             # ltrim is inclusive, bump 1 to remove up to and including nth item
             pipe.ltrim(key, item_len + 1, -1)

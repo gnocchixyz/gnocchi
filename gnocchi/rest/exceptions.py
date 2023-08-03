@@ -13,12 +13,11 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import six
 
 
 class UnableToDecodeBody(Exception):
     def __init__(self, exception, body):
-        self.reason = six.text_type(exception)
+        self.reason = str(exception)
         self.body = body
         super(UnableToDecodeBody, self).__init__(body)
 

@@ -47,7 +47,6 @@ else:
 """
 
 
-# Can't use six in this file it's too early in the bootstrap process
 PY3 = sys.version_info >= (3,)
 
 

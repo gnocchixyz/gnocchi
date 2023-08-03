@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import daiquiri
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 try:
     from swiftclient import client as swclient

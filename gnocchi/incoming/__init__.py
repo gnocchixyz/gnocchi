@@ -21,7 +21,6 @@ import operator
 
 import daiquiri
 import numpy
-import six
 
 from gnocchi.carbonara import TIMESERIES_ARRAY_DTYPE
 from gnocchi import exceptions
@@ -194,7 +193,7 @@ class IncomingDriver(object):
         self.MAP_METHOD(self._store_new_measures,
                         ((metric_id, self._encode_measures(measures))
                          for metric_id, measures
-                         in six.iteritems(metrics_and_measures)))
+                         in metrics_and_measures.items()))
 
     @staticmethod
     def _store_new_measures(metric_id, data):
@@ -245,7 +244,7 @@ class IncomingDriver(object):
         return self._make_sack(metric_id.int % self.NUM_SACKS)
 
     def iter_sacks(self):
-        return (self._make_sack(i) for i in six.moves.range(self.NUM_SACKS))
+        return (self._make_sack(i) for i in range(self.NUM_SACKS))
 
     @staticmethod
     def iter_on_sacks_to_process():

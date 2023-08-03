@@ -18,7 +18,6 @@ import uuid
 
 from concurrent import futures
 from oslo_config import cfg
-import six
 
 from gnocchi import incoming
 from gnocchi import indexer
@@ -45,15 +44,15 @@ def injector():
             creator=conf.creator,
             archive_policy_name=conf.archive_policy_name)
 
-        for _ in six.moves.range(conf.batch_of_measures):
+        for _ in range(conf.batch_of_measures):
             measures = [
                 incoming.Measure(
                     utils.dt_in_unix_ns(utils.utcnow()), random.random())
-                for __ in six.moves.range(conf.measures_per_batch)]
+                for __ in range(conf.measures_per_batch)]
             instore.add_measures(metric, measures)
 
     with futures.ThreadPoolExecutor(max_workers=conf.metrics) as executor:
-        for m in six.moves.range(conf.metrics):
+        for m in range(conf.metrics):
             executor.submit(todo)
 
 

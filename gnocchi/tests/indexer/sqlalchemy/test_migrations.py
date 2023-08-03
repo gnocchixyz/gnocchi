@@ -17,7 +17,6 @@ import abc
 import fixtures
 import oslo_db.exception
 from oslo_db.sqlalchemy import test_migrations
-import six
 import sqlalchemy.schema
 import sqlalchemy_utils
 from unittest import mock
@@ -32,10 +31,9 @@ class ABCSkip(base.SkipNotImplementedMeta, abc.ABCMeta):
     pass
 
 
-class ModelsMigrationsSync(
-        six.with_metaclass(ABCSkip,
-                           base.TestCase,
-                           test_migrations.ModelsMigrationsSync)):
+class ModelsMigrationsSync(base.TestCase,
+                           test_migrations.ModelsMigrationsSync,
+                           metaclass=ABCSkip):
 
     def setUp(self):
         super(ModelsMigrationsSync, self).setUp()

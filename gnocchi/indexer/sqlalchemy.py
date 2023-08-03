@@ -37,13 +37,12 @@ try:
     import pymysql.err
 except ImportError:
     pymysql = None
-import six
-from six.moves.urllib import parse as urlparse
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
 from sqlalchemy import types as sa_types
 import sqlalchemy_utils
+from urllib import parse as urlparse
 
 from gnocchi import exceptions
 from gnocchi import indexer
@@ -960,7 +959,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     r.ended_at = ended_at
 
                 if kwargs:
-                    for attribute, value in six.iteritems(kwargs):
+                    for attribute, value in kwargs.items():
                         if hasattr(r, attribute):
                             setattr(r, attribute, value)
                         else:
@@ -991,7 +990,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @staticmethod
     def _set_metrics_for_resource(session, r, metrics):
-        for name, value in six.iteritems(metrics):
+        for name, value in metrics.items():
             if isinstance(value, uuid.UUID):
                 try:
                     update = session.query(Metric).filter(
@@ -1327,7 +1326,7 @@ class QueryTransformer(object):
 
     converters = (
         (types.TimestampUTC, utils.to_datetime),
-        (sa_types.String, six.text_type),
+        (sa_types.String, str),
         (sa_types.Integer, int),
         (sa_types.Numeric, float),
     )

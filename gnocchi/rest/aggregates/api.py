@@ -22,7 +22,6 @@ import numpy
 import pecan
 from pecan import rest
 import pyparsing
-import six
 import voluptuous
 
 from gnocchi import indexer
@@ -65,10 +64,10 @@ def MetricSchema(v):
         raise voluptuous.Invalid("'%s' operation invalid" % v[0])
 
     return [u"metric"] + voluptuous.Schema(voluptuous.Any(
-        voluptuous.ExactSequence([six.text_type, six.text_type]),
+        voluptuous.ExactSequence([str, str]),
         voluptuous.All(
             voluptuous.Length(min=1),
-            [voluptuous.ExactSequence([six.text_type, six.text_type])],
+            [voluptuous.ExactSequence([str, str])],
         )), required=True)(v[1:])
 
 
@@ -128,14 +127,14 @@ OperationsSubNodeSchema = voluptuous.Schema(voluptuous.Any(*tuple(
 
 
 def OperationsSchema(v):
-    if isinstance(v, six.text_type):
+    if isinstance(v, str):
         try:
             v = pyparsing.OneOrMore(
                 pyparsing.nestedExpr()).parseString(v).asList()[0]
         except pyparsing.ParseException as e:
             api.abort(400, {"cause": "Invalid operations",
                             "reason": "Fail to parse the operations string",
-                            "detail": six.text_type(e)})
+                            "detail": str(e)})
     return voluptuous.Schema(voluptuous.Any(*OperationsSchemaBase),
                              required=True)(v)
 
@@ -507,9 +506,9 @@ class AggregatesController(rest.RestController):
                         references, resources, start, stop, groupby)
 
             except indexer.NoSuchMetric as e:
-                api.abort(404, six.text_type(e))
+                api.abort(404, str(e))
             except indexer.IndexerException as e:
-                api.abort(400, six.text_type(e))
+                api.abort(400, str(e))
             except Exception as e:
                 LOG.exception(e)
                 raise e
@@ -517,23 +516,23 @@ class AggregatesController(rest.RestController):
             if not results:
                 all_metrics_not_found = list(set((m for (m, a) in references)))
                 all_metrics_not_found.sort()
-                api.abort(404, six.text_type(
+                api.abort(404, str(
                     indexer.NoSuchMetric(all_metrics_not_found)))
             return results
 
         else:
             try:
-                metric_ids = set(six.text_type(utils.UUID(m))
+                metric_ids = set(str(utils.UUID(m))
                                  for (m, a) in references)
             except ValueError as e:
                 api.abort(400, {"cause": "Invalid metric references",
-                                "reason": six.text_type(e),
+                                "reason": str(e),
                                 "detail": references})
 
             metrics = pecan.request.indexer.list_metrics(
                 attribute_filter={"in": {"id": metric_ids}})
             missing_metric_ids = (set(metric_ids)
-                                  - set(six.text_type(m.id) for m in metrics))
+                                  - set(str(m.id) for m in metrics))
             if missing_metric_ids:
                 api.abort(404, {"cause": "Unknown metrics",
                                 "reason": "Provided metrics don't exists",
@@ -546,7 +545,7 @@ class AggregatesController(rest.RestController):
             for metric in metrics:
                 api.enforce("get metric", metric)
 
-            metrics_by_ids = dict((six.text_type(m.id), m) for m in metrics)
+            metrics_by_ids = dict((str(m.id), m) for m in metrics)
             references = [processor.MetricReference(metrics_by_ids[m], a)
                           for (m, a) in references]
 

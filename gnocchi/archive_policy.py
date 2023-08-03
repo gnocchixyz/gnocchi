@@ -21,7 +21,6 @@ import operator
 import numpy
 from oslo_config import cfg
 from oslo_config import types
-import six
 
 from gnocchi import carbonara
 from gnocchi import utils
@@ -40,7 +39,7 @@ class ArchivePolicy(object):
     VALID_AGGREGATION_METHODS = set(
         ('mean', 'sum', 'last', 'max', 'min',
          'std', 'median', 'first', 'count')).union(
-             set((str(i) + 'pct' for i in six.moves.range(1, 100))))
+             set((str(i) + 'pct' for i in range(1, 100))))
 
     VALID_AGGREGATION_METHODS = VALID_AGGREGATION_METHODS.union(
         set(map(lambda s: "rate:" + s,
@@ -240,13 +239,13 @@ class ArchivePolicyItem(dict):
     def jsonify(self):
         """Return a dict representation with human readable values."""
         return {
-            'timespan': six.text_type(
+            'timespan': str(
                 datetime.timedelta(
                     seconds=utils.timespan_total_seconds(
                         self.timespan)))
             if self.timespan is not None
             else None,
-            'granularity': six.text_type(
+            'granularity': str(
                 datetime.timedelta(
                     seconds=utils.timespan_total_seconds(
                         self.granularity))),
