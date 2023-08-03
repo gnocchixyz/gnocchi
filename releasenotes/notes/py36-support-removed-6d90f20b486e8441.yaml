@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added support for Python 3.11
+upgrade:
+  - |
+    Removed support for Python 3.6, the supported version is now
+    Python 3.8 or higher.
