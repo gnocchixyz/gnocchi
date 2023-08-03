@@ -60,7 +60,7 @@ RUN locale-gen $LANG
 
 #NOTE(sileht): Upgrade python dev tools
 RUN python3 -m pip install -U pip tox virtualenv
-RUN python3.6 -m pip install -U pip tox virtualenv
+RUN python3.11 -m pip install -U pip tox virtualenv
 
 RUN npm install s3rver@3.7.0 --global
 
