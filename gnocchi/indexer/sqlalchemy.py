@@ -281,7 +281,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 url))
         new_database = purl.database + str(uuid.uuid4()).replace('-', '')
         purl = cls._set_url_database(purl, new_database)
-        new_url = str(purl)
+        new_url = purl.render_as_string(hide_password=False)
         sqlalchemy_utils.create_database(new_url)
         return new_url
 
@@ -292,12 +292,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             url = sqlalchemy_url.make_url(url)
             new_drivername = "mysql+pymysql"
             url = cls._set_url_drivername(url, new_drivername)
-            return str(url)
+            return url.render_as_string(hide_password=False)
         if url.startswith("postgresql://"):
             url = sqlalchemy_url.make_url(url)
             new_drivername = "postgresql+psycopg2"
             url = cls._set_url_drivername(url, new_drivername)
-            return str(url)
+            return url.render_as_string(hide_password=False)
         return url
 
     def __init__(self, conf):
