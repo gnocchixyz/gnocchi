@@ -547,7 +547,10 @@ class SplitKey(object):
         return str(float(self))
 
     def __float__(self):
-        return datetime64_to_epoch(self.key)
+        f = datetime64_to_epoch(self.key)
+        if isinstance(f, numpy.float64):
+            return f.item()
+        return f
 
     def __repr__(self):
         return "<%s: %s / %s>" % (self.__class__.__name__,
