@@ -98,13 +98,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
-
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-import sphinx_rtd_theme
-html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+html_theme = 'furo'
 
 
 # The name for this set of Sphinx documents.  If None, it defaults to
@@ -171,25 +165,3 @@ html_static_path = ['_static']
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'gnocchidoc'
-
-html_theme_options = {
-    'logo_only': True,
-}
-
-# Multiversion docs
-scv_sort = ('semver',)
-scv_show_banner = True
-scv_banner_main_ref = 'stable/4.5'
-scv_priority = 'branches'
-scv_whitelist_branches = ('master', '^stable/([3-9]\.)')
-scv_whitelist_tags = ("^$",)
-
-here = os.path.dirname(os.path.realpath(__file__))
-html_static_path_abs = ",".join([os.path.join(here, p) for p in html_static_path])
-# NOTE(sileht): Override some conf for old version.
-scv_overflow = ("-D", "html_theme=sphinx_rtd_theme",
-                "-D", "html_theme_options.logo_only=True",
-                "-D", "html_logo=_static/gnocchi-logo.png",
-                "-D", "html_favicon=_static/gnocchi-icon.ico",
-                "-D", "html_static_path=%s" % html_static_path_abs,
-                "-W")
