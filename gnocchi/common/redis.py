@@ -17,8 +17,7 @@
 from __future__ import absolute_import
 
 from oslo_config import cfg
-import six
-from six.moves.urllib import parse
+from urllib import parse
 
 try:
     import redis
@@ -173,7 +172,7 @@ def get_client(conf, scripts=None):
     if scripts is not None:
         scripts = {
             name: client.register_script(code)
-            for name, code in six.iteritems(scripts)
+            for name, code in scripts.items()
         }
 
     return client, scripts

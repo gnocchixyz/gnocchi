@@ -17,7 +17,6 @@
 import collections
 
 from oslo_config import cfg
-import six
 
 from gnocchi import carbonara
 from gnocchi.common import swift
@@ -184,7 +183,7 @@ class SwiftStorage(storage.StorageDriver):
         k_methods = zipped[1]
         k_granularities = list(map(utils.to_timespan, zipped[2]))
 
-        for timestamp, method, granularity in six.moves.zip(
+        for timestamp, method, granularity in zip(
                 k_timestamps, k_methods, k_granularities):
             for aggregation in aggregations:
                 if (aggregation.method == method

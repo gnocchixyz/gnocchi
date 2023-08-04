@@ -27,7 +27,6 @@ import numpy
 import pecan
 from pecan import rest
 import pyparsing
-import six
 import tenacity
 try:
     import uwsgi
@@ -211,7 +210,7 @@ class InfluxDBController(rest.RestController):
                             ",".join(("%s=%s" % (k, tags[k]))
                                      for k in sorted(tags)))
 
-                for field_name, field_value in six.iteritems(fields):
+                for field_name, field_value in fields.items():
                     if isinstance(field_value, str):
                         # We do not support field value that are not numerical
                         continue
@@ -229,8 +228,7 @@ class InfluxDBController(rest.RestController):
                         incoming.Measure(timestamp, field_value))
 
             measures_to_batch = {}
-            for resource_name, metrics_and_measures in six.iteritems(
-                    resources):
+            for resource_name, metrics_and_measures in resources.items():
                 resource_name = resource_name
                 resource_id = utils.ResourceUUID(
                     resource_name, creator=creator)

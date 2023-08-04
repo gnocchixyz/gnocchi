@@ -17,7 +17,6 @@
 import collections
 
 from oslo_config import cfg
-import six
 
 from gnocchi import carbonara
 from gnocchi.common import ceph
@@ -84,8 +83,8 @@ class CephStorage(storage.StorageDriver):
     def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
                              version=3):
         with rados.WriteOpCtx() as op:
-            for metric, keys_aggregations_data_offset in six.iteritems(
-                    metrics_keys_aggregations_data_offset):
+            for metric, keys_aggregations_data_offset in (
+                    metrics_keys_aggregations_data_offset.items()):
                 for key, agg, data, offset in keys_aggregations_data_offset:
                     name = self._get_object_name(
                         metric, key, agg.method, version)
@@ -99,8 +98,8 @@ class CephStorage(storage.StorageDriver):
 
     def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
         with rados.WriteOpCtx() as op:
-            for metric, keys_and_aggregations in six.iteritems(
-                    metrics_keys_aggregations):
+            for metric, keys_and_aggregations in (
+                    metrics_keys_aggregations.items()):
                 names = tuple(
                     self._get_object_name(
                         metric, key, aggregation.method, version)
@@ -189,7 +188,7 @@ class CephStorage(storage.StorageDriver):
             k_methods = zipped[3]
             k_granularities = list(map(utils.to_timespan, zipped[4]))
 
-            for timestamp, method, granularity in six.moves.zip(
+            for timestamp, method, granularity in zip(
                     k_timestamps, k_methods, k_granularities):
                 for aggregation in aggregations:
                     if (aggregation.method == method

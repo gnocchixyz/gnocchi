@@ -17,6 +17,7 @@
 import datetime
 import distutils.util
 import errno
+import functools
 import itertools
 import multiprocessing
 import os
@@ -27,7 +28,6 @@ import daiquiri
 import iso8601
 import numpy
 import pytimeparse
-import six
 from stevedore import driver
 import tenacity
 import time
@@ -53,11 +53,6 @@ def ResourceUUID(value, creator):
         if len(value) <= 255:
             if creator is None:
                 creator = "\x00"
-            # value/creator must be str (unicode) in Python 3 and str (bytes)
-            # in Python 2. It's not logical, I know.
-            if six.PY2:
-                value = value.encode('utf-8')
-                creator = creator.encode('utf-8')
             return uuid.uuid5(RESOURCE_ID_NAMESPACE,
                               value + "\x00" + creator)
         raise ValueError(
@@ -320,7 +315,7 @@ def return_none_on_failure(f):
     except AttributeError:
         fname = f.__name__
 
-    @six.wraps(f)
+    @functools.wraps(f)
     def _return_none_on_failure(*args, **kwargs):
         try:
             return f(*args, **kwargs)
@@ -354,7 +349,7 @@ def retry_on_exception_and_log(msg):
 
 
 def is_resource_revision_needed(resource, request_attributes):
-    for k, v in six.iteritems(request_attributes):
+    for k, v in request_attributes.items():
         if not hasattr(resource, k):
             continue
 

@@ -15,8 +15,6 @@
 # under the License.
 import collections
 
-import six
-
 from gnocchi import carbonara
 from gnocchi.common import redis
 from gnocchi import storage
@@ -93,7 +91,7 @@ return ids
             # Replace "" by None
             metric: data or None
             for metric, (created, data)
-            in six.moves.zip(metrics, utils.grouper(pipe.execute(), 2))
+            in zip(metrics, utils.grouper(pipe.execute(), 2))
         }
         return ts
 
@@ -125,7 +123,7 @@ return ids
                 start + 1:start + 1 + number_of_aggregations
             ]
             start += 1 + number_of_aggregations  # 1 for metric_exists_p
-            for aggregation, k in six.moves.zip(
+            for aggregation, k in zip(
                     aggregations, keys_for_aggregations):
                 if not k:
                     keys[metric][aggregation] = set()
@@ -137,14 +135,14 @@ return ids
                     carbonara.SplitKey(timestamp,
                                        sampling=granularity)
                     for timestamp, granularity
-                    in six.moves.zip(timestamps, granularities)
+                    in zip(timestamps, granularities)
                 }
         return keys
 
     def _delete_metric_splits(self, metrics_keys_aggregations, version=3):
         pipe = self._client.pipeline(transaction=False)
-        for metric, keys_and_aggregations in six.iteritems(
-                metrics_keys_aggregations):
+        for metric, keys_and_aggregations in (
+                metrics_keys_aggregations.items()):
             metric_key = self._metric_key(metric)
             for key, aggregation in keys_and_aggregations:
                 pipe.hdel(metric_key, self._aggregated_field_for_split(
@@ -154,8 +152,8 @@ return ids
     def _store_metric_splits(self, metrics_keys_aggregations_data_offset,
                              version=3):
         pipe = self._client.pipeline(transaction=False)
-        for metric, keys_aggs_data_offset in six.iteritems(
-                metrics_keys_aggregations_data_offset):
+        for metric, keys_aggs_data_offset in (
+                metrics_keys_aggregations_data_offset.items()):
             metric_key = self._metric_key(metric)
             for key, aggregation, data, offset in keys_aggs_data_offset:
                 key = self._aggregated_field_for_split(
@@ -170,9 +168,9 @@ return ids
         # Use a list of metric and aggregations with a constant sorting
         metrics_aggregations = [
             (metric, aggregation)
-            for metric, aggregation_and_keys in six.iteritems(
-                metrics_aggregations_keys)
-            for aggregation, keys in six.iteritems(aggregation_and_keys)
+            for metric, aggregation_and_keys in (
+                metrics_aggregations_keys.items())
+            for aggregation, keys in aggregation_and_keys.items()
             # Do not send any fetch request if keys is empty
             if keys
         ]
@@ -188,7 +186,7 @@ return ids
         results = collections.defaultdict(
             lambda: collections.defaultdict(list))
 
-        for (metric, aggregation), result in six.moves.zip(
+        for (metric, aggregation), result in zip(
                 metrics_aggregations, pipe.execute()):
             results[metric][aggregation] = result
 

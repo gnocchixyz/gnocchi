@@ -19,7 +19,6 @@ import uuid
 import daiquiri
 import proton.handlers
 import proton.reactor
-import six
 import ujson
 
 from gnocchi import incoming
@@ -61,7 +60,7 @@ class BatchProcessor(object):
     def _flush(self):
         archive_policies = {}
         resources = self._get_resources(self._measures.keys())
-        for host_id, measures_by_names in six.iteritems(self._measures):
+        for host_id, measures_by_names in self._measures.items():
             resource = resources[host_id]
 
             names = set(measures_by_names.keys())

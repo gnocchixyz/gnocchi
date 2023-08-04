@@ -23,7 +23,6 @@ Create Date: 2017-01-11 16:32:40.421758
 import uuid
 
 from alembic import op
-import six
 import sqlalchemy as sa
 import sqlalchemy_utils
 
@@ -119,8 +118,6 @@ def upgrade():
 
         new_original_resource_id = resource.original_resource_id.replace(
             '/', '_')
-        if six.PY2:
-            new_original_resource_id = new_original_resource_id.encode('utf-8')
         new_id = sa.literal(uuidtype.process_bind_param(
             str(utils.ResourceUUID(
                 new_original_resource_id, resource.creator)),

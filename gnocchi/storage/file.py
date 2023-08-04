@@ -26,7 +26,6 @@ import uuid
 
 import daiquiri
 from oslo_config import cfg
-import six
 
 from gnocchi import carbonara
 from gnocchi import storage
@@ -205,7 +204,7 @@ class FileStorage(storage.StorageDriver):
             k_timestamps = utils.to_timestamps(zipped[0])
             k_granularities = list(map(utils.to_timespan, zipped[1]))
             grouped_aggregations = list(grouped_aggregations)
-            for timestamp, granularity in six.moves.zip(
+            for timestamp, granularity in zip(
                     k_timestamps, k_granularities):
                 for agg in grouped_aggregations:
                     if granularity == agg.granularity:

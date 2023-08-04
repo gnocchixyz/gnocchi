@@ -19,7 +19,6 @@ import collections
 
 import daiquiri
 import numpy
-import six
 
 from gnocchi import carbonara
 from gnocchi.rest.aggregates import exceptions
@@ -88,8 +87,8 @@ def get_measures(storage, references, operations,
         # granularities_in_common
         granularities = [
             g
-            for g, occurrence in six.iteritems(
-                collections.Counter(all_granularities))
+            for g, occurrence in collections.Counter(
+                all_granularities).items()
             if occurrence == len(references)
         ]
 
@@ -210,7 +209,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                 v = values[0]
                 t = times
             g = [granularity] * len(t)
-            output["aggregated"].extend(six.moves.zip(t, g, v))
+            output["aggregated"].extend(zip(t, g, v))
         return output
     else:
         r_output = collections.defaultdict(
@@ -230,7 +229,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
                     v = values[i]
                     t = times
                 g = [granularity] * len(t)
-                measures = six.moves.zip(t, g, v)
+                measures = zip(t, g, v)
                 if ref.resource is None:
                     m_output[ref.name][ref.aggregation].extend(measures)
                 else:

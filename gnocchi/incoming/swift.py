@@ -18,8 +18,6 @@ import datetime
 import json
 import uuid
 
-import six
-
 from gnocchi.common import swift
 from gnocchi import incoming
 from gnocchi import utils
@@ -85,7 +83,7 @@ class SwiftStorage(incoming.IncomingDriver):
 
     def _list_measure_files_for_metric(self, sack, metric_id):
         headers, files = self.swift.get_container(
-            str(sack), path=six.text_type(metric_id),
+            str(sack), path=str(metric_id),
             full_listing=True)
         return files
 
@@ -118,7 +116,7 @@ class SwiftStorage(incoming.IncomingDriver):
         yield measures
 
         # Now clean objects
-        for sack_name, files in six.iteritems(all_files):
+        for sack_name, files in all_files.items():
             swift.bulk_delete(self.swift, sack_name, files)
 
     @contextlib.contextmanager
