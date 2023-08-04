@@ -257,22 +257,6 @@ class ResourceClassMapper(object):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
-    @staticmethod
-    def _set_url_database(url, database):
-        if hasattr(url, "set"):
-            return url.set(database=database)
-        else:
-            url.database = database
-            return url
-
-    @staticmethod
-    def _set_url_drivername(url, drivername):
-        if hasattr(url, "set"):
-            return url.set(drivername=drivername)
-        else:
-            url.drivername = drivername
-            return url
-
     @classmethod
     def _create_new_database(cls, url):
         """Used by testing to create a new database."""
@@ -280,7 +264,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             cls.dress_url(
                 url))
         new_database = purl.database + str(uuid.uuid4()).replace('-', '')
-        purl = cls._set_url_database(purl, new_database)
+        purl = purl.set(database=new_database)
         new_url = purl.render_as_string(hide_password=False)
         sqlalchemy_utils.create_database(new_url)
         return new_url
@@ -290,13 +274,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # If no explicit driver has been set, we default to pymysql
         if url.startswith("mysql://"):
             url = sqlalchemy_url.make_url(url)
-            new_drivername = "mysql+pymysql"
-            url = cls._set_url_drivername(url, new_drivername)
+            url = url.set(drivername="mysql+pymysql")
             return url.render_as_string(hide_password=False)
         if url.startswith("postgresql://"):
             url = sqlalchemy_url.make_url(url)
-            new_drivername = "postgresql+psycopg2"
-            url = cls._set_url_drivername(url, new_drivername)
+            url = url.set(drivername="postgresql+psycopg2")
             return url.render_as_string(hide_password=False)
         return url
 
