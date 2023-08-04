@@ -37,13 +37,12 @@ try:
     import pymysql.err
 except ImportError:
     pymysql = None
-import six
-from six.moves.urllib import parse as urlparse
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
 from sqlalchemy import types as sa_types
 import sqlalchemy_utils
+from urllib import parse as urlparse
 
 from gnocchi import exceptions
 from gnocchi import indexer
@@ -125,15 +124,10 @@ class PerInstanceFacade(object):
         return self.trans.reader.using(self._context)
 
     def get_engine(self):
-        # TODO(mbayer): add get_engine() to enginefacade
-        if not self.trans._factory._started:
-            self.trans._factory._start()
-        return self.trans._factory._writer_engine
+        return self.trans.writer.get_engine()
 
-    def dispose(self):
-        # TODO(mbayer): add dispose() to enginefacade
-        if self.trans._factory._started:
-            self.trans._factory._writer_engine.dispose()
+    def dispose_pool(self):
+        self.trans.dispose_pool()
 
 
 class ResourceClassMapper(object):
@@ -323,7 +317,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return "%s: %s" % (self.__class__.__name__, url)
 
     def disconnect(self):
-        self.facade.dispose()
+        self.facade.dispose_pool()
 
     def _get_alembic_config(self):
         from alembic import config
@@ -960,7 +954,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     r.ended_at = ended_at
 
                 if kwargs:
-                    for attribute, value in six.iteritems(kwargs):
+                    for attribute, value in kwargs.items():
                         if hasattr(r, attribute):
                             setattr(r, attribute, value)
                         else:
@@ -991,7 +985,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     @staticmethod
     def _set_metrics_for_resource(session, r, metrics):
-        for name, value in six.iteritems(metrics):
+        for name, value in metrics.items():
             if isinstance(value, uuid.UUID):
                 try:
                     update = session.query(Metric).filter(
@@ -1327,7 +1321,7 @@ class QueryTransformer(object):
 
     converters = (
         (types.TimestampUTC, utils.to_datetime),
-        (sa_types.String, six.text_type),
+        (sa_types.String, str),
         (sa_types.Integer, int),
         (sa_types.Numeric, float),
     )

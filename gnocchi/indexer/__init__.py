@@ -19,9 +19,8 @@ import os
 
 import iso8601
 from oslo_config import cfg
-import six
-from six.moves.urllib import parse
 from stevedore import driver
+from urllib import parse
 
 from gnocchi import exceptions
 from gnocchi import utils
@@ -59,8 +58,8 @@ class Resource(object):
     @property
     def etag(self):
         etag = hashlib.sha1()
-        etag.update(six.text_type(self.id).encode('utf-8'))
-        etag.update(six.text_type(
+        etag.update(str(self.id).encode('utf-8'))
+        etag.update(str(
             self.revision_start.isoformat()).encode('utf-8'))
         return etag.hexdigest()
 

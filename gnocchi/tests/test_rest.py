@@ -26,7 +26,6 @@ import uuid
 import fixtures
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
-import six
 import testscenarios
 from testtools import testcase
 from unittest import mock
@@ -295,7 +294,7 @@ class ArchivePolicyTest(RestTest):
         # Transform list to set
         for ap in aps:
             ap['aggregation_methods'] = set(ap['aggregation_methods'])
-        for name, ap in six.iteritems(self.archive_policies):
+        for name, ap in self.archive_policies.items():
             apj = ap.jsonify()
             apj['definition'] = [
                 archive_policy.ArchivePolicyItem(**d).jsonify()
@@ -1144,7 +1143,7 @@ class ResourceTest(RestTest):
         result = json.loads(response.text)
         presult = json.loads(presponse.text)
         self.assertEqual(result, presult)
-        for k, v in six.iteritems(self.patchable_attributes):
+        for k, v in self.patchable_attributes.items():
             self.assertEqual(v, result[k])
         self.assertIsNone(result['revision_end'])
         self.assertEqual(result['revision_start'],
@@ -1162,7 +1161,7 @@ class ResourceTest(RestTest):
         self.assertEqual(result, history[1])
 
         h = history[0]
-        for k, v in six.iteritems(self.attributes):
+        for k, v in self.attributes.items():
             self.assertEqual(v, h[k])
         self.assertEqual(h['revision_end'],
                          "2014-01-02T06:48:00+00:00")
@@ -1262,7 +1261,7 @@ class ResourceTest(RestTest):
             "/v1/metric",
             params={'archive_policy_name': "high"})
         metric_id = json.loads(metric.text)['id']
-        metric_name = six.text_type(uuid.uuid4())
+        metric_name = str(uuid.uuid4())
         self.attributes['metrics'] = {metric_name: metric_id}
         self.app.get("/v1/metric/" + metric_id,
                      status=200)

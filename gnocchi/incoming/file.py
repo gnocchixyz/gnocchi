@@ -22,7 +22,6 @@ import uuid
 
 import daiquiri
 import numpy
-import six
 
 from gnocchi import incoming
 from gnocchi import utils
@@ -62,7 +61,7 @@ class FileStorage(incoming.IncomingDriver):
         return os.path.join(self.basepath, str(sack))
 
     def _measure_path(self, sack, metric_id):
-        return os.path.join(self._sack_path(sack), six.text_type(metric_id))
+        return os.path.join(self._sack_path(sack), str(metric_id))
 
     def _build_measure_path(self, metric_id, random_id=None):
         sack = self.sack_for_metric(metric_id)
@@ -70,7 +69,7 @@ class FileStorage(incoming.IncomingDriver):
         if random_id:
             if random_id is True:
                 now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
-                random_id = six.text_type(uuid.uuid4()) + now
+                random_id = str(uuid.uuid4()) + now
             return os.path.join(path, random_id)
         return path
 
@@ -177,7 +176,7 @@ class FileStorage(incoming.IncomingDriver):
 
         yield measures
 
-        for metric_id, files in six.iteritems(processed_files):
+        for metric_id, files in processed_files.items():
             self._delete_measures_files_for_metric(metric_id, files)
 
     @contextlib.contextmanager
@@ -204,5 +203,5 @@ class FileStorage(incoming.IncomingDriver):
 
         yield measures
 
-        for metric_id, files in six.iteritems(processed_files):
+        for metric_id, files in processed_files.items():
             self._delete_measures_files_for_metric(metric_id, files)

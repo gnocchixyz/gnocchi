@@ -17,7 +17,6 @@ import datetime
 import uuid
 
 import numpy
-import six.moves
 from unittest import mock
 
 from gnocchi import archive_policy
@@ -232,7 +231,7 @@ class TestStorageDriver(tests_base.TestCase):
 
     def test_measures_reporting(self):
         m2, __ = self._create_metric('medium')
-        for i in six.moves.range(60):
+        for i in range(60):
             self.incoming.add_measures(self.metric.id, [
                 incoming.Measure(datetime64(2014, 1, 1, 12, 0, i), 69),
             ])
@@ -253,7 +252,7 @@ class TestStorageDriver(tests_base.TestCase):
     def test_get_aggregated_measures(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
-            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+            for i in range(0, 60) for j in range(0, 60)])
         self.trigger_processing([self.metric])
 
         aggregations = self.metric.archive_policy.aggregations
@@ -271,11 +270,11 @@ class TestStorageDriver(tests_base.TestCase):
     def test_get_aggregated_measures_multiple(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
-            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+            for i in range(0, 60) for j in range(0, 60)])
         m2, __ = self._create_metric('medium')
         self.incoming.add_measures(m2.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
-            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+            for i in range(0, 60) for j in range(0, 60)])
         self.trigger_processing([self.metric, m2])
 
         aggregations = self.metric.archive_policy.aggregations
@@ -300,7 +299,7 @@ class TestStorageDriver(tests_base.TestCase):
         m, __ = self._create_metric('high')
         self.incoming.add_measures(m.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, i, j), 100)
-            for i in six.moves.range(0, 60) for j in six.moves.range(0, 60)])
+            for i in range(0, 60) for j in range(0, 60)])
         self.trigger_processing([m])
 
         aggregations = (
@@ -316,7 +315,7 @@ class TestStorageDriver(tests_base.TestCase):
         m, m_sql = self._create_metric('medium')
         measures = [
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
-            for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
+            for i in range(2) for j in range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
         self.trigger_processing([m])
 
@@ -331,7 +330,7 @@ class TestStorageDriver(tests_base.TestCase):
         for call in c.mock_calls:
             # policy is 60 points and split is 48. should only update 2nd half
             args = call[1]
-            for metric, key_agg_data_offset in six.iteritems(args[0]):
+            for metric, key_agg_data_offset in args[0].items():
                 if metric.id == m_sql.id:
                     for key, aggregation, data, offset in key_agg_data_offset:
                         if (key.sampling == numpy.timedelta64(1, 'm')
@@ -343,7 +342,7 @@ class TestStorageDriver(tests_base.TestCase):
         m, m_sql = self._create_metric('medium')
         measures = [
             incoming.Measure(datetime64(2014, 1, 6, i, j, 0), 100)
-            for i in six.moves.range(2) for j in six.moves.range(0, 60, 2)]
+            for i in range(2) for j in range(0, 60, 2)]
         self.incoming.add_measures(m.id, measures)
         self.trigger_processing([m])
 

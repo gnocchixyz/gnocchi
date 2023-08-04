@@ -24,8 +24,7 @@ import uuid
 import daiquiri
 import fixtures
 import numpy
-import six
-from six.moves.urllib.parse import unquote
+from urllib.parse import unquote
 try:
     from swiftclient import exceptions as swexc
 except ImportError:
@@ -59,7 +58,7 @@ def _skip_decorator(func):
         try:
             return func(*args, **kwargs)
         except exceptions.NotImplementedError as e:
-            raise testcase.TestSkipped(six.text_type(e))
+            raise testcase.TestSkipped(str(e))
     return skip_if_not_implemented
 
 
@@ -85,7 +84,7 @@ class FakeSwiftClient(object):
 
         files = []
         directories = set()
-        for k, v in six.iteritems(container.copy()):
+        for k, v in container.copy().items():
             if path and not k.startswith(path):
                 continue
 
@@ -221,8 +220,7 @@ class BaseTestCase(testcase.TestCase):
             self.useFixture(CaptureOutput())
 
 
-@six.add_metaclass(SkipNotImplementedMeta)
-class TestCase(BaseTestCase):
+class TestCase(BaseTestCase, metaclass=SkipNotImplementedMeta):
 
     REDIS_DB_INDEX = 0
     REDIS_DB_LOCK = threading.Lock()
@@ -303,7 +301,7 @@ class TestCase(BaseTestCase):
             self.index.upgrade()
 
         self.archive_policies = self.ARCHIVE_POLICIES.copy()
-        for name, ap in six.iteritems(self.archive_policies):
+        for name, ap in self.archive_policies.items():
             # Create basic archive policies
             try:
                 self.index.create_archive_policy(ap)

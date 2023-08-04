@@ -19,7 +19,6 @@ import json
 import uuid
 
 import numpy
-import six
 
 from gnocchi.common import ceph
 from gnocchi import incoming
@@ -82,7 +81,7 @@ class CephStorage(incoming.IncomingDriver):
 
     def add_measures_batch(self, metrics_and_measures):
         data_by_sack = defaultdict(lambda: defaultdict(list))
-        for metric_id, measures in six.iteritems(metrics_and_measures):
+        for metric_id, measures in metrics_and_measures.items():
             name = "_".join((
                 self.MEASURE_PREFIX,
                 str(metric_id),
@@ -188,7 +187,7 @@ class CephStorage(incoming.IncomingDriver):
                 processed_keys[sack] = self._list_keys_to_process(
                     sack, prefix=self.MEASURE_PREFIX + "_" + str(metric_id))
                 m = self._make_measures_array()
-                for k, v in six.iteritems(processed_keys[sack]):
+                for k, v in processed_keys[sack].items():
                     m = numpy.concatenate(
                         (m, self._unserialize_measures(k, v)))
 
@@ -198,7 +197,7 @@ class CephStorage(incoming.IncomingDriver):
 
         # Now clean omap
         with rados.WriteOpCtx() as op:
-            for sack, keys in six.iteritems(processed_keys):
+            for sack, keys in processed_keys.items():
                 # NOTE(sileht): come on Ceph, no return code
                 # for this operation ?!!
                 self.ioctx.remove_omap_keys(op, tuple(keys.keys()))
@@ -210,7 +209,7 @@ class CephStorage(incoming.IncomingDriver):
         measures = defaultdict(self._make_measures_array)
         omaps = self._list_keys_to_process(
             sack, prefix=self.MEASURE_PREFIX + "_")
-        for k, v in six.iteritems(omaps):
+        for k, v in omaps.items():
             try:
                 metric_id = uuid.UUID(k.split("_")[1])
             except (ValueError, IndexError):

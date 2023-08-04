@@ -17,8 +17,7 @@
 from __future__ import absolute_import
 
 from oslo_config import cfg
-import six
-from six.moves.urllib import parse
+from urllib import parse
 
 try:
     import redis
@@ -43,6 +42,7 @@ CLIENT_ARGS = frozenset([
     'ssl',
     'ssl_certfile',
     'ssl_keyfile',
+    'ssl_ca_certs',
     'sentinel',
     'sentinel_fallback',
 ])
@@ -65,11 +65,16 @@ CLIENT_INT_ARGS = frozenset([
     'db',
     'health_check_interval',
     'socket_keepalive',
+])
+
+#: Client arguments that are expected to be float convertible.
+CLIENT_FLOAT_ARGS = frozenset([
     'socket_timeout',
 ])
 
 OPTS = [
     cfg.StrOpt('redis_url',
+               secret=True,
                default='redis://localhost:6379/',
                help="""Redis URL
 
@@ -137,6 +142,8 @@ def get_client(conf, scripts=None):
             v = options[a]
         elif a in CLIENT_INT_ARGS:
             v = int(options[a][-1])
+        elif a in CLIENT_FLOAT_ARGS:
+            v = float(options[a][-1])
         else:
             v = options[a][-1]
         kwargs[a] = v
@@ -165,7 +172,7 @@ def get_client(conf, scripts=None):
     if scripts is not None:
         scripts = {
             name: client.register_script(code)
-            for name, code in six.iteritems(scripts)
+            for name, code in scripts.items()
         }
 
     return client, scripts

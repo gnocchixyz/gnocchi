@@ -21,7 +21,6 @@ import operator
 import daiquiri
 import numpy
 from oslo_config import cfg
-import six
 
 from gnocchi import carbonara
 from gnocchi import utils
@@ -143,9 +142,9 @@ class StorageDriver(object):
                 lambda m, k, a, v: (m, a, self._get_splits_unbatched(m, k, a, v)),  # noqa
                 ((metric, key, aggregation, version)
                  for metric, aggregations_and_keys
-                 in six.iteritems(metrics_aggregations_keys)
+                 in metrics_aggregations_keys.items()
                  for aggregation, keys
-                 in six.iteritems(aggregations_and_keys)
+                 in aggregations_and_keys.items()
                  for key in keys)):
             results[metric][aggregation].append(split)
         return results
@@ -174,7 +173,7 @@ class StorageDriver(object):
         :param version: The storage format version number.
         """
         return dict(
-            six.moves.zip(
+            zip(
                 metrics,
                 self.MAP_METHOD(
                     utils.return_none_on_failure(
@@ -233,7 +232,7 @@ class StorageDriver(object):
             self._store_metric_splits_unbatched,
             ((metric, key, aggregation, data, offset, version)
              for metric, keys_aggregations_data_offset
-             in six.iteritems(metrics_keys_aggregations_data_offset)
+             in metrics_keys_aggregations_data_offset.items()
              for key, aggregation, data, offset
              in keys_aggregations_data_offset))
 
@@ -268,7 +267,7 @@ class StorageDriver(object):
              for metric in metrics))
         return {
             metric: results
-            for metric, results in six.moves.zip(metrics, r)
+            for metric, results in zip(metrics, r)
         }
 
     @staticmethod
@@ -293,8 +292,8 @@ class StorageDriver(object):
         """
         metrics_aggs_keys = self._list_split_keys(metrics_and_aggregations)
 
-        for metric, aggregations_keys in six.iteritems(metrics_aggs_keys):
-            for aggregation, keys in six.iteritems(aggregations_keys):
+        for metric, aggregations_keys in metrics_aggs_keys.items():
+            for aggregation, keys in aggregations_keys.items():
                 start = (
                     carbonara.SplitKey.from_timestamp_and_sampling(
                         from_timestamp, aggregation.granularity)
@@ -316,7 +315,7 @@ class StorageDriver(object):
             metrics_aggs_keys)
 
         results = collections.defaultdict(dict)
-        for metric, aggregations in six.iteritems(metrics_and_aggregations):
+        for metric, aggregations in metrics_and_aggregations.items():
             for aggregation in aggregations:
                 ts = carbonara.AggregatedTimeSerie.from_timeseries(
                     metrics_aggregations_splits[metric][aggregation],
@@ -350,9 +349,9 @@ class StorageDriver(object):
         raw_measures = self._get_splits(metrics_aggregations_keys)
         results = collections.defaultdict(
             lambda: collections.defaultdict(list))
-        for metric, aggregations_and_raws in six.iteritems(raw_measures):
-            for aggregation, raws in six.iteritems(aggregations_and_raws):
-                for key, raw in six.moves.zip(
+        for metric, aggregations_and_raws in raw_measures.items():
+            for aggregation, raws in aggregations_and_raws.items():
+                for key, raw in zip(
                         metrics_aggregations_keys[metric][aggregation], raws):
                     try:
                         ts = carbonara.AggregatedTimeSerie.unserialize(
@@ -386,10 +385,10 @@ class StorageDriver(object):
             lambda: collections.defaultdict(list))
 
         for metric, (keys_and_aggregations_and_splits,
-                     oldest_mutable_timestamp) in six.iteritems(
-                         metrics_keys_aggregations_splits):
-            for (key, aggregation), split in six.iteritems(
-                    keys_and_aggregations_and_splits):
+                     oldest_mutable_timestamp) in (
+                         metrics_keys_aggregations_splits.items()):
+            for (key, aggregation), split in (
+                    keys_and_aggregations_and_splits.items()):
                 # NOTE(jd) We write the full split only if the driver works
                 # that way (self.WRITE_FULL) or if the oldest_mutable_timestamp
                 # is out of range.
@@ -403,11 +402,11 @@ class StorageDriver(object):
         existing_data = self._get_splits_and_unserialize(keys_to_get)
 
         for metric, (keys_and_aggregations_and_splits,
-                     oldest_mutable_timestamp) in six.iteritems(
-                         metrics_keys_aggregations_splits):
-            for aggregation, existing_list in six.iteritems(
-                    existing_data[metric]):
-                for key, split, existing in six.moves.zip(
+                     oldest_mutable_timestamp) in (
+                         metrics_keys_aggregations_splits.items()):
+            for aggregation, existing_list in (
+                    existing_data[metric].items()):
+                for key, split, existing in zip(
                         keys_to_get[metric][aggregation],
                         splits_to_rewrite[metric][aggregation],
                         existing_list):
@@ -416,8 +415,8 @@ class StorageDriver(object):
                         (key, split.aggregation)] = existing
 
             keys_aggregations_data_offset = []
-            for (key, aggregation), split in six.iteritems(
-                    keys_and_aggregations_and_splits):
+            for (key, aggregation), split in (
+                    keys_and_aggregations_and_splits.items()):
                 # Do not store the split if it's empty.
                 if split:
                     offset, data = split.serialize(
@@ -461,7 +460,7 @@ class StorageDriver(object):
         aggregations_needing_list_of_keys = set()
         oldest_values = {}
 
-        for aggregation, ts in six.iteritems(aggregations_and_timeseries):
+        for aggregation, ts in aggregations_and_timeseries.items():
             # Don't do anything if the timeseries is empty
             if not ts:
                 continue
@@ -497,7 +496,7 @@ class StorageDriver(object):
         keys_and_split_to_store = {}
         deleted_keys = set()
 
-        for aggregation, ts in six.iteritems(aggregations_and_timeseries):
+        for aggregation, ts in aggregations_and_timeseries.items():
             # Don't do anything if the timeseries is empty
             if not ts:
                 continue
@@ -577,7 +576,7 @@ class StorageDriver(object):
             utils.return_none_on_failure(self._delete_metric_splits_unbatched),
             ((metric, key, aggregation)
              for metric, keys_and_aggregations
-             in six.iteritems(metrics_keys_aggregations)
+             in metrics_keys_aggregations.items()
              for key, aggregation in keys_and_aggregations))
 
     def add_measures_to_metrics(self, metrics_and_measures):
@@ -598,7 +597,7 @@ class StorageDriver(object):
         splits_to_delete = {}
         splits_to_update = {}
 
-        for metric, measures in six.iteritems(metrics_and_measures):
+        for metric, measures in metrics_and_measures.items():
             measures = numpy.sort(measures, order='timestamps')
 
             agg_methods = list(metric.archive_policy.aggregation_methods)

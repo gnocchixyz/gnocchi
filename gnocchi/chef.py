@@ -17,7 +17,6 @@
 import hashlib
 
 import daiquiri
-import six
 
 from gnocchi import indexer
 
@@ -124,7 +123,7 @@ class Chef(object):
                         self.storage.add_measures_to_metrics({
                             metrics_by_id[metric_id]: measures
                             for metric_id, measures
-                            in six.iteritems(metrics_and_measures)
+                            in metrics_and_measures.items()
                         })
                         LOG.debug("Measures for %d metrics processed",
                                   len(metric_ids))
