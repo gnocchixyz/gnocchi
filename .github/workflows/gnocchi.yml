@@ -108,7 +108,6 @@ jobs:
     strategy:
       matrix:
         python:
-          - py38
           - py39
           - py311
         env:
