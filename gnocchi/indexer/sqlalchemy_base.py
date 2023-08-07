@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from oslo_db.sqlalchemy import models
 import sqlalchemy
 from sqlalchemy.ext import declarative
+from sqlalchemy.orm import declarative_base
 import sqlalchemy_utils
 
 from gnocchi import archive_policy
@@ -27,7 +28,7 @@ from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
 
-Base = declarative.declarative_base()
+Base = declarative_base()
 
 COMMON_TABLES_ARGS = {'mysql_charset': "utf8",
                       'mysql_engine': "InnoDB"}

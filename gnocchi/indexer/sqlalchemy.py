@@ -40,7 +40,12 @@ except ImportError:
 import sqlalchemy
 from sqlalchemy.engine import url as sqlalchemy_url
 import sqlalchemy.exc
-from sqlalchemy import types as sa_types
+from sqlalchemy import (
+    delete,
+    select,
+    types as sa_types,
+    update,
+)
 import sqlalchemy_utils
 from urllib import parse as urlparse
 
@@ -50,6 +55,9 @@ from gnocchi.indexer import sqlalchemy_base as base
 from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
+
+
+mapper_reg = sqlalchemy.orm.registry()
 
 Base = base.Base
 Metric = base.Metric
@@ -215,19 +223,22 @@ class ResourceClassMapper(object):
         # the resource_type table is already cleaned and committed
         # so this code cannot be triggerred anymore for this
         # resource_type
-        with facade.writer_connection() as connection:
-            for table in tables:
-                for fk in table.foreign_key_constraints:
+        for table in tables:
+            for fk in table.foreign_key_constraints:
+                with facade.writer() as session:
                     try:
-                        self._safe_execute(
-                            connection,
-                            sqlalchemy.schema.DropConstraint(fk))
+                        stmt = sqlalchemy.schema.DropConstraint(fk)
+                        session.execute(stmt)
+                        session.commit()
                     except exception.DBNonExistentConstraint:
                         pass
-            for table in tables:
+
+        for table in tables:
+            with facade.writer() as session:
                 try:
-                    self._safe_execute(connection,
-                                       sqlalchemy.schema.DropTable(table))
+                    stmt = sqlalchemy.schema.DropTable(table)
+                    session.execute(stmt)
+                    session.commit()
                 except exception.DBNonExistentTable:
                     pass
 
@@ -242,33 +253,9 @@ class ResourceClassMapper(object):
         for table in tables:
             Base.metadata.remove(table)
 
-    @retry_on_deadlock
-    def _safe_execute(self, connection, works):
-        # NOTE(sileht): we create a transaction to ensure mysql
-        # create locks on other transaction...
-        trans = connection.begin()
-        connection.execute(works)
-        trans.commit()
-
 
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
-
-    @staticmethod
-    def _set_url_database(url, database):
-        if hasattr(url, "set"):
-            return url.set(database=database)
-        else:
-            url.database = database
-            return url
-
-    @staticmethod
-    def _set_url_drivername(url, drivername):
-        if hasattr(url, "set"):
-            return url.set(drivername=drivername)
-        else:
-            url.drivername = drivername
-            return url
 
     @classmethod
     def _create_new_database(cls, url):
@@ -277,8 +264,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             cls.dress_url(
                 url))
         new_database = purl.database + str(uuid.uuid4()).replace('-', '')
-        purl = cls._set_url_database(purl, new_database)
-        new_url = str(purl)
+        purl = purl.set(database=new_database)
+        new_url = purl.render_as_string(hide_password=False)
         sqlalchemy_utils.create_database(new_url)
         return new_url
 
@@ -287,14 +274,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # If no explicit driver has been set, we default to pymysql
         if url.startswith("mysql://"):
             url = sqlalchemy_url.make_url(url)
-            new_drivername = "mysql+pymysql"
-            url = cls._set_url_drivername(url, new_drivername)
-            return str(url)
+            url = url.set(drivername="mysql+pymysql")
+            return url.render_as_string(hide_password=False)
         if url.startswith("postgresql://"):
             url = sqlalchemy_url.make_url(url)
-            new_drivername = "postgresql+psycopg2"
-            url = cls._set_url_drivername(url, new_drivername)
-            return str(url)
+            url = url.set(drivername="postgresql+psycopg2")
+            return url.render_as_string(hide_password=False)
         return url
 
     def __init__(self, conf):
@@ -515,9 +500,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     f = QueryTransformer.build_filter(
                         engine.dialect.name, resource_cls,
                         {'=': {cls_attr: None}})
-                    q = session.query(resource_cls).filter(
+                    q = select(resource_cls).filter(
                         f).with_for_update()
-                    resources = q.all()
+                    resources = session.scalars(q).all()
                     if resources:
                         LOG.debug("Null resources [%s] to be filled with [%s] "
                                   "for resource-type [%s]", resources,
@@ -532,7 +517,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             return self._get_resource_type(session, name)
 
     def _get_resource_type(self, session, name):
-        resource_type = session.query(ResourceType).get(name)
+        resource_type = session.get(ResourceType, name)
         if not resource_type:
             raise indexer.NoSuchResourceType(name)
         return resource_type
@@ -541,14 +526,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
     def _set_resource_type_state(self, name, state,
                                  expected_previous_state=None):
         with self.facade.writer() as session:
-            q = session.query(ResourceType)
-            q = q.filter(ResourceType.name == name)
+            q = update(ResourceType).filter(
+                ResourceType.name == name
+            ).values(state=state)
             if expected_previous_state is not None:
                 q = q.filter(ResourceType.state == expected_previous_state)
-            update = q.update({'state': state})
-            if update == 0:
+            if session.execute(q).rowcount == 0:
                 if expected_previous_state is not None:
-                    rt = session.query(ResourceType).get(name)
+                    rt = session.get(ResourceType, name)
                     if rt:
                         raise indexer.UnexpectedResourceTypeState(
                             name, expected_previous_state, rt.state)
@@ -566,8 +551,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_resource_types(self):
         with self.facade.independent_reader() as session:
-            return list(session.query(ResourceType).order_by(
-                ResourceType.name.asc()).all())
+            stmt = select(ResourceType).order_by(
+                ResourceType.name.asc())
+            return list(session.scalars(stmt).all())
 
     # NOTE(jd) We can have deadlock errors either here or later in
     # map_and_create_tables(). We can't decorate delete_resource_type()
@@ -645,15 +631,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policies(self):
         with self.facade.independent_reader() as session:
-            return list(session.query(ArchivePolicy).all())
+            stmt = select(ArchivePolicy)
+            return list(session.scalars(stmt).all())
 
     def get_archive_policy(self, name):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicy).get(name)
+            return session.get(ArchivePolicy, name)
 
     def update_archive_policy(self, name, ap_items, **kwargs):
         with self.facade.independent_writer() as session:
-            ap = session.query(ArchivePolicy).get(name)
+            ap = session.get(ArchivePolicy, name)
             if not ap:
                 raise indexer.NoSuchArchivePolicy(name)
             current = sorted(ap.definition,
@@ -679,8 +666,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             "fk_apr_ap_name_ap_name"]
         with self.facade.writer() as session:
             try:
-                if session.query(ArchivePolicy).filter(
-                        ArchivePolicy.name == name).delete() == 0:
+                stmt = delete(ArchivePolicy).where(
+                    ArchivePolicy.name == name)
+                if session.execute(stmt).rowcount == 0:
                     raise indexer.NoSuchArchivePolicy(name)
             except exception.DBReferenceError as e:
                 if e.constraint in constraints:
@@ -703,19 +691,21 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def list_archive_policy_rules(self):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicyRule).order_by(
+            stmt = select(ArchivePolicyRule).order_by(
                 ArchivePolicyRule.metric_pattern.desc(),
                 ArchivePolicyRule.name.asc()
-            ).all()
+            )
+            return session.scalars(stmt).all()
 
     def get_archive_policy_rule(self, name):
         with self.facade.independent_reader() as session:
-            return session.query(ArchivePolicyRule).get(name)
+            return session.get(ArchivePolicyRule, name)
 
     def delete_archive_policy_rule(self, name):
         with self.facade.writer() as session:
-            if session.query(ArchivePolicyRule).filter(
-                    ArchivePolicyRule.name == name).delete() == 0:
+            stmt = delete(ArchivePolicyRule).where(
+                ArchivePolicyRule.name == name)
+            if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchArchivePolicyRule(name)
 
     def create_archive_policy_rule(self, name, metric_pattern,
@@ -781,10 +771,9 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                      attribute_filter=None):
         sorts = sorts or []
         with self.facade.independent_reader() as session:
-            q = session.query(Metric).filter(
-                Metric.status == status)
+            q = select(Metric).filter(Metric.status == status)
             if details:
-                q = q.options(sqlalchemy.orm.joinedload('resource'))
+                q = q.options(sqlalchemy.orm.joinedload(Metric.resource))
             if policy_filter or resource_policy_filter or attribute_filter:
                 engine = session.connection()
                 if attribute_filter:
@@ -847,7 +836,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             except exception.InvalidSortKey as e:
                 raise indexer.InvalidPagination(e)
 
-            return list(q.all())
+            return list(session.scalars(q).all())
 
     @retry_on_deadlock
     def create_resource(self, resource_type, id,
@@ -876,6 +865,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 ended_at=ended_at,
                 **kwargs)
             session.add(r)
+
             try:
                 session.flush()
             except exception.DBDuplicateEntry:
@@ -884,8 +874,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceValueError(r.type,
                                                  ex.key,
                                                  getattr(r, ex.key))
+
             if metrics is not None:
                 self._set_metrics_for_resource(session, r, metrics)
+
+            session.commit()
 
             # NOTE(jd) Force load of metrics :)
             r.metrics
@@ -925,10 +918,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 # but they are no other way to cleanly patch a resource and
                 # store the history that safe when two concurrent calls are
                 # done.
-                q = session.query(resource_cls).filter(
+                q = select(resource_cls).filter(
                     resource_cls.id == resource_id).with_for_update()
 
-                r = q.first()
+                r = session.scalars(q).first()
                 if r is None:
                     raise indexer.NoSuchResource(resource_id)
 
@@ -963,13 +956,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
                 if metrics is not _marker:
                     if not append_metrics:
-                        session.query(Metric).filter(
+                        stmt = update(Metric).filter(
                             Metric.resource_id == resource_id,
-                            Metric.status == 'active').update(
-                                {"resource_id": None})
+                            Metric.status == 'active').values(
+                                resource_id=None)
+                        session.execute(stmt)
                     self._set_metrics_for_resource(session, r, metrics)
 
-                session.flush()
+                session.commit()
             except exception.DBConstraintError as e:
                 if e.check_name in (
                         "ck_resource_started_before_ended",
@@ -988,14 +982,15 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         for name, value in metrics.items():
             if isinstance(value, uuid.UUID):
                 try:
-                    update = session.query(Metric).filter(
+                    stmt = update(Metric).filter(
                         Metric.id == value,
                         Metric.status == 'active',
                         Metric.creator == r.creator,
-                    ).update({"resource_id": r.id, "name": name})
+                    ).values(resource_id=r.id, name=name)
+                    result = session.execute(stmt)
                 except exception.DBDuplicateEntry:
                     raise indexer.NamedMetricAlreadyExists(name)
-                if update == 0:
+                if result.rowcount == 0:
                     raise indexer.NoSuchMetric(value)
             else:
                 unit = value.get('unit')
@@ -1025,11 +1020,12 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             # We are going to delete the resource; the on delete will set the
             # resource_id of the attached metrics to NULL, we just have to mark
             # their status as 'delete'
-            session.query(Metric).filter(
-                Metric.resource_id == resource_id).update(
-                    {"status": "delete"})
-            if session.query(Resource).filter(
-                    Resource.id == resource_id).delete() == 0:
+            stmt = update(Metric).filter(
+                Metric.resource_id == resource_id).values(status="delete")
+            session.execute(stmt)
+
+            stmt = delete(Resource).where(Resource.id == resource_id)
+            if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchResource(resource_id)
 
     @retry_on_deadlock
@@ -1053,29 +1049,27 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceAttributeError(resource_type,
                                                      e.attribute)
 
-            q1 = session.query(target_cls.id)
-            q1 = q1.filter(f)
+            resourceFilter = select(target_cls.id).filter(f)
 
-            session.query(Metric).filter(
-                Metric.resource_id.in_(q1)
-            ).update({"status": "delete"},
-                     synchronize_session=False)
+            stmt = update(Metric).filter(
+                Metric.resource_id.in_(resourceFilter)
+            ).values(status="delete").execution_options(
+                synchronize_session=False)
+            session.execute(stmt)
 
-            q = session.query(target_cls)
-            q = q.filter(f)
-            return q.delete(synchronize_session=False)
+            stmt = delete(target_cls).filter(f).execution_options(
+                synchronize_session=False)
+            return session.execute(stmt).rowcount
 
     @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
         with self.facade.independent_reader() as session:
             resource_cls = self._resource_type_to_mappers(
                 session, resource_type)['resource']
-            q = session.query(
-                resource_cls).filter(
-                    resource_cls.id == resource_id)
+            q = select(resource_cls).filter(resource_cls.id == resource_id)
             if with_metrics:
-                q = q.options(sqlalchemy.orm.joinedload('metrics'))
-            return q.first()
+                q = q.options(sqlalchemy.orm.joinedload(Resource.metrics))
+            return session.scalars(q).first()
 
     def _get_history_result_mapper(self, session, resource_type):
         mappers = self._resource_type_to_mappers(session, resource_type)
@@ -1092,8 +1086,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     col.name, value, col.type).label(col.name)
             else:
                 resource_cols[col.name] = getattr(resource_cls, col.name)
-        s1 = sqlalchemy.select(history_cols.values())
-        s2 = sqlalchemy.select(resource_cols.values())
+        s1 = select(*history_cols.values())
+        s2 = select(*resource_cols.values())
         if resource_type != "generic":
             s1 = s1.where(history_cls.revision == ResourceHistory.revision)
             s2 = s2.where(resource_cls.id == Resource.id)
@@ -1104,7 +1098,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             def __iter__(self):
                 return iter((key, getattr(self, key)) for key in stmt.c.keys())
 
-        sqlalchemy.orm.mapper(
+        mapper_reg.map_imperatively(
             Result, stmt, primary_key=[stmt.c.id, stmt.c.revision],
             properties={
                 'metrics': sqlalchemy.orm.relationship(
@@ -1137,7 +1131,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     session, resource_type)["resource"]
                 unique_keys = ["id"]
 
-            q = session.query(target_cls)
+            q = select(target_cls)
 
             if attribute_filter:
                 engine = session.connection()
@@ -1156,7 +1150,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             sort_keys, sort_dirs = self._build_sort_keys(sorts, unique_keys)
 
             if marker:
-                marker_q = session.query(target_cls)
+                marker_q = select(target_cls)
                 if history:
                     try:
                         rid, rrev = marker.split("@")
@@ -1164,12 +1158,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     except ValueError:
                         resource_marker = None
                     else:
-                        resource_marker = marker_q.filter(
+                        mfilter = marker_q.filter(
                             target_cls.id == rid,
-                            target_cls.revision == rrev).first()
+                            target_cls.revision == rrev)
+
+                        resource_marker = session.scalars(mfilter).first()
                 else:
-                    resource_marker = marker_q.filter(
-                        target_cls.id == marker).first()
+                    mfilter = marker_q.filter(target_cls.id == marker)
+                    resource_marker = session.scalars(mfilter).first()
 
                 if resource_marker is None:
                     raise indexer.InvalidPagination(
@@ -1188,8 +1184,8 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.InvalidPagination(e)
 
             # Always include metrics
-            q = q.options(sqlalchemy.orm.joinedload("metrics"))
-            all_resources = q.all()
+            q = q.options(sqlalchemy.orm.joinedload(target_cls.metrics))
+            all_resources = session.scalars(q).unique().all()
 
             if details:
                 grouped_by_type = itertools.groupby(
@@ -1215,11 +1211,11 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                         else:
                             f = target_cls.id.in_([r.id for r in resources])
 
-                        q = session.query(target_cls).filter(f)
+                        q = select(target_cls).filter(f)
                         # Always include metrics
-                        q = q.options(sqlalchemy.orm.joinedload('metrics'))
+                        q = q.options(sqlalchemy.orm.joinedload(target_cls.metrics))
                         try:
-                            all_resources.extend(q.all())
+                            all_resources.extend(session.scalars(q).unique().all())
                         except sqlalchemy.exc.ProgrammingError as e:
                             # NOTE(jd) This exception can happen when the
                             # resources and their resource type have been
@@ -1241,14 +1237,16 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
 
     def expunge_metric(self, id):
         with self.facade.writer() as session:
-            if session.query(Metric).filter(Metric.id == id).delete() == 0:
+            stmt = delete(Metric).where(Metric.id == id)
+            if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchMetric(id)
 
     def delete_metric(self, id):
         with self.facade.writer() as session:
-            if session.query(Metric).filter(
-                Metric.id == id, Metric.status == 'active').update(
-                    {"status": "delete", "resource_id": None}) == 0:
+            stmt = update(Metric).filter(
+                Metric.id == id, Metric.status == "active").values(
+                    status="delete", resource_id=None)
+            if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchMetric(id)
 
     @staticmethod
@@ -1328,10 +1326,15 @@ class QueryTransformer(object):
 
     @classmethod
     def _handle_multiple_op(cls, engine, table, op, nodes):
-        return op(*[
+        args = [
             cls.build_filter(engine, table, node)
             for node in nodes
-        ])
+        ]
+
+        if len(args) == 0:
+            return op(sqlalchemy.true(), *args)
+
+        return op(*args)
 
     @classmethod
     def _handle_unary_op(cls, engine, table, op, node):

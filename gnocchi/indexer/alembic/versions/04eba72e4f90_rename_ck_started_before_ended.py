@@ -22,7 +22,7 @@ Create Date: 2019-10-01 11:19:38.865522
 """
 
 from alembic import op
-from sqlalchemy.engine.reflection import Inspector
+import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '04eba72e4f90'
@@ -33,7 +33,7 @@ depends_on = None
 
 def upgrade():
     bind = op.get_bind()
-    inspector = Inspector.from_engine(bind)
+    inspector = sa.inspect(bind)
 
     for table in ("resource", "resource_history"):
         existing_cks = [

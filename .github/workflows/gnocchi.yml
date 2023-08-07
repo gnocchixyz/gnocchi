@@ -115,10 +115,12 @@ jobs:
           - mysql-ceph-upgrade-from-4.4
           - postgresql-file-upgrade-from-4.4
           - mysql-file
+          - mysql-file-sqlalchemy14
           - mysql-swift
           - mysql-s3
           - mysql-ceph
           - postgresql-file
+          - postgresql-file-sqlalchemy14
           - postgresql-swift
           - postgresql-s3
           - postgresql-ceph
