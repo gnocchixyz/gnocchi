@@ -591,6 +591,7 @@
       "image_ref": "http://image",
       "host": "compute1",
       "display_name": "myvm2",
+      "started_at": "2014-10-06T14:00:02.000000",
       "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": "{{ scenarios['create-metric']['response'].json['id'] }}"}
     }
@@ -608,6 +609,7 @@
       "image_ref": "http://image",
       "host": "compute2",
       "display_name": "myvm3",
+      "started_at": "2014-10-06T14:00:02.000000",
       "server_group": "my_autoscaling_group",
       "metrics": {"cpu.util": {"archive_policy_name": "{{ scenarios['create-archive-policy']['response'].json['name'] }}"}}
     }

@@ -86,16 +86,27 @@ class TestScenario(object):
     def validate_scenario(self):
         all_groups = list(map(lambda o: o['group'], self.expected_output))
         all_response_groups = list(map(lambda r: r['group'], self.result))
-        assert all_groups == all_response_groups
+        self.execute_assert(all_groups, all_response_groups)
         for r in self.result:
             for out in self.expected_output:
                 if out['group'] == r['group']:
                     for date, val in out['measures'].items():
                         aggregated = r['measures']['measures']['aggregated']
-                        assert len(aggregated) == len(out['measures'])
+                        self.execute_assert(
+                            len(aggregated), len(out['measures']))
                         for dat, gran, value in aggregated:
                             if str(dat) == date:
-                                assert val == value
+                                message = "Expected [%s], but got [%s]. " \
+                                          "Parameters expected_output [%s] " \
+                                          "and result[%s]." % (
+                                              val, value, self.expected_output,
+                                              self.result)
+                                self.execute_assert(val, value, message)
+
+    def execute_assert(self, expected, received, message=None):
+        if not message:
+            message = "Expected [%s], but got [%s]." % (expected, received)
+        assert expected == received, message
 
     def create_test_scenario(self):
         scenario = self.test_input
@@ -337,7 +348,7 @@ class TestGroupMeasuresWithHistory(base.BaseTestCase):
             {
                 'group': {'flavor_name': '4gb-mem'},
                 'measures': {
-                    '2020-03-10T10:00:00.000000': 16.666666666666686
+                    '2020-03-10T10:00:00.000000': 16.666666666666664
                 }
             }
         ]

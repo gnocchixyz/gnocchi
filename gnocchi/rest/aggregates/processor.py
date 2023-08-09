@@ -57,7 +57,15 @@ def _get_measures_timeserie(storage, ref, granularity, *args, **kwargs):
         data = storage.get_aggregated_measures(
             {ref.metric: [agg]},
             *args, **kwargs)[ref.metric][agg]
+
+        LOG.debug("Measurement found [%s] for metric [%s] and granularity "
+                  "[%s] in storage [%s], and aggregation [%s].", data,
+                  ref.metric, granularity, storage, agg)
     except gnocchi_storage.MetricDoesNotExist:
+        LOG.debug("Measurement does not exist [%s] for granularity [%s] in "
+                  "storage [%s], and aggregation [%s].", ref.metric,
+                  granularity, storage, agg)
+
         data = carbonara.AggregatedTimeSerie(
             carbonara.Aggregation(ref.aggregation, granularity, None))
     return (ref, data)
@@ -139,6 +147,10 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     references = collections.defaultdict(list)
     lookup_keys = collections.defaultdict(list)
     for (ref, timeserie) in refs_and_timeseries:
+        LOG.debug("Executing processing of timeseries [%s, split=%s] and"
+                  " references [%s].", timeserie, timeserie.get_split_key(),
+                  ref)
+
         from_ = (None if from_timestamp is None else
                  carbonara.round_timestamp(
                      from_timestamp, timeserie.aggregation.granularity))
@@ -151,6 +163,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     is_aggregated = False
     result = {}
     for sampling in sorted(series, reverse=True):
+        LOG.debug("Processing sampling [%s].", sampling)
         # np.unique sorts results for us
         times, indices = numpy.unique(
             numpy.concatenate([i['timestamps'] for i in series[sampling]]),
@@ -214,6 +227,10 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
     if is_aggregated:
         output = {"aggregated": []}
         for sampling in sorted(result, reverse=True):
+            LOG.debug("Aggregated data found for time [%s], granularity [%s], "
+                      "references [%s], and values [%s] for sampling [%s].",
+                      times, granularity, references, values, sampling)
+
             granularity, times, values, references = result[sampling]
             if fill in ("dropna", "ffill", "bfill", "full_ffill", "full_bfill"):
                 pos = ~numpy.logical_or(numpy.isnan(values[0]),

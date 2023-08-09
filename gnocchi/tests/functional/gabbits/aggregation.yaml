@@ -331,6 +331,7 @@ tests:
     - name: post a resource
       POST: /v1/resource/generic
       data:
+          started_at: "2015-03-06T14:30:00.000000"
           id: bcd3441c-b5aa-4d1b-af9a-5a72322bb269
           metrics:
             agg_meter:
@@ -340,6 +341,7 @@ tests:
     - name: post another resource
       POST: /v1/resource/generic
       data:
+          started_at: "2015-03-06T14:30:00.000000"
           id: 1b0a8345-b279-4cb8-bd7a-2cb83193624f
           metrics:
             agg_meter:
