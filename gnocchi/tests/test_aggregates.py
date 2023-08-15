@@ -72,18 +72,21 @@ class TestGrouper(base.BaseTestCase):
 
         self.test_resource_1 = {
             'uuid': '30b51786-944f-427b-85df-ce5f462e58a4',
+            'original_resource_id': '30b51786-944f-427b-85df-ce5f462e58a4',
             'revision_start': self.start - datetime.timedelta(hours=10),
             'revision_end': self.start - datetime.timedelta(hours=9),
             "attribute1": "a", "attribute2": "a", "attribute3": "a"
         }
         self.test_resource_2 = {
             'uuid': '17002c42-2f30-45fb-b1f1-eb33f7345e89',
+            'original_resource_id': '17002c42-2f30-45fb-b1f1-eb33f7345e89',
             'revision_start': self.start - datetime.timedelta(hours=7),
             'revision_end': self.start - datetime.timedelta(hours=5),
             "attribute1": None, "attribute2": "b", "attribute3": "b"
         }
         self.test_resource_3 = {
             'uuid': '8f6be3bb-d5ee-4d01-986b-c034386637b0',
+            'original_resource_id': '8f6be3bb-d5ee-4d01-986b-c034386637b0',
             'revision_start': self.start - datetime.timedelta(hours=2),
             'revision_end': self.start - datetime.timedelta(hours=1),
             "attribute1": "c", "attribute2": None, "attribute3": None

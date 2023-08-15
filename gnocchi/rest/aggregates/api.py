@@ -320,9 +320,17 @@ class Grouper(object):
         return response
 
     def group(self, to_group):
-        to_group.sort(key=lambda g: g['revision_start'])
+        to_group.sort(key=lambda g: (g['original_resource_id'],
+                                     g['revision_start']))
+
         is_first = True
+        last_processed_resource_id = None
         for value in to_group:
+            resource_id = value['original_resource_id']
+            if resource_id != last_processed_resource_id:
+                last_processed_resource_id = resource_id
+                is_first = True
+
             self.truncate_resource_time_window(value, is_first=is_first)
             is_first = False
         to_group.sort(key=lambda x: tuple((attr, str(x[attr] or ''))

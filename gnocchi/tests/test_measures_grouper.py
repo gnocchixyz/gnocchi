@@ -33,6 +33,7 @@ class Resource(object):
         self.display_name = display_name
         self.revision_start = revision_start
         self.revision_end = None
+        self.original_resource_id = str(hash(id))
 
 
 class ResourceHistory(object):
