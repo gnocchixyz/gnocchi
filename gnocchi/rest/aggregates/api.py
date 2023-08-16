@@ -216,7 +216,7 @@ class MeasureGroup(object):
         last_it = None
         for it in group:
             if last_it and it['search_start'] == last_it['search_start']:
-                last_it['search_en'] = it['search_en']
+                last_it['search_end'] = it['search_end']
                 continue
 
             last_it = it
