@@ -93,3 +93,11 @@ pull_request_rules:
     conditions:
     - label=backport-to-4.5
     name: backport stable/4.5
+
+  - actions:
+      backport:
+        branches:
+        - stable/4.6
+    conditions:
+    - label=backport-to-4.6
+    name: backport stable/4.6
