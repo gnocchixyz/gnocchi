@@ -1,6 +1,6 @@
 ===================================
- 4.3 Series Release Notes
+ 4.6 Series Release Notes
 ===================================
 
 .. release-notes::
-   :branch: origin/eol/4.3
+   :branch: origin/stable/4.6
