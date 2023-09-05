@@ -1,6 +1,5 @@
-#!/usr/bin/env python
-# Copyright (c) 2014 eNovance
-#
+#!/usr/bin/env python3
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,19 +12,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
+from gnocchi.cli import api
 
-import setuptools
-
-cmdclass = {}
-
-try:
-    from sphinx import setup_command
-    cmdclass['build_sphinx'] = setup_command.BuildDoc
-except ImportError:
-    pass
-
-
-setuptools.setup(
-    cmdclass=cmdclass,
-    py_modules=[],
-)
+if __name__ == '__main__':
+    sys.exit(api.api())
+else:
+    application = api.wsgi()
