@@ -24,4 +24,4 @@ jobs:
           context: ./images
           file: ./images/Dockerfile.ci
           push: true
-          tags: ghcr.io/gnocchixyz/ci:latest
+          tags: ghcr.io/gnocchixyz/ci:4.6
