@@ -426,10 +426,10 @@ class Grouper(object):
         data_map_key = ""
         all_keys = list(group.group_key.keys())
         if not all_keys:
-            LOG.error("A group without keys for [%s] should not be possible.",
+            LOG.error("A group without keys [%s] should not be possible.",
                       group)
 
-        return self.measures_date_map
+            return self.measures_date_map
         all_keys.sort()
         for key in all_keys:
             data_map_key += "%s=%s," % (key, group.group_key[key])
