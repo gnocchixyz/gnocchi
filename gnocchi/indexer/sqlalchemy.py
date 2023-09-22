@@ -1120,7 +1120,10 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     attribute_filters_to_use[value_index] = value_sanitized
 
         elif is_value_dict:
-            for key, value in attribute_filter:
+            all_keys = list(attribute_filter.keys())
+            for key in all_keys:
+                value = attribute_filter.get(key)
+
                 # The value is a leaf when it is not of type dict of list.
                 is_value_leaf = not (isinstance(
                     value, dict) or isinstance(value, list))
