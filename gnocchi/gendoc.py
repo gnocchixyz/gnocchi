@@ -13,6 +13,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 from __future__ import absolute_import
 import io
 import json
@@ -27,6 +28,7 @@ from sphinx.util import logging
 import webob.request
 import yaml
 
+import gnocchi
 from gnocchi.tests import test_rest
 
 
@@ -246,3 +248,8 @@ def setup(app):
     ])
 
     _RUN = True
+
+    return {
+        'version': gnocchi.__version__,
+        'parallel_read_safe': True,
+    }
