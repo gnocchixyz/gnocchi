@@ -121,7 +121,12 @@ class BasicAuthHelper(object):
         hdr = request.headers.get("Authorization")
         auth_hdr = (hdr.decode('utf-8') if isinstance(hdr, bytes)
                     else hdr)
-        auth = werkzeug.http.parse_authorization_header(auth_hdr)
+
+        try:
+            auth = werkzeug.http.parse_authorization_header(auth_hdr)
+        except AttributeError:
+            auth = werkzeug.datastructures.Authorization.from_header(auth_hdr)
+
         if auth is None:
             api.abort(401)
         return auth.username
