@@ -1892,8 +1892,9 @@ class AggregationResourceController(rest.RestController):
 
 
 FillSchema = voluptuous.Schema(
-    voluptuous.Any(voluptuous.Coerce(float), "null", "dropna",
-                   msg="Must be a float, 'dropna' or 'null'"))
+    voluptuous.Any(voluptuous.Coerce(float), "null", "dropna", "ffill", "bfill",
+                   "full_ffill", "full_bfill",
+                   msg="Must be a float, 'dropna', 'null', 'ffill', 'bfill', 'full_ffill' or 'full_bfill'")) # noqa
 
 
 def validate_qs(start=None, stop=None, granularity=None,

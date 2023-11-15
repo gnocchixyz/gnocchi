@@ -157,7 +157,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             return_inverse=True)
 
         # create nd-array (unique series x unique times) and fill
-        filler = (numpy.NaN if fill in [None, 'null', 'dropna']
+        filler = (numpy.NaN if fill in [None, 'null', 'dropna', 'ffill', 'bfill', 'full_ffill', 'full_bfill']
                   else fill)
         val_grid = numpy.full((len(series[sampling]), len(times)), filler)
         start = 0
@@ -165,6 +165,21 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             size = len(split)
             val_grid[i][indices[start:start + size]] = split['values']
             start += size
+
+        if fill == "ffill":
+            val_grid = utils.forward_fill(val_grid)
+
+        if fill == "bfill":
+            val_grid = utils.backward_fill(val_grid)
+
+        if fill == "full_ffill":
+            val_grid = utils.forward_fill(val_grid)
+            val_grid = utils.backward_fill(val_grid)
+
+        if fill == "full_bfill":
+            val_grid = utils.backward_fill(val_grid)
+            val_grid = utils.forward_fill(val_grid)
+
         values = val_grid.T
 
         if fill is None:
@@ -200,7 +215,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
         output = {"aggregated": []}
         for sampling in sorted(result, reverse=True):
             granularity, times, values, references = result[sampling]
-            if fill == "dropna":
+            if fill in ("dropna", "ffill", "bfill", "full_ffill", "full_bfill"):
                 pos = ~numpy.logical_or(numpy.isnan(values[0]),
                                         numpy.isinf(values[0]))
                 v = values[0][pos]
@@ -220,7 +235,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
         for sampling in sorted(result, reverse=True):
             granularity, times, values, references = result[sampling]
             for i, ref in enumerate(references):
-                if fill == "dropna":
+                if fill in ("dropna", "ffill", "bfill", "full_ffill", "full_bfill"):
                     pos = ~numpy.logical_or(numpy.isnan(values[i]),
                                             numpy.isinf(values[i]))
                     v = values[i][pos]

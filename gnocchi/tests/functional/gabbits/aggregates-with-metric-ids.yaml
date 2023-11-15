@@ -803,7 +803,7 @@ tests:
         $.code: 400
         $.description.cause: "Argument value error"
         $.description.detail: "fill"
-        $.description.reason: "Must be a float, 'dropna' or 'null'"
+        $.description.reason: "Must be a float, 'dropna', 'null', 'ffill', 'bfill', 'full_ffill' or 'full_bfill'"
 
     - name: get rolling bad aggregate
       POST: /v1/aggregates

@@ -361,3 +361,14 @@ def is_resource_revision_needed(resource, request_attributes):
                       ".", resource, k, v, database_attribute)
             return True
     return False
+
+
+def forward_fill(arr):
+    mask = numpy.isnan(arr)
+    idx = numpy.where(~mask, numpy.arange(mask.shape[1]), 0)
+    numpy.maximum.accumulate(idx, axis=1, out=idx)
+    return arr[numpy.arange(idx.shape[0])[:, None], idx]
+
+
+def backward_fill(arr):
+    return forward_fill(arr[:, ::-1])[:, ::-1]
