@@ -30,8 +30,7 @@ def to_primitive(obj):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
     if isinstance(obj, numpy.datetime64):
-        # Do not include nanoseconds if null
-        return str(obj).rpartition(".000000000")[0] + "+00:00"
+        return numpy.datetime_as_string(obj, unit='s') + "+00:00"
     if isinstance(obj, numpy.timedelta64):
         return obj / numpy.timedelta64(1, 's')
     if isinstance(obj, datetime.timedelta):
