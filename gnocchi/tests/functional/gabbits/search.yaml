@@ -53,7 +53,7 @@ tests:
       status: 400
       response_json_paths:
         $.description.cause: "Invalid input"
-        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.reason: "value must not be one of ['id'] @ data['like']['id']"
         $.description.detail: ["like", "id"]
 
     - name: search like list id
@@ -67,7 +67,7 @@ tests:
       status: 400
       response_json_paths:
         $.description.cause: "Invalid input"
-        $.description.reason: "/^extra keys not allowed @ data/"
+        $.description.reason: "value must not be one of ['id'] @ data['like']['id']"
         $.description.detail: ["like", "id"]
 
     - name: search invalid ne value

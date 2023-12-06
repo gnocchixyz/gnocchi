@@ -1882,7 +1882,7 @@ class GenericResourceTest(RestTest):
         result_description = result.json['description']
         self.assertEqual("Invalid input", result_description['cause'])
         self.assertIn(
-            "extra keys not allowed @ data[", result_description['reason']
+            "not a valid value @ data['wrongoperator']", result_description['reason']
         )
 
 
