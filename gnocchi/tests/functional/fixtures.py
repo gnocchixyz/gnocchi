@@ -14,8 +14,6 @@
 # under the License.
 """Fixtures for use with gabbi tests."""
 
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
