@@ -39,13 +39,6 @@ def prepare_service(conf=None):
     opts.set_defaults()
     policy_opts.set_defaults(conf, 'policy.yaml')
     conf = service.prepare_service(conf=conf)
-    cfg_path = conf.oslo_policy.policy_file
-    if not os.path.isabs(cfg_path):
-        cfg_path = conf.find_file(cfg_path)
-    if cfg_path is None or not os.path.exists(cfg_path):
-        cfg_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                   '..', 'rest', 'policy.yaml'))
-    conf.set_default('policy_file', cfg_path, group='oslo_policy')
     return conf
 
 
