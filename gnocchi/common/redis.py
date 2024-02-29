@@ -55,19 +55,19 @@ CLIENT_LIST_ARGS = frozenset([
 #: Client arguments that are expected to be boolean convertible.
 CLIENT_BOOL_ARGS = frozenset([
     'retry_on_timeout',
+    'socket_keepalive',
     'ssl',
 ])
 
 #: Client arguments that are expected to be int convertible.
 CLIENT_INT_ARGS = frozenset([
     'db',
-    'health_check_interval',
-    'socket_keepalive',
 ])
 
 #: Client arguments that are expected to be float convertible.
 CLIENT_FLOAT_ARGS = frozenset([
     'socket_timeout',
+    'health_check_interval',
 ])
 
 OPTS = [
