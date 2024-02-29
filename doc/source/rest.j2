@@ -838,13 +838,20 @@ changed from `1` to `2` after `2015`.
 {{ scenarios['get-aggregates-by-attributes-lookup-groupby-without-history']['doc'] }}
 
 Between the measurements from `2015` and `2099`, the `flavor_id` was changed
-from `1` to `2`, but in the response, it is always `2`. In these cases, if you
-want to get all the attributes' values over the time window, and group each
-measurement by the attribute value the resource has when the measurement was
-collected, you can add the `use_history=true` in the aggregates API request,
-like the following example.
+from `1` to `2`, but in the response, the `flavor_id` is as if it was always
+`2`. In these cases, if you want to get all the attributes' values over the
+time window, and group each measurement by the attribute value the resource
+has when the measurement was collected, you can add the `use_history=true`
+in the aggregates API request, like the following example.
 
 {{ scenarios['get-aggregates-by-attributes-lookup-groupby-with-history']['doc'] }}
+
+When using the `use_history=True`, the re-aggregation process will not
+work as expected, as the values in the timespan that represents the
+granularity being consulted are added together to enable the split into
+different portions according to their participation in the timeframe being
+consulted. Therefore, if one wants to use the re-aggregation process, he/she
+needs to consider using the `use_history` option as `False`.
 
 List of supported <operations>
 ------------------------------
