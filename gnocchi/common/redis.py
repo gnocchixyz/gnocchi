@@ -14,6 +14,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import re
+
 from oslo_config import cfg
 from urllib import parse
 
@@ -113,6 +115,18 @@ OPTS = [
 ]
 
 
+def _parse_sentinel(cls, sentinel):
+    # IPv6 (eg. [::1]:6379 )
+    match = re.search(r'^\[(\S+)\]:(\d+)$', sentinel)
+    if match:
+        return (match[1], int(match[2]))
+    # IPv4 or hostname (eg. 127.0.0.1:6379 or localhost:6379)
+    match = re.search(r'^(\S+):(\d+)$', sentinel)
+    if match:
+        return (match[1], int(match[2]))
+    raise ValueError('Malformed sentinel server format')
+
+
 def get_client(conf, scripts=None):
     if redis is None:
         raise RuntimeError("Redis Python module is unavailable")
@@ -152,7 +166,7 @@ def get_client(conf, scripts=None):
     # sentinel arg.
     if 'sentinel' in kwargs:
         sentinel_hosts = [
-            tuple(fallback.split(':'))
+            _parse_sentinel(fallback)
             for fallback in kwargs.get('sentinel_fallback', [])
         ]
         sentinel_hosts.insert(0, (kwargs['host'], kwargs['port']))
