@@ -137,12 +137,10 @@ def list_opts():
         ("indexer", gnocchi.indexer.OPTS),
         ("metricd", (
             cfg.IntOpt('workers', min=1,
-                       required=True,
                        help='Number of workers for Gnocchi metric daemons. '
                        'By default the available number of CPU is used.'),
             cfg.IntOpt('metric_processing_delay',
                        default=60,
-                       required=True,
                        deprecated_group='storage',
                        help="How many seconds to wait between "
                        "scheduling new metrics to process"),
@@ -155,14 +153,12 @@ def list_opts():
                        deprecated_group='storage',
                        default=120,
                        min=-1,
-                       required=True,
                        help="How many seconds to wait between "
                        "metric ingestion reporting. Set value to -1 to "
                        "disable reporting"),
             cfg.IntOpt('metric_cleanup_delay',
                        deprecated_group='storage',
                        default=300,
-                       required=True,
                        help="How many seconds to wait between "
                        "cleaning of expired data"),
             cfg.IntOpt('processing_replicas',
@@ -190,7 +186,6 @@ def list_opts():
                        help='Authentication mode to use.'),
             cfg.IntOpt('max_limit',
                        default=1000,
-                       required=True,
                        help=('The maximum number of items returned in a '
                              'single response from a collection resource')),
             cfg.IntOpt('operation_timeout',
