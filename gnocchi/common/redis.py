@@ -45,6 +45,9 @@ CLIENT_ARGS = frozenset([
     'ssl_ca_certs',
     'sentinel',
     'sentinel_fallback',
+    'sentinel_username',
+    'sentinel_password',
+    'sentinel_ssl'
 ])
 """
 """
@@ -59,6 +62,7 @@ CLIENT_BOOL_ARGS = frozenset([
     'retry_on_timeout',
     'socket_keepalive',
     'ssl',
+    'sentinel_ssl'
 ])
 
 #: Client arguments that are expected to be int convertible.
@@ -167,19 +171,31 @@ def get_client(conf, scripts=None):
     if 'sentinel' in kwargs:
         sentinel_hosts = [
             _parse_sentinel(fallback)
-            for fallback in kwargs.get('sentinel_fallback', [])
+            for fallback in kwargs.pop('sentinel_fallback', [])
         ]
-        sentinel_hosts.insert(0, (kwargs['host'], kwargs['port']))
+        sentinel_hosts.insert(0, (kwargs.pop('host'), kwargs.pop('port')))
+        sentinel_name = kwargs.pop('sentinel')
+        sentinel_kwargs = {}
+        # NOTE(tkajinam): Copy socket_* options, according to the logic
+        # in redis-py
+        for key in kwargs:
+            if key.startswith('socket_'):
+                sentinel_kwargs[key] = kwargs[key]
+        if kwargs.pop('sentinel_ssl', False):
+            sentinel_kwargs['ssl'] = True
+            for key in ('ssl_certfile', 'ssl_keyfile', 'ssl_cafile'):
+                if key in kwargs:
+                    sentinel_kwargs[key] = kwargs[key]
+        for key in ('username', 'password'):
+            if 'sentinel_' + key in kwargs:
+                sentinel_kwargs[key] = kwargs.pop('sentinel_' + key)
         sentinel_server = sentinel.Sentinel(
             sentinel_hosts,
-            socket_timeout=kwargs.get('socket_timeout'))
-        sentinel_name = kwargs['sentinel']
-        del kwargs['sentinel']
-        if 'sentinel_fallback' in kwargs:
-            del kwargs['sentinel_fallback']
+            sentinel_kwargs=sentinel_kwargs,
+            **kwargs)
         # The client is a redis.StrictRedis using a
         # Sentinel managed connection pool.
-        client = sentinel_server.master_for(sentinel_name, **kwargs)
+        client = sentinel_server.master_for(sentinel_name)
     else:
         client = redis.StrictRedis(**kwargs)
 
