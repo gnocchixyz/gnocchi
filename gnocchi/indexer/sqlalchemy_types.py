@@ -35,6 +35,7 @@ class PreciseTimestamp(types.TypeDecorator):
     """
 
     impl = sqlalchemy.DateTime
+    cache_ok = True
 
     @staticmethod
     def _decimal_to_dt(dec):
@@ -94,6 +95,7 @@ class TimestampUTC(types.TypeDecorator):
     """Represents a timestamp precise to the microsecond."""
 
     impl = sqlalchemy.DateTime
+    cache_ok = True
 
     def load_dialect_impl(self, dialect):
         if dialect.name == 'mysql':
