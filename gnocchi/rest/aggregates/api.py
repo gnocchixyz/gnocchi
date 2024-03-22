@@ -211,18 +211,21 @@ class MeasureGroup(object):
         self.measures.append(measure)
 
     def join_sequential_groups(self, group):
-        group.sort(key=lambda key: key['revision_start'])
+        group.sort(key=lambda key: key['search_start'])
         new_group = []
         last_it = None
         for it in group:
-            if last_it and it['revision_start'] == last_it['revision_end']:
-                last_it['revision_end'] = it['revision_end']
+            if last_it and it['search_start'] == last_it['search_start']:
+                last_it['search_end'] = it['search_end']
                 continue
 
             last_it = it
             new_group.append(it)
 
         return new_group
+
+    def __str__(self):
+        return "Group keys [%s]." % self.group_key
 
     def sum_groups_same_time_values(self):
         to_remove = []
@@ -303,16 +306,31 @@ class Grouper(object):
 
     def get_grouped_measures(self):
         resources = self.retrieve_resources_history()
-        self.grouped_response = self.get_measures(self.group(resources))
+        groups_to_process_metrics = self.group(resources)
+        LOG.debug("Groups [%s] to process metrics of resources [%s].",
+                  groups_to_process_metrics, resources)
+
+        self.grouped_response = self.get_measures(groups_to_process_metrics)
+        LOG.debug("Response grouped [%s] for resources [%s].",
+                  self.grouped_response, resources)
+
         response = self.format_response()
-        LOG.debug("[ Resources History: %s ]", resources)
-        LOG.debug("[ Response: %s ]", response)
+        LOG.debug("Response to be used after group by process and formatting: "
+                  "[%s]", response)
         return response
 
     def group(self, to_group):
-        to_group.sort(key=lambda g: g['revision_start'])
+        to_group.sort(key=lambda g: (g['original_resource_id'],
+                                     g['revision_start']))
+
         is_first = True
+        last_processed_resource_id = None
         for value in to_group:
+            resource_id = value['original_resource_id']
+            if resource_id != last_processed_resource_id:
+                last_processed_resource_id = resource_id
+                is_first = True
+
             self.truncate_resource_time_window(value, is_first=is_first)
             is_first = False
         to_group.sort(key=lambda x: tuple((attr, str(x[attr] or ''))
@@ -332,30 +350,38 @@ class Grouper(object):
         return grouped
 
     def truncate_resource_time_window(self, value, is_first=False):
+        LOG.debug("Truncating timewindow for object [%s] is_first [%s].",
+                  value, is_first)
+
+        value['search_start'] = value['revision_start']
+        value['search_end'] = value['revision_end']
+
         if is_first:
-            value['revision_start'] = self.start
+            value['search_start'] = self.start
         elif self.start:
-            if value['revision_start']:
-                revision_start = numpy.datetime64(value['revision_start'])
-                value['revision_start'] = max(revision_start, self.start)
+            if value['search_start']:
+                search_start = numpy.datetime64(value['search_start'])
+                value['search_start'] = max(search_start, self.start)
             else:
-                value['revision_start'] = self.start
+                value['search_start'] = self.start
 
         if self.end:
-            if value['revision_end']:
-                revision_end = numpy.datetime64(value['revision_end'])
-                value['revision_end'] = min(revision_end, self.end)
+            if value['search_end']:
+                search_end = numpy.datetime64(value['search_end'])
+                value['search_end'] = min(search_end, self.end)
             else:
-                value['revision_end'] = self.end
+                value['search_end'] = self.end
+
+        LOG.debug("Timewindow of object [%s] after truncating.", value)
 
     def get_measures(self, groups):
         for group in groups:
             date_map = self.get_date_map(group)
             for resource in group.resources:
-                start = numpy.datetime64(resource['revision_start']) \
-                    if resource['revision_start'] else None
-                stop = numpy.datetime64(resource['revision_end']) \
-                    if resource['revision_end'] else None
+                start = numpy.datetime64(resource['search_start']) \
+                    if resource['search_start'] else None
+                stop = numpy.datetime64(resource['search_end']) \
+                    if resource['search_end'] else None
 
                 LOG.debug("[ Collecting measures from %s to %s ]",
                           start, stop)
@@ -365,9 +391,26 @@ class Grouper(object):
                         [resource], self.references, self.body["operations"],
                         start, stop, self.granularity, self.needed_overlap,
                         self.fill, details=self.details)
+
+                    LOG.debug(
+                        "[%s] measure found for resource [%s], operations "
+                        "[%s], start [%s], stop [%s], granularity [%s], "
+                        "need_overlap [%s], fill [%s], details [%s], and "
+                        "references [%s].", measure, resource,
+                        self.body["operations"], start, stop, self.granularity,
+                        self.needed_overlap, self.fill, self.details,
+                        self.references)
+
                     group.add_measures(measure, date_map, start, stop,
                                        self.details)
-                except indexer.NoSuchMetric:
+                except indexer.NoSuchMetric as e:
+                    LOG.debug("No measure found for resource [%s], operations "
+                              "[%s], start [%s], stop [%s], granularity [%s], "
+                              "need_overlap [%s], fill [%s], details [%s], "
+                              "and references [%s]. Error: [%s].", resource,
+                              self.body["operations"], start, stop,
+                              self.granularity, self.needed_overlap,
+                              self.fill, self.details, self.references, e)
                     continue
 
         self.truncate_measures()
@@ -375,10 +418,29 @@ class Grouper(object):
         return groups
 
     def get_date_map(self, group):
-        if 'id' in group.group_key:
-            return self.measures_date_map.setdefault(group.group_key['id'], {})
+        """This method returns the map used to control the groupby elements.
 
-        return self.measures_date_map
+        If the entry does not exist, an empty map is returned. The rest of the
+        code handles/works by adding entries to the map returned by this method
+        """
+        data_map_key = ""
+        all_keys = list(group.group_key.keys())
+        if not all_keys:
+            LOG.error("A group without keys [%s] should not be possible.",
+                      group)
+
+            return self.measures_date_map
+        all_keys.sort()
+        for key in all_keys:
+            data_map_key += "%s=%s," % (key, group.group_key[key])
+
+        data_map_key = data_map_key[0:len(data_map_key) - 1]
+
+        date_map_to_return = self.measures_date_map.setdefault(data_map_key, {})
+        LOG.debug("Date map [%s] found for key [%s].",
+                  date_map_to_return, data_map_key)
+
+        return date_map_to_return
 
     def sum_sequential_group_metrics(self, groups):
         for group in groups:
@@ -394,16 +456,14 @@ class Grouper(object):
                 self.truncate_measure(measure)
 
     def truncate_measure(self, measures_list):
-        if measures_list and len(measures_list) == 1:
+        if not measures_list:
             return
-        measures_sum = 0
-        for measure in measures_list[:-1]:
-            measure_new_val = (measure.value *
-                               measure.usage_coefficient)
-            measures_sum += measure_new_val
+
+        for measure in measures_list:
+            measure_new_val = (measure.value * measure.usage_coefficient)
+            LOG.debug('Trucating measure [%s] value to [%s].',
+                      measure.__dict__, measure_new_val)
             measure.value = measure_new_val
-        last_measure = measures_list[-1]
-        last_measure.value = abs(measures_sum - last_measure.value)
 
     def format_response(self):
         measures_list = []
@@ -422,6 +482,9 @@ class Grouper(object):
 
             if aggregated:
                 measures_list.append(measures)
+            else:
+                LOG.debug("No measure found in measures [%s] of group [%s].",
+                          group.measures, group)
 
         return measures_list
 
@@ -457,6 +520,12 @@ class AggregatesController(rest.RestController):
         start, stop, granularity, needed_overlap, fill = api.validate_qs(
             start, stop, granularity, needed_overlap, fill)
 
+        if start:
+            start = numpy.datetime64(start)
+
+        if stop:
+            stop = numpy.datetime64(stop)
+
         body = api.deserialize_and_validate(self.FetchSchema)
 
         references = extract_references(body["operations"])
@@ -467,6 +536,61 @@ class AggregatesController(rest.RestController):
 
         if "resource_type" in body:
             attr_filter = body["search"]
+
+            time_range_filters = []
+
+            # When we apply the filters in the query, we need to bear in mind
+            # that for the queries where use_history=False, we do not have the
+            # revision_end as we do not care about revisions.
+            # The revision_start exists in the resource history. Therefore,
+            # we can leave its use there as well, with use_history=True or not.
+            if stop:
+                # We use the stop filter as the start value, since we want
+                # everything that started until the end of the time range.
+                time_range_filters.append({"or": [
+                    {"<": {'started_at': stop}},
+                    {"<": {'revision_start': stop}}
+                ]})
+
+            if start:
+                # We want all elements/resources that exist after the start of
+                # the time range or that were deleted after the start of the
+                # time range.
+                time_range_filters.append(
+                    {
+                        "or": [
+                            {">=": {'ended_at': start}},
+                            {"=": {'ended_at': None}},
+                            {">=": {'revision_end': start}},
+                            {"=": {'revision_end': None}}
+                        ]
+                    } if use_history else {
+                        "or": [
+                            {">=": {'ended_at': start}},
+                            {"=": {'ended_at': None}},
+                        ]
+                    })
+            if not (start and stop):
+                LOG.warning("No stop and start filtering provided. Therefore, "
+                            "we will use a query that is going to manipulate "
+                            "all dataset. This can be quite costly!")
+
+            if time_range_filters:
+                if len(time_range_filters) > 1:
+                    time_range_filters = {
+                        "and": time_range_filters
+                    }
+                else:
+                    time_range_filters = time_range_filters[0]
+
+                if attr_filter:
+                    attr_filter = {"and": [time_range_filters, attr_filter]}
+                else:
+                    attr_filter = time_range_filters
+
+            LOG.debug("Filters to be used in the search query: [%s].",
+                      attr_filter)
+
             policy_filter = (
                 pecan.request.auth_helper.get_resource_policy_filter(
                     pecan.request, "search resource", body["resource_type"]))
@@ -496,6 +620,9 @@ class AggregatesController(rest.RestController):
                     results = self.get_measures_grouping_with_history(
                         attr_filter, body, details, fill, granularity, groupby,
                         needed_overlap, references, sorts, start, stop)
+
+                    LOG.debug("Response of aggregates call with history: "
+                              "[%s] for body parameters [%s].", results, body)
                 else:
                     resources = pecan.request.indexer.list_resources(
                         body["resource_type"],
@@ -504,6 +631,13 @@ class AggregatesController(rest.RestController):
                     results = self.get_measures_grouping(
                         body, details, fill, granularity, needed_overlap,
                         references, resources, start, stop, groupby)
+
+                    LOG.debug(
+                        "Resources found [%s] with query filter [%s].",
+                        [{'original_resource_id': r.original_resource_id,
+                          'started_at': r.started_at,
+                          'ended_at': r.ended_at} for r in resources or []],
+                        attr_filter)
 
             except indexer.NoSuchMetric as e:
                 api.abort(404, str(e))
@@ -567,6 +701,11 @@ class AggregatesController(rest.RestController):
 
         results = []
         for key, resources in itertools.groupby(resources, groupper):
+            resources = list(resources)
+
+            LOG.debug("Executing collection of metrics for group [%s] and "
+                      "resources [%s].", key, resources)
+
             try:
                 results.append({
                     "group": dict(key),
