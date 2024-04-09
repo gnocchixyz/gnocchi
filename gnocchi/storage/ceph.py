@@ -97,7 +97,7 @@ class CephStorage(storage.StorageDriver):
                     metric_size = len(data)
 
                     MAP_UNAGGREGATED_METRIC_NAME_BY_SIZE[name] = metric_size
-                    LOG.debug("Storing time series size [%s] for metric [%s]",
+                    LOG.debug("Storing time series size [%s] for metric [%s].",
                               metric_size, name)
                     if offset is None:
                         self.ioctx.write_full(name, data)
