@@ -114,3 +114,7 @@ def api():
         args.extend(["-H", os.getenv("VIRTUAL_ENV", ".")])
 
     return os.execl(uwsgi, uwsgi, *args)
+
+
+if __name__ == '__main__':
+    api()
