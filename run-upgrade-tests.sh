@@ -97,7 +97,7 @@ new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $GNOCCHI_VERSION_FROM to $new_version"
 pip install -v -U .[${GNOCCHI_VARIANT}]
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --verbose --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID

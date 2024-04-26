@@ -38,6 +38,7 @@ def prepare_service(conf=None):
 
     opts.set_defaults()
     policy_opts.set_defaults(conf, 'policy.yaml')
+
     conf = service.prepare_service(conf=conf)
     return conf
 
@@ -113,4 +114,6 @@ def api():
     if virtual_env is not None:
         args.extend(["-H", os.getenv("VIRTUAL_ENV", ".")])
 
+    LOG.info("Starting gnocchi api server with [%s] and arguments [%s]", uwsgi, args)
+    print("Starting gnocchi api server with [%s] and arguments [%s]" % (uwsgi, args))
     return os.execl(uwsgi, uwsgi, *args)

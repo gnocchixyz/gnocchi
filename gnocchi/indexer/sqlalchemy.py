@@ -832,6 +832,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                                                  sort_keys=sort_keys,
                                                  marker=metric_marker,
                                                  sort_dirs=sort_dirs)
+
             except ValueError as e:
                 raise indexer.InvalidPagination(e)
             except exception.InvalidSortKey as e:
@@ -1394,6 +1395,24 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                     status="delete", resource_id=None)
             if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchMetric(id)
+
+    def update_needs_raw_data_truncation(self, metrid_id, value=False):
+        with self.facade.writer() as session:
+            stmt = update(Metric).filter(Metric.id == metrid_id).values(
+                needs_raw_data_truncation=value)
+            if session.execute(stmt).rowcount == 0:
+                raise indexer.NoSuchMetric(metrid_id)
+
+    def update_backwindow_changed_for_metrics_archive_policy(
+            self, archive_policy_name):
+        with self.facade.writer() as session:
+            stmt = update(Metric).filter(
+                Metric.archive_policy_name == archive_policy_name).values(
+                needs_raw_data_truncation=True)
+            if session.execute(stmt).rowcount == 0:
+                LOG.info("No metric was updated for archive_policy [%s]. "
+                         "This might indicate that the archive policy is not "
+                         "used by any metric.", archive_policy_name)
 
     @staticmethod
     def _build_sort_keys(sorts, unique_keys):

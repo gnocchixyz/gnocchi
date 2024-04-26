@@ -348,6 +348,13 @@ class BoundTimeSerie(TimeSerie):
                 and self.block_size == other.block_size
                 and self.back_window == other.back_window)
 
+    def _set_values(self, values):
+        if self.block_size is not None and len(self.ts) != 0:
+            index = numpy.searchsorted(values['timestamps'],
+                                       self.first_block_timestamp())
+            values = values[index:]
+        super(BoundTimeSerie, self).set_values(values)
+
     def set_values(self, values, before_truncate_callback=None):
         """Set the timestamps and values in this timeseries.
 
@@ -357,11 +364,9 @@ class BoundTimeSerie(TimeSerie):
                                          maximum size.
         :return: None of the return value of before_truncate_callback
         """
-        if self.block_size is not None and len(self.ts) != 0:
-            index = numpy.searchsorted(values['timestamps'],
-                                       self.first_block_timestamp())
-            values = values[index:]
-        super(BoundTimeSerie, self).set_values(values)
+        if values is not None and len(values) > 0:
+            self._set_values(values)
+
         if before_truncate_callback:
             return_value = before_truncate_callback(self)
         else:
