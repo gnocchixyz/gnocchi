@@ -579,7 +579,7 @@ class StorageDriver(object):
              in metrics_keys_aggregations.items()
              for key, aggregation in keys_and_aggregations))
 
-    def add_measures_to_metrics(self, metrics_and_measures):
+    def add_measures_to_metrics(self, metrics_and_measures, indexer_driver):
         """Update a metric with a new measures, computing new aggregations.
 
         :param metrics_and_measures: A dict there keys are `storage.Metric`
@@ -681,6 +681,12 @@ class StorageDriver(object):
                                         new_first_block_timestamp)
 
             new_boundts.append((metric, ts.serialize()))
+
+            # If the archive policy backwindow is changed, the data is going to
+            # be truncated in the processing of new datapoints. Therefore, we
+            # can mark the metric as not needing raw data truncation anymore
+            if metric.needs_raw_data_truncation:
+                indexer_driver.update_needs_raw_data_truncation(metric.id)
 
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)

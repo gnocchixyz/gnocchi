@@ -197,9 +197,15 @@ class FileStorage(incoming.IncomingDriver):
                 sack, metric_id)
             processed_files[metric_id] = files
             m = self._make_measures_array()
+
+            count = 0
+            total_files = len(files)
             for f in files:
+                count = count + 1
                 abspath = self._build_measure_path(metric_id, f)
                 with open(abspath, "rb") as e:
+                    LOG.debug("(%s/%s) Reading metric file [%s].",
+                              count, total_files, abspath)
                     m = numpy.concatenate((
                         m, self._unserialize_measures(f, e.read())))
             measures[metric_id] = m

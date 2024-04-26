@@ -18,8 +18,8 @@ import hashlib
 
 import daiquiri
 
+from gnocchi import carbonara
 from gnocchi import indexer
-
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -45,8 +45,103 @@ class Chef(object):
     def __init__(self, coord, incoming, index, storage):
         self.coord = coord
         self.incoming = incoming
+        # This variable is an instance of the indexer,
+        # which means, database connector.
         self.index = index
         self.storage = storage
+
+    def clean_raw_data_inactive_metrics(self):
+        """Cleans metrics raw data if they are inactive.
+
+        The truncating of the raw metrics data is only done when new
+        measures are pushed. Therefore, if no new measures are pushed, and the
+        archive policy was updated to reduce the backwindow, the raw
+        datapoints for metrics that are not receiving new datapoints are never
+        truncated.
+
+        The goal of this method is to identify metrics that are in
+        "inactive state", meaning, not receiving new datapoints, and execute
+        their raw data points truncation. We check the column
+        "needs_raw_data_truncation", to determine if the archive policy was
+        updated, and no measure push was executed for the metric.
+
+        If the metric is not receiving new datapoints, the processing workflow
+        will not mark the column "needs_raw_data_truncation" to False;
+        therefore, that is how we identify such metrics.
+        """
+
+        metrics_to_clean = self.index.list_metrics(
+            attribute_filter={"==": {
+                "needs_raw_data_truncation": True}}
+        )
+
+        LOG.debug("Metrics [%s] found to execute the raw data cleanup.",
+                  metrics_to_clean)
+
+        for metric in metrics_to_clean:
+            LOG.debug("Executing the raw data cleanup for metric [%s].",
+                      metric)
+            try:
+                metrid_id = metric.id
+                # To properly generate the lock here, we need to use the
+                # same process as it is done in the measures processing.
+                # Therefore, we have to use the sack to control the locks
+                # in this processing here. See 'process_new_measures_for_sack'
+                # for more details.
+                sack_for_metric = self.incoming.sack_for_metric(metrid_id)
+                metric_lock = self.get_sack_lock(sack_for_metric)
+
+                if not metric_lock.acquire():
+                    LOG.debug(
+                        "Metric [%s] is locked, cannot clean it up now.",
+                        metric.id)
+                    continue
+
+                agg_methods = list(metric.archive_policy.aggregation_methods)
+                block_size = metric.archive_policy.max_block_size
+                back_window = metric.archive_policy.back_window
+
+                if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+                    back_window += 1
+
+                raw_measure = self.storage. \
+                    _get_or_create_unaggregated_timeseries_unbatched(metric)
+
+                if raw_measure:
+                    LOG.debug("Truncating metric [%s] for backwindow [%s].",
+                              metric.id, back_window)
+
+                    ts = carbonara.BoundTimeSerie.unserialize(raw_measure,
+                                                              block_size,
+                                                              back_window)
+                    # Trigger the truncation process to remove the excess of
+                    # raw data according to the updated back_window.
+                    ts._truncate()
+
+                    self.storage._store_unaggregated_timeseries_unbatched(
+                        metric, ts.serialize())
+
+                    self.index.update_needs_raw_data_truncation(metric.id)
+                else:
+                    LOG.debug("No raw measures found for metric [%s] for "
+                              "cleanup.", metric.id)
+                    self.index.update_needs_raw_data_truncation(metric.id)
+            except Exception:
+                LOG.error("Unable to lock metric [%s] for cleanup.",
+                          metric, exc_info=True)
+                continue
+            finally:
+                if metric_lock:
+                    metric_lock.release()
+                    LOG.debug("Releasing lock [%s] for metric [%s].",
+                              metric_lock, metric.id)
+                else:
+                    LOG.debug(
+                        "There is no lock for metric [%s] to be released.",
+                        metric.id)
+
+        if metrics_to_clean:
+            LOG.debug("Cleaned up metrics [%s].", metrics_to_clean)
 
     def expunge_metrics(self, cleanup_batch_size, sync=False):
         """Remove deleted metrics.
@@ -124,7 +219,7 @@ class Chef(object):
                             metrics_by_id[metric_id]: measures
                             for metric_id, measures
                             in metrics_and_measures.items()
-                        })
+                        }, self.index)
                         LOG.debug("Measures for %d metrics processed",
                                   len(metric_ids))
             except Exception:
@@ -165,7 +260,7 @@ class Chef(object):
                 self.storage.add_measures_to_metrics({
                     metric: measures[metric.id]
                     for metric in metrics
-                })
+                }, self.index)
                 LOG.debug("Measures for %d metrics processed",
                           len(metrics))
                 return len(measures)
@@ -180,7 +275,6 @@ class Chef(object):
     def get_sack_lock(self, sack):
         # FIXME(jd) Some tooz drivers have a limitation on lock name length
         # (e.g. MySQL). This should be handled by tooz, but it's not yet.
-        lock_name = hashlib.new(
-            'sha1',
-            ('gnocchi-sack-%s-lock' % str(sack)).encode()).hexdigest().encode()
+        lock_name = ('gnocchi-sack-%s-lock' % str(sack)).encode()
+        lock_name = hashlib.new('sha1', lock_name).hexdigest().encode()
         return self.coord.get_lock(lock_name)

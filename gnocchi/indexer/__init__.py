@@ -74,12 +74,13 @@ class Resource(object):
 
 class Metric(object):
     def __init__(self, id, archive_policy, creator=None,
-                 name=None, resource_id=None):
+                 name=None, resource_id=None, needs_raw_data_truncation=False):
         self.id = id
         self.archive_policy = archive_policy
         self.creator = creator
         self.name = name
         self.resource_id = resource_id
+        self.needs_raw_data_truncation = needs_raw_data_truncation
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.id)
@@ -88,12 +89,13 @@ class Metric(object):
         return str(self.id)
 
     def __eq__(self, other):
-        return (isinstance(other, Metric)
-                and self.id == other.id
+        return (isinstance(other, Metric) and self.id == other.id
                 and self.archive_policy == other.archive_policy
                 and self.creator == other.creator
                 and self.name == other.name
-                and self.resource_id == other.resource_id)
+                and self.resource_id == other.resource_id
+                and self.needs_raw_data_truncation ==
+                other.needs_raw_data_truncation)
 
     __hash__ = object.__hash__
 
@@ -436,6 +438,15 @@ class IndexerDriver(object):
 
     @staticmethod
     def delete_metric(id):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def update_backwindow_changed_for_metrics_archive_policy(
+            archive_policy_name):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def update_needs_raw_data_truncation(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod
