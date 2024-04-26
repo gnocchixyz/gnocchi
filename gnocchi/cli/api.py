@@ -116,3 +116,7 @@ def api():
 
     LOG.debug("Starting gnocchi api server with [%s] and arguments [%s]", uwsgi, args)
     return os.execl(uwsgi, uwsgi, *args)
+
+
+if __name__ == '__main__':
+    api()

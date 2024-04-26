@@ -18,3 +18,7 @@ from gnocchi import statsd as statsd_service
 
 def statsd():
     statsd_service.start()
+
+
+if __name__ == '__main__':
+    statsd()
