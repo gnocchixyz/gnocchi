@@ -174,12 +174,12 @@ def load_app(conf, not_implemented_middleware=True):
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
 
-    LOG.info("WSGI config used: %s", cfg_path)
+    LOG.debug("WSGI config used: %s", cfg_path)
 
     appname = "gnocchi+" + conf.api.auth_mode
 
-    LOG.info("Starting application [%s] with configuration [%s].",
-             appname, APPCONFIGS)
+    LOG.debug("Starting application [%s] with configuration [%s].",
+              appname, APPCONFIGS)
 
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})

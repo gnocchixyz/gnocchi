@@ -123,8 +123,8 @@ class Chef(object):
 
                     self.index.update_needs_raw_data_truncation(metric.id)
                 else:
-                    LOG.info("No raw measures found for metric [%s] for "
-                             "cleanup.", metric.id)
+                    LOG.debug("No raw measures found for metric [%s] for "
+                              "cleanup.", metric.id)
                     self.index.update_needs_raw_data_truncation(metric.id)
 
                 metric_lock.release()

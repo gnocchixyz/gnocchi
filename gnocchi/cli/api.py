@@ -114,6 +114,5 @@ def api():
     if virtual_env is not None:
         args.extend(["-H", os.getenv("VIRTUAL_ENV", ".")])
 
-    LOG.info("Starting gnocchi api server with [%s] and arguments [%s]", uwsgi, args)
-    print("Starting gnocchi api server with [%s] and arguments [%s]" % (uwsgi, args))
+    LOG.debug("Starting gnocchi api server with [%s] and arguments [%s]", uwsgi, args)
     return os.execl(uwsgi, uwsgi, *args)

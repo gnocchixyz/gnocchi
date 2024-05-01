@@ -38,5 +38,5 @@ def upgrade():
     op.add_column(
         "metric", sqlalchemy.Column(
             "needs_raw_data_truncation", sqlalchemy.Boolean,
-            nullable=False, default=False,
-            server_default=sqlalchemy.sql.false()))
+            nullable=False, default=True,
+            server_default=sqlalchemy.sql.true()))
