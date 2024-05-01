@@ -108,6 +108,9 @@ class Chef(object):
                     _get_or_create_unaggregated_timeseries_unbatched(metric)
 
                 if raw_measure:
+                    LOG.debug("Truncating metric [%s] for backwindow [%s].",
+                              metric.id, back_window)
+
                     ts = carbonara.BoundTimeSerie.unserialize(raw_measure,
                                                               block_size,
                                                               back_window)
@@ -122,6 +125,7 @@ class Chef(object):
                 else:
                     LOG.info("No raw measures found for metric [%s] for "
                              "cleanup.", metric.id)
+                    self.index.update_needs_raw_data_truncation(metric.id)
 
                 metric_lock.release()
             except Exception:
