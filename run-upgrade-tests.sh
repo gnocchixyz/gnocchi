@@ -102,6 +102,13 @@ eval $(pifpaf --verbose --debug run gnocchi --indexer-url $INDEXER_URL --storage
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 
+# Pifpaf configures the logs for the standard output. Therefore, depending
+# on the operating system, the standard output has some buffer size, which
+# needs to be released. Otherwise, the logs stop to be writen, and the
+# execution of the code is "frozen", due to the lack of buffer in the
+# process output. To work around that, we can read the buffer, and dump it
+# into a lof file. Then, we can cat the log file content at the end of the
+# process.
 UWSGI_LOG_FILE=/tmp/uwsgi-new-version.log
 METRICD_LOG_FILE=/tmp/gnocchi-metricd-new-version.log
 for PID in $(pidof uwsgi); do
