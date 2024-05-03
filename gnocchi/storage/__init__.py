@@ -683,7 +683,7 @@ class StorageDriver(object):
             new_boundts.append((metric, ts.serialize()))
 
             # If the archive policy backwindow is changed, the data is going to
-            # be processed in the processing of new datapoints. Therefore, we
+            # be truncated in the processing of new datapoints. Therefore, we
             # can mark the metric as not needing raw data truncation anymore
             if metric.needs_raw_data_truncation:
                 indexer_driver.update_needs_raw_data_truncation(metric.id)
