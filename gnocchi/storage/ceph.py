@@ -96,9 +96,11 @@ class CephStorage(storage.StorageDriver):
                         metric, key, agg.method, version)
                     metric_size = len(data)
 
-                    MAP_UNAGGREGATED_METRIC_NAME_BY_SIZE[name] = metric_size
-                    LOG.debug("Storing time series size [%s] for metric [%s].",
-                              metric_size, name)
+                    if metric_size > DEFAULT_RADOS_BUFFER_SIZE:
+                        MAP_UNAGGREGATED_METRIC_NAME_BY_SIZE[name] = metric_size
+                        LOG.debug(
+                            "Storing time series size [%s] for metric [%s].",
+                            metric_size, name)
                     if offset is None:
                         self.ioctx.write_full(name, data)
                     else:
@@ -247,9 +249,11 @@ class CephStorage(storage.StorageDriver):
         metric_name = self._build_unaggregated_timeserie_path(metric, version)
         metric_size = len(data)
 
-        MAP_UNAGGREGATED_METRIC_NAME_BY_SIZE[metric_name] = metric_size
-        LOG.debug("Storing unaggregated time series size [%s] for metric [%s]",
-                  metric_size, metric_name)
+        if metric_size > DEFAULT_RADOS_BUFFER_SIZE:
+            MAP_UNAGGREGATED_METRIC_NAME_BY_SIZE[metric_name] = metric_size
+            LOG.debug(
+                "Storing unaggregated time series size [%s] for metric [%s]",
+                metric_size, metric_name)
         self.ioctx.write_full(metric_name, data)
 
     def _get_object_content(self, name, buffer_size=DEFAULT_RADOS_BUFFER_SIZE):
