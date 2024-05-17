@@ -39,8 +39,11 @@ class FileStorage(incoming.IncomingDriver):
         return "%s: %s" % (self.__class__.__name__, str(self.basepath))
 
     def upgrade(self, num_sacks):
-        super(FileStorage, self).upgrade(num_sacks)
+        # We need to make sure that the 'tmp' path exists; otherwise,
+        # we will have an issue when running the method "set_storage_settings"
+        # that created the temporary JSON file under the 'tmp' folder.
         utils.ensure_paths([self.basepath_tmp])
+        super(FileStorage, self).upgrade(num_sacks)
 
     def _get_storage_sacks(self):
         with open(os.path.join(self.basepath_tmp, self.CFG_PREFIX),
