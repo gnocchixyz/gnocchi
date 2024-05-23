@@ -14,6 +14,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import datetime
 
 from oslo_db.sqlalchemy import models
 import sqlalchemy
@@ -112,6 +113,14 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         "needs_raw_data_truncation", sqlalchemy.Boolean,
         nullable=False, default=True,
         server_default=sqlalchemy.sql.true())
+
+    # Timestamp that represents when the last measure push was received for the
+    # given metric. This allows us to identify when a metric ceased receiving
+    # measurements; thus, if all metric for a resource are in this situation,
+    # chances are that the resource ceased existing in the backend.
+    last_measure_timestamp = sqlalchemy.Column(
+        "last_measure_timestamp", sqlalchemy.DateTime,
+        nullable=True, default=datetime.datetime.utcnow())
 
     def jsonify(self):
         d = {

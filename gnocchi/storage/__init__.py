@@ -688,6 +688,9 @@ class StorageDriver(object):
             if metric.needs_raw_data_truncation:
                 indexer_driver.update_needs_raw_data_truncation(metric.id)
 
+            # Mark when the metric receives its latest measures
+            indexer_driver.update_last_measure_timestmap(metric.id)
+
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)
         self.statistics["splits delete"] += len(splits_to_delete)

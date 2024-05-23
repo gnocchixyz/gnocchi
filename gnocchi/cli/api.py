@@ -72,7 +72,10 @@ def api():
             "No need to pass `--' in gnocchi-api command line anymore, "
             "please remove")
 
-    uwsgi = spawn.find_executable("uwsgi")
+    uwsgi = conf.api.uwsgi_path
+    if not uwsgi:
+        uwsgi = spawn.find_executable("uwsgi")
+
     if not uwsgi:
         LOG.error("Unable to find `uwsgi'.\n"
                   "Be sure it is installed and in $PATH.")
