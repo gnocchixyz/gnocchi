@@ -688,6 +688,26 @@ class StorageDriver(object):
             if metric.needs_raw_data_truncation:
                 indexer_driver.update_needs_raw_data_truncation(metric.id)
 
+            # Mark when the metric receives its latest measures
+            indexer_driver.update_last_measure_timestmap(metric.id)
+
+            resource_id = metric.resource_id
+            if resource_id:
+                resource = indexer_driver.get_resource('generic', resource_id)
+                LOG.debug("Checking if resource [%s] of metric [%s] with "
+                          "resource ID [%s] needs to be 'undeleted.'",
+                          resource, metric.id, resource_id)
+                if resource.ended_at is not None:
+                    LOG.info("Resource [%s] was marked with a timestamp for the "
+                             "'ended_at' field. However, it received a "
+                             "measurement for metric [%s]. Therefore, we undelete "
+                             "it.", resource, metric)
+                    indexer_driver.update_resource(
+                        "generic", resource_id, ended_at=None)
+            else:
+                LOG.debug("Metric [%s] does not have a resource "
+                          "assigned to it.", metric)
+
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)
         self.statistics["splits delete"] += len(splits_to_delete)

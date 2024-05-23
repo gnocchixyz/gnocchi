@@ -18,9 +18,11 @@ import hashlib
 
 import daiquiri
 import random
+import datetime
 
 from gnocchi import carbonara
 from gnocchi import indexer
+from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -50,6 +52,79 @@ class Chef(object):
         # which means, database connector.
         self.index = index
         self.storage = storage
+
+    def resource_ended_at_normalization(self, metric_inactive_after):
+        """Marks resources as ended at if needed.
+
+        This method will check all metrics that have not received new
+        datapoints after a given period. The period is defined by
+        'metric_inactive_after' parameter. If all metrics of resource are in
+        inactive state, we mark the ended_at field with a timestmap. Therefore,
+        we consider that the resource has ceased existing.
+
+        In this process we will handle only metrics that are considered as
+        inactive, according to `metric_inactive_after` parameter. Therefore,
+        we do not need to lock these metrics while processing, as they are
+        inactive, and chances are that they will not receive measures anymore.
+        """
+
+        momment_now = utils.utcnow()
+        momment = momment_now - datetime.timedelta(
+            seconds=metric_inactive_after)
+
+        inactive_metrics = self.index.list_metrics(
+            attribute_filter={"<": {
+                "last_measure_timestamp": momment}},
+            resource_policy_filter={"==": {"ended_at": None}}
+        )
+
+        LOG.debug("Inactive metrics found for processing: [%s].",
+                  inactive_metrics)
+
+        metrics_by_resource_id = {}
+        for metric in inactive_metrics:
+            resource_id = metric.resource_id
+            if metrics_by_resource_id.get(resource_id) is None:
+                metrics_by_resource_id[resource_id] = []
+
+            metrics_by_resource_id[resource_id].append(metric)
+
+        for resource_id in metrics_by_resource_id.keys():
+            if resource_id is None:
+                LOG.debug("We do not need to process inactive metrics that do "
+                          "not have resource. Therefore, these metrics [%s] "
+                          "will be considered inactive, but there is nothing "
+                          "else we can do in this process.",
+                          metrics_by_resource_id[resource_id])
+                continue
+            resource = self.index.get_resource(
+                "generic", resource_id, with_metrics=True)
+            resource_metrics = resource.metrics
+            resource_inactive_metrics = metrics_by_resource_id.get(resource_id)
+
+            all_metrics_are_inactive = True
+            for m in resource_metrics:
+                if m not in resource_inactive_metrics:
+                    all_metrics_are_inactive = False
+                    LOG.debug("Not all metrics of resource [%s] are inactive. "
+                              "Metric [%s] is not inactive. The inactive "
+                              "metrics are [%s].",
+                              resource, m, resource_inactive_metrics)
+                    break
+
+            if all_metrics_are_inactive:
+                LOG.info("All metrics [%s] of resource [%s] are inactive."
+                         "Therefore, we will mark it as finished with an"
+                         "ended at timestmap.", resource_metrics, resource)
+                if resource.ended_at is not None:
+                    LOG.debug(
+                        "Resource [%s] already has an ended at value.", resource)
+                else:
+                    LOG.info("Marking ended at timestamp for resource "
+                             "[%s] because all of its metrics are inactive.",
+                             resource)
+                    self.index.update_resource(
+                        "generic", resource_id, ended_at=momment_now)
 
     def clean_raw_data_inactive_metrics(self):
         """Cleans metrics raw data if they are inactive.

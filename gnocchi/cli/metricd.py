@@ -278,6 +278,17 @@ class MetricJanitor(MetricProcessBase):
         LOG.debug("Finished the cleaning of raw data points for metrics that "
                   "are no longer receiving measures.")
 
+        if (self.conf.metricd.metric_inactive_after and
+                self.conf.metricd.metric_inactive_after > 0):
+            LOG.debug("Starting resource ended at field normalization.")
+            self.chef.resource_ended_at_normalization(
+                self.conf.metricd.metric_inactive_after)
+            LOG.debug("Finished resource ended at field normalization.")
+        else:
+            LOG.debug("Resource ended at field normalization is not "
+                      "activated. See 'metric_inactive_after' parameter if "
+                      "you wish to activate it.")
+
 
 class MetricdServiceManager(cotyledon.ServiceManager):
     def __init__(self, conf):
