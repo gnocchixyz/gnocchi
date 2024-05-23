@@ -19,6 +19,7 @@ from oslo_db.sqlalchemy import models
 import sqlalchemy
 from sqlalchemy.ext import declarative
 from sqlalchemy.orm import declarative_base
+from sqlalchemy.sql import func
 
 import sqlalchemy_utils
 
@@ -113,6 +114,14 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         "needs_raw_data_truncation", sqlalchemy.Boolean,
         nullable=False, default=True,
         server_default=sqlalchemy.sql.true())
+
+    # Timestamp that represents when the last measure push was received for the
+    # given metric. This allows us to identify when a metric ceased receiving
+    # measurements; thus, if all metric for a resource are in this situation,
+    # chances are that the resource ceased existing in the backend.
+    last_measure_timestamp = sqlalchemy.Column(
+        "last_measure_timestamp", sqlalchemy.DateTime,
+        nullable=False, server_default=func.current_timestamp())
 
     def jsonify(self):
         d = {
@@ -257,7 +266,8 @@ class ResourceMixin(ResourceJsonifier):
     creator = sqlalchemy.Column(sqlalchemy.String(255))
     started_at = sqlalchemy.Column(types.TimestampUTC, nullable=False,
                                    default=lambda: utils.utcnow())
-    revision_start = sqlalchemy.Column(types.TimestampUTC, nullable=False,
+    revision_start = sqlalchemy.Column(types.TimestampUTC,
+                                       nullable=False,
                                        default=lambda: utils.utcnow())
     ended_at = sqlalchemy.Column(types.TimestampUTC)
     user_id = sqlalchemy.Column(sqlalchemy.String(255))
@@ -299,7 +309,8 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                ondelete="CASCADE",
                                name="fk_rh_id_resource_id"),
                            nullable=False)
-    revision_end = sqlalchemy.Column(types.TimestampUTC, nullable=False,
+    revision_end = sqlalchemy.Column(types.TimestampUTC,
+                                     nullable=False,
                                      default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
         Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
