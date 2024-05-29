@@ -150,13 +150,13 @@ class Chef(object):
             LOG.debug("Executing the raw data cleanup for metric [%s].",
                       metric)
             try:
-                metrid_id = metric.id
+                metricd_id = metric.id
                 # To properly generate the lock here, we need to use the
                 # same process as it is done in the measures processing.
                 # Therefore, we have to use the sack to control the locks
                 # in this processing here. See 'process_new_measures_for_sack'
                 # for more details.
-                sack_for_metric = self.incoming.sack_for_metric(metrid_id)
+                sack_for_metric = self.incoming.sack_for_metric(metricd_id)
                 metric_lock = self.get_sack_lock(sack_for_metric)
 
                 if not metric_lock.acquire():
@@ -197,8 +197,8 @@ class Chef(object):
 
                 metric_lock.release()
             except Exception:
-                LOG.error("Unable to lock metric [%s] for cleanup.",
-                          metric, exc_info=True)
+                LOG.warning("Unable to lock metric [%s] for cleanup.",
+                            metric, exc_info=True)
                 continue
 
         if metrics_to_clean:
