@@ -12,13 +12,10 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import asyncio
 import itertools
 import uuid
 
-try:
-    import asyncio
-except ImportError:
-    import trollius as asyncio
 import daiquiri
 from oslo_config import cfg
 
