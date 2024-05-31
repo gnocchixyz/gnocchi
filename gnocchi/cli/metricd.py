@@ -329,3 +329,7 @@ def metricd():
         metricd_tester(conf)
     else:
         MetricdServiceManager(conf).run()
+
+
+if __name__ == '__main__':
+    metricd()

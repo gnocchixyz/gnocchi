@@ -105,3 +105,7 @@ def change_sack_size():
     s.remove_sacks()
     LOG.info("Creating new %d sacks", conf.sacks_number)
     s.upgrade(conf.sacks_number)
+
+
+if __name__ == '__main__':
+    upgrade()
