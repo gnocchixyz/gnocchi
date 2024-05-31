@@ -193,6 +193,9 @@ def list_opts():
                        default=10, min=0,
                        help='Number of seconds before timeout when attempting '
                             'to do some operations.'),
+            cfg.StrOpt('uwsgi_path',
+                       default=None,
+                       help="Custom UWSGI path to avoid auto discovery of packages.")
         ) + API_OPTS + gnocchi.rest.http_proxy_to_wsgi.OPTS,
         ),
         ("storage", _STORAGE_OPTS),
