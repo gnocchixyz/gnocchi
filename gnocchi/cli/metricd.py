@@ -278,7 +278,8 @@ class MetricJanitor(MetricProcessBase):
         LOG.debug("Finished the cleaning of raw data points for metrics that "
                   "are no longer receiving measures.")
 
-        if self.conf.metricd.metric_inactive_after:
+        if (self.conf.metricd.metric_inactive_after and
+                self.conf.metricd.metric_inactive_after > 0):
             LOG.debug("Starting resource ended at field normalization.")
             self.chef.resource_ended_at_normalization(
                 self.conf.metricd.metric_inactive_after)

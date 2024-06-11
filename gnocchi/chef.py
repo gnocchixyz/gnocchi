@@ -21,6 +21,7 @@ import datetime
 
 from gnocchi import carbonara
 from gnocchi import indexer
+from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -51,6 +52,7 @@ class Chef(object):
         self.index = index
         self.storage = storage
 
+
     def resource_ended_at_normalization(self, metric_inactive_after):
         """Marks resources as ended at if needed.
 
@@ -64,12 +66,9 @@ class Chef(object):
         inactive, according to `metric_inactive_after` parameter. Therefore,
         we do not need to lock these metrics while processing, as they are
         inactive, and chances are that they will not receive measures anymore.
-        We will not "undelete" the resource, if it starts receiving measures
-        again. If there will ever be a case like this, we need to implement
-        some workflow to handle it.
         """
 
-        momment_now = datetime.datetime.utcnow()
+        momment_now = utils.utcnow()
         momment = momment_now - datetime.timedelta(
             seconds=metric_inactive_after)
 
@@ -91,6 +90,13 @@ class Chef(object):
             metrics_by_resource_id[resource_id].append(metric)
 
         for resource_id in metrics_by_resource_id.keys():
+            if resource_id is None:
+                LOG.debug("We do not need to process inactive metrics that do "
+                          "not have resource. Therefore, these metrics [%s] "
+                          "will be considered inactive, but there is nothing "
+                          "else we can do in this process.",
+                          metrics_by_resource_id[resource_id])
+                continue
             resource = self.index.get_resource(
                 "generic", resource_id, with_metrics=True)
             resource_metrics = resource.metrics
@@ -101,13 +107,15 @@ class Chef(object):
                 if m not in resource_inactive_metrics:
                     all_metrics_are_inactive = False
                     LOG.debug("Not all metrics of resource [%s] are inactive. "
-                              "Metric [%s] is not inactive.", resource, m)
+                              "Metric [%s] is not inactive. The inactive "
+                              "metrics are [%s].",
+                              resource, m, resource_inactive_metrics)
                     break
 
             if all_metrics_are_inactive:
                 LOG.info("All metrics [%s] of resource [%s] are inactive."
                          "Therefore, we will mark it as finished with an"
-                         "ended at timestmap.")
+                         "ended at timestmap.", resource_metrics, resource)
                 if resource.ended_at is not None:
                     LOG.debug(
                         "Resource [%s] already has an ended at value.", resource)

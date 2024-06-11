@@ -14,17 +14,16 @@
 #
 
 """Create last measure push timestamp column
-
 Revision ID: f89ed2e3c2ec
 Revises: 18fff4509e3e
 Create Date: 2024-04-24 09:16:00
-
 """
 
 from alembic import op
 
-import datetime
 import sqlalchemy
+
+from sqlalchemy.sql import func
 
 # revision identifiers, used by Alembic.
 revision = 'f89ed2e3c2ec'
@@ -37,4 +36,4 @@ def upgrade():
     op.add_column(
         "metric", sqlalchemy.Column(
             "last_measure_timestamp", sqlalchemy.DateTime,
-            nullable=True, default=datetime.datetime.utcnow()))
+            nullable=False, server_default=func.current_timestamp()))
