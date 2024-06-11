@@ -25,6 +25,7 @@ import sqlalchemy_utils
 
 from gnocchi import archive_policy
 from gnocchi import indexer
+from gnocchi.indexer import sqlalchemy_types as types
 from gnocchi import resource_type
 from gnocchi import utils
 
@@ -198,7 +199,7 @@ class ResourceType(Base, GnocchiBase, resource_type.ResourceType):
                                               name="resource_type_state_enum"),
                               nullable=False,
                               server_default="creating")
-    updated_at = sqlalchemy.Column(indexer.types.TimestampUTC, nullable=False,
+    updated_at = sqlalchemy.Column(types.TimestampUTC, nullable=False,
                                    # NOTE(jd): We would like to use
                                    # sqlalchemy.func.now, but we can't
                                    # because the type of PreciseTimestamp in
@@ -262,12 +263,12 @@ class ResourceMixin(ResourceJsonifier):
             nullable=False)
 
     creator = sqlalchemy.Column(sqlalchemy.String(255))
-    started_at = sqlalchemy.Column(indexer.types.TimestampUTC, nullable=False,
+    started_at = sqlalchemy.Column(types.TimestampUTC, nullable=False,
                                    default=lambda: utils.utcnow())
-    revision_start = sqlalchemy.Column(indexer.types.TimestampUTC,
+    revision_start = sqlalchemy.Column(types.TimestampUTC,
                                        nullable=False,
                                        default=lambda: utils.utcnow())
-    ended_at = sqlalchemy.Column(indexer.types.TimestampUTC)
+    ended_at = sqlalchemy.Column(types.TimestampUTC)
     user_id = sqlalchemy.Column(sqlalchemy.String(255))
     project_id = sqlalchemy.Column(sqlalchemy.String(255))
     original_resource_id = sqlalchemy.Column(sqlalchemy.String(255),
@@ -307,7 +308,7 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                ondelete="CASCADE",
                                name="fk_rh_id_resource_id"),
                            nullable=False)
-    revision_end = sqlalchemy.Column(indexer.types.TimestampUTC,
+    revision_end = sqlalchemy.Column(types.TimestampUTC,
                                      nullable=False,
                                      default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
