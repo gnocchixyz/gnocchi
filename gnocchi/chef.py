@@ -52,7 +52,6 @@ class Chef(object):
         self.index = index
         self.storage = storage
 
-
     def resource_ended_at_normalization(self, metric_inactive_after):
         """Marks resources as ended at if needed.
 
