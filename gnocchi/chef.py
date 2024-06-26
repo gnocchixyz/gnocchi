@@ -78,70 +78,85 @@ class Chef(object):
         LOG.debug("Metrics [%s] found to execute the raw data cleanup.",
                   metrics_to_clean)
 
-        for metric in metrics_to_clean:
-            LOG.debug("Executing the raw data cleanup for metric [%s].",
-                      metric)
-            try:
-                metrid_id = metric.id
-                # To properly generate the lock here, we need to use the
-                # same process as it is done in the measures processing.
-                # Therefore, we have to use the sack to control the locks
-                # in this processing here. See 'process_new_measures_for_sack'
-                # for more details.
-                sack_for_metric = self.incoming.sack_for_metric(metrid_id)
-                metric_lock = self.get_sack_lock(sack_for_metric)
+        sack_by_metric = self.group_metrics_by_sack(metrics_to_clean)
 
-                if not metric_lock.acquire():
+        for sack in sack_by_metric.keys():
+            LOG.debug("Executing the raw data cleanup for sack [%s].",
+                      sack)
+            try:
+                sack_lock = self.get_sack_lock(sack)
+
+                if not sack_lock.acquire():
                     LOG.debug(
-                        "Metric [%s] is locked, cannot clean it up now.",
-                        metric.id)
+                        "Sack [%s] is locked, cannot clean its metric "
+                        "now. Probably some other agent is processing its "
+                        "metrics.", sack)
                     continue
 
-                agg_methods = list(metric.archive_policy.aggregation_methods)
-                block_size = metric.archive_policy.max_block_size
-                back_window = metric.archive_policy.back_window
+                sack_metrics = sack_by_metric[sack]
 
-                if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
-                    back_window += 1
-
-                raw_measure = self.storage. \
-                    _get_or_create_unaggregated_timeseries_unbatched(metric)
-
-                if raw_measure:
-                    LOG.debug("Truncating metric [%s] for backwindow [%s].",
-                              metric.id, back_window)
-
-                    ts = carbonara.BoundTimeSerie.unserialize(raw_measure,
-                                                              block_size,
-                                                              back_window)
-                    # Trigger the truncation process to remove the excess of
-                    # raw data according to the updated back_window.
-                    ts._truncate()
-
-                    self.storage._store_unaggregated_timeseries_unbatched(
-                        metric, ts.serialize())
-
-                    self.index.update_needs_raw_data_truncation(metric.id)
-                else:
-                    LOG.debug("No raw measures found for metric [%s] for "
-                              "cleanup.", metric.id)
-                    self.index.update_needs_raw_data_truncation(metric.id)
+                for metric in sack_metrics:
+                    self.execute_raw_data_cleanup(metric)
             except Exception:
-                LOG.error("Unable to lock metric [%s] for cleanup.",
-                          metric, exc_info=True)
+                LOG.error("Unable to lock sack [%s] for cleanup.",
+                          sack, exc_info=True)
                 continue
             finally:
-                if metric_lock:
-                    metric_lock.release()
-                    LOG.debug("Releasing lock [%s] for metric [%s].",
-                              metric_lock, metric.id)
+                if sack_lock:
+                    sack_lock.release()
+                    LOG.debug("Releasing lock [%s] for sack [%s].",
+                              sack_lock, sack)
                 else:
                     LOG.debug(
-                        "There is no lock for metric [%s] to be released.",
-                        metric.id)
+                        "There is no lock for sack [%s] to be released.",
+                        sack)
 
         if metrics_to_clean:
             LOG.debug("Cleaned up metrics [%s].", metrics_to_clean)
+
+    def execute_raw_data_cleanup(self, metric):
+        LOG.debug("Executing the raw data cleanup for metric [%s].",
+                  metric)
+
+        agg_methods = list(metric.archive_policy.aggregation_methods)
+        block_size = metric.archive_policy.max_block_size
+        back_window = metric.archive_policy.back_window
+
+        if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+            back_window += 1
+
+        raw_measure = self.storage. \
+            _get_or_create_unaggregated_timeseries_unbatched(metric)
+
+        if raw_measure:
+            LOG.debug("Truncating metric [%s] for backwindow [%s].",
+                      metric.id, back_window)
+
+            ts = carbonara.BoundTimeSerie.unserialize(raw_measure,
+                                                      block_size,
+                                                      back_window)
+            # Trigger the truncation process to remove the excess of
+            # raw data according to the updated back_window.
+            ts._truncate()
+
+            self.storage._store_unaggregated_timeseries_unbatched(
+                metric, ts.serialize())
+        else:
+            LOG.debug("No raw measures found for metric [%s] for "
+                      "cleanup.", metric.id)
+
+        self.index.update_needs_raw_data_truncation(metric.id)
+
+    def group_metrics_by_sack(self, metrics_to_clean):
+        sack_by_metric = {}
+        for metric in metrics_to_clean:
+            sack_for_metric = self.incoming.sack_for_metric(metric.id)
+            if sack_for_metric not in sack_by_metric.keys():
+                sack_by_metric[sack_for_metric] = []
+
+            sack_by_metric[sack_for_metric].append(metric)
+        LOG.debug("Metrics grouped by sacks: [%s].", sack_by_metric)
+        return sack_by_metric
 
     def expunge_metrics(self, cleanup_batch_size, sync=False):
         """Remove deleted metrics.
