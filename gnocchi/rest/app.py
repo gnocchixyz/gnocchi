@@ -174,9 +174,13 @@ def load_app(conf, not_implemented_middleware=True):
     configkey = str(uuid.uuid4())
     APPCONFIGS[configkey] = config
 
-    LOG.info("WSGI config used: %s", cfg_path)
+    LOG.debug("WSGI config used: %s", cfg_path)
 
     appname = "gnocchi+" + conf.api.auth_mode
+
+    LOG.debug("Starting application [%s] with configuration [%s].",
+              appname, APPCONFIGS)
+
     app = deploy.loadapp("config:" + cfg_path, name=appname,
                          global_conf={'configkey': configkey})
     return http_proxy_to_wsgi.HTTPProxyToWSGI(
@@ -194,6 +198,9 @@ def _setup_app(root, conf, not_implemented_middleware):
     if not_implemented_middleware:
         app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
 
+    LOG.info("Application setup for context path [%s] and "
+             "configurations [%s].",
+             root, conf.__dict__ if conf else None)
     return app
 
 

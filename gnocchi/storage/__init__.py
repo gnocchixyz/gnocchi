@@ -579,7 +579,7 @@ class StorageDriver(object):
              in metrics_keys_aggregations.items()
              for key, aggregation in keys_and_aggregations))
 
-    def add_measures_to_metrics(self, metrics_and_measures):
+    def add_measures_to_metrics(self, metrics_and_measures, indexer_driver):
         """Update a metric with a new measures, computing new aggregations.
 
         :param metrics_and_measures: A dict there keys are `storage.Metric`
@@ -681,6 +681,32 @@ class StorageDriver(object):
                                         new_first_block_timestamp)
 
             new_boundts.append((metric, ts.serialize()))
+
+            # If the archive policy backwindow is changed, the data is going to
+            # be truncated in the processing of new datapoints. Therefore, we
+            # can mark the metric as not needing raw data truncation anymore
+            if metric.needs_raw_data_truncation:
+                indexer_driver.update_needs_raw_data_truncation(metric.id)
+
+            # Mark when the metric receives its latest measures
+            indexer_driver.update_last_measure_timestmap(metric.id)
+
+            resource_id = metric.resource_id
+            if resource_id:
+                resource = indexer_driver.get_resource('generic', resource_id)
+                LOG.debug("Checking if resource [%s] of metric [%s] with "
+                          "resource ID [%s] needs to be 'undeleted.'",
+                          resource, metric.id, resource_id)
+                if resource.ended_at is not None:
+                    LOG.info("Resource [%s] was marked with a timestamp for the "
+                             "'ended_at' field. However, it received a "
+                             "measurement for metric [%s]. Therefore, we undelete "
+                             "it.", resource, metric)
+                    indexer_driver.update_resource(
+                        "generic", resource_id, ended_at=None)
+            else:
+                LOG.debug("Metric [%s] does not have a resource "
+                          "assigned to it.", metric)
 
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)

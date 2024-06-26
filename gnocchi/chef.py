@@ -17,9 +17,11 @@
 import hashlib
 
 import daiquiri
+import datetime
 
+from gnocchi import carbonara
 from gnocchi import indexer
-
+from gnocchi import utils
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -45,8 +47,169 @@ class Chef(object):
     def __init__(self, coord, incoming, index, storage):
         self.coord = coord
         self.incoming = incoming
+        # This variable is an instance of the indexer,
+        # which means, database connector.
         self.index = index
         self.storage = storage
+
+    def resource_ended_at_normalization(self, metric_inactive_after):
+        """Marks resources as ended at if needed.
+
+        This method will check all metrics that have not received new
+        datapoints after a given period. The period is defined by
+        'metric_inactive_after' parameter. If all metrics of resource are in
+        inactive state, we mark the ended_at field with a timestmap. Therefore,
+        we consider that the resource has ceased existing.
+
+        In this process we will handle only metrics that are considered as
+        inactive, according to `metric_inactive_after` parameter. Therefore,
+        we do not need to lock these metrics while processing, as they are
+        inactive, and chances are that they will not receive measures anymore.
+        """
+
+        momment_now = utils.utcnow()
+        momment = momment_now - datetime.timedelta(
+            seconds=metric_inactive_after)
+
+        inactive_metrics = self.index.list_metrics(
+            attribute_filter={"<": {
+                "last_measure_timestamp": momment}},
+            resource_policy_filter={"==": {"ended_at": None}}
+        )
+
+        LOG.debug("Inactive metrics found for processing: [%s].",
+                  inactive_metrics)
+
+        metrics_by_resource_id = {}
+        for metric in inactive_metrics:
+            resource_id = metric.resource_id
+            if metrics_by_resource_id.get(resource_id) is None:
+                metrics_by_resource_id[resource_id] = []
+
+            metrics_by_resource_id[resource_id].append(metric)
+
+        for resource_id in metrics_by_resource_id.keys():
+            if resource_id is None:
+                LOG.debug("We do not need to process inactive metrics that do "
+                          "not have resource. Therefore, these metrics [%s] "
+                          "will be considered inactive, but there is nothing "
+                          "else we can do in this process.",
+                          metrics_by_resource_id[resource_id])
+                continue
+            resource = self.index.get_resource(
+                "generic", resource_id, with_metrics=True)
+            resource_metrics = resource.metrics
+            resource_inactive_metrics = metrics_by_resource_id.get(resource_id)
+
+            all_metrics_are_inactive = True
+            for m in resource_metrics:
+                if m not in resource_inactive_metrics:
+                    all_metrics_are_inactive = False
+                    LOG.debug("Not all metrics of resource [%s] are inactive. "
+                              "Metric [%s] is not inactive. The inactive "
+                              "metrics are [%s].",
+                              resource, m, resource_inactive_metrics)
+                    break
+
+            if all_metrics_are_inactive:
+                LOG.info("All metrics [%s] of resource [%s] are inactive."
+                         "Therefore, we will mark it as finished with an"
+                         "ended at timestmap.", resource_metrics, resource)
+                if resource.ended_at is not None:
+                    LOG.debug(
+                        "Resource [%s] already has an ended at value.", resource)
+                else:
+                    LOG.info("Marking ended at timestamp for resource "
+                             "[%s] because all of its metrics are inactive.",
+                             resource)
+                    self.index.update_resource(
+                        "generic", resource_id, ended_at=momment_now)
+
+    def clean_raw_data_inactive_metrics(self):
+        """Cleans metrics raw data if they are inactive.
+
+        The truncating of the raw metrics data is only done when new
+        measures are pushed. Therefore, if no new measures are pushed, and the
+        archive policy was updated to reduce the backwindow, the raw
+        datapoints for metrics that are not receiving new datapoints are never
+        truncated.
+
+        The goal of this method is to identify metrics that are in
+        "inactive state", meaning, not receiving new datapoints, and execute
+        their raw data points truncation. We check the column
+        "needs_raw_data_truncation", to determine if the archive policy was
+        updated, and no measure push was executed for the metric.
+
+        If the metric is not receiving new datapoints, the processing workflow
+        will not mark the column "needs_raw_data_truncation" to False;
+        therefore, that is how we identify such metrics.
+        """
+
+        metrics_to_clean = self.index.list_metrics(
+            attribute_filter={"==": {
+                "needs_raw_data_truncation": True}}
+        )
+
+        LOG.debug("Metrics [%s] found to execute the raw data cleanup.",
+                  metrics_to_clean)
+
+        for metric in metrics_to_clean:
+            LOG.debug("Executing the raw data cleanup for metric [%s].",
+                      metric)
+            try:
+                metricd_id = metric.id
+                # To properly generate the lock here, we need to use the
+                # same process as it is done in the measures processing.
+                # Therefore, we have to use the sack to control the locks
+                # in this processing here. See 'process_new_measures_for_sack'
+                # for more details.
+                sack_for_metric = self.incoming.sack_for_metric(metricd_id)
+                metric_lock = self.get_sack_lock(sack_for_metric)
+
+                if not metric_lock.acquire():
+                    LOG.debug(
+                        "Metric [%s] is locked, cannot clean it up now.",
+                        metric.id)
+                    continue
+
+                agg_methods = list(metric.archive_policy.aggregation_methods)
+                block_size = metric.archive_policy.max_block_size
+                back_window = metric.archive_policy.back_window
+
+                if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+                    back_window += 1
+
+                raw_measure = self.storage. \
+                    _get_or_create_unaggregated_timeseries_unbatched(metric)
+
+                if raw_measure:
+                    LOG.debug("Truncating metric [%s] for backwindow [%s].",
+                              metric.id, back_window)
+
+                    ts = carbonara.BoundTimeSerie.unserialize(raw_measure,
+                                                              block_size,
+                                                              back_window)
+                    # Set values as none to be added. This will trigger a
+                    # truncation process only.
+                    ts.set_values(None)
+
+                    self.storage._store_unaggregated_timeseries_unbatched(
+                        metric, ts.serialize())
+
+                    self.index.update_needs_raw_data_truncation(metric.id)
+                else:
+                    LOG.debug("No raw measures found for metric [%s] for "
+                              "cleanup.", metric.id)
+                    self.index.update_needs_raw_data_truncation(metric.id)
+
+                metric_lock.release()
+            except Exception:
+                LOG.warning("Unable to lock metric [%s] for cleanup.",
+                            metric, exc_info=True)
+                continue
+
+        if metrics_to_clean:
+            LOG.debug("Cleaned up metrics [%s].", metrics_to_clean)
 
     def expunge_metrics(self, cleanup_batch_size, sync=False):
         """Remove deleted metrics.
@@ -124,7 +287,7 @@ class Chef(object):
                             metrics_by_id[metric_id]: measures
                             for metric_id, measures
                             in metrics_and_measures.items()
-                        })
+                        }, self.index)
                         LOG.debug("Measures for %d metrics processed",
                                   len(metric_ids))
             except Exception:
@@ -165,7 +328,7 @@ class Chef(object):
                 self.storage.add_measures_to_metrics({
                     metric: measures[metric.id]
                     for metric in metrics
-                })
+                }, self.index)
                 LOG.debug("Measures for %d metrics processed",
                           len(metrics))
                 return len(measures)
@@ -180,7 +343,6 @@ class Chef(object):
     def get_sack_lock(self, sack):
         # FIXME(jd) Some tooz drivers have a limitation on lock name length
         # (e.g. MySQL). This should be handled by tooz, but it's not yet.
-        lock_name = hashlib.new(
-            'sha1',
-            ('gnocchi-sack-%s-lock' % str(sack)).encode()).hexdigest().encode()
+        lock_name = ('gnocchi-sack-%s-lock' % str(sack)).encode()
+        lock_name = hashlib.new('sha1', lock_name).hexdigest().encode()
         return self.coord.get_lock(lock_name)
