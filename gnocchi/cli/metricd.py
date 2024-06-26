@@ -72,9 +72,9 @@ class MetricProcessBase(cotyledon.Service):
                                                self.conf.coordination_url)
         self.store = storage.get_driver(self.conf)
         self.incoming = incoming.get_driver(self.conf)
-        self.index = indexer.get_driver(self.conf)
+        self.indexer = indexer.get_driver(self.conf)
         self.chef = chef.Chef(self.coord, self.incoming,
-                              self.index, self.store)
+                              self.indexer, self.store)
 
     def run(self):
         self._configure()
@@ -267,8 +267,16 @@ class MetricJanitor(MetricProcessBase):
             worker_id, conf, conf.metricd.metric_cleanup_delay)
 
     def _run_job(self):
+        LOG.debug("Cleaning up deleted metrics with batch size [%s].",
+                  self.conf.metricd.cleanup_batch_size)
         self.chef.expunge_metrics(self.conf.metricd.cleanup_batch_size)
         LOG.debug("Metrics marked for deletion removed from backend")
+
+        LOG.debug("Starting the cleaning of raw data points for metrics that "
+                  "are no longer receiving measures.")
+        self.chef.clean_raw_data_inactive_metrics()
+        LOG.debug("Finished the cleaning of raw data points for metrics that "
+                  "are no longer receiving measures.")
 
 
 class MetricdServiceManager(cotyledon.ServiceManager):
@@ -288,7 +296,7 @@ class MetricdServiceManager(cotyledon.ServiceManager):
 
     def on_reload(self):
         # NOTE(sileht): We do not implement reload() in Workers so all workers
-        # will received SIGHUP and exit gracefully, then their will be
+        # will receive SIGHUP and exit gracefully, then their will be
         # restarted with the new number of workers. This is important because
         # we use the number of worker to declare the capability in tooz and
         # to select the block of metrics to proceed.

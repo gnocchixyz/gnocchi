@@ -38,6 +38,7 @@ def prepare_service(conf=None):
 
     opts.set_defaults()
     policy_opts.set_defaults(conf, 'policy.yaml')
+
     conf = service.prepare_service(conf=conf)
     return conf
 

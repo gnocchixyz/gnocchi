@@ -97,12 +97,34 @@ new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $GNOCCHI_VERSION_FROM to $new_version"
 pip install -v -U .[${GNOCCHI_VARIANT}]
 
-eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
+eval $(pifpaf --verbose --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
 
+# Pifpaf configures the logs for the standard output. Therefore, depending
+# on the operating system, the standard output has some buffer size, which
+# needs to be released. Otherwise, the logs stop to be writen, and the
+# execution of the code is "frozen", due to the lack of buffer in the
+# process output. To work around that, we can read the buffer, and dump it
+# into a lof file. Then, we can cat the log file content at the end of the
+# process.
+UWSGI_LOG_FILE=/tmp/uwsgi-new-version.log
+METRICD_LOG_FILE=/tmp/gnocchi-metricd-new-version.log
+for PID in $(pidof uwsgi); do
+  echo "Configuring dump of uWSGI process [PID=${PID}] outputs to avoid freeze while processing because the logs are not read from buffer"
+  cat /proc/${PID}/fd/1 >> ${UWSGI_LOG_FILE} &
+  cat /proc/${PID}/fd/2 >> ${UWSGI_LOG_FILE} &
+done
+
+for PID in $(pidof gnocchi-metricd); do
+  echo "Configuring dump of MetricD process [PID=${PID}] outputs to avoid freeze while processing because the logs are not read from buffer"
+  cat /proc/${PID}/fd/1 >> ${METRICD_LOG_FILE} &
+  cat /proc/${PID}/fd/2 >> ${METRICD_LOG_FILE} &
+done
+
 # pifpaf creates a new statsd resource on each start
+echo "Executing the deletion of statsd resource [${GNOCCHI_STATSD_RESOURCE_ID}]."
 gnocchi resource delete $GNOCCHI_STATSD_RESOURCE_ID
 
 dump_data $GNOCCHI_DATA/new
@@ -115,3 +137,9 @@ for old in $GNOCCHI_DATA/old/*.json; do
     new=$GNOCCHI_DATA/new/$(basename $old)
     python -c "import json; old = json.load(open('$old')); new = json.load(open('$new')); assert all(i in old for i in new)"
 done
+
+echo "Dump uWSGI log file"
+cat ${UWSGI_LOG_FILE}
+
+echo "Dump MetricD log file"
+cat ${METRICD_LOG_FILE}
