@@ -17,6 +17,7 @@
 import hashlib
 
 import daiquiri
+import random
 
 from gnocchi import carbonara
 from gnocchi import indexer
@@ -80,7 +81,10 @@ class Chef(object):
 
         sack_by_metric = self.group_metrics_by_sack(metrics_to_clean)
 
-        for sack in sack_by_metric.keys():
+        # We randomize the list to reduce the chances of lock collision.
+        all_sacks = list(sack_by_metric.keys())
+        random.shuffle(all_sacks)
+        for sack in all_sacks:
             LOG.debug("Executing the raw data cleanup for sack [%s].",
                       sack)
             try:
