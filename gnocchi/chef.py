@@ -17,8 +17,8 @@
 import hashlib
 
 import daiquiri
-import random
 import datetime
+import random
 
 from gnocchi import carbonara
 from gnocchi import indexer
