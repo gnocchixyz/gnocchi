@@ -66,6 +66,7 @@ class Chef(object):
         inactive, according to `metric_inactive_after` parameter. Therefore,
         we do not need to lock these metrics while processing, as they are
         inactive, and chances are that they will not receive measures anymore.
+        Moreover, we are only touching metadata, and not the actual data.
         """
 
         momment_now = utils.utcnow()
