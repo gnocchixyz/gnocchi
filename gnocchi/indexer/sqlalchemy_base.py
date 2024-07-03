@@ -19,6 +19,7 @@ from oslo_db.sqlalchemy import models
 import sqlalchemy
 from sqlalchemy.ext import declarative
 from sqlalchemy.orm import declarative_base
+
 import sqlalchemy_utils
 
 from gnocchi import archive_policy
@@ -99,12 +100,18 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         sqlalchemy.ForeignKey('resource.id',
                               ondelete="SET NULL",
                               name="fk_metric_resource_id_resource_id"))
+
     name = sqlalchemy.Column(sqlalchemy.String(255))
     unit = sqlalchemy.Column(sqlalchemy.String(31))
     status = sqlalchemy.Column(sqlalchemy.Enum('active', 'delete',
                                                name="metric_status_enum"),
                                nullable=False,
                                server_default='active')
+
+    needs_raw_data_truncation = sqlalchemy.Column(
+        "needs_raw_data_truncation", sqlalchemy.Boolean,
+        nullable=False, default=True,
+        server_default=sqlalchemy.sql.true())
 
     def jsonify(self):
         d = {

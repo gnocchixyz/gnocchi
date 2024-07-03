@@ -261,7 +261,6 @@ class ArchivePolicyController(rest.RestController):
             voluptuous.Optional("back_window"): voluptuous.All(
                 voluptuous.Coerce(int), voluptuous.Range(min=0))
         }))
-        # Validate the data
         try:
             ap_items = [archive_policy.ArchivePolicyItem(**item) for item in
                         body['definition']]
@@ -269,11 +268,35 @@ class ArchivePolicyController(rest.RestController):
             abort(400, str(e))
 
         try:
-            return pecan.request.indexer.update_archive_policy(
+            ap_updated = pecan.request.indexer.update_archive_policy(
                 self.archive_policy, ap_items,
                 back_window=body.get('back_window'))
+
+            self.mark_metric_for_truncation_if_needed(body)
+
+            return ap_updated
         except indexer.UnsupportedArchivePolicyChange as e:
             abort(400, str(e))
+
+    def mark_metric_for_truncation_if_needed(self, body):
+        original_archive_policy = pecan.request.indexer.get_archive_policy(
+            self.archive_policy)
+        new_back_window = body.get('back_window')
+        current_back_window = original_archive_policy.back_window
+        needs_raw_data_truncation = \
+            new_back_window and new_back_window != current_back_window and \
+            new_back_window < current_back_window
+        if needs_raw_data_truncation:
+            LOG.info("Backwindow change in the archive policy. Therefore, "
+                     "we will mark all of its metrics to be updated "
+                     "according to it by the Janitor.")
+            pecan.request.indexer. \
+                update_backwindow_changed_for_metrics_archive_policy(
+                    self.archive_policy)
+        else:
+            LOG.debug("No need to update metrics backwindow change "
+                      "status, because it did not change for this archive "
+                      "policy [%s].", self.archive_policy)
 
     @pecan.expose('json')
     def delete(self):

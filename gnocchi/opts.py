@@ -172,7 +172,7 @@ def list_opts():
                        default=10000,
                        min=1,
                        help="Number of metrics that should be deleted "
-                       "simultaneously by one janitor."),
+                       "simultaneously by one janitor.")
         )),
         ("api", (
             cfg.StrOpt('paste_config',

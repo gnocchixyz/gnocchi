@@ -14,10 +14,15 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import daiquiri
+
 import webob
 import werkzeug.http
 
 from gnocchi.rest import api
+
+
+LOG = daiquiri.getLogger(__name__)
 
 
 class KeystoneAuthHelper(object):
@@ -119,6 +124,8 @@ class BasicAuthHelper(object):
     @staticmethod
     def get_current_user(request):
         hdr = request.headers.get("Authorization")
+        LOG.debug("Processing basic auth request [%s]. Found "
+                  "Authorization header [%s].", request, hdr)
         auth_hdr = (hdr.decode('utf-8') if isinstance(hdr, bytes)
                     else hdr)
 
@@ -134,6 +141,7 @@ class BasicAuthHelper(object):
     def get_auth_info(self, request):
         user = self.get_current_user(request)
         roles = []
+
         if user == "admin":
             roles.append("admin")
         return {
@@ -154,6 +162,8 @@ class RemoteUserAuthHelper(object):
     @staticmethod
     def get_current_user(request):
         user = request.remote_user
+        LOG.debug("Processing remote user authentication for request [%s]. "
+                  "The remote user found is [%s].", request, user)
         if user is None:
             api.abort(401)
         return user.decode('iso-8859-1')
@@ -161,6 +171,7 @@ class RemoteUserAuthHelper(object):
     def get_auth_info(self, request):
         user = self.get_current_user(request)
         roles = []
+
         if user == "admin":
             roles.append("admin")
         return {
