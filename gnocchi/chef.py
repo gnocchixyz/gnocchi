@@ -82,26 +82,26 @@ class Chef(object):
         LOG.debug("Inactive metrics found for processing: [%s].",
                   inactive_metrics)
 
-        metrics_by_resource_id = {}
+        inactive_metrics_by_resource_id = {}
         for metric in inactive_metrics:
             resource_id = metric.resource_id
-            if metrics_by_resource_id.get(resource_id) is None:
-                metrics_by_resource_id[resource_id] = []
+            if inactive_metrics_by_resource_id.get(resource_id) is None:
+                inactive_metrics_by_resource_id[resource_id] = []
 
-            metrics_by_resource_id[resource_id].append(metric)
+            inactive_metrics_by_resource_id[resource_id].append(metric)
 
-        for resource_id in metrics_by_resource_id.keys():
+        for resource_id in inactive_metrics_by_resource_id.keys():
             if resource_id is None:
                 LOG.debug("We do not need to process inactive metrics that do "
                           "not have resource. Therefore, these metrics [%s] "
                           "will be considered inactive, but there is nothing "
                           "else we can do in this process.",
-                          metrics_by_resource_id[resource_id])
+                          inactive_metrics_by_resource_id[resource_id])
                 continue
             resource = self.index.get_resource(
                 "generic", resource_id, with_metrics=True)
             resource_metrics = resource.metrics
-            resource_inactive_metrics = metrics_by_resource_id.get(resource_id)
+            resource_inactive_metrics = inactive_metrics_by_resource_id.get(resource_id)
 
             all_metrics_are_inactive = True
             for m in resource_metrics:

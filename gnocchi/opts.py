@@ -77,7 +77,7 @@ API_OPTS = (
   but not chunked encoding (InfluxDB)
 * http-socket/socket: support chunked encoding, but require a upstream HTTP
   Server for HTTP/1.1, keepalive and HTTP protocol correctness.
-"""),
+""")
 )
 
 
