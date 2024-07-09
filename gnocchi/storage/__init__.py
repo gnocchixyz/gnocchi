@@ -695,7 +695,7 @@ class StorageDriver(object):
             if resource_id:
                 resource = indexer_driver.get_resource('generic', resource_id)
                 LOG.debug("Checking if resource [%s] of metric [%s] with "
-                          "resource ID [%s] needs to be 'undeleted.'",
+                          "resource ID [%s] needs to be restored.",
                           resource, metric.id, resource_id)
                 if resource.ended_at is not None:
                     LOG.info("Resource [%s] was marked with a timestamp for the "
