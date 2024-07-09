@@ -15,11 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import hashlib
+import datetime
 
 import daiquiri
-import datetime
 import random
 
+from collections import defaultdict
 from gnocchi import carbonara
 from gnocchi import indexer
 from gnocchi import utils
@@ -69,20 +70,20 @@ class Chef(object):
         Moreover, we are only touching metadata, and not the actual data.
         """
 
-        momment_now = utils.utcnow()
-        momment = momment_now - datetime.timedelta(
+        moment_now = utils.utcnow()
+        moment = moment_now - datetime.timedelta(
             seconds=metric_inactive_after)
 
         inactive_metrics = self.index.list_metrics(
             attribute_filter={"<": {
-                "last_measure_timestamp": momment}},
+                "last_measure_timestamp": moment}},
             resource_policy_filter={"==": {"ended_at": None}}
         )
 
         LOG.debug("Inactive metrics found for processing: [%s].",
                   inactive_metrics)
 
-        inactive_metrics_by_resource_id = collections.defaultdict(list)
+        inactive_metrics_by_resource_id = defaultdict(list)
         for metric in inactive_metrics:
             resource_id = metric.resource_id
             inactive_metrics_by_resource_id[resource_id].append(metric)
@@ -122,7 +123,7 @@ class Chef(object):
                              "[%s] because all of its metrics are inactive.",
                              resource)
                     self.index.update_resource(
-                        "generic", resource_id, ended_at=momment_now)
+                        "generic", resource_id, ended_at=moment_now)
 
     def clean_raw_data_inactive_metrics(self):
         """Cleans metrics raw data if they are inactive.
