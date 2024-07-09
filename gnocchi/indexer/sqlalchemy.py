@@ -1403,7 +1403,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
             if session.execute(stmt).rowcount == 0:
                 raise indexer.NoSuchMetric(metrid_id)
 
-    def update_last_measure_timestmap(self, metrid_id):
+    def update_last_measure_timestamp(self, metrid_id):
         with self.facade.writer() as session:
             stmt = update(Metric).filter(Metric.id == metrid_id).values(
                 last_measure_timestamp=datetime.datetime.utcnow())
