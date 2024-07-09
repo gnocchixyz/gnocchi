@@ -689,7 +689,7 @@ class StorageDriver(object):
                 indexer_driver.update_needs_raw_data_truncation(metric.id)
 
             # Mark when the metric receives its latest measures
-            indexer_driver.update_last_measure_timestmap(metric.id)
+            indexer_driver.update_last_measure_timestamp(metric.id)
 
             resource_id = metric.resource_id
             if resource_id:

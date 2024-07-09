@@ -450,7 +450,7 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def update_last_measure_timestmap(metric_id):
+    def update_last_measure_timestamp(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod
