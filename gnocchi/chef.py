@@ -82,12 +82,9 @@ class Chef(object):
         LOG.debug("Inactive metrics found for processing: [%s].",
                   inactive_metrics)
 
-        inactive_metrics_by_resource_id = {}
+        inactive_metrics_by_resource_id = collections.defaultdict(list)
         for metric in inactive_metrics:
             resource_id = metric.resource_id
-            if inactive_metrics_by_resource_id.get(resource_id) is None:
-                inactive_metrics_by_resource_id[resource_id] = []
-
             inactive_metrics_by_resource_id[resource_id].append(metric)
 
         for resource_id in inactive_metrics_by_resource_id.keys():
