@@ -14,8 +14,8 @@
 # implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import hashlib
 import datetime
+import hashlib
 
 import daiquiri
 import random
