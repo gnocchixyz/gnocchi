@@ -67,6 +67,10 @@ OPTS = [
     cfg.StrOpt('swift_container_prefix',
                default='gnocchi',
                help='Prefix to namespace metric containers.'),
+    cfg.StrOpt('swift_storage_policy',
+               default=None,
+               help='Storage policy to use when creating containers. '
+                    'When unset, the default Swift storage policy is used.'),
     cfg.StrOpt('swift_endpoint_type',
                default='publicURL',
                help='Endpoint type to connect to Swift',),
@@ -93,6 +97,11 @@ class SwiftStorage(storage.StorageDriver):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
         self._container_prefix = conf.swift_container_prefix
+        self._put_container_headers = {}
+        if conf.swift_storage_policy:
+            self._put_container_headers["X-Storage-Policy"] = (
+                conf.swift_storage_policy
+            )
 
     def __str__(self):
         return "%s: %s" % (self.__class__.__name__, self._container_prefix)
@@ -112,6 +121,7 @@ class SwiftStorage(storage.StorageDriver):
         # TODO(jd) A container per user in their account?
         resp = {}
         self.swift.put_container(self._container_name(metric),
+                                 headers=self._put_container_headers,
                                  response_dict=resp)
         # put_container() should return 201 Created; if it returns 204, that
         # means the metric was already created!
