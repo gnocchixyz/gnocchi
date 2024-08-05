@@ -100,7 +100,8 @@ class Metric(Base, GnocchiBase, indexer.Metric):
         sqlalchemy.ForeignKey('resource.id',
                               ondelete="SET NULL",
                               name="fk_metric_resource_id_resource_id"))
-
+    resource = sqlalchemy.orm.relationship("Resource",
+                                           back_populates="metrics")
     name = sqlalchemy.Column(sqlalchemy.String(255))
     unit = sqlalchemy.Column(sqlalchemy.String(31))
     status = sqlalchemy.Column(sqlalchemy.Enum('active', 'delete',
@@ -273,7 +274,7 @@ class Resource(ResourceMixin, Base, GnocchiBase):
                            primary_key=True)
     revision_end = None
     metrics = sqlalchemy.orm.relationship(
-        Metric, backref="resource",
+        Metric, back_populates="resource",
         primaryjoin="and_(Resource.id == Metric.resource_id, "
         "Metric.status == 'active')")
 
