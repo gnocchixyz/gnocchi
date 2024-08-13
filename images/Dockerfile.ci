@@ -44,6 +44,9 @@ RUN rm -rf /var/lib/apt/lists/*
 # NOTE(tobias.urdin): hack since pyparsing in site-packages collides with our requirements
 RUN rm -rf /usr/lib/python3/dist-packages/pyparsing*
 
+# NOTE(tobias.urdin): hack since jaraco.text in site-packages collides with our requirements
+RUN rm -rf /usr/lib/python3/dist-packages/jaraco/text*
+
 #NOTE(sileht): really no utf-8 in 2017 !?
 ENV LANG en_US.UTF-8
 RUN update-locale
