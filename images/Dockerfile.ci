@@ -44,6 +44,12 @@ RUN rm -rf /var/lib/apt/lists/*
 # NOTE(tobias.urdin): hack since pyparsing in site-packages collides with our requirements
 RUN rm -rf /usr/lib/python3/dist-packages/pyparsing*
 
+# NOTE(tobias.urdin): hack since jaraco.text in site-packages collides with our requirements
+RUN rm -rf /usr/lib/python3/dist-packages/jaraco/text*
+
+# TODO(tobias.urdin): hack remove this when we drop python 3.9
+RUN sed -i '1s/^/from __future__ import annotations\n/' /usr/lib/python3/dist-packages/werkzeug/sansio/utils.py
+
 #NOTE(sileht): really no utf-8 in 2017 !?
 ENV LANG en_US.UTF-8
 RUN update-locale
