@@ -52,6 +52,7 @@ status_rules = [
     policy.DocumentedRuleDefault(
         name="get status",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Get status of Gnocchi service.',
         operations=[
             {
@@ -66,6 +67,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="create resource",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='Create a new resource.',
         operations=[
             {
@@ -77,6 +79,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="get resource",
         check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='Get a resource.',
         operations=[
             {
@@ -88,6 +91,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="update resource",
         check_str=RULE_ADMIN_OR_CREATOR,
+        scope_types=['system', 'domain', 'project'],
         description='Update a resource.',
         operations=[
             {
@@ -99,6 +103,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="delete resource",
         check_str=RULE_ADMIN_OR_CREATOR,
+        scope_types=['system', 'domain', 'project'],
         description='Delete a resource.',
         operations=[
             {
@@ -110,6 +115,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="delete resources",
         check_str=RULE_ADMIN_OR_CREATOR,
+        scope_types=['system', 'domain', 'project'],
         description='Delete multiple resources.',
         operations=[
             {
@@ -121,6 +127,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="list resource",
         check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='List all resources.',
         operations=[
             {
@@ -132,6 +139,7 @@ resource_rules = [
     policy.DocumentedRuleDefault(
         name="search resource",
         check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='Search resources.',
         operations=[
             {
@@ -146,6 +154,7 @@ resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="create resource type",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Create a new resource type.',
         operations=[
             {
@@ -157,6 +166,7 @@ resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="get resource type",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='Get a resource type.',
         operations=[
             {
@@ -168,6 +178,7 @@ resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="update resource type",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Update a resource type.',
         operations=[
             {
@@ -179,6 +190,7 @@ resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="delete resource type",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Delete a resource type.',
         operations=[
             {
@@ -190,6 +202,7 @@ resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="list resource type",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='List all resource types.',
         operations=[
             {
@@ -204,6 +217,7 @@ archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Create a new archive policy',
         operations=[
             {
@@ -215,6 +229,7 @@ archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="get archive policy",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='Get an archive policy',
         operations=[
             {
@@ -226,6 +241,7 @@ archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="update archive policy",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Update an archive policy',
         operations=[
             {
@@ -237,6 +253,7 @@ archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="delete archive policy",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Delete an archive policy',
         operations=[
             {
@@ -248,6 +265,7 @@ archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="list archive policy",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='List all archive policies',
         operations=[
             {
@@ -262,6 +280,7 @@ archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy rule",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Create a new archive policy rule',
         operations=[
             {
@@ -273,6 +292,7 @@ archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="get archive policy rule",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='Get an archive policy rule',
         operations=[
             {
@@ -284,6 +304,7 @@ archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="update archive policy rule",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Update an archive policy rule',
         operations=[
             {
@@ -295,6 +316,7 @@ archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="delete archive policy rule",
         check_str=ADMIN,
+        scope_types=['system', 'domain', 'project'],
         description='Delete an archive policy rule',
         operations=[
             {
@@ -306,6 +328,7 @@ archive_policy_rule_rules = [
     policy.DocumentedRuleDefault(
         name="list archive policy rule",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='List all archive policy rules',
         operations=[
             {
@@ -320,6 +343,7 @@ metric_rules = [
     policy.DocumentedRuleDefault(
         name="create metric",
         check_str=UNPROTECTED,
+        scope_types=['system', 'domain', 'project'],
         description='Create a new metric',
         operations=[
             {
@@ -331,6 +355,7 @@ metric_rules = [
     policy.DocumentedRuleDefault(
         name="get metric",
         check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='Get a metric',
         operations=[
             {
@@ -342,6 +367,7 @@ metric_rules = [
     policy.DocumentedRuleDefault(
         name="delete metric",
         check_str=RULE_ADMIN_OR_CREATOR,
+        scope_types=['system', 'domain', 'project'],
         description='Delete a metric',
         operations=[
             {
@@ -353,6 +379,7 @@ metric_rules = [
     policy.DocumentedRuleDefault(
         name="list metric",
         check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='List all metrics',
         operations=[
             {
@@ -364,6 +391,7 @@ metric_rules = [
     policy.DocumentedRuleDefault(
         name="search metric",
         check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='Search metrics',
         operations=[
             {
@@ -378,6 +406,7 @@ measure_rules = [
     policy.DocumentedRuleDefault(
         name="post measures",
         check_str=RULE_ADMIN_OR_CREATOR,
+        scope_types=['system', 'domain', 'project'],
         description='Post measures',
         operations=[
             {
@@ -397,6 +426,7 @@ measure_rules = [
     policy.DocumentedRuleDefault(
         name="get measures",
         check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        scope_types=['system', 'domain', 'project'],
         description='Get measures',
         operations=[
             {
