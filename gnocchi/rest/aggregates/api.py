@@ -536,58 +536,6 @@ class AggregatesController(rest.RestController):
 
         if "resource_type" in body:
             attr_filter = body["search"]
-
-            time_range_filters = []
-
-            # When we apply the filters in the query, we need to bear in mind
-            # that for the queries where use_history=False, we do not have the
-            # revision_end as we do not care about revisions.
-            # The revision_start exists in the resource history. Therefore,
-            # we can leave its use there as well, with use_history=True or not.
-            if stop:
-                # We use the stop filter as the start value, since we want
-                # everything that started until the end of the time range.
-                time_range_filters.append({"or": [
-                    {"<": {'started_at': stop}},
-                    {"<": {'revision_start': stop}}
-                ]})
-
-            if start:
-                # We want all elements/resources that exist after the start of
-                # the time range or that were deleted after the start of the
-                # time range.
-                time_range_filters.append(
-                    {
-                        "or": [
-                            {">=": {'ended_at': start}},
-                            {"=": {'ended_at': None}},
-                            {">=": {'revision_end': start}},
-                            {"=": {'revision_end': None}}
-                        ]
-                    } if use_history else {
-                        "or": [
-                            {">=": {'ended_at': start}},
-                            {"=": {'ended_at': None}},
-                        ]
-                    })
-            if not (start and stop):
-                LOG.warning("No stop and start filtering provided. Therefore, "
-                            "we will use a query that is going to manipulate "
-                            "all dataset. This can be quite costly!")
-
-            if time_range_filters:
-                if len(time_range_filters) > 1:
-                    time_range_filters = {
-                        "and": time_range_filters
-                    }
-                else:
-                    time_range_filters = time_range_filters[0]
-
-                if attr_filter:
-                    attr_filter = {"and": [time_range_filters, attr_filter]}
-                else:
-                    attr_filter = time_range_filters
-
             LOG.debug("Filters to be used in the search query: [%s].",
                       attr_filter)
 
