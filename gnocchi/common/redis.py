@@ -78,7 +78,7 @@ OPTS = [
 
   For example::
 
-    redis://[:password]@localhost:6379?db=0
+    redis://[username:password]@localhost:6379?db=0
 
   We proxy some options to the redis client (used to configure the redis client
   internals so that it works as you expect/want it to):  `%s`
@@ -128,6 +128,8 @@ def get_client(conf, scripts=None):
         if not parsed_url.path:
             raise ValueError("Expected socket path in parsed urls path")
         kwargs['unix_socket_path'] = parsed_url.path
+    if parsed_url.username:
+        kwargs['username'] = parsed_url.username
     if parsed_url.password:
         kwargs['password'] = parsed_url.password
 
