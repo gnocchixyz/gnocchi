@@ -123,7 +123,7 @@ unary_operators = {
 def rateofchangesec(t, v):
     """Calculate change of value per second."""
     values = numpy.divide(
-        numpy.diff(v.T, prepend=numpy.NaN),
+        numpy.diff(v.T, prepend=numpy.nan),
         numpy.divide(
             numpy.diff(t, prepend=numpy.datetime64("NaT")),
             numpy.timedelta64(1, 's'))
