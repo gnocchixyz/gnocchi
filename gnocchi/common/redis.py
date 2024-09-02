@@ -119,7 +119,7 @@ OPTS = [
 ]
 
 
-def _parse_sentinel(cls, sentinel):
+def _parse_sentinel(sentinel):
     # IPv6 (eg. [::1]:6379 )
     match = re.search(r'^\[(\S+)\]:(\d+)$', sentinel)
     if match:
