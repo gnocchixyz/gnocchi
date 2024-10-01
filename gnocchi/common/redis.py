@@ -14,9 +14,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import re
-
 from oslo_config import cfg
+from oslo_utils import netutils
 from oslo_utils import strutils
 from urllib import parse
 
@@ -119,15 +118,10 @@ OPTS = [
 
 
 def _parse_sentinel(sentinel):
-    # IPv6 (eg. [::1]:6379 )
-    match = re.search(r'^\[(\S+)\]:(\d+)$', sentinel)
-    if match:
-        return (match[1], int(match[2]))
-    # IPv4 or hostname (eg. 127.0.0.1:6379 or localhost:6379)
-    match = re.search(r'^(\S+):(\d+)$', sentinel)
-    if match:
-        return (match[1], int(match[2]))
-    raise ValueError('Malformed sentinel server format')
+    host, port = netutils.parse_host_port(sentinel)
+    if host is None or port is None:
+        raise ValueError('Malformed sentinel server format')
+    return (host, port)
 
 
 def get_client(conf, scripts=None):
