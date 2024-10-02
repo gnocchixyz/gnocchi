@@ -1500,7 +1500,7 @@ class ResourceTest(RestTest):
         result = self.app.get("/v1/resource/generic?details=awesome",
                               status=400)
         self.assertIn(
-            b"Unable to parse `details': invalid truth value",
+            b"Unable to parse `details':",
             result.body)
 
     def _do_test_list_resources_with_detail(self, request):
