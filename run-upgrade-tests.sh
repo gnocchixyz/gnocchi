@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+export GNOCCHI_TEST_DEBUG=1
+
 if [ "$1" == "postgresql-file" ]; then
   eval $(pifpaf --env-prefix INDEXER run postgresql)
 elif [ "$1" == "mysql-ceph" ]; then
