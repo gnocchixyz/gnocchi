@@ -93,12 +93,6 @@ cmdclass = {
     'install_scripts': local_install_scripts,
 }
 
-try:
-    from sphinx import setup_command
-    cmdclass['build_sphinx'] = setup_command.BuildDoc
-except ImportError:
-    pass
-
 
 setuptools.setup(
     cmdclass=cmdclass,
