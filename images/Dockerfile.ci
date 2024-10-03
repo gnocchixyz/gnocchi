@@ -2,6 +2,8 @@ FROM ubuntu:22.04
 ENV GNOCCHI_WORKSPACE /github/workspace
 ENV DEBIAN_FRONTEND noninteractive
 
+RUN echo test
+
 #NOTE(tobias-urdin): need gnupg for apt-key
 RUN apt-get update -y && apt-get install -qy gnupg software-properties-common
 RUN add-apt-repository -y ppa:deadsnakes/ppa
