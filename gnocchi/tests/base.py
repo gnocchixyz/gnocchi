@@ -286,8 +286,13 @@ class TestCase(BaseTestCase, metaclass=SkipNotImplementedMeta):
             logging_level=logging.DEBUG,
             skip_log_opts=True)
 
+        self.conf.set_override(
+            'paste_config',
+            os.path.abspath(
+                os.path.join(os.path.dirname(__file__), '..', '..',
+                             'etc', 'gnocchi', 'api-paste.ini')),
+            group='api')
         self.index = indexer.get_driver(self.conf)
-
         self.coord = metricd.get_coordinator_and_start(
             str(uuid.uuid4()),
             self.conf.coordination_url)
