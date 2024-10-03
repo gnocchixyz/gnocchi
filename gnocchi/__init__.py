@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pkg_resources
+import importlib.metadata
 
 try:
-    __version__ = pkg_resources.get_distribution(__name__).version
-except pkg_resources.DistributionNotFound:
+    __version__ = importlib.metadata.version('gnocchi')
+except importlib.metadata.PackageNotFoundError:
     # package is not installed
     pass

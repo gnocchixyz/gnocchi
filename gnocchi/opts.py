@@ -14,7 +14,7 @@
 import copy
 import itertools
 import operator
-import pkg_resources
+import sys
 import uuid
 
 from oslo_config import cfg
@@ -28,6 +28,11 @@ import gnocchi.storage.ceph
 import gnocchi.storage.file
 import gnocchi.storage.s3
 import gnocchi.storage.swift
+
+if sys.version_info < (3, 10, 0):
+    import importlib_metadata
+else:
+    from importlib import metadata as importlib_metadata
 
 
 # NOTE(sileht): The oslo.config interpolation is buggy when the value
@@ -178,12 +183,14 @@ def list_opts():
             cfg.StrOpt('paste_config',
                        default="api-paste.ini",
                        help='Path to API Paste configuration.'),
-            cfg.StrOpt('auth_mode',
-                       default="basic",
-                       choices=list(map(operator.attrgetter("name"),
-                                    pkg_resources.iter_entry_points(
-                                        "gnocchi.rest.auth_helper"))),
-                       help='Authentication mode to use.'),
+            cfg.StrOpt(
+                'auth_mode',
+                default="basic",
+                choices=list(map(
+                    operator.attrgetter("name"),
+                    importlib_metadata.entry_points(
+                        group='gnocchi.rest.auth_helper'))),
+                help='Authentication mode to use.'),
             cfg.IntOpt('max_limit',
                        default=1000,
                        help=('The maximum number of items returned in a '
