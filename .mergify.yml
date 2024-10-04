@@ -5,8 +5,8 @@ queue_rules:
     - check-success=doc (docs-gnocchi-web)
     - check-success=check (build)
     - check-success=check (pep8)
-    - check-success=test (py39, mysql-ceph-upgrade-from-4.4)
-    - check-success=test (py39, postgresql-file-upgrade-from-4.4)
+    - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
+    - check-success=test (py39, postgresql-file-upgrade-from-4.5)
     - check-success=test (py39, mysql-file)
     - check-success=test (py39, mysql-file-sqlalchemy14)
     - check-success=test (py39, mysql-swift)
@@ -17,7 +17,7 @@ queue_rules:
     - check-success=test (py39, postgresql-swift)
     - check-success=test (py39, postgresql-s3)
     - check-success=test (py39, postgresql-ceph)
-    - check-success=test (py311, postgresql-file-upgrade-from-4.4)
+    - check-success=test (py311, postgresql-file-upgrade-from-4.5)
     - check-success=test (py311, mysql-file)
     - check-success=test (py311, mysql-file-sqlalchemy14)
     - check-success=test (py311, mysql-swift)
@@ -40,8 +40,8 @@ pull_request_rules:
     - check-success=doc (docs-gnocchi-web)
     - check-success=check (build)
     - check-success=check (pep8)
-    - check-success=test (py39, mysql-ceph-upgrade-from-4.4)
-    - check-success=test (py39, postgresql-file-upgrade-from-4.4)
+    - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
+    - check-success=test (py39, postgresql-file-upgrade-from-4.5)
     - check-success=test (py39, mysql-file)
     - check-success=test (py39, mysql-file-sqlalchemy14)
     - check-success=test (py39, mysql-swift)
@@ -52,7 +52,7 @@ pull_request_rules:
     - check-success=test (py39, postgresql-swift)
     - check-success=test (py39, postgresql-s3)
     - check-success=test (py39, postgresql-ceph)
-    - check-success=test (py311, postgresql-file-upgrade-from-4.4)
+    - check-success=test (py311, postgresql-file-upgrade-from-4.5)
     - check-success=test (py311, mysql-file)
     - check-success=test (py311, mysql-file-sqlalchemy14)
     - check-success=test (py311, mysql-swift)
@@ -78,14 +78,6 @@ pull_request_rules:
     conditions: []
 
 # Backports to stable branches
-  - actions:
-      backport:
-        branches:
-        - stable/4.4
-    conditions:
-    - label=backport-to-4.4
-    name: backport stable/4.4
-
   - actions:
       backport:
         branches:
