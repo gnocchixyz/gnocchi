@@ -111,8 +111,8 @@ jobs:
           - py39
           - py311
         env:
-          - mysql-ceph-upgrade-from-4.4
-          - postgresql-file-upgrade-from-4.4
+          - mysql-ceph-upgrade-from-4.5
+          - postgresql-file-upgrade-from-4.5
           - mysql-file
           - mysql-file-sqlalchemy14
           - mysql-swift
@@ -124,13 +124,13 @@ jobs:
           - postgresql-s3
           - postgresql-ceph
         exclude:
-          - env: mysql-ceph-upgrade-from-4.4
+          - env: mysql-ceph-upgrade-from-4.5
             python: py39
           - env: mysql-ceph
             python: py39
           - env: postgresql-ceph
             python: py39
-          - env: mysql-ceph-upgrade-from-4.4
+          - env: mysql-ceph-upgrade-from-4.5
             python: py311
           - env: mysql-ceph
             python: py311
