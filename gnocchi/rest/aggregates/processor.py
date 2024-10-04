@@ -158,7 +158,7 @@ def aggregated(refs_and_timeseries, operations, from_timestamp=None,
             return_inverse=True)
 
         # create nd-array (unique series x unique times) and fill
-        filler = (numpy.NaN if fill in [None, 'null', 'dropna']
+        filler = (numpy.nan if fill in [None, 'null', 'dropna']
                   else fill)
         val_grid = numpy.full((len(series[sampling]), len(times)), filler)
         start = 0
