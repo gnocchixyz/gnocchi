@@ -44,8 +44,8 @@ RUN rm -rf /var/lib/apt/lists/*
 # NOTE(tobias.urdin): hack since pyparsing in site-packages collides with our requirements
 RUN rm -rf /usr/lib/python3/dist-packages/pyparsing*
 
-# NOTE(tobias.urdin): hack since jaraco.text in site-packages collides with our requirements
-RUN rm -rf /usr/lib/python3/dist-packages/jaraco/text*
+# NOTE(tobias.urdin): hack since jaraco packages in site-packages collides with our requirements
+RUN rm -rf /usr/lib/python3/dist-packages/jaraco*
 
 # TODO(tobias.urdin): hack remove this when we drop python 3.9
 RUN sed -i '1s/^/from __future__ import annotations\n/' /usr/lib/python3/dist-packages/werkzeug/sansio/utils.py
