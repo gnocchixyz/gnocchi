@@ -26,6 +26,18 @@ queue_rules:
     - check-success=test (py311, postgresql-file-sqlalchemy14)
     - check-success=test (py311, postgresql-swift)
     - check-success=test (py311, postgresql-s3)
+    - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
+    - check-success=test (py312, postgresql-file-upgrade-from-4.5)
+    - check-success=test (py312, mysql-file)
+    - check-success=test (py312, mysql-file-sqlalchemy14)
+    - check-success=test (py312, mysql-swift)
+    - check-success=test (py312, mysql-s3)
+    - check-success=test (py312, mysql-ceph)
+    - check-success=test (py312, postgresql-file)
+    - check-success=test (py312, postgresql-file-sqlalchemy14)
+    - check-success=test (py312, postgresql-swift)
+    - check-success=test (py312, postgresql-s3)
+    - check-success=test (py312, postgresql-ceph)
 
 pull_request_rules:
   - name: automatic merge
@@ -61,6 +73,18 @@ pull_request_rules:
     - check-success=test (py311, postgresql-file-sqlalchemy14)
     - check-success=test (py311, postgresql-swift)
     - check-success=test (py311, postgresql-s3)
+    - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
+    - check-success=test (py312, postgresql-file-upgrade-from-4.5)
+    - check-success=test (py312, mysql-file)
+    - check-success=test (py312, mysql-file-sqlalchemy14)
+    - check-success=test (py312, mysql-swift)
+    - check-success=test (py312, mysql-s3)
+    - check-success=test (py312, mysql-ceph)
+    - check-success=test (py312, postgresql-file)
+    - check-success=test (py312, postgresql-file-sqlalchemy14)
+    - check-success=test (py312, postgresql-swift)
+    - check-success=test (py312, postgresql-s3)
+    - check-success=test (py312, postgresql-ceph)
 
   - name: automatic merge backports from Mergify
     actions:

@@ -110,6 +110,7 @@ jobs:
         python:
           - py39
           - py311
+          - py312
         env:
           - mysql-ceph-upgrade-from-4.5
           - postgresql-file-upgrade-from-4.5
