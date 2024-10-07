@@ -15,7 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import os
-import pkg_resources
 import threading
 import uuid
 
@@ -166,8 +165,8 @@ def load_app(conf, not_implemented_middleware=True):
 
     if cfg_path is None or not os.path.exists(cfg_path):
         LOG.debug("No api-paste configuration file found! Using default.")
-        cfg_path = os.path.abspath(pkg_resources.resource_filename(
-            __name__, "api-paste.ini"))
+        cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                'api-paste.ini')
 
     config = dict(conf=conf,
                   not_implemented_middleware=not_implemented_middleware)
