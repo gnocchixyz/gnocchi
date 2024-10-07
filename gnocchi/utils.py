@@ -15,7 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import datetime
-import distutils.util
 import errno
 import functools
 import itertools
@@ -196,12 +195,6 @@ def ensure_paths(paths):
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-
-
-def strtobool(v):
-    if isinstance(v, bool):
-        return v
-    return bool(distutils.util.strtobool(v))
 
 
 class StopWatch(object):

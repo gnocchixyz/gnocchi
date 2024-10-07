@@ -17,6 +17,7 @@
 import re
 
 from oslo_config import cfg
+from oslo_utils import strutils
 from urllib import parse
 
 try:
@@ -25,8 +26,6 @@ try:
 except ImportError:
     redis = None
     sentinel = None
-
-from gnocchi import utils
 
 
 SEP_S = ':'
@@ -155,7 +154,7 @@ def get_client(conf, scripts=None):
         if a not in options:
             continue
         if a in CLIENT_BOOL_ARGS:
-            v = utils.strtobool(options[a][-1])
+            v = strutils.bool_from_string(options[a][-1])
         elif a in CLIENT_LIST_ARGS:
             v = options[a]
         elif a in CLIENT_INT_ARGS:

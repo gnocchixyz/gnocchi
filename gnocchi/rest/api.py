@@ -22,6 +22,7 @@ import operator
 import uuid
 
 import jsonpatch
+from oslo_utils import strutils
 import pecan
 from pecan import rest
 import pyparsing
@@ -189,7 +190,7 @@ def get_bool_param(name, params, default='false'):
 def strtobool(varname, v):
     """Convert a string to a boolean."""
     try:
-        return utils.strtobool(v)
+        return strutils.bool_from_string(v, strict=True)
     except ValueError as e:
         abort(400, "Unable to parse `%s': %s" % (varname, str(e)))
 
