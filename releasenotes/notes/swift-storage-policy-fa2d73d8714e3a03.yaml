@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The Swift storage driver can now be configured to create containers
+    with a custom storage policy using the ``swift_storage_policy``
+    option. This allows for overriding the storage policy when using
+    the default policy is not desirable, e.g. to limit object replication
+    to a single region when multi-region replication is the default.

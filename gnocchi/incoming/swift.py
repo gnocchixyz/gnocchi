@@ -36,6 +36,11 @@ class SwiftStorage(incoming.IncomingDriver):
     def __init__(self, conf, greedy=True):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
+        self._put_container_headers = {}
+        if conf.swift_storage_policy:
+            self._put_container_headers["X-Storage-Policy"] = (
+                conf.swift_storage_policy
+            )
 
     def __str__(self):
         return self.__class__.__name__
@@ -45,11 +50,13 @@ class SwiftStorage(incoming.IncomingDriver):
         return json.loads(data)[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
-        self.swift.put_container(self.CFG_PREFIX)
+        self.swift.put_container(self.CFG_PREFIX,
+                                 headers=self._put_container_headers)
         self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
         for sack in self.iter_sacks():
-            self.swift.put_container(str(sack))
+            self.swift.put_container(str(sack),
+                                     headers=self._put_container_headers)
 
     def remove_sacks(self):
         for sack in self.iter_sacks():

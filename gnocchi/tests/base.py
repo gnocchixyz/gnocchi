@@ -65,26 +65,32 @@ def _skip_decorator(func):
 class FakeSwiftClient(object):
     def __init__(self, *args, **kwargs):
         self.kvs = {}
+        self.headers = {}
 
-    def put_container(self, container, response_dict=None):
+    def put_container(self, container, headers=None, response_dict=None):
         if response_dict is not None:
             if container in self.kvs:
                 response_dict['status'] = 204
             else:
                 response_dict['status'] = 201
         self.kvs[container] = {}
+        self.headers[container] = (
+            {header.lower(): value for header, value in headers.items()}
+            if headers
+            else {}
+        )
 
     def get_container(self, container, delimiter=None,
                       path=None, full_listing=False, limit=None):
         try:
-            container = self.kvs[container]
+            container_objs = self.kvs[container]
         except KeyError:
             raise swexc.ClientException("No such container",
                                         http_status=404)
 
         files = []
         directories = set()
-        for k, v in container.copy().items():
+        for k, v in container_objs.items():
             if path and not k.startswith(path):
                 continue
 
@@ -109,7 +115,8 @@ class FakeSwiftClient(object):
             # otherwise.
             end = 1
 
-        return ({'x-container-object-count': len(container.keys())},
+        return ({**self.headers[container],
+                 'x-container-object-count': len(container_objs.keys())},
                 (files + list(directories))[:end])
 
     def put_object(self, container, key, obj):
