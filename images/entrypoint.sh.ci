@@ -1,7 +1,3 @@
 #!/bin/sh
 
-python3 -m virtualenv /tmp/gnocchi-tox-env
-. /tmp/gnocchi-tox-env/bin/activate
-pip install tox
-
 $@
