@@ -167,12 +167,18 @@ jobs:
           push: false
           tags: ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'true'
+      # NOTE(callumdickinson): SETUPTOOLS_USE_DISTUTILS needs to be set to 'stdlib'
+      # for Debian-packaged setuptools to work correctly on Python 3.9 and 3.11.
+      # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1003252
       - name: Set env vars
         run: |
+          export DOCKER_ENV_OPTS=
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
-            echo "DOCKER_ENV_OPTS=-e GNOCCHI_TEST_DEBUG=1" >> $GITHUB_ENV
-          else
-            echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
+            export DOCKER_ENV_OPTS="$DOCKER_ENV_OPTS -e GNOCCHI_TEST_DEBUG=1"
           fi
+          if [ "${{ matrix.python }}" = "py39" -o "${{ matrix.python }}" = "py311" ]; then
+            export DOCKER_ENV_OPTS="$DOCKER_ENV_OPTS -e SETUPTOOLS_USE_DISTUTILS=stdlib"
+          fi
+          echo "DOCKER_ENV_OPTS=$DOCKER_ENV_OPTS" >> $GITHUB_ENV
       - name: Run tests with tox in container
         run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.python }}-${{ matrix.env }}"
