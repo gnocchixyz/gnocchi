@@ -21,7 +21,6 @@ import sys
 
 import daiquiri
 from oslo_config import cfg
-from oslo_policy import opts as policy_opts
 
 from gnocchi import opts
 from gnocchi.rest import app
@@ -37,7 +36,6 @@ def prepare_service(conf=None):
         conf = cfg.ConfigOpts()
 
     opts.set_defaults()
-    policy_opts.set_defaults(conf, 'policy.yaml')
 
     conf = service.prepare_service(conf=conf)
     return conf
