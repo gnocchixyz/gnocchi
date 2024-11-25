@@ -1,119 +1,152 @@
 queue_rules:
+  - name: duplicated default from automatic merge backports from Mergify
+    queue_conditions:
+      - label!=work-in-progress
+      - '#approved-reviews-by>=1'
+      - check-success=doc (docs)
+      - check-success=doc (docs-gnocchi-web)
+      - check-success=check (build)
+      - check-success=check (pep8)
+      - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py39, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py39, mysql-file)
+      - check-success=test (py39, mysql-file-sqlalchemy14)
+      - check-success=test (py39, mysql-swift)
+      - check-success=test (py39, mysql-s3)
+      - check-success=test (py39, mysql-ceph)
+      - check-success=test (py39, postgresql-file)
+      - check-success=test (py39, postgresql-file-sqlalchemy14)
+      - check-success=test (py39, postgresql-swift)
+      - check-success=test (py39, postgresql-s3)
+      - check-success=test (py39, postgresql-ceph)
+      - check-success=test (py311, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py311, mysql-file)
+      - check-success=test (py311, mysql-file-sqlalchemy14)
+      - check-success=test (py311, mysql-swift)
+      - check-success=test (py311, mysql-s3)
+      - check-success=test (py311, postgresql-file)
+      - check-success=test (py311, postgresql-file-sqlalchemy14)
+      - check-success=test (py311, postgresql-swift)
+      - check-success=test (py311, postgresql-s3)
+      - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py312, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py312, mysql-file)
+      - check-success=test (py312, mysql-file-sqlalchemy14)
+      - check-success=test (py312, mysql-swift)
+      - check-success=test (py312, mysql-s3)
+      - check-success=test (py312, mysql-ceph)
+      - check-success=test (py312, postgresql-file)
+      - check-success=test (py312, postgresql-file-sqlalchemy14)
+      - check-success=test (py312, postgresql-swift)
+      - check-success=test (py312, postgresql-s3)
+      - check-success=test (py312, postgresql-ceph)
+      - base~=^stable/.*
+      - label!=work-in-progress
+      - author=mergify[bot]
+    merge_conditions: []
+    merge_method: merge
   - name: default
-    conditions:
-    - check-success=doc (docs)
-    - check-success=doc (docs-gnocchi-web)
-    - check-success=check (build)
-    - check-success=check (pep8)
-    - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
-    - check-success=test (py39, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py39, mysql-file)
-    - check-success=test (py39, mysql-file-sqlalchemy14)
-    - check-success=test (py39, mysql-swift)
-    - check-success=test (py39, mysql-s3)
-    - check-success=test (py39, mysql-ceph)
-    - check-success=test (py39, postgresql-file)
-    - check-success=test (py39, postgresql-file-sqlalchemy14)
-    - check-success=test (py39, postgresql-swift)
-    - check-success=test (py39, postgresql-s3)
-    - check-success=test (py39, postgresql-ceph)
-    - check-success=test (py311, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py311, mysql-file)
-    - check-success=test (py311, mysql-file-sqlalchemy14)
-    - check-success=test (py311, mysql-swift)
-    - check-success=test (py311, mysql-s3)
-    - check-success=test (py311, postgresql-file)
-    - check-success=test (py311, postgresql-file-sqlalchemy14)
-    - check-success=test (py311, postgresql-swift)
-    - check-success=test (py311, postgresql-s3)
-    - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
-    - check-success=test (py312, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py312, mysql-file)
-    - check-success=test (py312, mysql-file-sqlalchemy14)
-    - check-success=test (py312, mysql-swift)
-    - check-success=test (py312, mysql-s3)
-    - check-success=test (py312, mysql-ceph)
-    - check-success=test (py312, postgresql-file)
-    - check-success=test (py312, postgresql-file-sqlalchemy14)
-    - check-success=test (py312, postgresql-swift)
-    - check-success=test (py312, postgresql-s3)
-    - check-success=test (py312, postgresql-ceph)
+    queue_conditions:
+      - label!=work-in-progress
+      - '#approved-reviews-by>=1'
+      - check-success=doc (docs)
+      - check-success=doc (docs-gnocchi-web)
+      - check-success=check (build)
+      - check-success=check (pep8)
+      - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py39, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py39, mysql-file)
+      - check-success=test (py39, mysql-file-sqlalchemy14)
+      - check-success=test (py39, mysql-swift)
+      - check-success=test (py39, mysql-s3)
+      - check-success=test (py39, mysql-ceph)
+      - check-success=test (py39, postgresql-file)
+      - check-success=test (py39, postgresql-file-sqlalchemy14)
+      - check-success=test (py39, postgresql-swift)
+      - check-success=test (py39, postgresql-s3)
+      - check-success=test (py39, postgresql-ceph)
+      - check-success=test (py311, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py311, mysql-file)
+      - check-success=test (py311, mysql-file-sqlalchemy14)
+      - check-success=test (py311, mysql-swift)
+      - check-success=test (py311, mysql-s3)
+      - check-success=test (py311, postgresql-file)
+      - check-success=test (py311, postgresql-file-sqlalchemy14)
+      - check-success=test (py311, postgresql-swift)
+      - check-success=test (py311, postgresql-s3)
+      - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py312, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py312, mysql-file)
+      - check-success=test (py312, mysql-file-sqlalchemy14)
+      - check-success=test (py312, mysql-swift)
+      - check-success=test (py312, mysql-s3)
+      - check-success=test (py312, mysql-ceph)
+      - check-success=test (py312, postgresql-file)
+      - check-success=test (py312, postgresql-file-sqlalchemy14)
+      - check-success=test (py312, postgresql-swift)
+      - check-success=test (py312, postgresql-s3)
+      - check-success=test (py312, postgresql-ceph)
+    merge_conditions:
+      - check-success=doc (docs)
+      - check-success=doc (docs-gnocchi-web)
+      - check-success=check (build)
+      - check-success=check (pep8)
+      - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py39, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py39, mysql-file)
+      - check-success=test (py39, mysql-file-sqlalchemy14)
+      - check-success=test (py39, mysql-swift)
+      - check-success=test (py39, mysql-s3)
+      - check-success=test (py39, mysql-ceph)
+      - check-success=test (py39, postgresql-file)
+      - check-success=test (py39, postgresql-file-sqlalchemy14)
+      - check-success=test (py39, postgresql-swift)
+      - check-success=test (py39, postgresql-s3)
+      - check-success=test (py39, postgresql-ceph)
+      - check-success=test (py311, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py311, mysql-file)
+      - check-success=test (py311, mysql-file-sqlalchemy14)
+      - check-success=test (py311, mysql-swift)
+      - check-success=test (py311, mysql-s3)
+      - check-success=test (py311, postgresql-file)
+      - check-success=test (py311, postgresql-file-sqlalchemy14)
+      - check-success=test (py311, postgresql-swift)
+      - check-success=test (py311, postgresql-s3)
+      - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
+      - check-success=test (py312, postgresql-file-upgrade-from-4.5)
+      - check-success=test (py312, mysql-file)
+      - check-success=test (py312, mysql-file-sqlalchemy14)
+      - check-success=test (py312, mysql-swift)
+      - check-success=test (py312, mysql-s3)
+      - check-success=test (py312, mysql-ceph)
+      - check-success=test (py312, postgresql-file)
+      - check-success=test (py312, postgresql-file-sqlalchemy14)
+      - check-success=test (py312, postgresql-swift)
+      - check-success=test (py312, postgresql-s3)
+      - check-success=test (py312, postgresql-ceph)
+    merge_method: merge
 
 pull_request_rules:
-  - name: automatic merge
-    actions:
-      queue:
-        method: merge
-        name: default
-    conditions:
-    - label!=work-in-progress
-    - '#approved-reviews-by>=1'
-    - check-success=doc (docs)
-    - check-success=doc (docs-gnocchi-web)
-    - check-success=check (build)
-    - check-success=check (pep8)
-    - check-success=test (py39, mysql-ceph-upgrade-from-4.5)
-    - check-success=test (py39, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py39, mysql-file)
-    - check-success=test (py39, mysql-file-sqlalchemy14)
-    - check-success=test (py39, mysql-swift)
-    - check-success=test (py39, mysql-s3)
-    - check-success=test (py39, mysql-ceph)
-    - check-success=test (py39, postgresql-file)
-    - check-success=test (py39, postgresql-file-sqlalchemy14)
-    - check-success=test (py39, postgresql-swift)
-    - check-success=test (py39, postgresql-s3)
-    - check-success=test (py39, postgresql-ceph)
-    - check-success=test (py311, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py311, mysql-file)
-    - check-success=test (py311, mysql-file-sqlalchemy14)
-    - check-success=test (py311, mysql-swift)
-    - check-success=test (py311, mysql-s3)
-    - check-success=test (py311, postgresql-file)
-    - check-success=test (py311, postgresql-file-sqlalchemy14)
-    - check-success=test (py311, postgresql-swift)
-    - check-success=test (py311, postgresql-s3)
-    - check-success=test (py312, mysql-ceph-upgrade-from-4.5)
-    - check-success=test (py312, postgresql-file-upgrade-from-4.5)
-    - check-success=test (py312, mysql-file)
-    - check-success=test (py312, mysql-file-sqlalchemy14)
-    - check-success=test (py312, mysql-swift)
-    - check-success=test (py312, mysql-s3)
-    - check-success=test (py312, mysql-ceph)
-    - check-success=test (py312, postgresql-file)
-    - check-success=test (py312, postgresql-file-sqlalchemy14)
-    - check-success=test (py312, postgresql-swift)
-    - check-success=test (py312, postgresql-s3)
-    - check-success=test (py312, postgresql-ceph)
-
-  - name: automatic merge backports from Mergify
-    actions:
-      queue:
-        method: merge
-        name: default
-    conditions:
-    - base~=^stable/.*
-    - label!=work-in-progress
-    - author=mergify[bot]
-
   - name: dismiss reviews on additional commit
     actions:
       dismiss_reviews: {}
     conditions: []
-
-# Backports to stable branches
   - actions:
       backport:
         branches:
-        - stable/4.5
+          - stable/4.5
     conditions:
-    - label=backport-to-4.5
+      - label=backport-to-4.5
     name: backport stable/4.5
 
   - actions:
       backport:
         branches:
-        - stable/4.6
+          - stable/4.6
     conditions:
-    - label=backport-to-4.6
+      - label=backport-to-4.6
     name: backport stable/4.6
+  - name: automatic merge + automatic merge backports from Mergify
+    conditions: []
+    actions:
+      queue:
