@@ -316,7 +316,7 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0)], [3])
         ts = self._resample(ts, numpy.timedelta64(60, 's'), 'std')
-        self.assertEqual(0, len(ts), ts.values)
+        self.assertEqual(0, len(ts), str(ts.values))
 
         ts = carbonara.TimeSerie.from_data(
             [datetime64(2014, 1, 1, 12, 0, 0),
