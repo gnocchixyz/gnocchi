@@ -163,13 +163,13 @@ tests:
                   archive_policy_name: medium
       status: 400
       response_strings:
-        - transformable resource id >255 max allowed characters for dictionary value
+        - transformable resource id >289 max allowed characters for dictionary value
 
     - name: post long non uuid resource id
       POST: $LAST_URL
       data:
-          # 255 char string
-          id: four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue
+          # 289 char string
+          id: four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts four score and seven years ago we the people of the United States of America i have a dream it is the courage to continue that counts our score and seven y
           user_id: 0fbb231484614b1a80131fc22f6afc9c
           project_id: f3d41b770cc14f0bb94a1d5be9c0e3ea
           metrics:

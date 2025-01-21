@@ -49,13 +49,13 @@ def ResourceUUID(value, creator):
     try:
         return uuid.UUID(value)
     except ValueError:
-        if len(value) <= 255:
+        if len(value) <= 289:
             if creator is None:
                 creator = "\x00"
             return uuid.uuid5(RESOURCE_ID_NAMESPACE,
                               value + "\x00" + creator)
         raise ValueError(
-            'transformable resource id >255 max allowed characters')
+            'transformable resource id >289 max allowed characters')
 
 
 def UUID(value):
