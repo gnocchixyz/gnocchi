@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The maximum allowed length for string-type resource attributes has been
+    increased from 255 to 256 characters. This allows creating attributes
+    that accept values up to 256 characters long e.g. Swift container names.

@@ -141,9 +141,9 @@ class StringSchema(CommonAttributeSchema):
 
     meta_schema_ext = {
         voluptuous.Required('min_length', default=0):
-        voluptuous.All(int, voluptuous.Range(min=0, max=255)),
-        voluptuous.Required('max_length', default=255):
-        voluptuous.All(int, voluptuous.Range(min=1, max=255))
+        voluptuous.All(int, voluptuous.Range(min=0, max=256)),
+        voluptuous.Required('max_length', default=256):
+        voluptuous.All(int, voluptuous.Range(min=1, max=256))
     }
 
     @property
