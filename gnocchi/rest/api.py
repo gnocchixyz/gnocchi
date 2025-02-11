@@ -698,7 +698,7 @@ class MetricsController(rest.RestController):
             attr_filters.append({"=": {k: v}})
 
         policy_filter = pecan.request.auth_helper.get_metric_policy_filter(
-            pecan.request, "list metric")
+            pecan.request, "list metric", allow_resource_project_id=True)
         resource_policy_filter = (
             pecan.request.auth_helper.get_resource_policy_filter(
                 pecan.request, "list metric", resource_type=None,
