@@ -1886,6 +1886,58 @@ class GenericResourceTest(RestTest):
         )
 
 
+class AggregatesTest(RestTest):
+    def test_get_metric_aggregates_with_another_user(self):
+        r = self.app.post_json(
+            "/v1/metric",
+            params={"archive_policy_name": "medium"},
+            status=201)
+        metric_id = r.json['id']
+        self.app.post_json(
+            f"/v1/metric/{metric_id}/measures",
+            params=[{"timestamp": "2013-01-01 12:00:01",
+                     "value": 8},
+                    {"timestamp": "2013-01-01 12:00:02",
+                     "value": 16}])
+        with self.app.use_another_user():
+            self.app.post_json(
+                "/v1/aggregates",
+                params={"operations": ["metric", metric_id, "mean"]},
+                status=403)
+
+    def test_get_metric_aggregates_with_another_user_allowed(self):
+        rid = str(uuid.uuid4())
+        r = self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": rid,
+                "project_id": TestingApp.PROJECT_ID_2,
+                "metrics": {
+                    "disk": {"archive_policy_name": "low"},
+                }
+            })
+        metric_id = r.json['metrics']['disk']
+        self.app.post_json(
+            f"/v1/metric/{metric_id}/measures",
+            params=[{"timestamp": "2013-01-01 12:00:01",
+                     "value": 8},
+                    {"timestamp": "2013-01-01 12:00:02",
+                     "value": 16}])
+        with self.app.use_another_user():
+            r = self.app.post_json(
+                "/v1/aggregates",
+                params={"operations": ["metric", metric_id, "mean"]},
+                status=200)
+            aggregates = r.json
+            self.assertIn(metric_id, aggregates["measures"])
+            measures = aggregates["measures"][metric_id]
+            self.assertIn("mean", measures)
+            self.assertEqual([["2013-01-01T00:00:00+00:00", 86400, 12],
+                              ["2013-01-01T12:00:00+00:00", 3600, 12],
+                              ["2013-01-01T12:00:00+00:00", 300, 12]],
+                             measures["mean"])
+
+
 class QueryStringSearchAttrFilterTest(tests_base.TestCase):
     def _do_test(self, expr, expected):
         req = api.QueryStringSearchAttrFilter._parse(expr)

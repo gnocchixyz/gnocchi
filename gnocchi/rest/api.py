@@ -21,6 +21,7 @@ import logging
 import operator
 import uuid
 
+from collections import abc
 import jsonpatch
 from oslo_utils import strutils
 import pecan
@@ -54,9 +55,19 @@ try:
 except ImportError:
     PROMETHEUS_SUPPORTED = False
 
+try:
+    from oslo_db.sqlalchemy import models as sqlalchemy_models
+    SQLALCHEMY_SUPPORTED = True
+except ImportError:
+    SQLALCHEMY_SUPPORTED = False
+
 
 ATTRGETTER_GRANULARITY = operator.attrgetter("granularity")
 LOG = logging.getLogger(__name__)
+
+FLATTEN_DICT_TYPES = ((abc.Mapping, sqlalchemy_models.ModelBase)
+                      if SQLALCHEMY_SUPPORTED
+                      else (abc.Mapping,))
 
 
 def arg_to_list(value):
@@ -91,7 +102,7 @@ def flatten_dict_to_keypairs(d, separator=':'):
     :param separator: symbol between names
     """
     for name, value in sorted(d.items()):
-        if isinstance(value, dict):
+        if isinstance(value, FLATTEN_DICT_TYPES):
             for subname, subvalue in flatten_dict_to_keypairs(value,
                                                               separator):
                 yield ('%s%s%s' % (name, separator, subname), subvalue)
