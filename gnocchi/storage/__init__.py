@@ -700,7 +700,7 @@ class StorageDriver(object):
                 if resource.ended_at is not None:
                     LOG.info("Resource [%s] was marked with a timestamp for the "
                              "'ended_at' field. However, it received a "
-                             "measurement for metric [%s]. Therefore, we undelete "
+                             "measurement for metric [%s]. Therefore, restoring "
                              "it.", resource, metric)
                     indexer_driver.update_resource(
                         "generic", resource_id, ended_at=None)
