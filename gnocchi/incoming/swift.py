@@ -36,6 +36,8 @@ class SwiftStorage(incoming.IncomingDriver):
     def __init__(self, conf, greedy=True):
         super(SwiftStorage, self).__init__(conf)
         self.swift = swift.get_connection(conf)
+        self._container_prefix = conf.swift_container_prefix
+        self._container_prefix_all = conf.swift_container_prefix_all
         self._put_container_headers = {}
         if conf.swift_storage_policy:
             self._put_container_headers["X-Storage-Policy"] = (
@@ -43,29 +45,43 @@ class SwiftStorage(incoming.IncomingDriver):
             )
 
     def __str__(self):
-        return self.__class__.__name__
+        return (
+            f"{self.__class__.__name__}: {self._container_prefix}"
+            if self._container_prefix_all
+            else self.__class__.__name__
+        )
+
+    def _container_name(self, name):
+        return (
+            f"{self._container_prefix}.{name}"
+            if self._container_prefix_all
+            else name
+        )
 
     def _get_storage_sacks(self):
-        __, data = self.swift.get_object(self.CFG_PREFIX, self.CFG_PREFIX)
+        __, data = self.swift.get_object(
+            self._container_name(self.CFG_PREFIX),
+            self.CFG_PREFIX)
         return json.loads(data)[self.CFG_SACKS]
 
     def set_storage_settings(self, num_sacks):
-        self.swift.put_container(self.CFG_PREFIX,
+        self.swift.put_container(self._container_name(self.CFG_PREFIX),
                                  headers=self._put_container_headers)
-        self.swift.put_object(self.CFG_PREFIX, self.CFG_PREFIX,
+        self.swift.put_object(self._container_name(self.CFG_PREFIX),
+                              self.CFG_PREFIX,
                               json.dumps({self.CFG_SACKS: num_sacks}))
         for sack in self.iter_sacks():
-            self.swift.put_container(str(sack),
+            self.swift.put_container(self._container_name(str(sack)),
                                      headers=self._put_container_headers)
 
     def remove_sacks(self):
         for sack in self.iter_sacks():
-            self.swift.delete_container(str(sack))
+            self.swift.delete_container(self._container_name(str(sack)))
 
     def _store_new_measures(self, metric_id, data):
         now = datetime.datetime.utcnow().strftime("_%Y%m%d_%H:%M:%S")
         self.swift.put_object(
-            str(self.sack_for_metric(metric_id)),
+            self._container_name(str(self.sack_for_metric(metric_id))),
             str(metric_id) + "/" + str(uuid.uuid4()) + now,
             data)
 
@@ -76,13 +92,15 @@ class SwiftStorage(incoming.IncomingDriver):
         for sack in self.iter_sacks():
             if details:
                 headers, files = self.swift.get_container(
-                    str(sack), full_listing=True)
+                    self._container_name(str(sack)), full_listing=True)
                 for f in files:
                     metric, __ = f['name'].split("/", 1)
                     metric_details[metric] += 1
             else:
                 headers, files = self.swift.get_container(
-                    str(sack), delimiter='/', full_listing=True)
+                    self._container_name(str(sack)),
+                    delimiter='/',
+                    full_listing=True)
                 nb_metrics += len([f for f in files if 'subdir' in f])
             measures += int(headers.get('x-container-object-count'))
         return (nb_metrics or len(metric_details), measures,
@@ -90,14 +108,15 @@ class SwiftStorage(incoming.IncomingDriver):
 
     def _list_measure_files_for_metric(self, sack, metric_id):
         headers, files = self.swift.get_container(
-            str(sack), path=str(metric_id),
+            self._container_name(str(sack)),
+            path=str(metric_id),
             full_listing=True)
         return files
 
     def delete_unprocessed_measures_for_metric(self, metric_id):
         sack = self.sack_for_metric(metric_id)
         files = self._list_measure_files_for_metric(sack, metric_id)
-        swift.bulk_delete(self.swift, str(sack), files)
+        swift.bulk_delete(self.swift, self._container_name(str(sack)), files)
 
     def has_unprocessed(self, metric_id):
         sack = self.sack_for_metric(metric_id)
@@ -109,7 +128,7 @@ class SwiftStorage(incoming.IncomingDriver):
         all_files = defaultdict(list)
         for metric_id in metric_ids:
             sack = self.sack_for_metric(metric_id)
-            sack_name = str(sack)
+            sack_name = self._container_name(str(sack))
             files = self._list_measure_files_for_metric(sack, metric_id)
             all_files[sack_name].extend(files)
             measures[metric_id] = self._array_concatenate([
@@ -129,7 +148,7 @@ class SwiftStorage(incoming.IncomingDriver):
     @contextlib.contextmanager
     def process_measures_for_sack(self, sack):
         measures = defaultdict(self._make_measures_array)
-        sack_name = str(sack)
+        sack_name = self._container_name(str(sack))
         headers, files = self.swift.get_container(sack_name, full_listing=True)
         for f in files:
             try:
