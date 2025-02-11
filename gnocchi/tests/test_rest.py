@@ -29,6 +29,7 @@ from keystonemiddleware import fixture as ksm_fixture
 import testscenarios
 from testtools import testcase
 from unittest import mock
+import webob
 import webtest
 
 import gnocchi
@@ -333,20 +334,75 @@ class MetricTest(RestTest):
             self.assertNotIn(metric_id, [m["id"] for m in metric_list.json])
 
     def test_list_metric_with_another_user_allowed(self):
-        rid = str(uuid.uuid4())
-        r = self.app.post_json("/v1/resource/generic",
-                               params={
-                                   "id": rid,
-                                   "project_id": TestingApp.PROJECT_ID_2,
-                                   "metrics": {
-                                       "disk": {"archive_policy_name": "low"},
-                                   }
-                               })
-        metric_id = r.json['metrics']['disk']
+        r1id = str(uuid.uuid4())
+        r1 = self.app.post_json("/v1/resource/generic",
+                                params={
+                                    "id": r1id,
+                                    "project_id": TestingApp.PROJECT_ID,
+                                    "metrics": {
+                                        "disk": {
+                                            "archive_policy_name": "low"},
+                                    }
+                                })
+        metric_id1 = r1.json['metrics']['disk']
+        r2id = str(uuid.uuid4())
+        r2 = self.app.post_json("/v1/resource/generic",
+                                params={
+                                    "id": r2id,
+                                    "project_id": TestingApp.PROJECT_ID_2,
+                                    "metrics": {
+                                        "disk": {
+                                            "archive_policy_name": "low"},
+                                    }
+                                })
+        metric_id2 = r2.json['metrics']['disk']
 
         with self.app.use_another_user():
-            metric_list = self.app.get("/v1/metric")
-            self.assertIn(metric_id, [m["id"] for m in metric_list.json])
+            metric_list = self.app.get("/v1/metric").json
+            metric_ids = [m["id"] for m in metric_list]
+            self.assertNotIn(metric_id1, metric_ids)
+            self.assertIn(metric_id2, metric_ids)
+
+    def test_list_metric_with_another_user_allowed_no_creator_policy(self):
+        r1id = str(uuid.uuid4())
+        r1 = self.app.post_json("/v1/resource/generic",
+                                params={
+                                    "id": r1id,
+                                    "project_id": TestingApp.PROJECT_ID,
+                                    "metrics": {
+                                        "disk": {
+                                            "archive_policy_name": "low"},
+                                    }
+                                })
+        metric_id1 = r1.json['metrics']['disk']
+        r2id = str(uuid.uuid4())
+        r2 = self.app.post_json("/v1/resource/generic",
+                                params={
+                                    "id": r2id,
+                                    "project_id": TestingApp.PROJECT_ID_2,
+                                    "metrics": {
+                                        "disk": {
+                                            "archive_policy_name": "low"},
+                                    }
+                                })
+        metric_id2 = r2.json['metrics']['disk']
+
+        orig_enforce = api.enforce
+
+        def _enforce(rule, target):
+            if rule == "list metric" and "created_by_project_id" in target:
+                raise webob.exc.HTTPForbidden()
+            return orig_enforce(rule, target)
+
+        with mock.patch.object(api,
+                               'enforce',
+                               side_effect=_enforce) as mock_enforce:
+            with self.app.use_another_user():
+                metric_list = self.app.get("/v1/metric").json
+                metric_ids = [m["id"] for m in metric_list]
+                self.assertNotIn(metric_id1, metric_ids)
+                self.assertIn(metric_id2, metric_ids)
+                mock_enforce.assert_called()
 
     def test_get_metric_with_another_user(self):
         result = self.app.post_json("/v1/metric",

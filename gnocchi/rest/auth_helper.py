@@ -94,7 +94,9 @@ class KeystoneAuthHelper(object):
             return {"or": policy_filter}
 
     @staticmethod
-    def get_metric_policy_filter(request, rule):
+    def get_metric_policy_filter(request,
+                                 rule,
+                                 allow_resource_project_id=False):
         try:
             # Check if the policy allows the user to list any metric
             api.enforce(rule, {})
@@ -108,10 +110,35 @@ class KeystoneAuthHelper(object):
                     "created_by_project_id": project_id,
                 })
             except webob.exc.HTTPForbidden:
-                pass
+                LOG.debug(("Policy rule for [%s] does not allow "
+                           "users to access metrics they created."),
+                          rule)
             else:
                 policy_filter.append(
                     {"like": {"creator": "%:" + project_id}})
+
+            resource_project_id_allowed = False
+            try:
+                # Check if the policy allows the user to list metrics linked
+                # to their project via a resource
+                api.enforce(rule, {"resource": {"project_id": project_id}})
+            except webob.exc.HTTPForbidden:
+                LOG.debug(("Policy rule for [%s] does not allow "
+                           "users to access resource metrics "
+                           "linked to their project."),
+                          rule)
+            else:
+                if allow_resource_project_id:
+                    resource_project_id_allowed = True
+
+            # NOTE(callumdickinson): If allow_resource_project_id is enabled
+            # and the policy filter is empty, allow an empty policy filter
+            # to be returned for this case ONLY.
+            # The caller is expected to use get_resource_policy_filter
+            # to perform filtering by resource to ensure the client
+            # only gets metrics for resources they are allowed to access.
+            if resource_project_id_allowed and not policy_filter:
+                return {}
 
             if not policy_filter:
                 # We need to have at least one policy filter in place
@@ -155,7 +182,9 @@ class BasicAuthHelper(object):
         return None
 
     @staticmethod
-    def get_metric_policy_filter(request, rule):
+    def get_metric_policy_filter(request,
+                                 rule,
+                                 allow_resource_project_id=False):
         return None
 
 
@@ -186,5 +215,7 @@ class RemoteUserAuthHelper(object):
         return None
 
     @staticmethod
-    def get_metric_policy_filter(request, rule):
+    def get_metric_policy_filter(request,
+                                 rule,
+                                 allow_resource_project_id=False):
         return None
