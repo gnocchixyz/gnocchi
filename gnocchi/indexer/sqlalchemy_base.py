@@ -120,7 +120,7 @@ class Metric(Base, GnocchiBase, indexer.Metric):
     # measurements; thus, if all metric for a resource are in this situation,
     # chances are that the resource ceased existing in the backend.
     last_measure_timestamp = sqlalchemy.Column(
-        "last_measure_timestamp", sqlalchemy.DateTime, default=datetime.datetime.now(datetime.UTC), nullable=False,
+        "last_measure_timestamp", sqlalchemy.DateTime, default=datetime.datetime.utcnow(), nullable=False,
         server_default=sqlalchemy.sql.func.current_timestamp())
 
     def jsonify(self):

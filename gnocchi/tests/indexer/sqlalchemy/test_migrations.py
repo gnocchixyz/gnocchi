@@ -92,26 +92,31 @@ class ModelsMigrationsSync(base.TestCase,
         :param meta_def: column default value from model
         :param rendered_meta_def: rendered column default value (from model)
 
+        When the column has server_default=sqlalchemy.sql.func.now(), the diff includes the followings diff
+         [ [ ( 'modify_default',
+               None,
+               'metric',
+               'last_measure_timestamp',
+               { 'existing_comment': None,
+                 'existing_nullable': False,
+                 'existing_type': DATETIME()},
+               DefaultClause(<sqlalchemy.sql.elements.TextClause object at 0x7f0100b24b50>, for_update=False),
+               DefaultClause(<sqlalchemy.sql.functions.now at 0x7f01010b08d0; now>, for_update=False))]]
+
         """
 
-        # When the column has server_default=sqlalchemy.sql.func.now(), the diff includes the followings diff
-        # [ [ ( 'modify_default',
-        #       None,
-        #       'metric',
-        #       'last_measure_timestamp',
-        #       { 'existing_comment': None,
-        #         'existing_nullable': False,
-        #         'existing_type': DATETIME()},
-        #       DefaultClause(<sqlalchemy.sql.elements.TextClause object at 0x7f0100b24b50>, for_update=False),
-        #       DefaultClause(<sqlalchemy.sql.functions.now at 0x7f01010b08d0; now>, for_update=False))]]
         method_return = super(ModelsMigrationsSync, self).compare_server_default(ctxt, ins_col, meta_col, insp_def,
                                                                                  meta_def, rendered_meta_def)
 
-        is_server_default_current_timestamp = isinstance(meta_def.arg, sa.sql.functions.current_timestamp) and\
-                                              isinstance(ins_col.server_default.arg, sa.sql.elements.TextClause)
+        is_meta_column_default_timestamp = meta_def is not None and isinstance(
+            meta_def.arg, sa.sql.functions.current_timestamp)
+        is_reflected_column_default_text_type = ins_col is not None and ins_col.server_default is not None and \
+            isinstance(ins_col.server_default.arg, sa.sql.elements.TextClause)
+
+        is_server_default_current_timestamp = is_meta_column_default_timestamp and is_reflected_column_default_text_type
 
         if not is_server_default_current_timestamp:
             return method_return
 
-        # If it is different from "CURRENT_TIMESTAMP", then we must throw an error.
+        # If it is different from "CURRENT_TIMESTAMP", then we must return True, so the test flow continues.
         return rendered_meta_def != "CURRENT_TIMESTAMP"
