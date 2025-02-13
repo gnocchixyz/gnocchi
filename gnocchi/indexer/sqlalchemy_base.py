@@ -15,11 +15,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import datetime
 from oslo_db.sqlalchemy import models
 import sqlalchemy
 from sqlalchemy.ext import declarative
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.sql import func
 
 import sqlalchemy_utils
 
@@ -120,8 +120,8 @@ class Metric(Base, GnocchiBase, indexer.Metric):
     # measurements; thus, if all metric for a resource are in this situation,
     # chances are that the resource ceased existing in the backend.
     last_measure_timestamp = sqlalchemy.Column(
-        "last_measure_timestamp", sqlalchemy.DateTime,
-        nullable=False, server_default=func.current_timestamp())
+        "last_measure_timestamp", sqlalchemy.DateTime, default=datetime.datetime.now(datetime.UTC), nullable=False,
+        server_default=sqlalchemy.sql.func.current_timestamp())
 
     def jsonify(self):
         d = {

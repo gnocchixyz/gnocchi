@@ -19,11 +19,10 @@ Revises: 18fff4509e3e
 Create Date: 2024-04-24 09:16:00
 """
 
+import datetime
 from alembic import op
 
 import sqlalchemy
-
-from sqlalchemy.sql import func
 
 # revision identifiers, used by Alembic.
 revision = 'f89ed2e3c2ec'
@@ -33,7 +32,9 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        "metric", sqlalchemy.Column(
+    sql_column = sqlalchemy.Column(
             "last_measure_timestamp", sqlalchemy.DateTime,
-            nullable=False, server_default=func.current_timestamp()))
+            nullable=False, default=datetime.datetime.now(datetime.UTC),
+            server_default=sqlalchemy.sql.func.current_timestamp())
+    op.add_column(
+        "metric", sql_column)
