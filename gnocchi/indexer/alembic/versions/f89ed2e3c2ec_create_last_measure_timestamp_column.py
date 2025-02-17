@@ -13,28 +13,28 @@
 #    under the License.
 #
 
-"""Create metric truncation status column
-
-Revision ID: 18fff4509e3e
-Revises: 04eba72e4f90
+"""Create last measure push timestamp column
+Revision ID: f89ed2e3c2ec
+Revises: 94544ca86c7e
 Create Date: 2024-04-24 09:16:00
-
 """
 
+import datetime
 from alembic import op
 
 import sqlalchemy
 
 # revision identifiers, used by Alembic.
-revision = '18fff4509e3e'
-down_revision = '04eba72e4f90'
+revision = 'f89ed2e3c2ec'
+down_revision = '94544ca86c7e'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    sql_column = sqlalchemy.Column(
+            "last_measure_timestamp", sqlalchemy.DateTime,
+            nullable=False, default=datetime.datetime.utcnow(),
+            server_default=sqlalchemy.sql.func.current_timestamp())
     op.add_column(
-        "metric", sqlalchemy.Column(
-            "needs_raw_data_truncation", sqlalchemy.Boolean,
-            nullable=False, default=True,
-            server_default=sqlalchemy.sql.true()))
+        "metric", sql_column)
