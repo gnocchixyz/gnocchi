@@ -6,6 +6,9 @@ defaults:
     # User foobar
     authorization: "basic Zm9vYmFyOg=="
     content-type: application/json
+  poll:
+    count: 3
+    delay: 1
 
 tests:
     - name: create archive policy
