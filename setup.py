@@ -18,13 +18,6 @@ import setuptools
 
 cmdclass = {}
 
-try:
-    from sphinx import setup_command
-    cmdclass['build_sphinx'] = setup_command.BuildDoc
-except ImportError:
-    pass
-
-
 setuptools.setup(
     cmdclass=cmdclass,
     py_modules=[],
