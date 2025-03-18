@@ -138,7 +138,8 @@ class BasicAuthHelper(object):
             roles.append("admin")
         return {
             "user": user,
-            "roles": roles
+            "roles": roles,
+            "system": 'all',
         }
 
     @staticmethod
@@ -165,7 +166,8 @@ class RemoteUserAuthHelper(object):
             roles.append("admin")
         return {
             "user": user,
-            "roles": roles
+            "roles": roles,
+            "system": 'all',
         }
 
     @staticmethod
