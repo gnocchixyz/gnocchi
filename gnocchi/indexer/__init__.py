@@ -446,7 +446,11 @@ class IndexerDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def update_needs_raw_data_truncation(metric_id):
+    def update_needs_raw_data_truncation(metric_id, value):
+        raise exceptions.NotImplementedError
+
+    @staticmethod
+    def update_last_measure_timestamp(metric_id):
         raise exceptions.NotImplementedError
 
     @staticmethod

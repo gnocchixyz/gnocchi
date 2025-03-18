@@ -62,7 +62,6 @@ _INCOMING_OPTS = copy.deepcopy(_STORAGE_OPTS)
 for opt in _INCOMING_OPTS:
     opt.default = '${storage.%s}' % opt.name
 
-
 API_OPTS = (
     cfg.HostAddressOpt('host',
                        default="0.0.0.0",
@@ -177,7 +176,16 @@ def list_opts():
                        default=10000,
                        min=1,
                        help="Number of metrics that should be deleted "
-                       "simultaneously by one janitor.")
+                            "simultaneously by one janitor."),
+            cfg.IntOpt('metric_inactive_after',
+                       default=0,
+                       help="Number of seconds to wait before we consider a "
+                            "metric inactive. An inactive metric is a metric "
+                            "that has not received new measurements for a "
+                            "given period. If all metrics of a resource are "
+                            "inactive, we mark the resource with the "
+                            "'ended_at' timestamp. The default is 0 (zero), "
+                            "which means that we never execute process.")
         )),
         ("api", (
             cfg.StrOpt('paste_config',

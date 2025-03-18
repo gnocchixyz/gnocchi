@@ -107,7 +107,7 @@ export GNOCCHI_USER=$GNOCCHI_USER_ID
 # needs to be released. Otherwise, the logs stop to be writen, and the
 # execution of the code is "frozen", due to the lack of buffer in the
 # process output. To work around that, we can read the buffer, and dump it
-# into a lof file. Then, we can cat the log file content at the end of the
+# into a log file. Then, we can cat the log file content at the end of the
 # process.
 UWSGI_LOG_FILE=/tmp/uwsgi-new-version.log
 METRICD_LOG_FILE=/tmp/gnocchi-metricd-new-version.log
