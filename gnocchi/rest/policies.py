@@ -102,12 +102,8 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource",
-<<<<<<< HEAD
-        check_str=RULE_ADMIN_OR_CREATOR,
-=======
         check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Update a resource.',
         operations=[
             {
@@ -151,12 +147,8 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="search resource",
-<<<<<<< HEAD
-        check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
-=======
         check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_RESOURCE_OWNER,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Search resources.',
         operations=[
             {
@@ -170,12 +162,8 @@ resource_rules = [
 resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="create resource type",
-<<<<<<< HEAD
-        check_str=ADMIN,
-=======
         check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Create a new resource type.',
         operations=[
             {
@@ -197,12 +185,8 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource type",
-<<<<<<< HEAD
-        check_str=ADMIN,
-=======
         check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Update a resource type.',
         operations=[
             {
@@ -238,12 +222,8 @@ resource_type_rules = [
 archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy",
-<<<<<<< HEAD
-        check_str=ADMIN,
-=======
         check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Create a new archive policy',
         operations=[
             {
@@ -370,12 +350,8 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get metric",
-<<<<<<< HEAD
-        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
-=======
         check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_METRIC_OWNER,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Get a metric',
         operations=[
             {
@@ -422,12 +398,8 @@ metric_rules = [
 measure_rules = [
     policy.DocumentedRuleDefault(
         name="post measures",
-<<<<<<< HEAD
-        check_str=RULE_ADMIN_OR_CREATOR,
-=======
         check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Post measures',
         operations=[
             {
@@ -446,12 +418,8 @@ measure_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get measures",
-<<<<<<< HEAD
-        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
-=======
         check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_METRIC_OWNER,
         scope_types=['system', 'domain', 'project'],
->>>>>>> dc96190 (Support service role)
         description='Get measures',
         operations=[
             {
