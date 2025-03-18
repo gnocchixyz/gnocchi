@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added support for the ``service`` role in default policies when using
+    Keystone authentication.

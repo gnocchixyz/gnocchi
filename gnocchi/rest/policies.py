@@ -17,17 +17,24 @@ from oslo_config import cfg
 from oslo_policy import policy
 
 ADMIN = "role:admin"
-ADMIN_OR_CREATOR = \
-    'role:admin or user:%(creator)s or project_id:%(created_by_project_id)s'
+ADMIN_OR_SERVICE = "role:admin or role:service"
+CREATOR = 'user:%(creator)s or project_id:%(created_by_project_id)s'
+ADMIN_OR_CREATOR = 'role:admin or %s' % CREATOR
 RESOURCE_OWNER = "project_id:%(project_id)s"
 METRIC_OWNER = "project_id:%(resource.project_id)s"
 UNPROTECTED = ""
 
+RULE_ADMIN_OR_SERVICE = "rule:admin_or_service"
 RULE_ADMIN_OR_CREATOR = "rule:admin_or_creator"
+RULE_ADMIN_OR_SERVICE_OR_CREATOR = "rule:admin_or_service or rule:creator"
 RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER = \
     "rule:admin_or_creator or rule:resource_owner"
+RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_RESOURCE_OWNER = \
+    "rule:admin_or_service or rule:creator or rule:resource_owner"
 RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER = \
     "rule:admin_or_creator or rule:metric_owner"
+RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_METRIC_OWNER = \
+    "rule:admin_or_service or rule:creator or rule:metric_owner"
 
 rules = [
     policy.RuleDefault(
@@ -36,7 +43,15 @@ rules = [
     ),
     policy.RuleDefault(
         name="admin_or_creator",
-        check_str=ADMIN_OR_CREATOR
+        check_str=ADMIN_OR_CREATOR,
+    ),
+    policy.RuleDefault(
+        name="admin_or_service",
+        check_str=ADMIN_OR_SERVICE,
+    ),
+    policy.RuleDefault(
+        name="creator",
+        check_str=CREATOR,
     ),
     policy.RuleDefault(
         name="resource_owner",
@@ -90,7 +105,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource",
-        check_str=RULE_ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR,
         scope_types=['system', 'domain', 'project'],
         description='Update a resource.',
         operations=[
@@ -138,7 +153,7 @@ resource_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="search resource",
-        check_str=RULE_ADMIN_OR_CREATOR_OR_RESOURCE_OWNER,
+        check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_RESOURCE_OWNER,
         scope_types=['system', 'domain', 'project'],
         description='Search resources.',
         operations=[
@@ -153,7 +168,7 @@ resource_rules = [
 resource_type_rules = [
     policy.DocumentedRuleDefault(
         name="create resource type",
-        check_str=ADMIN,
+        check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
         description='Create a new resource type.',
         operations=[
@@ -177,7 +192,7 @@ resource_type_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="update resource type",
-        check_str=ADMIN,
+        check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
         description='Update a resource type.',
         operations=[
@@ -216,7 +231,7 @@ resource_type_rules = [
 archive_policy_rules = [
     policy.DocumentedRuleDefault(
         name="create archive policy",
-        check_str=ADMIN,
+        check_str=RULE_ADMIN_OR_SERVICE,
         scope_types=['system', 'domain', 'project'],
         description='Create a new archive policy',
         operations=[
@@ -354,7 +369,7 @@ metric_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get metric",
-        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_METRIC_OWNER,
         scope_types=['system', 'domain', 'project'],
         description='Get a metric',
         operations=[
@@ -405,7 +420,7 @@ metric_rules = [
 measure_rules = [
     policy.DocumentedRuleDefault(
         name="post measures",
-        check_str=RULE_ADMIN_OR_CREATOR,
+        check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR,
         scope_types=['system', 'domain', 'project'],
         description='Post measures',
         operations=[
@@ -425,7 +440,7 @@ measure_rules = [
     ),
     policy.DocumentedRuleDefault(
         name="get measures",
-        check_str=RULE_ADMIN_OR_CREATOR_OR_METRIC_OWNER,
+        check_str=RULE_ADMIN_OR_SERVICE_OR_CREATOR_OR_METRIC_OWNER,
         scope_types=['system', 'domain', 'project'],
         description='Get measures',
         operations=[
