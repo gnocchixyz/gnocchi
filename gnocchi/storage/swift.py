@@ -67,6 +67,16 @@ OPTS = [
     cfg.StrOpt('swift_container_prefix',
                default='gnocchi',
                help='Prefix to namespace metric containers.'),
+    cfg.BoolOpt('swift_container_prefix_all',
+                default=False,
+                help='Prefix not just metric containers, but all '
+                     'Swift containers created by Gnocchi for the '
+                     'namespace defined in swift_container_prefix. '
+                     'This allows multiple Gnocchi deployments using '
+                     'the Swift storage driver to share the same project. '
+                     'NOTE: This should be either enabled or disabled ONCE '
+                     'for NEW Gnocchi deployments. This cannot be changed '
+                     'for existing deployments.'),
     cfg.StrOpt('swift_storage_policy',
                default=None,
                help='Storage policy to use when creating containers. '
