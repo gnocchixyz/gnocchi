@@ -185,7 +185,14 @@ def list_opts():
                             "given period. If all metrics of a resource are "
                             "inactive, we mark the resource with the "
                             "'ended_at' timestamp. The default is 0 (zero), "
-                            "which means that we never execute process.")
+                            "which means that we never execute process."),
+            cfg.IntOpt('resource_cleanup_after',
+                       default=0,
+                       help="Number of seconds to wait before removing a resource that has been marked as expired "
+                            "with the 'ended_at' timestamp. When activated, this feature will remove resources that "
+                            "have been expired for the given timespan. Therefore, be aware that the data (aggregated "
+                            "and raw) will be removed completly from the storage backend together with the MySQL "
+                            "metadata. The default is 0 (zero), which means that we never execute the cleanup. ")
         )),
         ("api", (
             cfg.StrOpt('paste_config',
