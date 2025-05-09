@@ -62,8 +62,8 @@ RUN python3.6 -m pip install -U pip tox virtualenv
 
 RUN npm install s3rver@3.7.0 --global
 
-RUN groupadd --gid 1001 tester
-RUN useradd --uid 1001 --gid 1001 --home-dir $GNOCCHI_WORKSPACE --shell /bin/bash tester
+RUN groupadd --gid 1000 tester
+RUN useradd --uid 1000 --gid 1000 --home-dir $GNOCCHI_WORKSPACE --shell /bin/bash tester
 USER tester
 
 COPY entrypoint.sh.ci /entrypoint.sh
