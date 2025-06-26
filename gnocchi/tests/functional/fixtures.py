@@ -53,7 +53,7 @@ LOAD_APP_KWARGS = None
 
 def setup_app():
     global LOAD_APP_KWARGS
-    return app.load_app(**LOAD_APP_KWARGS)
+    return app.load_app(**(LOAD_APP_KWARGS or {}))
 
 
 class AssertNAN(yaml.YAMLObject):
