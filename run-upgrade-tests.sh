@@ -14,7 +14,7 @@ fi
 export GNOCCHI_DATA=$(mktemp -d -t gnocchi.XXXX)
 
 echo "* Installing Gnocchi from ${GNOCCHI_VERSION_FROM}"
-pip install -q --force-reinstall git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}#egg=gnocchi[${GNOCCHI_VARIANT}]
+python -m pip install -q --force-reinstall "gnocchi[${GNOCCHI_VARIANT}] @ git+https://github.com/gnocchixyz/gnocchi.git@${GNOCCHI_VERSION_FROM}"
 
 RESOURCE_IDS=(
     "5a301761-aaaa-46e2-8900-8b4f6fe6675a"
@@ -61,8 +61,22 @@ inject_data() {
         echo -n '}'
     } | gnocchi measures batch-resources-metrics -
 
-    echo "* Waiting for measures computation"
-    while [ $(gnocchi status -f value -c "storage/total number of measures to process") -gt 0 ]; do sleep 1 ; done
+    timeout=300
+    echo "* Waiting for measures computation (for up to ${timeout} seconds)"
+    for i in $(seq 0 "${timeout}"); do
+        if [ "${i}" -ge "${timeout}" ]; then
+            echo "ERROR: Timed out while waiting for measures computation: ${num_measures} not processed" > /dev/stderr
+            exit 1
+        fi
+        num_measures=$(gnocchi status -f value -c "storage/total number of measures to process")
+        if [ "${num_measures}" -eq 0 ]; then
+            break
+        fi
+        if [ "${i}" -gt 0 ] && [ $(( "${i}" % 60 )) -eq 0 ]; then
+            echo "* Still waiting..."
+        fi
+        sleep 1
+    done
 }
 
 pifpaf_stop(){
@@ -79,12 +93,14 @@ trap cleanup EXIT
 
 
 if [ "$STORAGE_DAEMON" == "ceph" ]; then
+    echo "* Creating 'gnocchi' pool"
     ceph -c $STORAGE_CEPH_CONF osd pool create gnocchi 16 16 replicated
     STORAGE_URL=ceph://$STORAGE_CEPH_CONF
 else
     STORAGE_URL=file://$GNOCCHI_DATA
 fi
 
+echo "* Starting Gnocchi ${GNOCCHI_VERSION_FROM}"
 eval $(pifpaf run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 export OS_AUTH_TYPE=gnocchi-basic
 export GNOCCHI_USER=$GNOCCHI_USER_ID
@@ -95,7 +111,7 @@ pifpaf_stop
 
 new_version=$(python setup.py --version)
 echo "* Upgrading Gnocchi from $GNOCCHI_VERSION_FROM to $new_version"
-pip install -v -U .[${GNOCCHI_VARIANT}]
+python -m pip install -v -U .[${GNOCCHI_VARIANT}]
 
 eval $(pifpaf --verbose --debug run gnocchi --indexer-url $INDEXER_URL --storage-url $STORAGE_URL)
 # Gnocchi 3.1 uses basic auth by default
