@@ -24,7 +24,7 @@ class UnAggregableTimeseries(Exception):
 
     def jsonify(self):
         return {
-            "cause": "Metrics can't being aggregated",
+            "cause": "Metrics cannot be aggregated",
             "reason": self.reason,
             "detail": self.references
         }

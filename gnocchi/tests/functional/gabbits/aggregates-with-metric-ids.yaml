@@ -699,7 +699,7 @@ tests:
       status: 400
       response_json_paths:
         $.code: 400
-        $.description.cause: "Metrics can't being aggregated"
+        $.description.cause: "Metrics cannot be aggregated"
         $.description.reason: "No granularity match"
         $.description.detail.`len`: 3
 
@@ -717,7 +717,7 @@ tests:
       status: 400
       response_json_paths:
         $.code: 400
-        $.description.cause: "Metrics can't being aggregated"
+        $.description.cause: "Metrics cannot be aggregated"
         $.description.reason: "Granularities are missing"
         $.description.detail:
         - ["$HISTORY['create metric1'].$RESPONSE['$.id']", mean, 123]
