@@ -35,21 +35,6 @@ else:
     from importlib import metadata as importlib_metadata
 
 
-# NOTE(sileht): The oslo.config interpolation is buggy when the value
-# is None, this replaces it by the expected empty string.
-# Fix will perhaps be fixed by https://review.openstack.org/#/c/417496/
-# But it seems some projects are relaying on the bug...
-class CustomStrSubWrapper(cfg.ConfigOpts.StrSubWrapper):
-    def __getitem__(self, key):
-        value = super(CustomStrSubWrapper, self).__getitem__(key)
-        if value is None:
-            return ''
-        return value
-
-
-cfg.ConfigOpts.StrSubWrapper = CustomStrSubWrapper
-
-
 _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
                                      gnocchi.storage.ceph.OPTS,
                                      gnocchi.storage.file.OPTS,
