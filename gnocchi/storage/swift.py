@@ -34,11 +34,13 @@ OPTS = [
                 default=False,
                 help='If True, swiftclient won\'t check for a valid SSL '
                      'certificate when authenticating.'),
-    cfg.StrOpt('swift_url',
+    cfg.URIOpt('swift_url',
+               schemes=['http', 'https'],
                help='Swift URL. '
                'If unset, it is obtained from the auth service.'),
-    cfg.StrOpt('swift_authurl',
+    cfg.URIOpt('swift_authurl',
                default="http://localhost:8080/auth/v1.0",
+               schemes=['http', 'https'],
                help='Swift auth URL.'),
     cfg.StrOpt('swift_preauthtoken',
                secret=True,
@@ -83,12 +85,13 @@ OPTS = [
                     'When unset, the default Swift storage policy is used.'),
     cfg.StrOpt('swift_endpoint_type',
                default='publicURL',
+               choices=['publicURL', 'internalURL', 'adminURL'],
                help='Endpoint type to connect to Swift',),
     cfg.StrOpt('swift_service_type',
                default='object-store',
                help='A string giving the service type of the swift service '
                     'to use. This setting is only used if '
-                    'swift_auth_version is 2.'),
+                    'swift_auth_version is 2 or 3.'),
     cfg.IntOpt('swift_timeout',
                min=0,
                default=300,
