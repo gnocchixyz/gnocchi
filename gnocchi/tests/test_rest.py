@@ -1692,7 +1692,7 @@ class ResourceTest(RestTest):
             params={"=": {"name": name}},
             status=400,
             headers={"Accept": "application/json"})
-        self.assertEqual("Metrics can't being aggregated",
+        self.assertEqual("Metrics cannot be aggregated",
                          result.json['description']['cause'])
         self.assertEqual("No granularity match",
                          result.json['description']['reason'])

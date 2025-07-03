@@ -474,7 +474,7 @@ tests:
       status: 400
       response_json_paths:
         $.code: 400
-        $.description.cause: "Metrics can't being aggregated"
+        $.description.cause: "Metrics cannot be aggregated"
         $.description.detail.`len`: 4
 
     - name: not matching metrics
