@@ -123,7 +123,7 @@ class Chef(object):
                              "[%s] because all of its metrics are inactive.",
                              resource)
                     self.index.update_resource(
-                        "generic", resource_id, ended_at=moment_now)
+                        resource.type, resource_id, ended_at=moment_now)
 
     def clean_raw_data_inactive_metrics(self):
         """Cleans metrics raw data if they are inactive.
