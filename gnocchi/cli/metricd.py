@@ -289,6 +289,15 @@ class MetricJanitor(MetricProcessBase):
                       "activated. See 'metric_inactive_after' parameter if "
                       "you wish to activate it.")
 
+        if (self.conf.metricd.resource_cleanup_after and
+                self.conf.metricd.resource_cleanup_after > 0):
+            LOG.debug("Starting resource cleanup for resources that have been expired for [%s] seconds.",
+                      self.conf.metricd.resource_cleanup_after)
+            self.chef.auto_clean_expired_resources(self.conf.metricd.resource_cleanup_after)
+        else:
+            LOG.debug("Resource cleanup is not activated. See 'resource_cleanup_after' option to decide if you want "
+                      "to activate it.")
+
 
 class MetricdServiceManager(cotyledon.ServiceManager):
     def __init__(self, conf):
