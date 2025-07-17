@@ -170,6 +170,7 @@ class TestChef(base.TestCase):
                                    side_effect=get_resource_side_effect) as get_resource_mock:
                 with mock.patch.object(self.index, 'update_resource') as update_resource_mock:
                     self.chef.resource_ended_at_normalization(metric_inactive_after=metric_inactive_after_used)
+
                     get_resource_mock.assert_has_calls([mock.call("generic", "resource-1", with_metrics=True),
                                                         mock.call("generic", "resource-2", with_metrics=True)])
 
