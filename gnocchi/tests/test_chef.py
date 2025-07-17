@@ -401,7 +401,9 @@ class TestChef(base.TestCase):
                                return_value=raw_measure_mock) as _get_or_create_unaggregated_timeseries_unbatched_mock:
             with mock.patch.object(self.index, 'update_needs_raw_data_truncation') as update_needs_raw_data_truncation_mock:
                 with mock.patch.object(carbonara.BoundTimeSerie, 'unserialize', return_value=ts_mock) as unserialize_mock:
-                    with mock.patch.object(self.storage, '_store_unaggregated_timeseries_unbatched') as _store_unaggregated_timeseries_unbatched_mock:
+                    with mock.patch.object(
+                            self.storage, '_store_unaggregated_timeseries_unbatched'
+                    ) as _store_unaggregated_timeseries_unbatched_mock:
                         self.chef.execute_raw_data_cleanup(metric_mock)
 
                         self.assertEquals(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
