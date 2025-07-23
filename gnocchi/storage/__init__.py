@@ -694,7 +694,6 @@ class StorageDriver(object):
 
             resource_id = metric.resource_id
             if resource_id:
-                # the timestamps are sorted in ASC fashion.
                 # We can receive multiple measures at the same time to process.
                 oldest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
 
