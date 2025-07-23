@@ -695,7 +695,7 @@ class StorageDriver(object):
             resource_id = metric.resource_id
             if resource_id:
                 # We can receive multiple measures for the same metric in different timestamps to process.
-                oldest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
+                latest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
 
                 resource = indexer_driver.get_resource('generic', resource_id)
                 LOG.debug("Checking if resource [%s] of metric [%s] with "
@@ -703,10 +703,10 @@ class StorageDriver(object):
                           resource, metric.id, resource_id, measures['timestamps'])
 
                 if resource.ended_at is not None:
-                    if resource.ended_at > oldest_timestamp_in_measurements:
+                    if resource.ended_at > latest_timestamp_in_measurements:
                         LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
-                                 "measurement for metric [%s]. However, we do not restore it as the oldest timestamp "
-                                 "of the measurement is [%s].", resource, metric.id, oldest_timestamp_in_measurements)
+                                 "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
+                                 "of the measurement is [%s].", resource, metric.id, latest_timestamp_in_measurements)
                     else:
                         LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
                                  "measurement for metric [%s]. Therefore, restoring it.", resource, metric.id)
