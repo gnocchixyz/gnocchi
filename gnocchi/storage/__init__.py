@@ -694,7 +694,7 @@ class StorageDriver(object):
 
             resource_id = metric.resource_id
             if resource_id:
-                # We can receive multiple measures at the same time to process.
+                # We can receive multiple measures for the same metric in different timestamps to process.
                 oldest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
 
                 resource = indexer_driver.get_resource('generic', resource_id)
