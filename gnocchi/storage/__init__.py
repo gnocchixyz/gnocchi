@@ -19,6 +19,7 @@ import itertools
 import operator
 
 import daiquiri
+import datetime
 import numpy
 from oslo_config import cfg
 
@@ -693,20 +694,27 @@ class StorageDriver(object):
 
             resource_id = metric.resource_id
             if resource_id:
+                # the timestamps are sorted in ACS fashion.
+                # We can receive multiple measures at the same time to process.
+                oldest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
+
                 resource = indexer_driver.get_resource('generic', resource_id)
                 LOG.debug("Checking if resource [%s] of metric [%s] with "
-                          "resource ID [%s] needs to be restored.",
-                          resource, metric.id, resource_id)
+                          "resource ID [%s] needs to be restored. The measurement timestamps are [%s].",
+                          resource, metric.id, resource_id, measures['timestamps'])
+
                 if resource.ended_at is not None:
-                    LOG.info("Resource [%s] was marked with a timestamp for the "
-                             "'ended_at' field. However, it received a "
-                             "measurement for metric [%s]. Therefore, restoring "
-                             "it.", resource, metric)
-                    indexer_driver.update_resource(
-                        resource.type, resource_id, ended_at=None)
+                    if resource.ended_at > oldest_timestamp_in_measurements:
+                        LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                                 "measurement for metric [%s]. However, we do not restore it as the oldest timestamp "
+                                 "of the measurement is [%s].", resource, metric.id, oldest_timestamp_in_measurements)
+                    else:
+                        LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                                 "measurement for metric [%s]. Therefore, restoring it.", resource, metric.id)
+                        indexer_driver.update_resource(
+                            resource.type, resource_id, ended_at=None)
             else:
-                LOG.debug("Metric [%s] does not have a resource "
-                          "assigned to it.", metric)
+                LOG.debug("Metric [%s] does not have a resource assigned to it.", metric)
 
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)
@@ -717,3 +725,9 @@ class StorageDriver(object):
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
+
+    def get_latest_timestmap_of_measures(self, measures):
+        oldest_timestamp_in_measurements = measures['timestamps'][-1]
+        oldest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
+            (oldest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+        return oldest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
