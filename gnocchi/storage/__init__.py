@@ -694,7 +694,7 @@ class StorageDriver(object):
 
             resource_id = metric.resource_id
             if resource_id:
-                # the timestamps are sorted in ACS fashion.
+                # the timestamps are sorted in ASC fashion.
                 # We can receive multiple measures at the same time to process.
                 oldest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
 
@@ -727,7 +727,7 @@ class StorageDriver(object):
         self.statistics["raw measures store"] += len(new_boundts)
 
     def get_latest_timestmap_of_measures(self, measures):
-        oldest_timestamp_in_measurements = measures['timestamps'][-1]
+        oldest_timestamp_in_measurements = max(measures['timestamps'])
         oldest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
             (oldest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
         return oldest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
