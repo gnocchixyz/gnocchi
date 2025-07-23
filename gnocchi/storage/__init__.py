@@ -703,7 +703,7 @@ class StorageDriver(object):
                              "measurement for metric [%s]. Therefore, restoring "
                              "it.", resource, metric)
                     indexer_driver.update_resource(
-                        "generic", resource_id, ended_at=None)
+                        resource.type, resource_id, ended_at=None)
             else:
                 LOG.debug("Metric [%s] does not have a resource "
                           "assigned to it.", metric)
