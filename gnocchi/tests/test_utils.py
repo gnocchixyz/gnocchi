@@ -43,8 +43,30 @@ class TestUtils(tests_base.TestCase):
                                tzinfo=iso8601.iso8601.FixedOffset(5, 0, '+5h'))
         self._do_test_datetime_to_unix_timezone_change(1420106400.0, dt)
 
-    def test_to_timestamp_empty(self):
+    def test_to_timestamps_empty(self):
         self.assertEqual([], utils.to_timestamps([]))
+
+    def test_to_timestamps_string(self):
+        self.assertEqual(
+            utils.to_datetime("2015-03-06T14:34:00"),
+            datetime.datetime(2015, 3, 6, 14, 34,
+                              tzinfo=iso8601.iso8601.UTC))
+        self.assertEqual(
+            utils.to_datetime("2015-03-06T14:34:00Z"),
+            datetime.datetime(2015, 3, 6, 14, 34,
+                              tzinfo=iso8601.iso8601.UTC))
+        self.assertEqual(
+            utils.to_datetime("2015-03-06T14:34:00+00:00"),
+            datetime.datetime(2015, 3, 6, 14, 34,
+                              tzinfo=iso8601.iso8601.UTC))
+        self.assertEqual(
+            utils.to_datetime("2015-03-06T14:34:00+12:00"),
+            datetime.datetime(2015, 3, 6, 2, 34,
+                              tzinfo=iso8601.iso8601.UTC))
+        self.assertEqual(
+            utils.to_datetime("2015-03-06T14:34:00-12:00"),
+            datetime.datetime(2015, 3, 7, 2, 34,
+                              tzinfo=iso8601.iso8601.UTC))
 
     def test_to_timestamps_epoch(self):
         self.assertEqual(
