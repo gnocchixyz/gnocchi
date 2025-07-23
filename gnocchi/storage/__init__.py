@@ -726,7 +726,7 @@ class StorageDriver(object):
         self.statistics["raw measures store"] += len(new_boundts)
 
     def get_latest_timestmap_of_measures(self, measures):
-        oldest_timestamp_in_measurements = max(measures['timestamps'])
-        oldest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
-            (oldest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
-        return oldest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
+        latest_timestamp_in_measurements = max(measures['timestamps'])
+        latest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
+            (latest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+        return latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
