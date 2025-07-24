@@ -313,7 +313,8 @@ class ResourceHistory(ResourceMixin, Base, GnocchiBase):
                                      nullable=False,
                                      default=lambda: utils.utcnow())
     metrics = sqlalchemy.orm.relationship(
-        Metric, primaryjoin="Metric.resource_id == ResourceHistory.id",
+        Metric, overlaps="metrics,resource",
+        primaryjoin="Metric.resource_id == ResourceHistory.id",
         foreign_keys='Metric.resource_id')
 
 
