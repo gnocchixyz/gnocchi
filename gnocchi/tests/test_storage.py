@@ -1243,8 +1243,8 @@ class TestStorageDriver(tests_base.TestCase):
         measures = {"timestamps": [numpy.datetime64('1976-01-01T00:00:00'), numpy.datetime64('1970-02-01T00:00:00'),
                                    numpy.datetime64('1970-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00')]}
 
-        expected_valued =  numpy.datetime64('2030-01-01T00:00:00')
-        expected_valued  = datetime.datetime.utcfromtimestamp(
+        expected_valued = numpy.datetime64('2030-01-01T00:00:00')
+        expected_valued = datetime.datetime.utcfromtimestamp(
             (expected_valued - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
 
         expected_valued = expected_valued.replace(tzinfo=datetime.timezone.utc)
@@ -1282,7 +1282,7 @@ class TestStorageDriver(tests_base.TestCase):
                         self.assertEquals(1, store_unaggregated_timeseries_mock.call_count)
 
     def test_execute_metadata_updates_if_needed_needs_raw_data_truncation(self):
-        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
         indexer_driver_mock = mock.Mock()
@@ -1305,13 +1305,13 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
 
             log_mock.debug.assert_has_calls([
-            mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
+                mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
 
             self.assertEquals(0, log_mock.info.call_count)
             self.assertEquals(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_no_need_for_raw_data_truncation(self):
-        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
         indexer_driver_mock = mock.Mock()
@@ -1332,13 +1332,13 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertEquals(0, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
 
             log_mock.debug.assert_has_calls([
-            mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
+                mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
 
             self.assertEquals(0, log_mock.info.call_count)
             self.assertEquals(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_resource_recover(self):
-        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
         indexer_driver_mock = mock.Mock()
@@ -1367,19 +1367,19 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertEquals(1, indexer_driver_mock.update_resource.call_count)
 
             log_mock.info.assert_has_calls([
-            mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
-                             "measurement for metric [%s]. Therefore, restoring it.", resource_mock, metric_mock.id)])
+                mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                          "measurement for metric [%s]. Therefore, restoring it.", resource_mock, metric_mock.id)])
 
             log_mock.debug.assert_has_calls([
-            mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
-                      "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
-                      measures['timestamps'])])
+                mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
+                          "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
+                          measures['timestamps'])])
 
             self.assertEquals(1, log_mock.info.call_count)
             self.assertEquals(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_resource_no_recover(self):
-        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2022-01-01T00:00:00'),
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2022-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
         indexer_driver_mock = mock.Mock()
@@ -1394,7 +1394,7 @@ class TestStorageDriver(tests_base.TestCase):
 
         indexer_driver_mock.get_resource.return_value = resource_mock
 
-        latest_timestamp_in_measurements =  datetime.datetime.fromisoformat('2022-01-01').replace(
+        latest_timestamp_in_measurements = datetime.datetime.fromisoformat('2022-01-01').replace(
             tzinfo=datetime.timezone.utc)
 
         with mock.patch('gnocchi.storage.LOG') as log_mock:
@@ -1408,15 +1408,15 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertEquals(0, indexer_driver_mock.update_resource.call_count)
 
             log_mock.info.assert_has_calls([
-            mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
-                             "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
-                             "of the measurement is [%s].", resource_mock, metric_mock.id,
-                      latest_timestamp_in_measurements)])
+                mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                          "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
+                          "of the measurement is [%s].", resource_mock, metric_mock.id,
+                          latest_timestamp_in_measurements)])
 
             log_mock.debug.assert_has_calls([
-            mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
-                      "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
-                      measures['timestamps'])])
+                mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
+                          "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
+                          measures['timestamps'])])
 
             self.assertEquals(1, log_mock.info.call_count)
             self.assertEquals(1, log_mock.debug.call_count)
