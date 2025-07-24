@@ -1238,3 +1238,219 @@ class TestStorageDriver(tests_base.TestCase):
                           datetime64(2014, 1, 1),
                           datetime64(2015, 1, 1),
                           resample=numpy.timedelta64(1, 'h'))
+
+    def test_get_latest_timestmap_of_measures(self):
+        measures = {"timestamps": [numpy.datetime64('1976-01-01T00:00:00'), numpy.datetime64('1970-02-01T00:00:00'),
+                                   numpy.datetime64('1970-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00')]}
+
+        expected_valued =  numpy.datetime64('2030-01-01T00:00:00')
+        expected_valued  = datetime.datetime.utcfromtimestamp(
+            (expected_valued - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+
+        expected_valued = expected_valued.replace(tzinfo=datetime.timezone.utc)
+        latest_timestmap_of_measures = self.storage.get_latest_timestmap_of_measures(measures)
+
+        self.assertEqual(expected_valued, latest_timestmap_of_measures)
+
+    def test_store_data_backend(self):
+
+        with mock.patch.object(self.storage.statistics, 'time') as time_mock_method:
+            with mock.patch.object(self.storage, '_delete_metric_splits') as delete_metric_splits_mock:
+                with mock.patch.object(self.storage, '_update_metric_splits') as update_metric_splits_mock:
+                    with mock.patch.object(
+                            self.storage, '_store_unaggregated_timeseries') as store_unaggregated_timeseries_mock:
+
+                        new_boundts_mock = {}
+                        splits_to_delete_mock = {}
+                        splits_to_update = {}
+
+                        self.storage.store_data_backend(new_boundts_mock, splits_to_delete_mock, splits_to_update)
+
+                        # We use any_order=True here to avoid errors with other calls that we can ignore.
+                        time_mock_method.assert_has_calls([
+                            mock.call("splits delete"),
+                            mock.call("splits update"),
+                            mock.call("raw measures store")], any_order=True)
+
+                        delete_metric_splits_mock.assert_has_calls([mock.call(splits_to_delete_mock)])
+                        update_metric_splits_mock.assert_has_calls([mock.call(splits_to_update)])
+                        store_unaggregated_timeseries_mock.assert_has_calls([mock.call(new_boundts_mock)])
+
+                        self.assertEquals(3, time_mock_method.call_count)
+                        self.assertEquals(1, delete_metric_splits_mock.call_count)
+                        self.assertEquals(1, update_metric_splits_mock.call_count)
+                        self.assertEquals(1, store_unaggregated_timeseries_mock.call_count)
+
+    def test_execute_metadata_updates_if_needed_needs_raw_data_truncation(self):
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+                                   numpy.datetime64('1973-01-01T00:00:00')]}
+
+        indexer_driver_mock = mock.Mock()
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = True
+        metric_mock.resource_id = None
+
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime.fromisoformat('2023-11-04').replace(tzinfo=datetime.timezone.utc)
+
+        indexer_driver_mock.get_resource.return_value = resource_mock
+
+        with mock.patch('gnocchi.storage.LOG') as log_mock:
+            self.storage.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
+
+            indexer_driver_mock.update_needs_raw_data_truncation.assert_has_calls([mock.call(metric_mock.id)])
+            indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
+
+            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+
+            log_mock.debug.assert_has_calls([
+            mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
+
+            self.assertEquals(0, log_mock.info.call_count)
+            self.assertEquals(1, log_mock.debug.call_count)
+
+    def test_execute_metadata_updates_if_needed_no_need_for_raw_data_truncation(self):
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+                                   numpy.datetime64('1973-01-01T00:00:00')]}
+
+        indexer_driver_mock = mock.Mock()
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = False
+        metric_mock.resource_id = None
+
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime.fromisoformat('2023-11-04').replace(tzinfo=datetime.timezone.utc)
+
+        indexer_driver_mock.get_resource.return_value = resource_mock
+
+        with mock.patch('gnocchi.storage.LOG') as log_mock:
+            self.storage.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
+            indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
+
+            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEquals(0, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+
+            log_mock.debug.assert_has_calls([
+            mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
+
+            self.assertEquals(0, log_mock.info.call_count)
+            self.assertEquals(1, log_mock.debug.call_count)
+
+    def test_execute_metadata_updates_if_needed_resource_recover(self):
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2030-01-01T00:00:00'),
+                                   numpy.datetime64('1973-01-01T00:00:00')]}
+
+        indexer_driver_mock = mock.Mock()
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = True
+
+        resource_id = 1
+        metric_mock.resource_id = resource_id
+
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime.fromisoformat('2023-11-04').replace(tzinfo=datetime.timezone.utc)
+
+        indexer_driver_mock.get_resource.return_value = resource_mock
+
+        with mock.patch('gnocchi.storage.LOG') as log_mock:
+            self.storage.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
+
+            indexer_driver_mock.update_needs_raw_data_truncation.assert_has_calls([mock.call(metric_mock.id)])
+            indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
+
+            indexer_driver_mock.update_resource.assert_has_calls([
+                mock.call(resource_mock.type, resource_id, ended_at=None)])
+
+            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEquals(1, indexer_driver_mock.update_resource.call_count)
+
+            log_mock.info.assert_has_calls([
+            mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                             "measurement for metric [%s]. Therefore, restoring it.", resource_mock, metric_mock.id)])
+
+            log_mock.debug.assert_has_calls([
+            mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
+                      "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
+                      measures['timestamps'])])
+
+            self.assertEquals(1, log_mock.info.call_count)
+            self.assertEquals(1, log_mock.debug.call_count)
+
+    def test_execute_metadata_updates_if_needed_resource_no_recover(self):
+        measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),  numpy.datetime64('2022-01-01T00:00:00'),
+                                   numpy.datetime64('1973-01-01T00:00:00')]}
+
+        indexer_driver_mock = mock.Mock()
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = True
+
+        resource_id = 1
+        metric_mock.resource_id = resource_id
+
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime.fromisoformat('2023-11-04').replace(tzinfo=datetime.timezone.utc)
+
+        indexer_driver_mock.get_resource.return_value = resource_mock
+
+        latest_timestamp_in_measurements =  datetime.datetime.fromisoformat('2022-01-01').replace(
+            tzinfo=datetime.timezone.utc)
+
+        with mock.patch('gnocchi.storage.LOG') as log_mock:
+            self.storage.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
+
+            indexer_driver_mock.update_needs_raw_data_truncation.assert_has_calls([mock.call(metric_mock.id)])
+            indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
+
+            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEquals(0, indexer_driver_mock.update_resource.call_count)
+
+            log_mock.info.assert_has_calls([
+            mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                             "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
+                             "of the measurement is [%s].", resource_mock, metric_mock.id,
+                      latest_timestamp_in_measurements)])
+
+            log_mock.debug.assert_has_calls([
+            mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
+                      "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
+                      measures['timestamps'])])
+
+            self.assertEquals(1, log_mock.info.call_count)
+            self.assertEquals(1, log_mock.debug.call_count)
+
+    def test_add_measures_to_metrics(self):
+        raw_measures_mock = mock.Mock()
+
+        with mock.patch.object(
+                self.storage, 'get_raw_measures', return_value=raw_measures_mock) as get_raw_measures_mock:
+            with mock.patch.object(self.storage, 'execute_data_processing') as execute_data_processing_mock:
+                with mock.patch.object(self.storage,
+                                       'execute_metadata_updates_if_needed') as execute_metadata_updates_if_needed_mock:
+                    with mock.patch.object(self.storage, 'store_data_backend') as store_data_backend_mock:
+                        measures_to_use = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'),
+                                                          numpy.datetime64('2022-01-01T00:00:00'),
+                                                          numpy.datetime64('1973-01-01T00:00:00')]}
+                        with mock.patch("numpy.sort", return_value=measures_to_use) as numpy_sort_mock:
+                            indexer_driver_mock = mock.Mock()
+                            metrics_and_measures = {"metric1": measures_to_use}
+
+                            self.storage.add_measures_to_metrics(metrics_and_measures, indexer_driver_mock)
+
+                            self.assertEquals(1, numpy_sort_mock.call_count)
+                            self.assertEquals(1, get_raw_measures_mock.call_count)
+                            self.assertEquals(1, execute_data_processing_mock.call_count)
+                            self.assertEquals(1, execute_metadata_updates_if_needed_mock.call_count)
+                            self.assertEquals(1, store_data_backend_mock.call_count)
+
+                            get_raw_measures_mock.assert_has_calls([mock.call(metrics_and_measures)])
+                            store_data_backend_mock.assert_has_calls([mock.call([], {}, {})])
+
+                            for metric, measures in metrics_and_measures.items():
+                                numpy_sort_mock.assert_has_calls([mock.call(measures, order='timestamps')])
+                                execute_data_processing_mock.assert_has_calls(
+                                    [mock.call(measures, metric, [], raw_measures_mock, {}, {})])
+                                execute_metadata_updates_if_needed_mock.assert_has_calls(
+                                    [mock.call(indexer_driver_mock, measures_to_use, metric)])
