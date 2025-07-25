@@ -81,15 +81,17 @@ class Chef(object):
                           moment)
                 return
 
+            all_resource_ids_deleted = []
             for resource in all_resources_found:
                 LOG.info("Deleting resource [%s] as part of the automatic cleanup process because its 'ended_at' "
                          "timestamp is less than [%s].", resource, moment)
                 self.index.delete_resource(resource.id)
-                LOG.debug("Resource [%s] deleted.", resource)
+                LOG.debug("Resource [%s] deleted.", resource.id)
+                all_resource_ids_deleted.append(resource.id)
 
-            if all_resources_found:
+            if all_resource_ids_deleted:
                 LOG.info("Finished deleting resources that have been expired since [%s]. All resources deleted: [%s].",
-                         moment, all_resources_found)
+                         moment, all_resource_ids_deleted)
             else:
                 LOG.debug("No resources found that have been expired since [%s]. Therefore, there is nothing to do at "
                           "this moment.", moment)

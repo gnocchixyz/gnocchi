@@ -191,7 +191,7 @@ def list_opts():
                        help="Number of seconds to wait before removing a resource that has been marked as expired "
                             "with the 'ended_at' timestamp. When activated, this feature will remove resources that "
                             "have been expired for the given timespan. Therefore, be aware that the data (aggregated "
-                            "and raw) will be removed completly from the storage backend together with the MySQL "
+                            "and raw) will be removed completely from the storage backend together with the indexer "
                             "metadata. The default is 0 (zero), which means that we never execute the cleanup. ")
         )),
         ("api", (
