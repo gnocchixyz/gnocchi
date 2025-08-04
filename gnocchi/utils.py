@@ -21,6 +21,7 @@ import itertools
 import multiprocessing
 import os
 import uuid
+import warnings
 
 from concurrent import futures
 import daiquiri
@@ -69,43 +70,56 @@ unix_universal_start64 = numpy.datetime64("1970")
 
 
 def to_timestamps(values):
-    try:
-        if len(values) == 0:
-            return []
-        if isinstance(values[0], (numpy.datetime64, datetime.datetime)):
-            times = numpy.array(values)
-        else:
-            try:
-                # Try to convert to float. If it works, then we consider
-                # timestamps to be number of seconds since Epoch
-                # e.g. 123456 or 129491.1293
-                float(values[0])
-            except ValueError:
-                try:
-                    # Try to parse the value as a string of ISO timestamp
-                    # e.g. 2017-10-09T23:23:12.123
-                    numpy.datetime64(values[0])
-                except ValueError:
-                    # Last chance: it can be relative timestamp, so convert
-                    # to timedelta relative to now()
-                    # e.g. "-10 seconds" or "5 minutes"
-                    times = numpy.fromiter(
-                        numpy.add(numpy.datetime64(utcnow()),
-                                  [to_timespan(v, True) for v in values]),
-                        dtype='datetime64[ns]', count=len(values))
-                else:
-                    times = numpy.array(values, dtype='datetime64[ns]')
+    with warnings.catch_warnings():
+        # The timestamp values can have a timezone set on them,
+        # but np.datetime64 objects do not store the timezone.
+        # numpy converts timezone-aware timestamps to UTC, and
+        # we handle timestamps as UTC internally even if the
+        # information is not available, so silence any warnings
+        # due to timezones being discarded at conversion time.
+        warnings.filterwarnings(
+            "ignore",
+            category=UserWarning,
+            message=("no explicit representation of timezones "
+                     "available for np\\.datetime64"))
+
+        try:
+            if len(values) == 0:
+                return []
+            if isinstance(values[0], (numpy.datetime64, datetime.datetime)):
+                times = numpy.array(values)
             else:
-                times = numpy.array(values, dtype='float') * 10e8
-    except ValueError:
-        raise ValueError("Unable to convert timestamps")
+                try:
+                    # Try to convert to float. If it works, then we consider
+                    # timestamps to be number of seconds since Epoch
+                    # e.g. 123456 or 129491.1293
+                    float(values[0])
+                except ValueError:
+                    try:
+                        # Try to parse the value as a string of ISO timestamp
+                        # e.g. 2017-10-09T23:23:12.123
+                        numpy.datetime64(values[0])
+                    except ValueError:
+                        # Last chance: it can be relative timestamp,
+                        # so convert to timedelta relative to now()
+                        # e.g. "-10 seconds" or "5 minutes"
+                        times = numpy.fromiter(
+                            numpy.add(numpy.datetime64(utcnow()),
+                                      [to_timespan(v, True) for v in values]),
+                            dtype='datetime64[ns]', count=len(values))
+                    else:
+                        times = numpy.array(values, dtype='datetime64[ns]')
+                else:
+                    times = numpy.array(values, dtype='float') * 10e8
+        except ValueError:
+            raise ValueError("Unable to convert timestamps")
 
-    times = times.astype('datetime64[ns]')
+        times = times.astype('datetime64[ns]')
 
-    if (times < unix_universal_start64).any():
-        raise ValueError('Timestamp must be after Epoch')
+        if (times < unix_universal_start64).any():
+            raise ValueError('Timestamp must be after Epoch')
 
-    return times
+        return times
 
 
 def to_timestamp(value):
