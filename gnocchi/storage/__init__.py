@@ -19,6 +19,7 @@ import itertools
 import operator
 
 import daiquiri
+import datetime
 import numpy
 from oslo_config import cfg
 
@@ -586,12 +587,7 @@ class StorageDriver(object):
                                      objects and values are timeseries array of
                                      the new measures.
         """
-        with self.statistics.time("raw measures fetch"):
-            raw_measures = self._get_or_create_unaggregated_timeseries(
-                metrics_and_measures.keys())
-        self.statistics["raw measures fetch"] += len(metrics_and_measures)
-        self.statistics["processed measures"] += sum(
-            map(len, metrics_and_measures.values()))
+        raw_measures = self.get_raw_measures(metrics_and_measures)
 
         new_boundts = []
         splits_to_delete = {}
@@ -600,114 +596,134 @@ class StorageDriver(object):
         for metric, measures in metrics_and_measures.items():
             measures = numpy.sort(measures, order='timestamps')
 
-            agg_methods = list(metric.archive_policy.aggregation_methods)
-            block_size = metric.archive_policy.max_block_size
-            back_window = metric.archive_policy.back_window
-            # NOTE(sileht): We keep one more blocks to calculate rate of change
-            # correctly
-            if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
-                back_window += 1
+            self.execute_data_processing(
+                measures, metric, new_boundts, raw_measures, splits_to_delete, splits_to_update)
 
-            if raw_measures[metric] is None:
+            self.execute_metadata_updates_if_needed(indexer_driver, measures, metric)
+
+        self.store_data_backend(new_boundts, splits_to_delete, splits_to_update)
+
+    def get_raw_measures(self, metrics_and_measures):
+        with self.statistics.time("raw measures fetch"):
+            raw_measures = self._get_or_create_unaggregated_timeseries(
+                metrics_and_measures.keys())
+        self.statistics["raw measures fetch"] += len(metrics_and_measures)
+        self.statistics["processed measures"] += sum(
+            map(len, metrics_and_measures.values()))
+        return raw_measures
+
+    def execute_data_processing(self, measures, metric, new_boundts, raw_measures, splits_to_delete, splits_to_update):
+        agg_methods = list(metric.archive_policy.aggregation_methods)
+        block_size = metric.archive_policy.max_block_size
+        back_window = metric.archive_policy.back_window
+        # NOTE(sileht): We keep one more blocks to calculate rate of change
+        # correctly
+        if any(filter(lambda x: x.startswith("rate:"), agg_methods)):
+            back_window += 1
+        if raw_measures[metric] is None:
+            ts = None
+        else:
+            try:
+                ts = carbonara.BoundTimeSerie.unserialize(
+                    raw_measures[metric], block_size, back_window)
+            except carbonara.InvalidData:
+                LOG.error("Data corruption detected for %s "
+                          "unaggregated timeserie, creating a new one",
+                          metric.id)
                 ts = None
-            else:
-                try:
-                    ts = carbonara.BoundTimeSerie.unserialize(
-                        raw_measures[metric], block_size, back_window)
-                except carbonara.InvalidData:
-                    LOG.error("Data corruption detected for %s "
-                              "unaggregated timeserie, creating a new one",
-                              metric.id)
-                    ts = None
+        if ts is None:
+            # This is the first time we treat measures for this
+            # metric, or data are corrupted, create a new one
+            ts = carbonara.BoundTimeSerie(block_size=block_size,
+                                          back_window=back_window)
+            current_first_block_timestamp = None
+        else:
+            current_first_block_timestamp = ts.first_block_timestamp()
 
-            if ts is None:
-                # This is the first time we treat measures for this
-                # metric, or data are corrupted, create a new one
-                ts = carbonara.BoundTimeSerie(block_size=block_size,
-                                              back_window=back_window)
-                current_first_block_timestamp = None
-            else:
-                current_first_block_timestamp = ts.first_block_timestamp()
+        def _map_compute_splits_operations(bound_timeserie):
+            # NOTE (gordc): bound_timeserie is entire set of
+            # unaggregated measures matching largest
+            # granularity. the following takes only the points
+            # affected by new measures for specific granularity
+            tstamp = max(bound_timeserie.first, measures['timestamps'][0])
+            new_first_block_timestamp = (
+                bound_timeserie.first_block_timestamp()
+            )
+            aggregations = metric.archive_policy.aggregations
 
-            def _map_compute_splits_operations(bound_timeserie):
-                # NOTE (gordc): bound_timeserie is entire set of
-                # unaggregated measures matching largest
-                # granularity. the following takes only the points
-                # affected by new measures for specific granularity
-                tstamp = max(bound_timeserie.first, measures['timestamps'][0])
-                new_first_block_timestamp = (
-                    bound_timeserie.first_block_timestamp()
-                )
-                aggregations = metric.archive_policy.aggregations
+            grouped_timeseries = {
+                granularity: bound_timeserie.group_serie(
+                    granularity,
+                    carbonara.round_timestamp(tstamp, granularity))
+                for granularity, aggregations
+                # No need to sort the aggregation, they are already
+                in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
+            }
 
-                grouped_timeseries = {
-                    granularity: bound_timeserie.group_serie(
-                        granularity,
-                        carbonara.round_timestamp(tstamp, granularity))
-                    for granularity, aggregations
-                    # No need to sort the aggregation, they are already
-                    in itertools.groupby(aggregations, ATTRGETTER_GRANULARITY)
-                }
-
-                aggregations_and_timeseries = {
-                    aggregation:
+            aggregations_and_timeseries = {
+                aggregation:
                     carbonara.AggregatedTimeSerie.from_grouped_serie(
                         grouped_timeseries[aggregation.granularity],
                         aggregation)
-                    for aggregation in aggregations
-                }
+                for aggregation in aggregations
+            }
 
-                deleted_keys, keys_and_split_to_store = (
-                    self._compute_split_operations(
-                        metric, aggregations_and_timeseries,
-                        current_first_block_timestamp,
-                        new_first_block_timestamp)
-                )
+            deleted_keys, keys_and_split_to_store = (
+                self._compute_split_operations(
+                    metric, aggregations_and_timeseries,
+                    current_first_block_timestamp,
+                    new_first_block_timestamp)
+            )
 
-                return (new_first_block_timestamp,
-                        deleted_keys,
-                        keys_and_split_to_store)
+            return (new_first_block_timestamp,
+                    deleted_keys,
+                    keys_and_split_to_store)
 
-            with self.statistics.time("aggregated measures compute"):
-                (new_first_block_timestamp,
-                 deleted_keys,
-                 keys_and_splits_to_store) = ts.set_values(
-                     measures,
-                     before_truncate_callback=_map_compute_splits_operations,
-                )
+        with self.statistics.time("aggregated measures compute"):
+            (new_first_block_timestamp,
+             deleted_keys,
+             keys_and_splits_to_store) = ts.set_values(
+                measures,
+                before_truncate_callback=_map_compute_splits_operations,
+            )
+        splits_to_delete[metric] = deleted_keys
+        splits_to_update[metric] = (keys_and_splits_to_store,
+                                    new_first_block_timestamp)
+        new_boundts.append((metric, ts.serialize()))
 
-            splits_to_delete[metric] = deleted_keys
-            splits_to_update[metric] = (keys_and_splits_to_store,
-                                        new_first_block_timestamp)
+    def execute_metadata_updates_if_needed(self, indexer_driver, measures, metric):
+        # If the archive policy backwindow is changed, the data is going to
+        # be truncated in the processing of new datapoints. Therefore, we
+        # can mark the metric as not needing raw data truncation anymore
+        if metric.needs_raw_data_truncation:
+            indexer_driver.update_needs_raw_data_truncation(metric.id)
 
-            new_boundts.append((metric, ts.serialize()))
+        # Mark when the metric receives its latest measures
+        indexer_driver.update_last_measure_timestamp(metric.id)
+        resource_id = metric.resource_id
+        if resource_id:
+            # We can receive multiple measures for the same metric in different timestamps to process.
+            latest_timestamp_in_measurements = self.get_latest_timestmap_of_measures(measures)
 
-            # If the archive policy backwindow is changed, the data is going to
-            # be truncated in the processing of new datapoints. Therefore, we
-            # can mark the metric as not needing raw data truncation anymore
-            if metric.needs_raw_data_truncation:
-                indexer_driver.update_needs_raw_data_truncation(metric.id)
+            resource = indexer_driver.get_resource('generic', resource_id)
+            LOG.debug("Checking if resource [%s] of metric [%s] with "
+                      "resource ID [%s] needs to be restored. The measurement timestamps are [%s].",
+                      resource, metric.id, resource_id, measures['timestamps'])
 
-            # Mark when the metric receives its latest measures
-            indexer_driver.update_last_measure_timestamp(metric.id)
-
-            resource_id = metric.resource_id
-            if resource_id:
-                resource = indexer_driver.get_resource('generic', resource_id)
-                LOG.debug("Checking if resource [%s] of metric [%s] with "
-                          "resource ID [%s] needs to be restored.",
-                          resource, metric.id, resource_id)
-                if resource.ended_at is not None:
-                    LOG.info("Resource [%s] was marked with a timestamp for the "
-                             "'ended_at' field. However, it received a "
-                             "measurement for metric [%s]. Therefore, restoring "
-                             "it.", resource, metric)
+            if resource.ended_at is not None:
+                if resource.ended_at > latest_timestamp_in_measurements:
+                    LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                             "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
+                             "of the measurement is [%s].", resource, metric.id, latest_timestamp_in_measurements)
+                else:
+                    LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                             "measurement for metric [%s]. Therefore, restoring it.", resource, metric.id)
                     indexer_driver.update_resource(
-                        "generic", resource_id, ended_at=None)
-            else:
-                LOG.debug("Metric [%s] does not have a resource "
-                          "assigned to it.", metric)
+                        resource.type, resource_id, ended_at=None)
+        else:
+            LOG.debug("Metric [%s] does not have a resource assigned to it.", metric)
 
+    def store_data_backend(self, new_boundts, splits_to_delete, splits_to_update):
         with self.statistics.time("splits delete"):
             self._delete_metric_splits(splits_to_delete)
         self.statistics["splits delete"] += len(splits_to_delete)
@@ -717,3 +733,9 @@ class StorageDriver(object):
         with self.statistics.time("raw measures store"):
             self._store_unaggregated_timeseries(new_boundts)
         self.statistics["raw measures store"] += len(new_boundts)
+
+    def get_latest_timestmap_of_measures(self, measures):
+        latest_timestamp_in_measurements = max(measures['timestamps'])
+        latest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
+            (latest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+        return latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
