@@ -40,7 +40,7 @@ class Chef(object):
 
     Give it a few tools and it'll make you happy!
 
-    The Chef is responsible for executing actions that requires several drivers
+    The Chef is responsible for executing actions that require several drivers
     at the same time, such as the coordinator, the incoming and storage
     drivers, or the indexer.
 
@@ -53,6 +53,52 @@ class Chef(object):
         # which means, database connector.
         self.index = index
         self.storage = storage
+
+    def auto_clean_expired_resources(self, resource_ended_at_normalization):
+        """Cleans expired resources.
+
+        This method will clean resources that have expired according to their 'ended_at' field. The method itself will
+        not execute the cleanup, we will mark the resource as deleted, and leave for the system to execute the actual
+        removal of the data in the next Janitor processing cycle.
+        """
+        moment_now = utils.utcnow()
+        moment = moment_now - datetime.timedelta(seconds=resource_ended_at_normalization)
+        attribute_filter = {"<": {"ended_at": moment}}
+
+        auto_clean_lock = None
+        try:
+            auto_clean_lock = self.get_sack_lock("auto_clean_expired_resources_lock")
+            if not auto_clean_lock.acquire():
+                LOG.debug("Cannot obtain lock for the automatic cleanup process. This means that something else is "
+                          "processing the cleanup.")
+                return
+
+            all_resources_found = self.index.list_resources(attribute_filter=attribute_filter)
+            LOG.debug("Number of resources found for deletion: [%s] that have been expired since [%s].",
+                      len(all_resources_found), moment)
+            if not all_resources_found:
+                LOG.debug("No resources found that have been expired since [%s]. Therefore, there is nothing to do. ",
+                          moment)
+                return
+
+            all_resource_ids_deleted = []
+            for resource in all_resources_found:
+                LOG.info("Deleting resource [%s] as part of the automatic cleanup process because its 'ended_at' "
+                         "timestamp is less than [%s].", resource, moment)
+                self.index.delete_resource(resource.id)
+                LOG.debug("Resource [%s] deleted.", resource.id)
+                all_resource_ids_deleted.append(resource.id)
+
+            if all_resource_ids_deleted:
+                LOG.info("Finished deleting resources that have been expired since [%s]. All resources deleted: [%s].",
+                         moment, all_resource_ids_deleted)
+            else:
+                LOG.debug("No resources found that have been expired since [%s]. Therefore, there is nothing to do at "
+                          "this moment.", moment)
+        finally:
+            if auto_clean_lock:
+                LOG.debug("Releasing lock for the automatic cleanup process.")
+                auto_clean_lock.release()
 
     def resource_ended_at_normalization(self, metric_inactive_after):
         """Marks resources as ended at if needed.
