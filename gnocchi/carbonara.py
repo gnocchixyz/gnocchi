@@ -195,8 +195,8 @@ class GroupedTimeSeries(object):
         ordered = numpy.lexsort((self._ts['values'], self.indexes))
         min_pos = numpy.cumsum(self.counts) - self.counts
         real_pos = min_pos + (self.counts - 1) * (q / 100)
-        floor_pos = numpy.floor(real_pos).astype(numpy.integer, copy=False)
-        ceil_pos = numpy.ceil(real_pos).astype(numpy.integer, copy=False)
+        floor_pos = numpy.floor(real_pos).astype(numpy.int64, copy=False)
+        ceil_pos = numpy.ceil(real_pos).astype(numpy.int64, copy=False)
         values = (
             self._ts['values'][ordered][floor_pos] * (ceil_pos - real_pos) +
             self._ts['values'][ordered][ceil_pos] * (real_pos - floor_pos))
@@ -774,7 +774,7 @@ class AggregatedTimeSerie(TimeSerie):
         first = self.first  # NOTE(jd) needed because faster
         e_offset = int((self.last - first) / offset_div) + 1
 
-        locs = numpy.zeros(self.timestamps.size, dtype=numpy.integer)
+        locs = numpy.zeros(self.timestamps.size, dtype=numpy.int64)
         locs[1:] = numpy.cumsum(numpy.diff(self.timestamps)) / offset_div
 
         # Fill everything with zero and set
