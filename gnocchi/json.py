@@ -29,6 +29,8 @@ def to_primitive(obj):
         return str(obj)
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
+    if isinstance(obj, numpy.bool):
+        return float(obj)
     if isinstance(obj, numpy.datetime64):
         return numpy.datetime_as_string(obj, unit='s') + "+00:00"
     if isinstance(obj, numpy.timedelta64):
