@@ -328,6 +328,33 @@ tests:
           - ['2015-03-06T14:33:57+00:00', 1.0, 43.1]
           - ['2015-03-06T14:34:12+00:00', 1.0, 12.0]
 
+    - name: aggregate metric to boolean value
+      POST: /v1/aggregates?details=true
+      data:
+        resource_type: generic
+        search: "user_id = 'A50F549C-1F1C-4888-A71A-2C5473CCCEC1'"
+        operations: "(> (metric cpu.util mean) 20)"
+      poll:
+        count: 10
+        delay: 1
+      response_json_paths:
+        $.references.`len`: 3
+        $.references[/id].[0]: $HISTORY['list resources'].$RESPONSE['$[0]']
+        $.references[/id].[1]: $HISTORY['list resources'].$RESPONSE['$[1]']
+        $.references[/id].[2]: $HISTORY['list resources'].$RESPONSE['$[2]']
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[0].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 1.0]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 1.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 0.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[1].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 0.0]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 1.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 0.0]
+        $.measures."$HISTORY['list resources'].$RESPONSE['$[2].id']"."cpu.util".mean:
+          - ['2015-03-06T14:30:00+00:00', 300.0, 1.0]
+          - ['2015-03-06T14:33:57+00:00', 1.0, 1.0]
+          - ['2015-03-06T14:34:12+00:00', 1.0, 1.0]
+
     - name: aggregate metric with groupby on project_id and user_id with aggregates API
       POST: /v1/aggregates?groupby=project_id&groupby=user_id&details=true
       data:
