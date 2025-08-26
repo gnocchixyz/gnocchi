@@ -62,6 +62,13 @@ pull_request_rules:
     conditions:
       - label=backport-to-4.6
     name: backport stable/4.6
+  - actions:
+      backport:
+        branches:
+          - stable/4.7
+    conditions:
+      - label=backport-to-4.7
+    name: backport stable/4.7
   - name: automatic merge + automatic merge backports from Mergify
     conditions: []
     actions:
