@@ -5,6 +5,7 @@ Release Notes
    :maxdepth: 2
 
    unreleased
+   4.7
    4.6
    4.5
    4.4
