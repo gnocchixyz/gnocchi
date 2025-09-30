@@ -108,7 +108,7 @@ jobs:
     strategy:
       matrix:
         python:
-          - py39
+          - py310
           - py311
           - py312
         env:
@@ -127,13 +127,13 @@ jobs:
         exclude:
           # FIXME(callumdickinson): Freezes while starting Gnocchi 4.6.
           - env: postgresql-file-upgrade-from-4.6
-            python: py39
+            python: py310
           - env: mysql-ceph-upgrade-from-4.6
-            python: py39
+            python: py310
           - env: mysql-ceph
-            python: py39
+            python: py310
           - env: postgresql-ceph
-            python: py39
+            python: py310
           - env: mysql-ceph-upgrade-from-4.6
             python: py311
           - env: mysql-ceph
@@ -173,7 +173,7 @@ jobs:
           tags: ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'true'
       # NOTE(callumdickinson): SETUPTOOLS_USE_DISTUTILS needs to be set to 'stdlib'
-      # for Debian-packaged setuptools to work correctly on Python 3.9 and 3.11.
+      # for Debian-packaged setuptools to work correctly on Python 3.10 and 3.11.
       # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1003252
       - name: Set env vars
         run: |
@@ -181,7 +181,7 @@ jobs:
           if [ "${{ github.event.inputs.debug }}" == "true" ]; then
             export DOCKER_ENV_OPTS="$DOCKER_ENV_OPTS -e GNOCCHI_TEST_DEBUG=1"
           fi
-          if [ "${{ matrix.python }}" = "py39" -o "${{ matrix.python }}" = "py311" ]; then
+          if [ "${{ matrix.python }}" = "py310" -o "${{ matrix.python }}" = "py311" ]; then
             export DOCKER_ENV_OPTS="$DOCKER_ENV_OPTS -e SETUPTOOLS_USE_DISTUTILS=stdlib"
           fi
           echo "DOCKER_ENV_OPTS=$DOCKER_ENV_OPTS" >> $GITHUB_ENV

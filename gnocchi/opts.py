@@ -12,9 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import copy
+import importlib.metadata
 import itertools
 import operator
-import sys
 import uuid
 
 from oslo_config import cfg
@@ -28,11 +28,6 @@ import gnocchi.storage.ceph
 import gnocchi.storage.file
 import gnocchi.storage.s3
 import gnocchi.storage.swift
-
-if sys.version_info < (3, 10, 0):
-    import importlib_metadata
-else:
-    from importlib import metadata as importlib_metadata
 
 
 _STORAGE_OPTS = list(itertools.chain(gnocchi.storage.OPTS,
@@ -188,7 +183,7 @@ def list_opts():
                 default="basic",
                 choices=list(map(
                     operator.attrgetter("name"),
-                    importlib_metadata.entry_points(
+                    importlib.metadata.entry_points(
                         group='gnocchi.rest.auth_helper'))),
                 help='Authentication mode to use.'),
             cfg.IntOpt('max_limit',

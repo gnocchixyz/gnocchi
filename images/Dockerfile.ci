@@ -18,9 +18,9 @@ RUN apt-get update -y && apt-get install -qy \
         python3-setuptools \
         python3-wheel \
         python3-virtualenv \
-        python3.9 \
-        python3.9-dev \
-        python3.9-distutils \
+        python3.10 \
+        python3.10-dev \
+        python3.10-distutils \
         python3.11 \
         python3.11-dev \
         python3.11-distutils \
