@@ -107,14 +107,14 @@ status code. It is possible to provide any number of |measures|.
 
 .. IMPORTANT::
 
-   Gnocchi does not allow multiple raw values in the same timestamp for a
-   given metric. Also, if the replication happens due to the accumulation
-   of datapoints in the incoming pipeline, Gnocchi will remove the duplicated
-   entries, and it will maintain the entry for the timestamp with the smaller
-   value. This also means that if we have a backwindow configuration that
-   allows pushing data into the past, we are able to replace original raw
-   data, which in turn will enable us to change the aggregated values.
-
+   Gnocchi does not support multiple raw values in the same timestamp for a
+   given metric; thus, only one datapoint is maintained. Also, if the
+   replication happens due to the accumulation of datapoints in the incomming
+   pipeline, Gnocchi will maintain the entry for the timestamp and metric with
+   the smaller value in the set of raw data found in the incomming driver.
+   This also means that if we have a backwindow configuration that
+   allows pushing data into the past, we are able to replace original
+   raw data, which in turn will enable us to change the aggregated values
 
 Batch
 ~~~~~

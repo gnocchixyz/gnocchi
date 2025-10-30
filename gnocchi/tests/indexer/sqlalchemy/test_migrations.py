@@ -48,6 +48,7 @@ class ModelsMigrationsSync(base.TestCase,
             'indexer')
         self.index = indexer.get_driver(self.conf)
         self.index.upgrade(nocreate=True)
+
         self.addCleanup(self._drop_database)
 
         # NOTE(sileht): remove tables dynamically created by other tests
