@@ -67,6 +67,9 @@ class ModelsMigrationsSync(base.TestCase,
 
     def _drop_database(self):
         try:
+            # We need to close any other connection before calling the database drop method.
+            self.index.get_engine().dispose()
+
             sqlalchemy_utils.drop_database(self.conf.indexer.url)
         except oslo_db.exception.DBNonExistentDatabase:
             # NOTE(sileht): oslo db >= 4.15.0 cleanup this for us
