@@ -73,7 +73,7 @@ class TestChef(base.TestCase):
 
                 get_sack_lock_mock.assert_called()
                 auto_clean_lock_mock.acquire.assert_called()
-                self.assertEquals(0, list_resources_mock.call_count)
+                self.assertEqual(0, list_resources_mock.call_count)
                 auto_clean_lock_mock.release.assert_called()
 
     def test_auto_clean_expired_resources_no_resources(self):
@@ -91,7 +91,7 @@ class TestChef(base.TestCase):
 
                 get_sack_lock_mock.assert_called()
                 auto_clean_lock_mock.acquire.assert_called()
-                self.assertEquals(1, list_resources_mock.call_count)
+                self.assertEqual(1, list_resources_mock.call_count)
                 auto_clean_lock_mock.release.assert_called()
 
     @mock.patch.object(utils, 'utcnow')
@@ -121,8 +121,8 @@ class TestChef(base.TestCase):
                     auto_clean_lock_mock.acquire.assert_called()
                     auto_clean_lock_mock.release.assert_called()
 
-                    self.assertEquals(1, list_resources_mock.call_count)
-                    self.assertEquals(2, delete_resource_mock.call_count)
+                    self.assertEqual(1, list_resources_mock.call_count)
+                    self.assertEqual(2, delete_resource_mock.call_count)
 
                     list_resources_mock.assert_has_calls([mock.call(attribute_filter=attribute_filter_expected)])
                     delete_resource_mock.assert_has_calls([mock.call("resource-1"), mock.call("resource-2")])
@@ -177,7 +177,7 @@ class TestChef(base.TestCase):
                     list_metrics_mock.assert_has_calls([mock.call(attribute_filter=attribute_filter_expected,
                                                                   resource_policy_filter={"==": {"ended_at": None}})])
 
-                    self.assertEquals(0, update_resource_mock.call_count)
+                    self.assertEqual(0, update_resource_mock.call_count)
 
     @mock.patch.object(utils, 'utcnow')
     def test_resource_ended_at_normalization_all_metrics_expired(self, utcnow_mock):
@@ -226,7 +226,7 @@ class TestChef(base.TestCase):
                     list_metrics_mock.assert_has_calls([mock.call(attribute_filter=attribute_filter_expected,
                                                                   resource_policy_filter={"==": {"ended_at": None}})])
 
-                    self.assertEquals(2, update_resource_mock.call_count)
+                    self.assertEqual(2, update_resource_mock.call_count)
 
     @mock.patch.object(utils, 'utcnow')
     def test_resource_ended_at_normalization_all_metrics_expired_one_resource_finished(self, utcnow_mock):
@@ -276,7 +276,7 @@ class TestChef(base.TestCase):
                     list_metrics_mock.assert_has_calls([mock.call(attribute_filter=attribute_filter_expected,
                                                                   resource_policy_filter={"==": {"ended_at": None}})])
 
-                    self.assertEquals(1, update_resource_mock.call_count)
+                    self.assertEqual(1, update_resource_mock.call_count)
 
     @mock.patch.object(utils, 'utcnow')
     def test_resource_ended_at_normalization_only_one_resource_expired(self, utcnow_mock):
@@ -326,7 +326,7 @@ class TestChef(base.TestCase):
                     list_metrics_mock.assert_has_calls([mock.call(attribute_filter=attribute_filter_expected,
                                                                   resource_policy_filter={"==": {"ended_at": None}})])
 
-                    self.assertEquals(1, update_resource_mock.call_count)
+                    self.assertEqual(1, update_resource_mock.call_count)
 
     def test_clean_raw_data_inactive_metrics(self):
         metric_mock_1_resource_1 = mock.Mock()
@@ -347,9 +347,9 @@ class TestChef(base.TestCase):
 
                     list_metrics_mock.assert_has_calls([mock.call(attribute_filter={"==": {
                         "needs_raw_data_truncation": True}})])
-                    self.assertEquals(3, execute_raw_data_cleanup_mock.call_count)
-                    self.assertEquals(3, get_sack_lock_mock.call_count)
-                    self.assertEquals(3, sack_mock.release.call_count)
+                    self.assertEqual(3, execute_raw_data_cleanup_mock.call_count)
+                    self.assertEqual(3, get_sack_lock_mock.call_count)
+                    self.assertEqual(3, sack_mock.release.call_count)
 
     def test_clean_raw_data_inactive_metrics_no_metrics_to_clean(self):
         with mock.patch.object(self.index, 'list_metrics',
@@ -359,7 +359,7 @@ class TestChef(base.TestCase):
 
                 list_metrics_mock.assert_has_calls([mock.call(attribute_filter={"==": {
                     "needs_raw_data_truncation": True}})])
-                self.assertEquals(0, execute_raw_data_cleanup_mock.call_count)
+                self.assertEqual(0, execute_raw_data_cleanup_mock.call_count)
 
     def test_execute_raw_data_cleanup(self):
         metric_mock = mock.Mock()
@@ -378,11 +378,11 @@ class TestChef(base.TestCase):
                     with mock.patch.object(self.storage, '_store_unaggregated_timeseries_unbatched') as _store_unaggregated_timeseries_unbatched_mock:
                         self.chef.execute_raw_data_cleanup(metric_mock)
 
-                        self.assertEquals(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(1, _store_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(1, update_needs_raw_data_truncation_mock.call_count)
-                        self.assertEquals(1, unserialize_mock.call_count)
-                        self.assertEquals(1, ts_mock._truncate.call_count)
+                        self.assertEqual(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(1, _store_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(1, update_needs_raw_data_truncation_mock.call_count)
+                        self.assertEqual(1, unserialize_mock.call_count)
+                        self.assertEqual(1, ts_mock._truncate.call_count)
 
                         unserialize_mock.assert_has_calls([mock.call(raw_measure_mock, 10000, 50000)])
 
@@ -406,11 +406,11 @@ class TestChef(base.TestCase):
                     ) as _store_unaggregated_timeseries_unbatched_mock:
                         self.chef.execute_raw_data_cleanup(metric_mock)
 
-                        self.assertEquals(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(1, _store_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(1, update_needs_raw_data_truncation_mock.call_count)
-                        self.assertEquals(1, unserialize_mock.call_count)
-                        self.assertEquals(1, ts_mock._truncate.call_count)
+                        self.assertEqual(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(1, _store_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(1, update_needs_raw_data_truncation_mock.call_count)
+                        self.assertEqual(1, unserialize_mock.call_count)
+                        self.assertEqual(1, ts_mock._truncate.call_count)
 
                         unserialize_mock.assert_has_calls([mock.call(raw_measure_mock, 10000, 50001)])
 
@@ -430,8 +430,8 @@ class TestChef(base.TestCase):
                     with mock.patch.object(self.storage, '_store_unaggregated_timeseries_unbatched') as _store_unaggregated_timeseries_unbatched_mock:
                         self.chef.execute_raw_data_cleanup(metric_mock)
 
-                        self.assertEquals(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(0, _store_unaggregated_timeseries_unbatched_mock.call_count)
-                        self.assertEquals(1, update_needs_raw_data_truncation_mock.call_count)
-                        self.assertEquals(0, unserialize_mock.call_count)
-                        self.assertEquals(0, ts_mock._truncate.call_count)
+                        self.assertEqual(1, _get_or_create_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(0, _store_unaggregated_timeseries_unbatched_mock.call_count)
+                        self.assertEqual(1, update_needs_raw_data_truncation_mock.call_count)
+                        self.assertEqual(0, unserialize_mock.call_count)
+                        self.assertEqual(0, ts_mock._truncate.call_count)
