@@ -105,6 +105,17 @@ status code. It is possible to provide any number of |measures|.
    need to honor constraints defined by the |archive policy| used by the
    |metric|, such as the maximum |timespan|.
 
+.. IMPORTANT::
+
+   Gnocchi does not support multiple raw values in the same timestamp for a
+   given metric; thus, only one datapoint is maintained by timestamp and
+   metric. If there are multiple datapoints in the incoming pipeline for a
+   given metric in the same timestamp, Gnocchi will only maintain the
+   datapoint with the smaller raw value. Furthermore, if we have a
+   backwindow configuration that allows pushing data into the past, we are
+   able to replace the original raw data with a smaller value, which in turn
+   will enable us to change the aggregated values.
+
 Batch
 ~~~~~
 
