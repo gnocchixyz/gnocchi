@@ -21,14 +21,14 @@ import datetime
 from email import utils as email_utils
 import hashlib
 import json
+import unittest
+from unittest import mock
 import uuid
 
 import fixtures
 import iso8601
 from keystonemiddleware import fixture as ksm_fixture
 import testscenarios
-from testtools import testcase
-from unittest import mock
 import webob
 import webtest
 
@@ -96,7 +96,7 @@ class TestingApp(webtest.TestApp):
     @contextlib.contextmanager
     def use_another_user(self):
         if self.auth_mode != "keystone":
-            raise testcase.TestSkipped("Auth mode is not Keystone")
+            raise unittest.SkipTest("Auth mode is not Keystone")
         old_token = self.token
         self.token = self.VALID_TOKEN_2
         try:
@@ -107,7 +107,7 @@ class TestingApp(webtest.TestApp):
     @contextlib.contextmanager
     def use_invalid_token(self):
         if self.auth_mode != "keystone":
-            raise testcase.TestSkipped("Auth mode is not Keystone")
+            raise unittest.SkipTest("Auth mode is not Keystone")
         old_token = self.token
         self.token = self.INVALID_TOKEN
         try:
