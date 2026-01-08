@@ -1276,10 +1276,10 @@ class TestStorageDriver(tests_base.TestCase):
                         update_metric_splits_mock.assert_has_calls([mock.call(splits_to_update)])
                         store_unaggregated_timeseries_mock.assert_has_calls([mock.call(new_boundts_mock)])
 
-                        self.assertEquals(3, time_mock_method.call_count)
-                        self.assertEquals(1, delete_metric_splits_mock.call_count)
-                        self.assertEquals(1, update_metric_splits_mock.call_count)
-                        self.assertEquals(1, store_unaggregated_timeseries_mock.call_count)
+                        self.assertEqual(3, time_mock_method.call_count)
+                        self.assertEqual(1, delete_metric_splits_mock.call_count)
+                        self.assertEqual(1, update_metric_splits_mock.call_count)
+                        self.assertEqual(1, store_unaggregated_timeseries_mock.call_count)
 
     def test_execute_metadata_updates_if_needed_needs_raw_data_truncation(self):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
@@ -1301,14 +1301,14 @@ class TestStorageDriver(tests_base.TestCase):
             indexer_driver_mock.update_needs_raw_data_truncation.assert_has_calls([mock.call(metric_mock.id)])
             indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
 
-            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
-            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
 
             log_mock.debug.assert_has_calls([
                 mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
 
-            self.assertEquals(0, log_mock.info.call_count)
-            self.assertEquals(1, log_mock.debug.call_count)
+            self.assertEqual(0, log_mock.info.call_count)
+            self.assertEqual(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_no_need_for_raw_data_truncation(self):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
@@ -1328,14 +1328,14 @@ class TestStorageDriver(tests_base.TestCase):
             self.storage.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
             indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
 
-            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
-            self.assertEquals(0, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEqual(0, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
 
             log_mock.debug.assert_has_calls([
                 mock.call("Metric [%s] does not have a resource assigned to it.", metric_mock)])
 
-            self.assertEquals(0, log_mock.info.call_count)
-            self.assertEquals(1, log_mock.debug.call_count)
+            self.assertEqual(0, log_mock.info.call_count)
+            self.assertEqual(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_resource_recover(self):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
@@ -1362,9 +1362,9 @@ class TestStorageDriver(tests_base.TestCase):
             indexer_driver_mock.update_resource.assert_has_calls([
                 mock.call(resource_mock.type, resource_id, ended_at=None)])
 
-            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
-            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
-            self.assertEquals(1, indexer_driver_mock.update_resource.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_resource.call_count)
 
             log_mock.info.assert_has_calls([
                 mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
@@ -1375,8 +1375,8 @@ class TestStorageDriver(tests_base.TestCase):
                           "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
                           measures['timestamps'])])
 
-            self.assertEquals(1, log_mock.info.call_count)
-            self.assertEquals(1, log_mock.debug.call_count)
+            self.assertEqual(1, log_mock.info.call_count)
+            self.assertEqual(1, log_mock.debug.call_count)
 
     def test_execute_metadata_updates_if_needed_resource_no_recover(self):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2022-01-01T00:00:00'),
@@ -1403,9 +1403,9 @@ class TestStorageDriver(tests_base.TestCase):
             indexer_driver_mock.update_needs_raw_data_truncation.assert_has_calls([mock.call(metric_mock.id)])
             indexer_driver_mock.update_last_measure_timestamp.assert_has_calls([mock.call(metric_mock.id)])
 
-            self.assertEquals(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
-            self.assertEquals(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
-            self.assertEquals(0, indexer_driver_mock.update_resource.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_needs_raw_data_truncation.call_count)
+            self.assertEqual(1, indexer_driver_mock.update_last_measure_timestamp.call_count)
+            self.assertEqual(0, indexer_driver_mock.update_resource.call_count)
 
             log_mock.info.assert_has_calls([
                 mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
@@ -1418,8 +1418,8 @@ class TestStorageDriver(tests_base.TestCase):
                           "measurement timestamps are [%s].", resource_mock, metric_mock.id, resource_id,
                           measures['timestamps'])])
 
-            self.assertEquals(1, log_mock.info.call_count)
-            self.assertEquals(1, log_mock.debug.call_count)
+            self.assertEqual(1, log_mock.info.call_count)
+            self.assertEqual(1, log_mock.debug.call_count)
 
     def test_add_measures_to_metrics(self):
         raw_measures_mock = mock.Mock()
@@ -1439,11 +1439,11 @@ class TestStorageDriver(tests_base.TestCase):
 
                             self.storage.add_measures_to_metrics(metrics_and_measures, indexer_driver_mock)
 
-                            self.assertEquals(1, numpy_sort_mock.call_count)
-                            self.assertEquals(1, get_raw_measures_mock.call_count)
-                            self.assertEquals(1, execute_data_processing_mock.call_count)
-                            self.assertEquals(1, execute_metadata_updates_if_needed_mock.call_count)
-                            self.assertEquals(1, store_data_backend_mock.call_count)
+                            self.assertEqual(1, numpy_sort_mock.call_count)
+                            self.assertEqual(1, get_raw_measures_mock.call_count)
+                            self.assertEqual(1, execute_data_processing_mock.call_count)
+                            self.assertEqual(1, execute_metadata_updates_if_needed_mock.call_count)
+                            self.assertEqual(1, store_data_backend_mock.call_count)
 
                             get_raw_measures_mock.assert_has_calls([mock.call(metrics_and_measures)])
                             store_data_backend_mock.assert_has_calls([mock.call([], {}, {})])
