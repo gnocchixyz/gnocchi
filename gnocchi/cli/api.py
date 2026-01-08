@@ -82,7 +82,7 @@ def api():
     # to use --wsgi-manage-chunked-input
     # https://github.com/unbit/uwsgi/issues/1428
     args = [
-        "--if-not-plugin", "python", "--plugin", "python", "--endif",
+        "--if-not-plugin", "python", "--plugin", "python3", "--endif",
         "--%s" % conf.api.uwsgi_mode, "%s:%d" % (
             conf.host or conf.api.host,
             conf.port or conf.api.port),
@@ -98,8 +98,6 @@ def api():
         "--wsgi", "gnocchi.rest.wsgi",
         "--pyargv", " ".join(sys.argv[1:]),
     ]
-    if sys.version_info.major == 3:
-        args[3] = "python3"
 
     if conf.api.uwsgi_mode == "http":
         args.extend([
