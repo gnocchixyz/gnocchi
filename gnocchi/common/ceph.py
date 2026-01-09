@@ -50,8 +50,8 @@ def create_rados_connection(conf):
                           "omap feature. Install or upgrade "
                           "'python-rados' >= 9.1.0 ")
 
-    LOG.info("Ceph storage backend use '%s' python library",
-             RADOS_MODULE_NAME)
+    LOG.debug("Ceph storage backend use '%s' python library",
+              RADOS_MODULE_NAME)
 
     # NOTE(sileht): librados handles reconnection itself,
     # by default if a call timeout (30sec), it raises
