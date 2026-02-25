@@ -48,6 +48,11 @@ def rated_agg(agg):
 for agg in list(AGG_MAP):
     AGG_MAP["rate:%s" % agg] = rated_agg(agg)
 
+# these operations here are defined in
+# 'gnocchi.carbonara.GroupedTimeSeries' as class methods.
+RESAMPLE_AVAILABLE_AGG_MAP = [k for k in AGG_MAP.keys() if k not in 'var'] + [
+    'last', 'first'] + [str(i) + 'pct' for i in range(99)]
+
 
 # TODO(sileht): expose all operators in capability API
 binary_operators = {

@@ -106,7 +106,7 @@ OperationsSchemaBase = [
     ),
     voluptuous.ExactSequence(
         [u"resample",
-         voluptuous.Any(*list(agg_operations.AGG_MAP.keys())),
+         voluptuous.Any(*list(agg_operations.RESAMPLE_AVAILABLE_AGG_MAP)),
          utils.to_timespan, _OperationsSubNodeSchema]
     ),
     voluptuous.ExactSequence(
