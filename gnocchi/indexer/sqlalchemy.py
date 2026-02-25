@@ -814,7 +814,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 if policy_filter or resource_policy_filter:
                     q = q.filter(sqlalchemy.or_(policy_f, resource_policy_f))
 
-            sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id'])
+            sort_keys, sort_dirs = self._build_sort_keys(sorts, ['id', 'name', 'resource_id'])
 
             if marker:
                 metric_marker = self.list_metrics(
@@ -1234,15 +1234,23 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         union_stmt = sqlalchemy.union(s1, s2)
         stmt = union_stmt.alias("result")
 
+        stmt.info = {'oslodb_unique_keys': [set(['id', 'revision'])]}
+
         class Result(base.ResourceJsonifier, base.GnocchiBase):
             def __iter__(self):
                 return iter((key, getattr(self, key)) for key in stmt.c.keys())
 
+        # We are always registering a new mapper for the same Class.
+        # Therefore, a lot of warnings are generated in SQLalchemy.
+        # To avoid such issues, and also a memory leak, we can clean
+        # the previously registered ones.
+        mapper_reg.dispose()
         mapper_reg.map_imperatively(
             Result, stmt, primary_key=[stmt.c.id, stmt.c.revision],
             properties={
                 'metrics': sqlalchemy.orm.relationship(
                     Metric,
+                    overlaps="metrics,resource",
                     primaryjoin=sqlalchemy.and_(
                         Metric.resource_id == stmt.c.id,
                         Metric.status == 'active'),
