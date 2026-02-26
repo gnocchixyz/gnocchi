@@ -211,7 +211,8 @@ class MeasureGroup(object):
         self.measures.append(measure)
 
     def join_sequential_groups(self, group):
-        group.sort(key=lambda key: key['search_start'])
+        group.sort(key=lambda key: utils.to_timestamp(key['search_start']) if key['search_start'] else None)
+
         new_group = []
         last_it = None
         for it in group:
@@ -360,17 +361,17 @@ class Grouper(object):
             value['search_start'] = self.start
         elif self.start:
             if value['search_start']:
-                search_start = numpy.datetime64(value['search_start'])
-                value['search_start'] = max(search_start, self.start)
+                search_start = utils.to_timestamp(value['search_start'])
+                value['search_start'] = max(search_start, utils.to_timestamp(self.start))
             else:
-                value['search_start'] = self.start
+                value['search_start'] = utils.to_timestamp(self.start)
 
         if self.end:
             if value['search_end']:
-                search_end = numpy.datetime64(value['search_end'])
-                value['search_end'] = min(search_end, self.end)
+                search_end = utils.to_timestamp(value['search_end'])
+                value['search_end'] = min(search_end, utils.to_timestamp(self.end))
             else:
-                value['search_end'] = self.end
+                value['search_end'] = utils.to_timestamp(self.end)
 
         LOG.debug("Timewindow of object [%s] after truncating.", value)
 
