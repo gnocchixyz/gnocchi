@@ -864,6 +864,23 @@ different portions according to their participation in the timeframe being
 consulted. Therefore, if one wants to use the re-aggregation process, he/she
 needs to consider using the `use_history` option as `False`.
 
+Resampling
+~~~~~~~~~~
+
+The Gnocchi aggregates API also supports the operation for resampling aggregated data. For instance, let's say we have a metric `metric_one`, where we push data every 10minutes, and we have an archive policy generating hourly data points with the aggregation methods `max, min, and mean`; then, let's say we want to reaggregate and get the `max` or `min` of each day. One alternative is to get all of the datapoints for the timeinterval, and process the output at the client side to find the `max` and `min` of each day; that might not be efficient and might not scale. The other alternative is to use Gnocchi to resample the already aggregated data, and to generate a new datapoint in runtime. For instance, we could use the following query operation with the aggregates API to get the `max` datapoint for the metric in a given interval at a daily granularity; the value `86400` represents a daily re-aggregation of the data.
+
+
+.. note::
+
+   (resample max 86400 (aggregate max (metric metric_one max)))
+
+The same can be done for `min`, and so on. We can also use other operations such as `sum`, `first`, `last`, and so on. All of the possible operations for the resampling operation are the following:
+
+.. note::
+
+   'mean', 'median', 'std', 'min', 'max', 'sum', 'count', 'last', 'first', '[1-99]pct'
+
+
 List of supported <operations>
 ------------------------------
 
@@ -912,7 +929,7 @@ Resample
    (resample <aggregation method> <granularity> (<operations>))
 
    aggregation method: the aggregation method to use to compute the aggregate between metrics
-                       (mean, median, std, min, max, sum, var, count)
+                       (mean, median, std, min, max, sum, count)
 
    granularity: the granularity (e.g.: 1d, 60s, ...)
 
