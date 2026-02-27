@@ -50,7 +50,7 @@ for agg in list(AGG_MAP):
 
 # these operations here are defined in
 # 'gnocchi.carbonara.GroupedTimeSeries' as class methods.
-RESAMPLE_AVAILABLE_AGG_MAP = [k for k in AGG_MAP.keys() if k not in 'var'] + [
+RESAMPLE_AVAILABLE_AGG_MAP = [k for k in AGG_MAP.keys() if k != 'var'] + [
     'last', 'first'] + [str(i + 1) + 'pct' for i in range(99)]
 
 
