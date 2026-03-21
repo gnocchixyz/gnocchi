@@ -801,7 +801,11 @@ class NamedMetricController(rest.RestController):
             self.resource_type, self.resource_id)
         if not resource:
             abort(404, str(indexer.NoSuchResource(self.resource_id)))
-        enforce("get resource", resource)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request,
+            "get resource",
+            self.resource_id,
+            resource)
         return pecan.request.indexer.list_metrics(
             attribute_filter={"=": {"resource_id": self.resource_id}})
 
@@ -822,7 +826,11 @@ class ResourceHistoryController(rest.RestController):
         if not resource:
             abort(404, str(indexer.NoSuchResource(self.resource_id)))
 
-        enforce("get resource", resource)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request,
+            "get resource",
+            self.resource_id,
+            resource)
 
         try:
             resources = pecan.request.indexer.list_resources(
@@ -1080,7 +1088,11 @@ class ResourceController(rest.RestController):
         resource = pecan.request.indexer.get_resource(
             self._resource_type, self.id, with_metrics=True)
         if resource:
-            enforce("get resource", resource)
+            pecan.request.auth_helper.enforce_resource_policy(
+                pecan.request,
+                "get resource",
+                self.id,
+                resource)
             etag_precondition_check(resource)
             etag_set_headers(resource)
             return resource

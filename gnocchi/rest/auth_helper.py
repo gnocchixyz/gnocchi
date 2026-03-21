@@ -19,6 +19,7 @@ import daiquiri
 import webob
 import werkzeug.http
 
+from gnocchi import indexer
 from gnocchi.rest import api
 
 
@@ -44,6 +45,83 @@ class KeystoneAuthHelper(object):
             'domain_id': request.headers.get("X-Domain-Id"),
             'roles': request.headers.get("X-Roles", "").split(","),
         }
+
+    @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        try:
+            # Check if the policy allows the user to get any resource
+            api.enforce(rule, {})
+        except webob.exc.HTTPForbidden:
+            policy_matched = False
+            auth_info = KeystoneAuthHelper.get_auth_info(request)
+            project_id = auth_info["project_id"]
+            user_id = auth_info["user_id"]
+
+            target = {}
+            if prefix:
+                target_resource = target[prefix] = {}
+            else:
+                target_resource = target
+
+            target_resource["project_id"] = project_id
+            try:
+                # Check if the policy allows the user to get resources linked
+                # to their project
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                pass
+            else:
+                policy_matched = True
+                # User is authenticated using the project that owns the
+                # resource and the policy allows access by project.
+                if resource.project_id == project_id:
+                    return
+
+            resource_creator_user_id, _, resource_creator_project_id = (
+                resource.creator.partition(":"))
+
+            del target_resource["project_id"]
+            target_resource["created_by_project_id"] = project_id
+            try:
+                # Check if the policy allows the user to get resources linked
+                # to their created_by_project
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                pass
+            else:
+                policy_matched = True
+                # User is authenticated using the project that created the
+                # resource and the policy allows access by created_by_project.
+                if resource_creator_project_id == project_id:
+                    return
+
+            del target_resource["created_by_project_id"]
+            target_resource["creator"] = user_id
+            try:
+                # Check if the policy allows the user to get resources linked
+                # to their creator
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                pass
+            else:
+                policy_matched = True
+                # The authenticated user is the user that created the resource
+                # and the policy allows access by creator.
+                if resource_creator_user_id == user_id:
+                    return
+
+            # If at least one of the policies matched but the user should not
+            # be allowed access to the resource, return 404 Not Found to
+            # prevent the user from enumerating the existence of the resource.
+            if policy_matched:
+                api.abort(404, str(indexer.NoSuchResource(resource_id)))
+
+            # None of the above policies matched, return 403 Forbidden.
+            api.abort(403)
 
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
@@ -178,6 +256,14 @@ class BasicAuthHelper(object):
         }
 
     @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        pass
+
+    @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
         return None
 
@@ -209,6 +295,14 @@ class RemoteUserAuthHelper(object):
             "roles": roles,
             "system": 'all',
         }
+
+    @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        pass
 
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
