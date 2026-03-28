@@ -717,7 +717,8 @@ class StorageDriver(object):
                              "of the measurement is [%s].", resource, metric.id, latest_timestamp_in_measurements)
                 else:
                     LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
-                             "measurement for metric [%s]. Therefore, restoring it.", resource, metric.id)
+                             "measurement for metric [%s] with a max timestamp as [%s]. Therefore, restoring it.",
+                             resource, metric.id, latest_timestamp_in_measurements)
                     indexer_driver.update_resource(
                         resource.type, resource_id, ended_at=None)
         else:
