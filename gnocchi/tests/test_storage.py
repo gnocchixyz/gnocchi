@@ -1341,6 +1341,10 @@ class TestStorageDriver(tests_base.TestCase):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
+        latest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
+            (measures['timestamps'][1] - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+        latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
+
         indexer_driver_mock = mock.Mock()
         metric_mock = mock.Mock()
         metric_mock.needs_raw_data_truncation = True
@@ -1368,7 +1372,8 @@ class TestStorageDriver(tests_base.TestCase):
 
             log_mock.info.assert_has_calls([
                 mock.call("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
-                          "measurement for metric [%s]. Therefore, restoring it.", resource_mock, metric_mock.id)])
+                          "measurement for metric [%s] with a max timestamp as [%s]. Therefore, restoring it.",
+                          resource_mock, metric_mock.id, latest_timestamp_in_measurements)])
 
             log_mock.debug.assert_has_calls([
                 mock.call("Checking if resource [%s] of metric [%s] with resource ID [%s] needs to be restored. The "
