@@ -1341,9 +1341,10 @@ class TestStorageDriver(tests_base.TestCase):
         measures = {"timestamps": [numpy.datetime64('1979-01-01T00:00:00'), numpy.datetime64('2030-01-01T00:00:00'),
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
+        latest_timestamp_in_measurements = max(measures['timestamps'])
         latest_timestamp_in_measurements = datetime.datetime.utcfromtimestamp(
-            (measures['timestamps'][1] - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
-        latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
+            (latest_timestamp_in_measurements - numpy.datetime64('1970-01-01T00:00:00')) / numpy.timedelta64(1, 's'))
+        latest_timestamp_in_measurements = latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
 
         indexer_driver_mock = mock.Mock()
         metric_mock = mock.Mock()
