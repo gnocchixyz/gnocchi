@@ -18,6 +18,7 @@
 
 import collections
 import functools
+import logging
 import math
 import operator
 import random
@@ -29,6 +30,8 @@ import lz4.block
 import numpy
 
 from gnocchi import calendar
+
+LOG = logging.getLogger(__name__)
 
 
 UNIX_UNIVERSAL_START64 = numpy.datetime64("1970", 'ns')
@@ -374,7 +377,13 @@ class BoundTimeSerie(TimeSerie):
 
     @classmethod
     def unserialize(cls, data, block_size, back_window):
-        uncompressed = lz4.block.decompress(data)
+        try:
+            uncompressed = lz4.block.decompress(data)
+        except lz4.block.LZ4BlockError:
+            LOG.warning(
+                "Corrupt Carbonara bound object (len=%d); skipping.",
+                len(data))
+            raise InvalidData
         nb_points = (
             len(uncompressed) // cls._SERIALIZATION_TIMESTAMP_VALUE_LEN
         )
@@ -697,8 +706,15 @@ class AggregatedTimeSerie(TimeSerie):
         if data:
             if cls.is_compressed(data):
                 # Compressed format
-                uncompressed = lz4.block.decompress(
-                    memoryview(data)[1:].tobytes())
+                try:
+                    uncompressed = lz4.block.decompress(
+                        memoryview(data)[1:].tobytes())
+                except lz4.block.LZ4BlockError:
+                    LOG.warning(
+                        "Corrupt Carbonara aggregate object "
+                        "(key=%s, len=%d); skipping.",
+                        key, len(data))
+                    raise InvalidData()
                 nb_points = len(uncompressed) // cls.COMPRESSED_SERIAL_LEN
 
                 try:
