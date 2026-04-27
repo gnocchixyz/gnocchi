@@ -19,6 +19,7 @@ import logging
 import os
 import subprocess
 import threading
+import unittest
 import uuid
 
 import daiquiri
@@ -58,7 +59,7 @@ def _skip_decorator(func):
         try:
             return func(*args, **kwargs)
         except exceptions.NotImplementedError as e:
-            raise testcase.TestSkipped(str(e))
+            raise unittest.SkipTest(str(e))
     return skip_if_not_implemented
 
 
