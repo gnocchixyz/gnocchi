@@ -78,7 +78,10 @@ def prepare_service(args=None, conf=None,
             logging_level = logging.WARNING
     logging.getLogger("gnocchi").setLevel(logging_level)
 
-    LOG.info("Preparing gnocchi service for configuration [%s].", conf.__dict__ if conf else None)
+    if not skip_log_opts:
+        LOG.debug("Preparing gnocchi service for configuration.")
+        conf.log_opt_values(LOG, logging.DEBUG)
+
     # HACK(jd) I'm not happy about that, fix AP class to handle a conf object?
     archive_policy.ArchivePolicy.DEFAULT_AGGREGATION_METHODS = (
         conf.archive_policy.default_aggregation_methods
