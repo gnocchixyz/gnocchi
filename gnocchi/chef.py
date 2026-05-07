@@ -120,56 +120,68 @@ class Chef(object):
         moment = moment_now - datetime.timedelta(
             seconds=metric_inactive_after)
 
-        inactive_metrics = self.index.list_metrics(
-            attribute_filter={"<": {
-                "last_measure_timestamp": moment}},
-            resource_policy_filter={"==": {"ended_at": None}}
-        )
+        processing_lock = None
+        try:
+            processing_lock = self.get_sack_lock("resource_ended_at_normalization_lock")
+            if not processing_lock.acquire():
+                LOG.debug("Cannot obtain lock for the resource ended at normalization process. This means that "
+                          "something else is already executing this step. Therefore, we can skip the processing for "
+                          "this cycle.")
+                return
+            inactive_metrics = self.index.list_metrics(
+                attribute_filter={"<": {
+                    "last_measure_timestamp": moment}},
+                resource_policy_filter={"==": {"ended_at": None}}
+            )
 
-        LOG.debug("Inactive metrics found for processing: [%s].",
-                  inactive_metrics)
+            LOG.debug("Inactive metrics found for processing: [%s].",
+                      inactive_metrics)
 
-        inactive_metrics_by_resource_id = defaultdict(list)
-        for metric in inactive_metrics:
-            resource_id = metric.resource_id
-            inactive_metrics_by_resource_id[resource_id].append(metric)
+            inactive_metrics_by_resource_id = defaultdict(list)
+            for metric in inactive_metrics:
+                resource_id = metric.resource_id
+                inactive_metrics_by_resource_id[resource_id].append(metric)
 
-        for resource_id in inactive_metrics_by_resource_id.keys():
-            if resource_id is None:
-                LOG.debug("We do not need to process inactive metrics that do "
-                          "not have resource. Therefore, these metrics [%s] "
-                          "will be considered inactive, but there is nothing "
-                          "else we can do in this process.",
-                          inactive_metrics_by_resource_id[resource_id])
-                continue
-            resource = self.index.get_resource(
-                "generic", resource_id, with_metrics=True)
-            resource_metrics = resource.metrics
-            resource_inactive_metrics = inactive_metrics_by_resource_id.get(resource_id)
+            for resource_id in inactive_metrics_by_resource_id.keys():
+                if resource_id is None:
+                    LOG.debug("We do not need to process inactive metrics that do "
+                              "not have resource. Therefore, these metrics [%s] "
+                              "will be considered inactive, but there is nothing "
+                              "else we can do in this process.",
+                              inactive_metrics_by_resource_id[resource_id])
+                    continue
+                resource = self.index.get_resource(
+                    "generic", resource_id, with_metrics=True)
+                resource_metrics = resource.metrics
+                resource_inactive_metrics = inactive_metrics_by_resource_id.get(resource_id)
 
-            all_metrics_are_inactive = True
-            for m in resource_metrics:
-                if m not in resource_inactive_metrics:
-                    all_metrics_are_inactive = False
-                    LOG.debug("Not all metrics of resource [%s] are inactive. "
-                              "Metric [%s] is not inactive. The inactive "
-                              "metrics are [%s].",
-                              resource, m, resource_inactive_metrics)
-                    break
+                all_metrics_are_inactive = True
+                for m in resource_metrics:
+                    if m not in resource_inactive_metrics:
+                        all_metrics_are_inactive = False
+                        LOG.debug("Not all metrics of resource [%s] are inactive. "
+                                  "Metric [%s] is not inactive. The inactive "
+                                  "metrics are [%s].",
+                                  resource, m, resource_inactive_metrics)
+                        break
 
-            if all_metrics_are_inactive:
-                LOG.info("All metrics [%s] of resource [%s] are inactive."
-                         "Therefore, we will mark it as finished with an"
-                         "ended at timestmap.", resource_metrics, resource)
-                if resource.ended_at is not None:
-                    LOG.debug(
-                        "Resource [%s] already has an ended at value.", resource)
-                else:
-                    LOG.info("Marking ended at timestamp for resource "
-                             "[%s] because all of its metrics are inactive.",
-                             resource)
-                    self.index.update_resource(
-                        resource.type, resource_id, ended_at=moment_now)
+                if all_metrics_are_inactive:
+                    LOG.info("All metrics [%s] of resource [%s] are inactive."
+                             "Therefore, we will mark it as finished with an"
+                             "ended at timestmap.", resource_metrics, resource)
+                    if resource.ended_at is not None:
+                        LOG.debug(
+                            "Resource [%s] already has an ended at value.", resource)
+                    else:
+                        LOG.info("Marking ended at timestamp for resource "
+                                 "[%s] because all of its metrics are inactive.",
+                                 resource)
+                        self.index.update_resource(
+                            resource.type, resource_id, ended_at=moment_now)
+        finally:
+            if processing_lock:
+                LOG.debug("Releasing lock for the automatic resource ended at field normalization.")
+                processing_lock.release()
 
     def clean_raw_data_inactive_metrics(self):
         """Cleans metrics raw data if they are inactive.
