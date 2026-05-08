@@ -1005,7 +1005,7 @@ class ResourceTest(RestTest):
                          + self.resource_type
                          + "/"
                          + self.attributes['id'],
-                         status=403)
+                         status=404)
 
     def test_get_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}
@@ -1026,7 +1026,7 @@ class ResourceTest(RestTest):
             self.app.get(
                 "/v1/resource/" + self.resource_type
                 + "/" + self.attributes['id'] + "/metric",
-                status=403)
+                status=404)
 
     def test_delete_resource_named_metric(self):
         self.attributes['metrics'] = {'foo': {'archive_policy_name': "high"}}

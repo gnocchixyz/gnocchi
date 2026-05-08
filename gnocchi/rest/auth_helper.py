@@ -19,6 +19,7 @@ import daiquiri
 import webob
 import werkzeug.http
 
+from gnocchi import indexer
 from gnocchi.rest import api
 
 
@@ -44,6 +45,181 @@ class KeystoneAuthHelper(object):
             'domain_id': request.headers.get("X-Domain-Id"),
             'roles': request.headers.get("X-Roles", "").split(","),
         }
+
+    @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        auth_info = KeystoneAuthHelper.get_auth_info(request)
+        project_id = auth_info["project_id"]
+        user_id = auth_info["user_id"]
+
+        try:
+            LOG.debug(("Checking if user %s:%s is allowed to access any "
+                       "resource in any project under policy rule [%s]."),
+                      user_id,
+                      project_id,
+                      rule)
+            api.enforce(rule, {})
+
+        except webob.exc.HTTPForbidden:
+            LOG.debug(("User %s:%s is NOT allowed to access any resource "
+                       "in any project under policy rule [%s]."),
+                      user_id,
+                      project_id,
+                      rule)
+
+            policy_matched = False
+
+            target = {}
+            if prefix:
+                target_resource = target[prefix] = {}
+            else:
+                target_resource = target
+
+            target_resource["project_id"] = project_id
+            try:
+                LOG.debug(("Checking if user %s:%s is allowed to access "
+                           "resources within their project under policy rule "
+                           "[%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                LOG.debug(("User %s:%s is NOT allowed to access resources "
+                           "within their project under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+            else:
+                LOG.debug(("User %s:%s is allowed to access resources within "
+                           "their project under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                policy_matched = True
+                if resource.project_id == project_id:
+                    LOG.debug(("User %s:%s is authenticated under the "
+                               "project the resource belongs to. Allowing "
+                               "access to resource %s."),
+                              user_id,
+                              project_id,
+                              resource_id)
+                    return
+                else:
+                    LOG.debug(("User %s:%s is NOT authenticated under the "
+                               "project the resource belongs to."),
+                              user_id,
+                              project_id)
+
+            resource_creator_user_id, _, resource_creator_project_id = (
+                resource.creator.partition(":"))
+
+            del target_resource["project_id"]
+            target_resource["created_by_project_id"] = project_id
+            try:
+                LOG.debug(("Checking if user %s:%s is allowed to access "
+                           "resources if they are part of the project that "
+                           "created the resource under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                LOG.debug(("User %s:%s is NOT allowed to access resources "
+                           "if they are part of the project that created "
+                           "the resource under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+            else:
+                LOG.debug(("User %s:%s is allowed to access resources if "
+                           "they are part of the project that created the "
+                           "resource under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                policy_matched = True
+                if resource_creator_project_id == project_id:
+                    LOG.debug(("User %s:%s is authenticated under the "
+                               "project that created the resource. Allowing "
+                               "access to resource %s."),
+                              user_id,
+                              project_id,
+                              resource_id)
+                    return
+                else:
+                    LOG.debug(("User %s:%s is NOT authenticated under the "
+                               "project that created the resource."),
+                              user_id,
+                              project_id)
+
+            del target_resource["created_by_project_id"]
+            target_resource["creator"] = user_id
+            try:
+                LOG.debug(("Checking if user %s:%s is allowed to access "
+                           "resources they created under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                api.enforce(rule, target)
+            except webob.exc.HTTPForbidden:
+                LOG.debug(("User %s:%s is NOT allowed to access resources "
+                           "they created under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+            else:
+                LOG.debug(("User %s:%s is allowed to access resources they "
+                           "created under policy rule [%s]."),
+                          user_id,
+                          project_id,
+                          rule)
+                policy_matched = True
+                if resource_creator_user_id == user_id:
+                    LOG.debug(("User %s:%s created the resource. Allowing "
+                               "access to resource %s."),
+                              user_id,
+                              project_id,
+                              resource_id)
+                    return
+                else:
+                    LOG.debug("User %s:%s did NOT create the resource.",
+                              user_id,
+                              project_id)
+
+            # If at least one of the policies matched but the user should not
+            # be allowed access to the resource, return 404 Not Found to
+            # prevent the user from enumerating the existence of the resource.
+            if policy_matched:
+                LOG.debug(("User %s:%s allowed access to the endpoint, but "
+                           "denied access to the resource under policy rule "
+                           "[%s]. Forbidding access to resource %s."),
+                          user_id,
+                          project_id,
+                          rule,
+                          resource_id)
+                api.abort(404, str(indexer.NoSuchResource(resource_id)))
+
+            # None of the above policies matched, return 403 Forbidden.
+            LOG.debug(("No policy matches for user %s:%s under policy rule "
+                       "[%s]. Forbidding access to the endpoint."),
+                      user_id,
+                      project_id,
+                      rule)
+            api.abort(403)
+
+        else:
+            LOG.debug(("User %s:%s is allowed to access any resource in any "
+                       "project under policy rule [%s]. Allowing access "
+                       "to resource %s."),
+                      user_id,
+                      project_id,
+                      rule,
+                      resource_id)
 
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
@@ -178,6 +354,14 @@ class BasicAuthHelper(object):
         }
 
     @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        pass
+
+    @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
         return None
 
@@ -209,6 +393,14 @@ class RemoteUserAuthHelper(object):
             "roles": roles,
             "system": 'all',
         }
+
+    @staticmethod
+    def enforce_resource_policy(request,
+                                rule,
+                                resource_id,
+                                resource,
+                                prefix=None):
+        pass
 
     @staticmethod
     def get_resource_policy_filter(request, rule, resource_type, prefix=None):
