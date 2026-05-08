@@ -299,11 +299,14 @@ class Grouper(object):
         return {"and": [period_filter, self.attr_filter]}
 
     def retrieve_resources_history(self):
+        set_of_metrics = set()
+        for ops in self.references:
+            set_of_metrics.add(ops[0])
+
         return pecan.request.indexer.list_resources(
             self.body["resource_type"],
             attribute_filter=self.create_history_period_filter(),
-            history=True,
-            sorts=self.sorts)
+            history=True, sorts=self.sorts, metrics_to_load=set_of_metrics)
 
     def get_grouped_measures(self):
         resources = self.retrieve_resources_history()

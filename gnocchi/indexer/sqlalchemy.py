@@ -1165,7 +1165,7 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         return attribute_filters_to_use
 
     def _get_history_result_mapper(self, session, resource_type,
-                                   attribute_filter=None):
+                                   attribute_filter=None, metrics_to_load=None):
 
         mappers = self._resource_type_to_mappers(session, resource_type)
         resource_cls = mappers['resource']
@@ -1245,15 +1245,25 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
         # To avoid such issues, and also a memory leak, we can clean
         # the previously registered ones.
         mapper_reg.dispose()
+
+        if metrics_to_load:
+            inner_condition_for_metrics_join = sqlalchemy.and_(
+                Metric.status == 'active', Metric.name.in_(metrics_to_load))
+        else:
+            inner_condition_for_metrics_join = Metric.status == 'active'
+
+        primary_join = sqlalchemy.and_(
+            Metric.resource_id == stmt.c.id,
+            inner_condition_for_metrics_join
+        )
+
         mapper_reg.map_imperatively(
             Result, stmt, primary_key=[stmt.c.id, stmt.c.revision],
             properties={
                 'metrics': sqlalchemy.orm.relationship(
                     Metric,
                     overlaps="metrics,resource",
-                    primaryjoin=sqlalchemy.and_(
-                        Metric.resource_id == stmt.c.id,
-                        Metric.status == 'active'),
+                    primaryjoin=primary_join,
                     foreign_keys=Metric.resource_id)
             })
 
@@ -1266,13 +1276,14 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                        history=False,
                        limit=None,
                        marker=None,
-                       sorts=None):
+                       sorts=None,
+                       metrics_to_load=None):
         sorts = sorts or []
 
         with self.facade.independent_reader() as session:
             if history:
                 target_cls = self._get_history_result_mapper(
-                    session, resource_type, attribute_filter)
+                    session, resource_type, attribute_filter, metrics_to_load)
                 unique_keys = ["id", "revision"]
             else:
                 target_cls = self._resource_type_to_mappers(
