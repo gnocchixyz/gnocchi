@@ -10,7 +10,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import pkg_resources
+import importlib.metadata
 
 # -- General configuration -----------------------------------------------------
 
@@ -38,7 +38,7 @@ copyright = 'The Gnocchi Developers'
 # built documents.
 #
 # The short X.Y version.
-release = pkg_resources.get_distribution('gnocchi').version
+release = importlib.metadata.version('gnocchi')
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
