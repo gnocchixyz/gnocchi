@@ -715,6 +715,35 @@ class MetricTest(RestTest):
              metric2: []},
             result)
 
+    def test_metric_with_resource_id_from_other_user(self):
+        resource_id = str(uuid.uuid4())
+        self.app.post_json(
+            "/v1/resource/generic",
+            params={
+                "id": resource_id,
+                "user_id": TestingApp.USER_ID,
+                "project_id": TestingApp.PROJECT_ID,
+            },
+        )
+
+        with self.app.use_another_user():
+            self.app.get(
+                "/v1/resource/generic/%s" % resource_id,
+                status=403,
+            )
+
+        with self.app.use_another_user():
+            self.app.post_json(
+                "/v1/metric",
+                params={
+                    "archive_policy_name": "low",
+                    "resource_id": resource_id,
+                    "name": "cpu",
+                    "unit": "ns",
+                },
+                status=403,
+            )
+
 
 class ResourceTest(RestTest):
     def setUp(self):
