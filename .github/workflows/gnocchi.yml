@@ -23,18 +23,18 @@ jobs:
           - docs
           - docs-gnocchi-web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
             ci_image:
               - 'images/Dockerfile.ci'
               - 'images/entrypoint.sh.ci'
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -42,7 +42,7 @@ jobs:
         if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'false'
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v7
         with:
           context: ./images
           file: ./images/Dockerfile.ci
@@ -68,16 +68,16 @@ jobs:
           - build
           - pep8
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
             ci_image:
               - 'images/Dockerfile.ci'
               - 'images/entrypoint.sh.ci'
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -85,7 +85,7 @@ jobs:
         if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'false'
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v7
         with:
           context: ./images
           file: ./images/Dockerfile.ci
@@ -150,14 +150,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
-      - uses: dorny/paths-filter@v2
+      - uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
             ci_image:
               - 'images/Dockerfile.ci'
               - 'images/entrypoint.sh.ci'
-      - uses: docker/login-action@v2
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -165,7 +165,7 @@ jobs:
         if: steps.changes.outputs.ci_image == 'false'
       - run: docker pull ghcr.io/gnocchixyz/ci:latest
         if: steps.changes.outputs.ci_image == 'false'
-      - uses: docker/build-push-action@v2
+      - uses: docker/build-push-action@v7
         with:
           context: ./images
           file: ./images/Dockerfile.ci
