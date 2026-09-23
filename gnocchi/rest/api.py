@@ -595,6 +595,12 @@ class MetricsController(rest.RestController):
                        "reason": "Name cannot be null "
                        "if resource_id is not null"})
             original_resource_id, resource_id = resource_id
+            try:
+                resource = pecan.request.indexer.get_resource(
+                    "generic", resource_id)
+            except indexer.NoSuchResource:
+                abort(404, str(indexer.NoSuchResource(resource_id)))
+            enforce("update resource", resource)
 
         enforce("create metric", {
             "creator": creator,
