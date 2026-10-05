@@ -6,12 +6,11 @@ ENV DEBIAN_FRONTEND noninteractive
 RUN apt-get update -y && apt-get install -qy gnupg software-properties-common
 RUN add-apt-repository -y ppa:deadsnakes/ppa
 RUN apt-get update -y && apt-get install -qy \
+        ca-certificates \
         locales \
         git \
         wget \
         curl \
-        nodejs \
-        npm \
         python3 \
         python3-dev \
         python3-pip \
@@ -45,6 +44,24 @@ RUN apt-get update -y && apt-get install -qy \
         redis-server
 
 RUN rm -rf /var/lib/apt/lists/*
+
+# Node
+ENV NVM_VERSION v0.40.8
+ENV NODE_VERSION 24.21.0
+ENV NVM_DIR /opt/.nvm
+ENV PATH $NVM_DIR/versions/node/v${NODE_VERSION}/bin:$PATH
+
+RUN echo "NVM_VERSION=${NVM_VERSION}" && echo "NODE_VERSION=${NODE_VERSION}"
+RUN mkdir -p $NVM_DIR
+RUN curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
+RUN ls -la "${NVM_DIR}" && . "${NVM_DIR}/nvm.sh" && nvm --version
+RUN . "${NVM_DIR}/nvm.sh" && nvm install "${NODE_VERSION}"
+
+RUN ln -sf "${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/node" /usr/local/bin/node \
+    && ln -sf "${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/npm" /usr/local/bin/npm \
+    && ln -sf "${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/npx" /usr/local/bin/npx
+
+RUN node --version && npm --version
 
 #NOTE(sileht): really no utf-8 in 2017 !?
 ENV LANG en_US.UTF-8
