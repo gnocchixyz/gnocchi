@@ -14,6 +14,8 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
+import logging
 import os
 import threading
 import uuid
@@ -197,9 +199,8 @@ def _setup_app(root, conf, not_implemented_middleware):
     if not_implemented_middleware:
         app = webob.exc.HTTPExceptionMiddleware(NotImplementedMiddleware(app))
 
-    LOG.info("Application setup for context path [%s] and "
-             "configurations [%s].",
-             root, conf.__dict__ if conf else None)
+    LOG.info("Application setup for context path [%s].", root)
+    conf.log_opt_values(LOG, logging.DEBUG)
     return app
 
 
