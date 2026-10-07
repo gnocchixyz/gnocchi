@@ -45,6 +45,12 @@ _SACK_NUMBER_OPT = cfg.IntOpt(
     "sacks-number", min=1, max=65535, required=True,
     help="Number of incoming storage sacks to create.")
 
+_OFFLINE_OPT = cfg.BoolOpt(
+    "offline", default=False,
+    help="Force the offline sack change (remove all sacks and recreate "
+         "them) even when the incoming driver supports online sack "
+         "migration. Requires an empty backlog.")
+
 
 def upgrade():
     conf = cfg.ConfigOpts()
@@ -87,26 +93,39 @@ def upgrade():
 
 def change_sack_size():
     conf = cfg.ConfigOpts()
-    conf.register_cli_opts([_SACK_NUMBER_OPT])
+    conf.register_cli_opts([_SACK_NUMBER_OPT, _OFFLINE_OPT])
     conf = service.prepare_service(conf=conf, log_to_std=True)
     s = incoming.get_driver(conf)
     try:
-        report = s.measures_report(details=False)
+        old_num_sacks = s.NUM_SACKS
     except incoming.SackDetectionError:
         LOG.error('Unable to detect the number of storage sacks.\n'
                   'Ensure gnocchi-upgrade has been executed.')
         return
-    remainder = report['summary']['measures']
-    if remainder:
-        LOG.error('Cannot change sack when non-empty backlog. Process '
-                  'remaining %s measures and try again', remainder)
+    if old_num_sacks == conf.sacks_number:
+        LOG.info('Already using %d sacks, nothing to do.', old_num_sacks)
         return
-    old_num_sacks = s.NUM_SACKS
-    LOG.info("Removing current %d sacks", old_num_sacks)
-    s.remove_sacks()
-    s.reset_num_sacks()
-    LOG.info("Creating new %d sacks", conf.sacks_number)
-    s.set_storage_settings(conf.sacks_number)
+    report = s.measures_report(details=False)
+    remainder = report['summary']['measures']
+    if s.SUPPORTS_SACK_MIGRATION and not conf.offline:
+        LOG.info('Migrating incoming sacks from %d to %d online.',
+                 old_num_sacks, conf.sacks_number)
+        if remainder:
+            LOG.info('%d measures are pending in the old layout, they '
+                     'will keep being processed until drained.', remainder)
+        s.migrate_sacks(conf.sacks_number)
+        LOG.info('Restart the gnocchi-api and gnocchi-metricd services '
+                 'to activate the new sack layout.')
+    else:
+        if remainder:
+            LOG.error('Cannot change sack when non-empty backlog. Process '
+                      'remaining %s measures and try again', remainder)
+            return
+        LOG.info("Removing current %d sacks", old_num_sacks)
+        s.remove_sacks()
+        s.reset_num_sacks()
+        LOG.info("Creating new %d sacks", conf.sacks_number)
+        s.set_storage_settings(conf.sacks_number)
 
 
 if __name__ == '__main__':
