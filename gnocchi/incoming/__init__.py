@@ -121,6 +121,11 @@ class IncomingDriver(object):
     def __init__(self, conf, greedy=True):
         self._sacks = None
 
+    def reset_num_sacks(self):
+        """Invalidate the cached sack count so it is re-read from storage."""
+        if hasattr(self, '_num_sacks'):
+            del self._num_sacks
+
     def upgrade(self, num_sacks):
         try:
             self.NUM_SACKS

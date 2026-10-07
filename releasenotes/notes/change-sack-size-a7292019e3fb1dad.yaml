@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug where gnocchi-change-sack-size would not persist the sack number
+    in the incoming driver.
