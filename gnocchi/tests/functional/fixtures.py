@@ -51,9 +51,19 @@ from gnocchi.tests import utils
 LOAD_APP_KWARGS = None
 
 
+class LazyWSGIApp:
+    def __init__(self):
+        self._app = None
+
+    def __call__(self, environ, start_response):
+        if self._app is None:
+            global LOAD_APP_KWARGS
+            self._app = app.load_app(**LOAD_APP_KWARGS)
+        return self._app(environ, start_response)
+
+
 def setup_app():
-    global LOAD_APP_KWARGS
-    return app.load_app(**LOAD_APP_KWARGS)
+    return LazyWSGIApp()
 
 
 class AssertNAN(yaml.YAMLObject):
