@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    The Ceph incoming driver now supports changing the number of sacks
+    online. ``gnocchi-change-sack-size`` no longer requires an empty
+    backlog for drivers that supports sack migration. Previous sack
+    layouts are marked as legacy in the storage configuration and keep
+    being processed (and reported) by ``gnocchi-metricd`` until their
+    pending measures are drained, while new measures are written to the
+    new layout. Drained legacy sack objects are removed automatically.
+
+    After running ``gnocchi-change-sack-size <number>`` with the Ceph
+    incoming driver, restart the ``gnocchi-api`` and ``gnocchi-metricd``
+    services to activate the new sack layout.
+  - |
+    A new ``--offline`` option is available on
+    ``gnocchi-change-sack-size`` to force the previous offline behavior
+    (removing all sacks and recreating them) even when the incoming
+    driver supports online sack migration. It requires an empty measure
+    backlog.
+other:
+  - |
+    The ``gnocchi-config`` object in the Ceph pool now stores an optional
+    ``legacy_sacks`` key listing the totals of previous sack layouts that
+    may still contain unprocessed measures.

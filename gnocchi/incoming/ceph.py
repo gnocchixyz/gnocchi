@@ -31,6 +31,7 @@ LOG = daiquiri.getLogger(__name__)
 class CephStorage(incoming.IncomingDriver):
 
     Q_LIMIT = 1000
+    SUPPORTS_SACK_MIGRATION = True
 
     def __init__(self, conf, greedy=True):
         super(CephStorage, self).__init__(conf)
@@ -66,13 +67,61 @@ class CephStorage(incoming.IncomingDriver):
         self.ioctx = None
         super(CephStorage, self).stop()
 
-    def _get_storage_sacks(self):
-        return json.loads(
-            self.ioctx.read(self.CFG_PREFIX).decode())[self.CFG_SACKS]
+    def _get_storage_config(self):
+        if not hasattr(self, '_storage_config'):
+            self._storage_config = json.loads(
+                self.ioctx.read(self.CFG_PREFIX).decode())
+        return self._storage_config
 
-    def set_storage_settings(self, num_sacks):
-        self.ioctx.write_full(self.CFG_PREFIX,
-                              json.dumps({self.CFG_SACKS: num_sacks}).encode())
+    def _get_storage_sacks(self):
+        return self._get_storage_config()[self.CFG_SACKS]
+
+    def _get_storage_legacy_sacks(self):
+        return self._get_storage_config().get(self.CFG_LEGACY_SACKS, [])
+
+    def set_storage_settings(self, num_sacks, legacy_sacks=None):
+        config = {self.CFG_SACKS: num_sacks}
+        if legacy_sacks:
+            config[self.CFG_LEGACY_SACKS] = legacy_sacks
+        self.ioctx.write_full(self.CFG_PREFIX, json.dumps(config).encode())
+        self._storage_config = config
+        # The derived caches are now stale, drop them so the new layout is
+        # re-read from storage on next access.
+        self.reset_num_sacks()
+
+    def migrate_sacks(self, num_sacks):
+        # The new current layout is no longer legacy so the previous
+        # current becomes legacy.
+        legacy_sacks = [total for total
+                        in self._get_storage_legacy_sacks()
+                        if total != num_sacks]
+        legacy_sacks.append(self._get_storage_sacks())
+        self.set_storage_settings(num_sacks, legacy_sacks)
+
+    def _object_exists(self, name):
+        try:
+            self.ioctx.read(name)
+            return True
+        except rados.ObjectNotFound:
+            return False
+
+    def _legacy_sacks_remain(self, total):
+        for number in range(total):
+            if self._object_exists(
+                    self._get_sack_name(number, total=total)):
+                return True
+        return False
+
+    def _prune_legacy_total(self, total):
+        # Re-read the config fresh (not the cached copy) to minimise the
+        # window for a lost update against concurrent prunes/migrations.
+        config = json.loads(self.ioctx.read(self.CFG_PREFIX).decode())
+        legacy_sacks = config.get(self.CFG_LEGACY_SACKS, [])
+        if total not in legacy_sacks:
+            return
+        self.set_storage_settings(
+            config[self.CFG_SACKS],
+            [t for t in legacy_sacks if t != total])
 
     def remove_sacks(self):
         for sack in self.iter_sacks():
@@ -182,14 +231,15 @@ class CephStorage(incoming.IncomingDriver):
     @contextlib.contextmanager
     def process_measure_for_metrics(self, metric_ids):
         measures = {}
-        processed_keys = {}
+        processed_keys = defaultdict(dict)
         with rados.ReadOpCtx() as op:
             for metric_id in metric_ids:
                 sack = self.sack_for_metric(metric_id)
-                processed_keys[sack] = self._list_keys_to_process(
+                keys = self._list_keys_to_process(
                     sack, prefix=self.MEASURE_PREFIX + "_" + str(metric_id))
+                processed_keys[sack].update(keys)
                 m = self._make_measures_array()
-                for k, v in processed_keys[sack].items():
+                for k, v in keys.items():
                     m = numpy.concatenate(
                         (m, self._unserialize_measures(k, v)))
 
@@ -233,3 +283,13 @@ class CephStorage(incoming.IncomingDriver):
                 self.ioctx.remove_omap_keys(op, tuple(processed_keys))
                 self.ioctx.operate_write_op(op, str(sack),
                                             flags=self.OMAP_WRITE_FLAGS)
+
+        if not omaps and sack.total != self.NUM_SACKS:
+            try:
+                self.ioctx.remove_object(str(sack))
+            except rados.ObjectNotFound:
+                pass
+            # This layout may now be fully drained, drop it from the config
+            # so it stops being iterated on the next pass.
+            if not self._legacy_sacks_remain(sack.total):
+                self._prune_legacy_total(sack.total)

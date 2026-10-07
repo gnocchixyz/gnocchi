@@ -105,6 +105,8 @@ class IncomingDriver(object):
     SACK_NAME_FORMAT = "incoming{total}-{number}"
     CFG_PREFIX = 'gnocchi-config'
     CFG_SACKS = 'sacks'
+    CFG_LEGACY_SACKS = 'legacy_sacks'
+    SUPPORTS_SACK_MIGRATION = False
     # NOTE(sileht): By default we use threads, but some driver can disable
     # threads by setting this to utils.sequencial_map
     MAP_METHOD = staticmethod(utils.parallel_map)
@@ -118,13 +120,23 @@ class IncomingDriver(object):
                 raise SackDetectionError(e)
         return self._num_sacks
 
+    @property
+    def LEGACY_SACKS(self):
+        if not hasattr(self, '_legacy_sacks'):
+            try:
+                self._legacy_sacks = tuple(self._get_storage_legacy_sacks())
+            except Exception as e:
+                raise SackDetectionError(e)
+        return self._legacy_sacks
+
     def __init__(self, conf, greedy=True):
         self._sacks = None
 
     def reset_num_sacks(self):
-        """Invalidate the cached sack count so it is re-read from storage."""
-        if hasattr(self, '_num_sacks'):
-            del self._num_sacks
+        """Invalidate the cached sack layout so it is re-read from storage."""
+        for attr in ('_num_sacks', '_legacy_sacks'):
+            if hasattr(self, attr):
+                delattr(self, attr)
 
     def stop(self):
         pass
@@ -135,6 +147,9 @@ class IncomingDriver(object):
         except SackDetectionError:
             self.set_storage_settings(num_sacks)
 
+    def migrate_sacks(self, num_sacks):
+        raise exceptions.NotImplementedError
+
     @staticmethod
     def set_storage_settings(num_sacks):
         raise exceptions.NotImplementedError
@@ -144,9 +159,13 @@ class IncomingDriver(object):
         raise exceptions.NotImplementedError
 
     @staticmethod
-    def get_storage_sacks():
+    def _get_storage_sacks():
         """Return the number of sacks in storage. None if not set."""
         raise exceptions.NotImplementedError
+
+    def _get_storage_legacy_sacks(self):
+        """Return a list of legacy sacks in storage."""
+        return []
 
     def _make_measures_array(self):
         return numpy.array([], dtype=TIMESERIES_ARRAY_DTYPE)
@@ -241,18 +260,25 @@ class IncomingDriver(object):
     def has_unprocessed(metric_id):
         raise exceptions.NotImplementedError
 
-    def _get_sack_name(self, number):
-        return self.SACK_NAME_FORMAT.format(
-            total=self.NUM_SACKS, number=number)
+    def _get_sack_name(self, number, total=None):
+        if total is None:
+            total = self.NUM_SACKS
+        return self.SACK_NAME_FORMAT.format(total=total, number=number)
 
-    def _make_sack(self, i):
-        return Sack(i, self.NUM_SACKS, self._get_sack_name(i))
+    def _make_sack(self, i, total=None):
+        if total is None:
+            total = self.NUM_SACKS
+        return Sack(i, total, self._get_sack_name(i, total))
 
     def sack_for_metric(self, metric_id):
         return self._make_sack(metric_id.int % self.NUM_SACKS)
 
     def iter_sacks(self):
-        return (self._make_sack(i) for i in range(self.NUM_SACKS))
+        current = (self._make_sack(i) for i in range(self.NUM_SACKS))
+        legacy = (self._make_sack(i, total=total)
+                  for total in self.LEGACY_SACKS
+                  for i in range(total))
+        return itertools.chain(current, legacy)
 
     @staticmethod
     def iter_on_sacks_to_process():
