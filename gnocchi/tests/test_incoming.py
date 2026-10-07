@@ -13,11 +13,14 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import sys
 import threading
+from unittest import mock
 import uuid
 
 import numpy
 
+from gnocchi.cli import manage
 from gnocchi import incoming
 from gnocchi import indexer
 from gnocchi.tests import base as tests_base
@@ -64,3 +67,18 @@ class TestIncomingDriver(tests_base.TestCase):
             ])
         else:
             self.fail("Notification for metric not received")
+
+    def test_change_sack_size_updates_stored_sack_count(self):
+        old = self.incoming.NUM_SACKS
+        new = old + 2
+        old_argv = sys.argv
+        sys.argv = ['gnocchi-change-sack-size', '--sacks-number', str(new)]
+        try:
+            with mock.patch.object(manage.incoming, 'get_driver',
+                                   return_value=self.incoming):
+                manage.change_sack_size()
+        finally:
+            sys.argv = old_argv
+        self.assertEqual(int(self.incoming._get_storage_sacks()), new)
+        self.incoming.reset_num_sacks()
+        self.assertEqual(self.incoming.NUM_SACKS, new)

@@ -60,8 +60,7 @@ class S3Storage(incoming.IncomingDriver):
                            Key=self.CFG_PREFIX,
                            Body=json.dumps(data).encode())
 
-    @staticmethod
-    def remove_sacks(num_sacks):
+    def remove_sacks(self):
         # nothing to cleanup since sacks are part of path
         pass
 

@@ -70,8 +70,7 @@ return results
     def set_storage_settings(self, num_sacks):
         self._client.hset(self.CFG_PREFIX, self.CFG_SACKS, num_sacks)
 
-    @staticmethod
-    def remove_sacks():
+    def remove_sacks(self):
         # NOTE(gordc): redis doesn't maintain keys with empty values
         pass
 
