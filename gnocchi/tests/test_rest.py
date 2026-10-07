@@ -741,7 +741,7 @@ class MetricTest(RestTest):
                     "name": "cpu",
                     "unit": "ns",
                 },
-                status=403,
+                status=404,
             )
 
 
@@ -1262,7 +1262,7 @@ class ResourceTest(RestTest):
                 "/v1/resource/" + self.resource_type
                 + "/" + self.attributes['id'],
                 params=self.patchable_attributes,
-                status=403)
+                status=404)
 
     def test_patch_resource_ended_at_before_started_at(self):
         self.app.post_json("/v1/resource/" + self.resource_type,
@@ -1371,7 +1371,7 @@ class ResourceTest(RestTest):
         with self.app.use_another_user():
             r = self.app.delete("/v1/resource/" + self.resource_type + "/"
                                 + self.attributes['id'],
-                                status=403)
+                                status=404)
             self.assertEqual("text/plain", r.content_type)
 
     def test_delete_resource_non_existent(self):

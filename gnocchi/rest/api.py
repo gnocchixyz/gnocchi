@@ -635,7 +635,8 @@ class MetricsController(rest.RestController):
                     "generic", resource_id)
             except indexer.NoSuchResource:
                 abort(404, str(indexer.NoSuchResource(resource_id)))
-            enforce("update resource", resource)
+            pecan.request.auth_helper.enforce_resource_policy(
+                pecan.request, "update resource", resource_id, resource)
 
         enforce("create metric", {
             "creator": creator,
@@ -781,7 +782,11 @@ class NamedMetricController(rest.RestController):
             self.resource_type, self.resource_id)
         if not resource:
             abort(404, str(indexer.NoSuchResource(self.resource_id)))
-        enforce("update resource", resource)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request,
+            "update resource",
+            self.resource_id,
+            resource)
         metrics = deserialize_and_validate(MetricsSchema)
         try:
             r = pecan.request.indexer.update_resource(
@@ -1110,7 +1115,8 @@ class ResourceController(rest.RestController):
             self._resource_type, self.id, with_metrics=True)
         if not resource:
             abort(404, str(indexer.NoSuchResource(self.id)))
-        enforce("update resource", resource)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request, "update resource", self.id, resource)
         etag_precondition_check(resource)
 
         body = deserialize_and_validate(
@@ -1148,7 +1154,8 @@ class ResourceController(rest.RestController):
             self._resource_type, self.id)
         if not resource:
             abort(404, str(indexer.NoSuchResource(self.id)))
-        enforce("delete resource", resource)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request, "delete resource", self.id, resource)
         etag_precondition_check(resource)
         try:
             pecan.request.indexer.delete_resource(self.id)
@@ -2278,7 +2285,8 @@ def get_or_create_resource_and_metrics(
             raise tenacity.TryAgain
 
     if r:
-        enforce("update resource", r)
+        pecan.request.auth_helper.enforce_resource_policy(
+            pecan.request, "update resource", rid, r)
         exists_metric_names = [m.name for m in r.metrics]
         metrics = MetricsSchema(dict(
             (m, {}) for m in metric_names
