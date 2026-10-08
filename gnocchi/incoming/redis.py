@@ -194,11 +194,20 @@ return results
         keyspace = b"__keyspace@" + str(db).encode() + b"__:"
         pattern = keyspace + self._get_sack_name("*").encode()
         p.psubscribe(pattern)
-        for message in p.listen():
-            if message['type'] == 'pmessage' and message['pattern'] == pattern:
-                # FIXME(jd) This is awful, we need a better way to extract this
-                # Format is defined by _get_sack_name: incoming128-17
-                yield self._make_sack(int(message['channel'].split(b"-")[-1]))
+        try:
+            while not self._stopped.is_set():
+                message = p.get_message(
+                    ignore_subscribe_messages=True, timeout=1.0)
+                if message is None:
+                    continue
+                if message['type'] == 'pmessage' and \
+                        message['pattern'] == pattern:
+                    # FIXME(jd) This is awful, we need a better way to extract
+                    # Format is defined by _get_sack_name: incoming128-17
+                    yield self._make_sack(
+                        int(message['channel'].split(b"-")[-1]))
+        finally:
+            p.close()
 
     def finish_sack_processing(self, sack):
         # Delete the sack key which handles no data but is used to get a SET

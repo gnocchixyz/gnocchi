@@ -61,10 +61,10 @@ class CephStorage(incoming.IncomingDriver):
         return "%s: %s" % (self.__class__.__name__, self.rados.get_fsid())
 
     def stop(self):
+        super(CephStorage, self).stop()
         ceph.close_rados_connection(self.rados, self.ioctx)
         self.rados = None
         self.ioctx = None
-        super(CephStorage, self).stop()
 
     def _get_storage_sacks(self):
         return json.loads(
