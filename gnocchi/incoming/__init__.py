@@ -126,6 +126,9 @@ class IncomingDriver(object):
         if hasattr(self, '_num_sacks'):
             del self._num_sacks
 
+    def stop(self):
+        pass
+
     def upgrade(self, num_sacks):
         try:
             self.NUM_SACKS
