@@ -137,6 +137,7 @@ class MetricReporting(MetricProcessBase):
 class MetricProcessor(MetricProcessBase):
     name = "processing"
     GROUP_ID = b"gnocchi-processing"
+    SACK_FILLER_STOP_TIMEOUT = 10
 
     def __init__(self, worker_id, conf):
         super(MetricProcessor, self).__init__(
@@ -144,6 +145,7 @@ class MetricProcessor(MetricProcessBase):
         self._tasks = []
         self.group_state = None
         self.sacks_with_measures_to_process = set()
+        self._sack_filler = None
         # This stores the last time the processor did a scan on all the sack it
         # is responsible for
         self._last_full_sack_scan = utils.StopWatch().start()
@@ -178,6 +180,7 @@ class MetricProcessor(MetricProcessBase):
         if self.conf.metricd.greedy:
             filler = threading.Thread(target=self._fill_sacks_to_process)
             filler.daemon = True
+            self._sack_filler = filler
             filler.start()
 
     @utils.retry_on_exception.wraps
@@ -256,6 +259,13 @@ class MetricProcessor(MetricProcessBase):
             LOG.debug("Full scan of sacks has been done")
 
     def close_services(self):
+        self.incoming.stop()
+        if self._sack_filler is not None:
+            self._sack_filler.join(timeout=self.SACK_FILLER_STOP_TIMEOUT)
+            if self._sack_filler.is_alive():
+                LOG.warning("Sack filler thread is still alive after %d "
+                            "join timeout and will be killed.",
+                            self.SACK_FILLER_STOP_TIMEOUT)
         self.coord.stop()
 
 
