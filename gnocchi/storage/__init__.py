@@ -136,6 +136,9 @@ class StorageDriver(object):
     def upgrade():
         pass
 
+    def stop(self):
+        pass
+
     def _get_splits(self, metrics_aggregations_keys, version=3):
         results = collections.defaultdict(
             lambda: collections.defaultdict(list))
