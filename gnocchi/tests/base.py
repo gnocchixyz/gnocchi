@@ -381,6 +381,8 @@ class TestCase(BaseTestCase, metaclass=SkipNotImplementedMeta):
     def tearDown(self):
         self.index.disconnect()
         self.coord.stop()
+        self.incoming.stop()
+        self.storage.stop()
 
         if self.conf.storage.driver == 'ceph':
             with open(os.devnull, 'w') as f:

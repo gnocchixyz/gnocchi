@@ -121,6 +121,9 @@ class IncomingDriver(object):
     def __init__(self, conf, greedy=True):
         self._sacks = None
 
+    def stop(self):
+        pass
+
     def upgrade(self, num_sacks):
         try:
             self.NUM_SACKS
