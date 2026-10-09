@@ -376,6 +376,9 @@ tests:
         resource_type: instance
         search: "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'"
         operations: "(aggregate mean (metric vm.uptime mean))"
+      poll:
+        count: 10
+        delay: 1
       response_json_paths:
         $.`len`: 1
         $[0].measures.measures.aggregated:
@@ -392,6 +395,9 @@ tests:
         resource_type: instance
         search: "id = 'c14fafd8-2e50-4a1a-ac13-319c82fb2f65'"
         operations: "(aggregate mean (metric vm.uptime mean))"
+      poll:
+        count: 10
+        delay: 1
       response_json_paths:
         $.`len`: 2
         $[0].measures.measures.aggregated:
