@@ -182,6 +182,8 @@ class ConfigFixture(fixture.GabbiFixture):
                                                        conf.coordination_url)
         s = storage.get_driver(conf)
         i = incoming.get_driver(conf)
+        self.storage = s
+        self.incoming = i
 
         if conf.storage.driver == 'redis':
             # Create one prefix per test
@@ -233,6 +235,12 @@ class ConfigFixture(fixture.GabbiFixture):
 
         if hasattr(self, 'index'):
             self.index.disconnect()
+
+        if hasattr(self, 'storage'):
+            self.storage.stop()
+
+        if hasattr(self, 'incoming'):
+            self.incoming.stop()
 
         # Swallow noise from missing tables when dropping
         # database.
