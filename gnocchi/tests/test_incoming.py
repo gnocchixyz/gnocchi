@@ -34,6 +34,44 @@ class TestIncomingDriver(tests_base.TestCase):
             uuid.uuid4(),
             self.archive_policies["low"])
 
+    def test_stop_sets_stopped_flag(self):
+        self.assertFalse(self.incoming._stopped.is_set())
+        self.incoming.stop()
+        self.assertTrue(self.incoming._stopped.is_set())
+
+    def test_iter_on_sacks_to_process_stops_on_stop(self):
+        if (self.incoming.iter_on_sacks_to_process ==
+           incoming.IncomingDriver.iter_on_sacks_to_process):
+            self.skipTest("Incoming driver does not implement "
+                          "iter_on_sacks_to_process")
+
+        sack_to_find = self.incoming.sack_for_metric(self.metric.id)
+        consumed = threading.Event()
+
+        def _iter():
+            for sack in self.incoming.iter_on_sacks_to_process():
+                self.assertIsInstance(sack, incoming.Sack)
+                if sack == sack_to_find:
+                    consumed.set()
+
+        finder = threading.Thread(target=_iter)
+        finder.daemon = True
+        finder.start()
+
+        for _ in range(30):
+            if consumed.wait(timeout=1):
+                break
+            self.incoming.finish_sack_processing(sack_to_find)
+            self.incoming.add_measures(self.metric.id, [
+                incoming.Measure(numpy.datetime64("2014-01-01 12:00:01"), 69),
+            ])
+        self.assertTrue(consumed.is_set(),
+                        "Notification for metric not received")
+
+        self.incoming.stop()
+        finder.join(timeout=15)
+        self.assertFalse(finder.is_alive())
+
     def test_iter_on_sacks_to_process(self):
         if (self.incoming.iter_on_sacks_to_process ==
            incoming.IncomingDriver.iter_on_sacks_to_process):

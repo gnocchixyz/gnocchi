@@ -18,6 +18,7 @@ import collections
 import functools
 import itertools
 import operator
+import threading
 
 import daiquiri
 import numpy
@@ -120,6 +121,7 @@ class IncomingDriver(object):
 
     def __init__(self, conf, greedy=True):
         self._sacks = None
+        self._stopped = threading.Event()
 
     def reset_num_sacks(self):
         """Invalidate the cached sack count so it is re-read from storage."""
@@ -127,7 +129,7 @@ class IncomingDriver(object):
             del self._num_sacks
 
     def stop(self):
-        pass
+        self._stopped.set()
 
     def upgrade(self, num_sacks):
         try:
@@ -256,7 +258,11 @@ class IncomingDriver(object):
 
     @staticmethod
     def iter_on_sacks_to_process():
-        """Return an iterable of sack that got new measures to process."""
+        """Return an iterable of sack that got new measures to process.
+
+        Implementations must stop yielding once stop has been called
+        so that the metricd filler waiting can terminate cleanly.
+        """
         raise exceptions.NotImplementedError
 
     @staticmethod

@@ -61,11 +61,11 @@ class CephStorage(storage.StorageDriver):
         return "%s: %s" % (self.__class__.__name__, self.rados.get_fsid())
 
     def stop(self):
+        super(CephStorage, self).stop()
         if self.ioctx is not None:
             ceph.close_rados_connection(self.rados, self.ioctx)
             self.rados = None
             self.ioctx = None
-        super(CephStorage, self).stop()
 
     @staticmethod
     def _get_object_name(metric, key, aggregation, version=3):
