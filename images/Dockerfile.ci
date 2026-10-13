@@ -1,6 +1,6 @@
 FROM ubuntu:24.04
-ENV GNOCCHI_WORKSPACE /github/workspace
-ENV DEBIAN_FRONTEND noninteractive
+ENV GNOCCHI_WORKSPACE=/github/workspace
+ENV DEBIAN_FRONTEND=noninteractive
 
 #NOTE(tobias-urdin): need gnupg for apt-key
 RUN apt-get update -y && apt-get install -qy gnupg software-properties-common
@@ -46,10 +46,10 @@ RUN apt-get update -y && apt-get install -qy \
 RUN rm -rf /var/lib/apt/lists/*
 
 # Node
-ENV NVM_VERSION v0.40.8
-ENV NODE_VERSION 24.21.0
-ENV NVM_DIR /opt/.nvm
-ENV PATH $NVM_DIR/versions/node/v${NODE_VERSION}/bin:$PATH
+ENV NVM_VERSION=v0.40.8
+ENV NODE_VERSION=24.21.0
+ENV NVM_DIR=/opt/.nvm
+ENV PATH=$NVM_DIR/versions/node/v${NODE_VERSION}/bin:$PATH
 
 RUN echo "NVM_VERSION=${NVM_VERSION}" && echo "NODE_VERSION=${NODE_VERSION}"
 RUN mkdir -p $NVM_DIR
@@ -64,7 +64,7 @@ RUN ln -sf "${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/node" /usr/local/bin/n
 RUN node --version && npm --version
 
 #NOTE(sileht): really no utf-8 in 2017 !?
-ENV LANG en_US.UTF-8
+ENV LANG=en_US.UTF-8
 RUN update-locale
 RUN locale-gen $LANG
 
