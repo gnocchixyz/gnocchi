@@ -1145,6 +1145,62 @@ class TestIndexerDriver(tests_base.TestCase):
         for m in metrics:
             self.assertEqual('delete', m['status'])
 
+    def test_deletes_resources_of_a_type(self):
+        mgr = self.index.get_resource_type_schema()
+        self.index.create_resource_type(mgr.resource_type_from_dict(
+            "indexer_batch_delete", {
+                "col1": {"type": "string", "required": False,
+                         "min_length": 0, "max_length": 15}
+            }, "creating"))
+        r1 = uuid.uuid4()
+        r2 = uuid.uuid4()
+        user = str(uuid.uuid4())
+        project = str(uuid.uuid4())
+        creator = user + ":" + project
+        metrics = {'foo': {'archive_policy_name': 'medium'}}
+        g1 = self.index.create_resource('indexer_batch_delete', r1, creator,
+                                        user, project, col1="a",
+                                        metrics=metrics)
+        self.index.create_resource('indexer_batch_delete', r2, creator,
+                                   user, project, col1="b")
+
+        deleted = self.index.delete_resources(
+            'indexer_batch_delete',
+            attribute_filter={"=": {"col1": "a"}})
+        self.assertEqual(1, deleted)
+
+        # Gone as a resource of any type, not only of its own: the generic
+        # view must not keep the row the typed one lost.
+        self.assertIsNone(self.index.get_resource('generic', r1))
+        self.assertIsNone(
+            self.index.get_resource('indexer_batch_delete', r1))
+        self.assertIsNotNone(
+            self.index.get_resource('indexer_batch_delete', r2))
+        metrics = self.index.list_metrics(
+            attribute_filter={"=": {"id": g1['metrics'][0]['id']}},
+            status='delete')
+        self.assertEqual(1, len(metrics))
+
+        # More resources than one statement deletes.
+        user2 = str(uuid.uuid4())
+        rids = [uuid.uuid4() for _ in range(3)]
+        for rid in rids:
+            self.index.create_resource('indexer_batch_delete', rid,
+                                       user2 + ":" + project, user2, project)
+        with mock.patch.object(self.index, 'DELETE_BATCH_SIZE', 2):
+            deleted = self.index.delete_resources(
+                'indexer_batch_delete',
+                attribute_filter={"=": {"user_id": user2}})
+        self.assertEqual(3, deleted)
+        for rid in rids:
+            self.assertIsNone(self.index.get_resource('generic', rid))
+
+        # Once its resources are gone, the type can be deleted.
+        self.index.delete_resources(
+            'indexer_batch_delete',
+            attribute_filter={"=": {"col1": "b"}})
+        self.index.delete_resource_type('indexer_batch_delete')
+
     def test_get_metric(self):
         e1 = uuid.uuid4()
         creator = str(uuid.uuid4())
