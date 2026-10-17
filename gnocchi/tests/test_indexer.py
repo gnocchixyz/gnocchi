@@ -22,6 +22,7 @@ from unittest import mock
 
 from gnocchi import archive_policy
 from gnocchi import indexer
+from gnocchi.indexer import sqlalchemy_base
 from gnocchi.tests import base as tests_base
 from gnocchi import utils
 
@@ -202,6 +203,17 @@ class TestIndexerDriver(tests_base.TestCase):
         self.assertIsNone(m.resource_id)
         m2 = self.index.list_metrics(attribute_filter={"=": {"id": r1}})
         self.assertEqual([m], m2)
+
+    def test_create_metric_last_measure_timestamp_is_creation_time(self):
+        # A metric that has just been created has not been inactive for
+        # long, whenever the process creating it was started.
+        created = datetime.datetime(2100, 1, 2, 3, 4, 5)
+        with mock.patch.object(sqlalchemy_base, "datetime") as dt:
+            dt.datetime.utcnow.return_value = created
+            m = self.index.create_metric(uuid.uuid4(), str(uuid.uuid4()),
+                                         "low")
+        m2 = self.index.list_metrics(attribute_filter={"=": {"id": m.id}})
+        self.assertEqual(created, m2[0].last_measure_timestamp)
 
     def test_create_named_metric_duplicate(self):
         m1 = uuid.uuid4()
