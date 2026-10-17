@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Deleting resources in batch through a resource type other than
+    ``generic`` (``DELETE /v1/resource/<type>`` with a filter, or
+    ``gnocchi resource batch delete --type <type>``) now deletes them. It
+    used to delete only the row of the type's own table: the resource was
+    still listed and returned as a ``generic`` resource, its metrics were
+    deleted, and the resource type could no longer be deleted
+    (``ResourceTypeInUse``). Batch deletes through ``generic``, which is
+    what ``gnocchi resource batch delete`` without ``--type`` does, were not
+    affected.
+
+    Resources left behind by the old behaviour are those with a row in the
+    ``resource`` table and none in their type's table; for a type whose
+    table is ``rt_<id>`` (``resource_type.tablename``) they are found with
+    ``SELECT r.id FROM resource r WHERE r.type = '<type>' AND NOT EXISTS
+    (SELECT 1 FROM rt_<id> x WHERE x.id = r.id)`` and can be deleted the
+    same way, from the ``resource`` table.

@@ -258,6 +258,10 @@ class ResourceClassMapper(object):
 class SQLAlchemyIndexer(indexer.IndexerDriver):
     _RESOURCE_TYPE_MANAGER = ResourceClassMapper()
 
+    # How many resources delete_resources() deletes per statement, so that a
+    # large purge does not build one statement with an unbounded IN list.
+    DELETE_BATCH_SIZE = 1000
+
     @classmethod
     def _create_new_database(cls, url):
         """Used by testing to create a new database."""
@@ -1051,17 +1055,28 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceAttributeError(resource_type,
                                                      e.attribute)
 
-            resourceFilter = select(target_cls.id).filter(f)
+            # Delete from the resource table, as delete_resource() does, and
+            # let the foreign keys remove the type's own rows. Deleting
+            # target_cls only removes the row of the type's table and leaves
+            # the resource row behind: still listed as a generic resource, and
+            # keeping the type from ever being deleted. The ids are read
+            # first because MySQL refuses a DELETE whose subquery reads the
+            # table being deleted from, which the type's filter joins.
+            resource_ids = session.scalars(
+                select(target_cls.id).filter(f)).all()
+            deleted = 0
+            for ids in utils.grouper(resource_ids, self.DELETE_BATCH_SIZE):
+                stmt = update(Metric).filter(
+                    Metric.resource_id.in_(ids)
+                ).values(status="delete").execution_options(
+                    synchronize_session=False)
+                session.execute(stmt)
 
-            stmt = update(Metric).filter(
-                Metric.resource_id.in_(resourceFilter)
-            ).values(status="delete").execution_options(
-                synchronize_session=False)
-            session.execute(stmt)
-
-            stmt = delete(target_cls).filter(f).execution_options(
-                synchronize_session=False)
-            return session.execute(stmt).rowcount
+                stmt = delete(Resource).where(
+                    Resource.id.in_(ids)
+                ).execution_options(synchronize_session=False)
+                deleted += session.execute(stmt).rowcount
+            return deleted
 
     @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
