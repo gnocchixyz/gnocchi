@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    A new metric's ``last_measure_timestamp`` is now the time it was
+    created. It was the time the API process started, so with
+    ``[metricd] metric_inactive_after`` set, every metric created by a
+    process that had been running longer than that looked inactive from
+    the start, and the janitor could set ``ended_at`` on its resource
+    before its first measures were processed.

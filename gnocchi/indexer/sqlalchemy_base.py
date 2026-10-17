@@ -119,8 +119,12 @@ class Metric(Base, GnocchiBase, indexer.Metric):
     # given metric. This allows us to identify when a metric ceased receiving
     # measurements; thus, if all metric for a resource are in this situation,
     # chances are that the resource ceased existing in the backend.
+    # The default must be a callable: a value would be evaluated once, at
+    # import, and every metric created by a long-running API process would
+    # then look inactive from the start until its first measures arrive.
     last_measure_timestamp = sqlalchemy.Column(
-        "last_measure_timestamp", sqlalchemy.DateTime, default=datetime.datetime.utcnow(), nullable=False,
+        "last_measure_timestamp", sqlalchemy.DateTime,
+        default=lambda: datetime.datetime.utcnow(), nullable=False,
         server_default=sqlalchemy.sql.func.current_timestamp())
 
     def jsonify(self):
