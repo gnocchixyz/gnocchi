@@ -713,7 +713,7 @@ class StorageDriver(object):
                       "resource ID [%s] needs to be restored. The measurement timestamps are [%s].",
                       resource, metric.id, resource_id, measures['timestamps'])
 
-            if resource.ended_at is not None:
+            if resource.ended_at is not None and indexer_driver.conf.metricd.metric_inactive_after > 0:
                 if resource.ended_at > latest_timestamp_in_measurements:
                     LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
                              "measurement for metric [%s]. However, we do not restore it as the latest timestamp "

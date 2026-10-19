@@ -1347,6 +1347,7 @@ class TestStorageDriver(tests_base.TestCase):
         latest_timestamp_in_measurements = latest_timestamp_in_measurements.replace(tzinfo=datetime.timezone.utc)
 
         indexer_driver_mock = mock.Mock()
+        indexer_driver_mock.conf.metricd.metric_inactive_after = 1
         metric_mock = mock.Mock()
         metric_mock.needs_raw_data_truncation = True
 
@@ -1389,6 +1390,7 @@ class TestStorageDriver(tests_base.TestCase):
                                    numpy.datetime64('1973-01-01T00:00:00')]}
 
         indexer_driver_mock = mock.Mock()
+        indexer_driver_mock.conf.metricd.metric_inactive_after = 1
         metric_mock = mock.Mock()
         metric_mock.needs_raw_data_truncation = True
 
@@ -1426,6 +1428,28 @@ class TestStorageDriver(tests_base.TestCase):
 
             self.assertEqual(1, log_mock.info.call_count)
             self.assertEqual(1, log_mock.debug.call_count)
+
+    def test_execute_metadata_updates_if_needed_resource_no_recover_when_inactivity_disabled(self):
+        measures = {"timestamps": [numpy.datetime64('2030-01-01T00:00:00')]}
+
+        indexer_driver_mock = mock.Mock()
+        indexer_driver_mock.conf.metricd.metric_inactive_after = 0
+
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = False
+        metric_mock.resource_id = 1
+
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime(
+            2023, 11, 4, tzinfo=datetime.timezone.utc)
+        indexer_driver_mock.get_resource.return_value = resource_mock
+
+        self.storage.execute_metadata_updates_if_needed(
+            indexer_driver_mock, measures, metric_mock)
+
+        indexer_driver_mock.update_last_measure_timestamp.assert_called_once_with(
+            metric_mock.id)
+        indexer_driver_mock.update_resource.assert_not_called()
 
     def test_add_measures_to_metrics(self):
         raw_measures_mock = mock.Mock()
