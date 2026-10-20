@@ -112,8 +112,6 @@ jobs:
           - py311
           - py312
         env:
-          - mysql-ceph-upgrade-from-4.6
-          - postgresql-file-upgrade-from-4.6
           - mysql-file
           - mysql-file-sqlalchemy14
           - mysql-swift
@@ -124,22 +122,6 @@ jobs:
           - postgresql-swift
           - postgresql-s3
           - postgresql-ceph
-        exclude:
-          # FIXME(callumdickinson): Freezes while starting Gnocchi 4.6.
-          - env: postgresql-file-upgrade-from-4.6
-            python: py310
-          - env: mysql-ceph-upgrade-from-4.6
-            python: py310
-          - env: mysql-ceph
-            python: py310
-          - env: postgresql-ceph
-            python: py310
-          - env: mysql-ceph-upgrade-from-4.6
-            python: py311
-          - env: mysql-ceph
-            python: py311
-          - env: postgresql-ceph
-            python: py311
     steps:
       - uses: actions/checkout@v4
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
