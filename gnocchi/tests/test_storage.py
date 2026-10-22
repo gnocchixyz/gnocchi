@@ -64,6 +64,9 @@ class TestStorageDriver(tests_base.TestCase):
         driver = storage.get_driver(self.conf)
         self.assertIsInstance(driver, storage.StorageDriver)
 
+    def test_upgrade(self):
+        self.storage.upgrade()
+
     def test_file_driver_subdir_len(self):
         driver = storage.get_driver(self.conf)
         if not isinstance(driver, file.FileStorage):
@@ -1460,3 +1463,33 @@ class TestStorageDriver(tests_base.TestCase):
                                     [mock.call(measures, metric, [], raw_measures_mock, {}, {})])
                                 execute_metadata_updates_if_needed_mock.assert_has_calls(
                                     [mock.call(indexer_driver_mock, measures_to_use, metric)])
+
+
+class TestS3Storage(tests_base.BaseTestCase):
+    def test_upgrade_ignores_existing_bucket_errors(self):
+        class FakeClientError(Exception):
+            def __init__(self, code):
+                super(FakeClientError, self).__init__(code)
+                self.response = {'Error': {'Code': code}}
+
+        driver = s3.S3Storage.__new__(s3.S3Storage)
+        driver.s3 = mock.Mock()
+        driver._bucket_name = 'gnocchi-aggregates'
+        driver._region_name = 'us-east-1'
+
+        fake_botocore = mock.Mock()
+        fake_botocore.exceptions.ClientError = FakeClientError
+
+        with mock.patch.object(s3, 'botocore', fake_botocore):
+            for code in ("BucketAlreadyExists", "BucketAlreadyOwnedByYou"):
+                with mock.patch.object(
+                        s3.s3, 'create_bucket',
+                        side_effect=FakeClientError(code)) as create_mock:
+                    driver.upgrade()
+                    create_mock.assert_called_once_with(
+                        driver.s3, 'gnocchi-aggregates', 'us-east-1')
+
+            with mock.patch.object(
+                    s3.s3, 'create_bucket',
+                    side_effect=FakeClientError("AccessDenied")):
+                self.assertRaises(FakeClientError, driver.upgrade)
