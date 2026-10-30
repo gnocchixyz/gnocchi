@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    An empty or truncated unaggregated timeserie, such as a file left empty
+    when metricd is killed during a write, no longer blocks processing of its
+    whole sack. It is now treated as corrupt data and rebuilt.
