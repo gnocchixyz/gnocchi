@@ -102,6 +102,21 @@ class TestBoundTimeSerie(base.BaseTestCase):
         self.assertEqual(3.0, ts[2][1])
         self.assertEqual(9.0, ts[3][1])
 
+    def test_unserialize_truncated(self):
+        ts = carbonara.BoundTimeSerie.from_data(
+            [datetime64(2014, 1, 1, 12, 0, 0),
+             datetime64(2014, 1, 1, 12, 0, 4)],
+            [3, 5])
+        data = ts.serialize()
+        # lz4 raises ValueError for input shorter than its 4-byte size
+        # header or a header size above INT_MAX, and LZ4BlockError for a
+        # cut-off payload: all of them are invalid data.
+        for truncated in (b"", data[:3], b"\xff\xff\xff\xff" + data[4:],
+                          data[:-1]):
+            self.assertRaises(carbonara.InvalidData,
+                              carbonara.BoundTimeSerie.unserialize,
+                              truncated, None, 0)
+
 
 class TestAggregatedTimeSerie(base.BaseTestCase):
     def test_benchmark(self):
@@ -209,6 +224,20 @@ class TestAggregatedTimeSerie(base.BaseTestCase):
              (datetime64(2014, 1, 1, 12, 4, 0), 2)],
             list(ts.fetch(
                 from_timestamp=datetime64(2014, 1, 1, 12))))
+
+    def test_unserialize_truncated(self):
+        ts = carbonara.TimeSerie.from_data(
+            [datetime64(2014, 1, 1, 12, 0, 0),
+             datetime64(2014, 1, 1, 12, 0, 4),
+             datetime64(2014, 1, 1, 12, 0, 9)],
+            [3, 5, 6])
+        ts = self._resample(ts, numpy.timedelta64(60, 's'), 'mean')
+        key = ts.get_split_key()
+        o, data = ts.serialize(key, compressed=True)
+        for truncated in (data[:3], data[:-1]):
+            self.assertRaises(carbonara.InvalidData,
+                              carbonara.AggregatedTimeSerie.unserialize,
+                              truncated, key, ts.aggregation)
 
     def test_74_percentile_serialized(self):
         ts = carbonara.TimeSerie.from_data(
