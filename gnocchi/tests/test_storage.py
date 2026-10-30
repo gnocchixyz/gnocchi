@@ -165,6 +165,33 @@ class TestStorageDriver(tests_base.TestCase):
         self.assertIn((datetime64(2014, 1, 1, 13),
                        numpy.timedelta64(5, 'm'), 1), m)
 
+    def test_empty_unaggregated_timeserie(self):
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 69),
+        ])
+        self.trigger_processing()
+
+        # A worker killed while rewriting the raw timeserie can leave an
+        # empty object behind (e.g. a truncated file with the file driver).
+        self.storage._store_unaggregated_timeseries([(self.metric, b"")])
+
+        self.incoming.add_measures(self.metric.id, [
+            incoming.Measure(datetime64(2014, 1, 1, 13, 0, 1), 1),
+        ])
+        with mock.patch('gnocchi.storage.LOG') as LOG:
+            self.trigger_processing()
+            self.assertTrue(LOG.error.called)
+
+        m = self.storage.get_aggregated_measures(
+            {self.metric:
+                self.metric.archive_policy.get_aggregations_for_method(
+                    'mean')},)[self.metric]
+        m = get_measures_list(m)['mean']
+        self.assertIn((datetime64(2014, 1, 1, 13),
+                       numpy.timedelta64(1, 'h'), 1), m)
+        self.assertIn((datetime64(2014, 1, 1, 13),
+                       numpy.timedelta64(5, 'm'), 1), m)
+
     def test_aborted_initial_processing(self):
         self.incoming.add_measures(self.metric.id, [
             incoming.Measure(datetime64(2014, 1, 1, 12, 0, 1), 5),
