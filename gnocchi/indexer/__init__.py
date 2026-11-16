@@ -31,6 +31,12 @@ OPTS = [
                required=True,
                default=os.getenv("GNOCCHI_INDEXER_URL"),
                help='Indexer driver to use'),
+    cfg.IntOpt('resource_delete_batch_size',
+               default=1000,
+               min=1,
+               help='Number of resources a batch delete removes per '
+                    'statement, so that a large delete does not hold its '
+                    'locks or grow its transaction log all at once.'),
 ]
 
 

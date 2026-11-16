@@ -1051,17 +1051,38 @@ class SQLAlchemyIndexer(indexer.IndexerDriver):
                 raise indexer.ResourceAttributeError(resource_type,
                                                      e.attribute)
 
-            resourceFilter = select(target_cls.id).filter(f)
-
+            # Mark the metrics first: once a resource row is gone the filter
+            # no longer finds them.
             stmt = update(Metric).filter(
-                Metric.resource_id.in_(resourceFilter)
+                Metric.resource_id.in_(select(target_cls.id).filter(f))
             ).values(status="delete").execution_options(
                 synchronize_session=False)
             session.execute(stmt)
 
-            stmt = delete(target_cls).filter(f).execution_options(
-                synchronize_session=False)
-            return session.execute(stmt).rowcount
+            # Delete from the resource table, as delete_resource() does, and
+            # let the foreign keys remove the type's own rows. Deleting
+            # target_cls only removes the row of the type's table and leaves
+            # the resource row behind: still listed as a generic resource, and
+            # keeping the type from ever being deleted.
+            #
+            # The ids come from a derived table rather than a plain subquery:
+            # MySQL and MariaDB refuse a DELETE whose subquery reads the table
+            # being deleted from (error 1093), which the type's filter joins,
+            # and refuse LIMIT in an IN subquery; a derived table with a LIMIT
+            # is materialized first, so neither applies. The ids stay in the
+            # database and each statement deletes at most one batch.
+            batch_size = self.conf.indexer.resource_delete_batch_size
+            batch = select(target_cls.id.label("id")).filter(f).limit(
+                batch_size).subquery()
+            stmt = delete(Resource).where(
+                Resource.id.in_(select(batch.c.id))
+            ).execution_options(synchronize_session=False)
+            deleted = 0
+            while True:
+                count = session.execute(stmt).rowcount
+                deleted += count
+                if count < batch_size:
+                    return deleted
 
     @retry_on_deadlock
     def get_resource(self, resource_type, resource_id, with_metrics=False):
