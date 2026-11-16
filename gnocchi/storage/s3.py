@@ -91,7 +91,9 @@ class S3Storage(storage.StorageDriver):
         try:
             s3.create_bucket(self.s3, self._bucket_name, self._region_name)
         except botocore.exceptions.ClientError as e:
-            if e.response['Error'].get('Code') != "BucketAlreadyExists":
+            if e.response['Error'].get('Code') not in (
+                    "BucketAlreadyExists", "BucketAlreadyOwnedByYou"
+            ):
                 raise
 
     @staticmethod
