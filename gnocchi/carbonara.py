@@ -379,7 +379,7 @@ class BoundTimeSerie(TimeSerie):
     def unserialize(cls, data, block_size, back_window):
         try:
             uncompressed = lz4.block.decompress(data)
-        except lz4.block.LZ4BlockError:
+        except (lz4.block.LZ4BlockError, ValueError):
             LOG.warning(
                 "Corrupt Carbonara bound object (len=%d); skipping.",
                 len(data))
@@ -709,7 +709,7 @@ class AggregatedTimeSerie(TimeSerie):
                 try:
                     uncompressed = lz4.block.decompress(
                         memoryview(data)[1:].tobytes())
-                except lz4.block.LZ4BlockError:
+                except (lz4.block.LZ4BlockError, ValueError):
                     LOG.warning(
                         "Corrupt Carbonara aggregate object "
                         "(key=%s, len=%d); skipping.",
