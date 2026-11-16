@@ -35,7 +35,6 @@ RUN apt-get update -y && apt-get install -qy \
 # For Ceph
         librados-dev \
         liberasurecode-dev \
-        python3-rados \
         ceph \
 # For prometheus
         libsnappy-dev \
@@ -44,6 +43,28 @@ RUN apt-get update -y && apt-get install -qy \
         redis-server
 
 RUN rm -rf /var/lib/apt/lists/*
+
+#NOTE(tobias-urdin): build rados python bindings as wheels for every interpreter,
+# matching the installed Ceph version
+RUN _radosPackageVersion=$(dpkg-query --showformat='${Version}' --show librados2 | sed 's/+ds.*//g') \
+    && _cephVersion="${_radosPackageVersion%-*}" \
+    && git clone --branch "v${_cephVersion}" --depth 1 https://github.com/ceph/ceph /ceph \
+    && mkdir -p /opt/rados-wheels \
+    && for entry in "python3.10 cp310" "python3.11 cp311" "python3 cp312"; do \
+         set -- $entry \
+         && $1 -m venv --without-pip /tmp/rados-build-$2 \
+         && curl -sSL https://bootstrap.pypa.io/pip/get-pip.py \
+              | /tmp/rados-build-$2/bin/python - \
+         && /tmp/rados-build-$2/bin/python -m pip install -q --no-cache-dir cython setuptools wheel \
+         && ( cd /ceph/src/pybind/rados \
+              && CFLAGS="-I/ceph/src/include -Wno-error=incompatible-pointer-types" \
+                 SETUPTOOLS_USE_DISTUTILS=local \
+                 /tmp/rados-build-$2/bin/python -m pip wheel --no-deps --no-build-isolation \
+                    -w /opt/rados-wheels . ) \
+         && echo $(ls /opt/rados-wheels/rados-*-$2-$2-*.whl) > /opt/rados-wheels/rados-$2.txt \
+         && rm -rf /tmp/rados-build-$2; \
+       done \
+    && rm -rf /ceph
 
 # Node
 ENV NVM_VERSION=v0.40.8
