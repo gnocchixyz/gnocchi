@@ -57,7 +57,8 @@ jobs:
             echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
           fi
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "/tmp/tox-venv/bin/tox -e ${{ matrix.env }}"
 
   check:
     runs-on: ubuntu-latest
@@ -100,7 +101,8 @@ jobs:
             echo "DOCKER_ENV_OPTS=" >> $GITHUB_ENV
           fi
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.env }}"
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "/tmp/tox-venv/bin/tox -e ${{ matrix.env }}"
 
   test:
     runs-on: ubuntu-latest
@@ -111,6 +113,7 @@ jobs:
           - py310
           - py311
           - py312
+          - py313
         env:
           - mysql-ceph-upgrade-from-4.6
           - postgresql-file-upgrade-from-4.6
@@ -140,6 +143,10 @@ jobs:
             python: py311
           - env: postgresql-ceph
             python: py311
+          - env: mysql-file-sqlalchemy14
+            python: py314
+          - env: postgresql-file-sqlalchemy14
+            python: py314
     steps:
       - uses: actions/checkout@v4
       - run: sudo chown -R 1001:1001 $GITHUB_WORKSPACE
@@ -179,4 +186,5 @@ jobs:
           fi
           echo "DOCKER_ENV_OPTS=$DOCKER_ENV_OPTS" >> $GITHUB_ENV
       - name: Run tests with tox in container
-        run: docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "tox -e ${{ matrix.python }}-${{ matrix.env }}"
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/github/workspace -w /github/workspace $DOCKER_ENV_OPTS ghcr.io/gnocchixyz/ci:latest "/tmp/tox-venv/bin/tox -e ${{ matrix.python }}-${{ matrix.env }}"
