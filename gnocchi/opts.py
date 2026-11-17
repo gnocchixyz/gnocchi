@@ -200,7 +200,7 @@ def list_opts():
                        help="Custom UWSGI path to avoid auto discovery of packages.")
         ) + API_OPTS + gnocchi.rest.http_proxy_to_wsgi.OPTS,
         ),
-        ("storage", _STORAGE_OPTS),
+        ("storage", _STORAGE_OPTS + gnocchi.storage.RESTORE_OPTS),
         ("incoming", _INCOMING_OPTS),
         ("statsd", (
             cfg.HostAddressOpt('host',

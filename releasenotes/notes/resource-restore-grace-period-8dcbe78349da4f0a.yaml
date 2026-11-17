@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    A new option, ``[storage] resource_restore_grace_period``, sets the number
+    of seconds after a resource's ``ended_at`` timestamp during which new
+    measures do not restore the resource. Measures are still stored. The
+    default is 0, which keeps the previous behavior.
+fixes:
+  - |
+    Samples that arrive late, or that are stamped shortly after a resource
+    was deleted, no longer have to restore a resource that was explicitly
+    ended. Set ``[storage] resource_restore_grace_period`` to cover the
+    expected delay.
