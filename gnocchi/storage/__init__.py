@@ -33,6 +33,24 @@ OPTS = [
                help='Storage driver to use'),
 ]
 
+# NOTE: Kept out of OPTS, which is also copied into the [incoming] group,
+# where this option has no meaning.
+RESTORE_OPTS = [
+    cfg.IntOpt('resource_restore_grace_period',
+               default=0,
+               min=0,
+               help="Number of seconds after a resource's 'ended_at' "
+                    "timestamp during which new measures do not restore "
+                    "the resource. A measure only clears 'ended_at' when "
+                    "its timestamp is at least this many seconds after "
+                    "'ended_at'. This keeps late samples, such as ones "
+                    "stamped shortly after the resource was deleted, from "
+                    "restoring a resource that was explicitly ended. The "
+                    "measures are stored either way. The default is 0 "
+                    "(zero), which restores the resource on any measure "
+                    "stamped at or after 'ended_at'."),
+]
+
 
 LOG = daiquiri.getLogger(__name__)
 
@@ -131,6 +149,8 @@ class StorageDriver(object):
 
     def __init__(self, conf):
         self.statistics = Statistics()
+        self.resource_restore_grace_period = datetime.timedelta(
+            seconds=conf.resource_restore_grace_period)
 
     @staticmethod
     def upgrade():
@@ -718,6 +738,13 @@ class StorageDriver(object):
                     LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
                              "measurement for metric [%s]. However, we do not restore it as the latest timestamp "
                              "of the measurement is [%s].", resource, metric.id, latest_timestamp_in_measurements)
+                elif (resource.ended_at + self.resource_restore_grace_period
+                        > latest_timestamp_in_measurements):
+                    LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                             "measurement for metric [%s] with a max timestamp as [%s]. However, we do not restore "
+                             "it as the measurement is within the restore grace period of [%s] after 'ended_at'.",
+                             resource, metric.id, latest_timestamp_in_measurements,
+                             self.resource_restore_grace_period)
                 else:
                     LOG.info("Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
                              "measurement for metric [%s] with a max timestamp as [%s]. Therefore, restoring it.",

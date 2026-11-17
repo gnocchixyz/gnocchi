@@ -1455,6 +1455,33 @@ class TestStorageDriver(tests_base.TestCase):
             self.assertEqual(1, log_mock.info.call_count)
             self.assertEqual(1, log_mock.debug.call_count)
 
+    def test_execute_metadata_updates_if_needed_resource_no_recover_within_grace_period(self):
+        self.conf.set_override('resource_restore_grace_period', 60, 'storage')
+        driver = storage.get_driver(self.conf)
+
+        measures = {"timestamps": [numpy.datetime64('2023-11-04T00:00:10'), numpy.datetime64('2023-11-04T00:00:30')]}
+        indexer_driver_mock = mock.Mock()
+        metric_mock = mock.Mock()
+        metric_mock.needs_raw_data_truncation = False
+        resource_id = 1
+        metric_mock.resource_id = resource_id
+        resource_mock = mock.Mock()
+        resource_mock.ended_at = datetime.datetime.fromisoformat('2023-11-04').replace(tzinfo=datetime.timezone.utc)
+        indexer_driver_mock.get_resource.return_value = resource_mock
+        latest_timestamp_in_measurements = datetime.datetime.fromisoformat('2023-11-04T00:00:30').replace(
+            tzinfo=datetime.timezone.utc)
+
+        with mock.patch('gnocchi.storage.LOG') as log_mock:
+            driver.execute_metadata_updates_if_needed(indexer_driver_mock, measures, metric_mock)
+
+            self.assertEqual(0, indexer_driver_mock.update_resource.call_count)
+
+            log_mock.info.assert_called_once_with(
+                "Resource [%s] was marked with a timestamp for the 'ended_at' field. It received a "
+                "measurement for metric [%s] with a max timestamp as [%s]. However, we do not restore "
+                "it as the measurement is within the restore grace period of [%s] after 'ended_at'.",
+                resource_mock, metric_mock.id, latest_timestamp_in_measurements, datetime.timedelta(seconds=60))
+
     def test_add_measures_to_metrics(self):
         raw_measures_mock = mock.Mock()
 
